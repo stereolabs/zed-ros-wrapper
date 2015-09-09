@@ -1,0 +1,21 @@
+<launch>
+  
+  <arg name="computeDepth" value="1"/>
+  <arg name="svo_file" default=""/>
+  
+  <node name="ze_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg computeDepth) $(arg svo_file)" output="screen">
+ 
+    <param name="resolution"            value="3" />
+    <param name="quality"               value="1" />
+    <param name="sensing_mode"          value="1" />
+    <param name="frame_rate"            value="25" />
+  	
+    <param name="left_topic"            value="rgb/image_raw" />
+	  <param name="second_topic"          value="depth/image_raw" />
+	  <param name="left_cam_info_topic"   value="/camera/rgb/camera_info" />
+	  <param name="second_cam_info_topic" value="/camera/depth/camera_info" />
+	  <param name="left_frame_id"         value="/zed_rgb_optical_frame" />
+	  <param name="second_frame_id"       value="/zed_depth_optical_frame" />
+    
+  </node>
+</launch>
