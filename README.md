@@ -1,6 +1,7 @@
 # zed-ros-wrapper
 Ros wrapper for the ZED Stereo Camera SDK
-** This sample is designed to work with the ZED stereo camera only and require the ZED SDK, more information : https://www.stereolabs.com **
+
+**This sample is designed to work with the ZED stereo camera only and require the ZED SDK, more information : https://www.stereolabs.com**
 
 This sample is a wrapper for the ZED library in order to use the ZED Camera with ROS.
 You can publish Left+Depth or Left+Right images and camera info on the topics of your choice.
