@@ -37,6 +37,8 @@ Open a terminal :
 
    	$ roslaunch zed_wrapper zed_depth.launch
 
+**WARNING : to get the depth in meters (it's a requirement for ROS), the baseline has to be set manually to 0.12 using ZED Settings App**
+
 ## Launch file parameters
 
 Parameter       |           Description           |              Value               
