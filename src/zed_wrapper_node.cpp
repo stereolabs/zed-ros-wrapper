@@ -113,11 +113,12 @@ void fillCamInfo(Camera* zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sens
     float cx = zedParam->LeftCam.cx;
     float cy = zedParam->LeftCam.cy;
 
-    double k1 = zedParam->LeftCam.disto[0];
-    double k2 = zedParam->LeftCam.disto[1];
-    double k3 = zedParam->LeftCam.disto[2];
-    double p1 = zedParam->LeftCam.disto[3];
-    double p2 = zedParam->LeftCam.disto[4];
+    // There is no distorsions since the images are rectified
+    double k1 = 0;
+    double k2 = 0;
+    double k3 = 0;
+    double p1 = 0;
+    double p2 = 0;
 
     left_cam_info_msg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
     second_cam_info_msg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
@@ -167,8 +168,15 @@ int main(int argc, char **argv) {
     int quality = sl::zed::MODE::PERFORMANCE;
     int sensing_mode = sl::zed::SENSING_MODE::RAW;
     int rate = 25;
-    string left_topic = (computeDepth) ? "rgb/image_raw" : "left/image_raw";
-    string second_topic = (computeDepth) ? "depth/image_raw" : "right/image_raw";
+
+    std::string img_topic = "image_rect";
+#if 0
+    // Used in some package
+    img_topic = "image_raw";
+#endif
+
+    string left_topic = (computeDepth) ? "rgb/" + img_topic : "left/" + img_topic;
+    string second_topic = (computeDepth) ? "depth/" + img_topic : "right/" + img_topic;
     string left_cam_info_topic = (computeDepth) ? "rgb/camera_info" : "left/camera_info";
     string second_cam_info_topic = (computeDepth) ? "depth/camera_info" : "right/camera_info";
     string left_frame_id = (computeDepth) ? "/zed_rgb_optical_frame" : "/zed_left_optical_frame";
