@@ -10,8 +10,10 @@
     <param name="sensing_mode"          value="1" />
     <param name="frame_rate"            value="25" />
   	
-    <param name="left_topic"            value="rgb/image_raw" />
-	  <param name="second_topic"          value="depth/image_raw" />
+	<!-- <param name="left_topic"            value="rgb/image_raw" /> -->
+	<!-- <param name="second_topic"          value="depth/image_raw" /> -->
+	<param name="left_topic"            value="rgb/image_rect" />
+	<param name="second_topic"          value="depth/image_rect" />
 	  <param name="left_cam_info_topic"   value="/camera/rgb/camera_info" />
 	  <param name="second_cam_info_topic" value="/camera/depth/camera_info" />
 	  <param name="left_frame_id"         value="/zed_rgb_optical_frame" />
