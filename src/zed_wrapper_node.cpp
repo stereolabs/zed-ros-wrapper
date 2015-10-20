@@ -33,13 +33,13 @@
 #include <cstdio>
 #include <math.h>
 #include <limits>
+#include <thread>
 
 // ROS
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/distortion_models.h>
-#include <diagnostic_updater/publisher.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <image_transport/image_transport.h>
@@ -259,6 +259,8 @@ int main(int argc, char **argv) {
 
     ros::Rate loop_rate(rate);
 
+    bool old_image = false;
+
     try {
         // Main loop
         while (ros::ok()) {
@@ -269,9 +271,15 @@ int main(int argc, char **argv) {
                 ros::Time t = ros::Time::now();
 
                 if (computeDepth)
-                    zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true);
+                    old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true);
                 else
-                    zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), false, false);
+                    old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), false, false);
+
+                if (old_image) {
+                    // Wait for a new image to proceed
+                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                    continue;
+                }
 
                 // Retrieve RGBA Left image
                 slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)).copyTo(leftImRGBA);
@@ -296,7 +304,7 @@ int main(int argc, char **argv) {
 
                 ros::spinOnce();
                 loop_rate.sleep();
-            }
+            } else std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
         }
     } catch (...) {
         ROS_ERROR("Unknown error.");
