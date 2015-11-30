@@ -212,9 +212,9 @@ int main(int argc, char **argv) {
 
     ERRCODE err;
     if (computeDepth)
-        err = zed->init(static_cast<sl::zed::MODE> (quality));
+        err = zed->init(static_cast<sl::zed::MODE> (quality), -1, true);
     else
-        err = zed->init(sl::zed::MODE::NONE);
+        err = zed->init(sl::zed::MODE::NONE, -1, true);
 
     //ERRCODE display
     ROS_INFO_STREAM(errcode2str(err));
