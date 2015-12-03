@@ -43,6 +43,9 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <image_transport/image_transport.h>
+#include <dynamic_reconfigure/server.h>
+#include <zed_wrapper/ZedConfig.h>
+
 
 //opencv includes
 #include <opencv2/core/core.hpp>
@@ -57,6 +60,7 @@ using namespace sl::zed;
 using namespace std;
 
 int computeDepth;
+int confidence;
 
 // Function to publish left and depth/right images
 
@@ -158,6 +162,12 @@ void fillCamInfo(Camera* zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sens
     second_cam_info_msg->header.frame_id = second_frame_id;
 }
 
+void callback(zed_ros_wrapper::ZedConfig &config, uint32_t level) {
+  ROS_INFO("Reconfigure confidence : %d",
+            config.confidence);
+  confidence = config.confidence;
+}
+
 // Main function
 
 int main(int argc, char **argv) {
@@ -226,6 +236,13 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    dynamic_reconfigure::Server<zed_ros_wrapper::ZedConfig> server;
+    dynamic_reconfigure::Server<zed_ros_wrapper::ZedConfig>::CallbackType f;
+
+    f = boost::bind(&callback, _1, _2);
+    server.setCallback(f);
+
+    confidence = 80;
     int width = zed->getImageSize().width;
     int height = zed->getImageSize().height;
     ROS_DEBUG_STREAM("Image size : " << width << "x" << height);
@@ -290,6 +307,7 @@ int main(int argc, char **argv) {
                     ROS_DEBUG_STREAM("Publishing left and depth Images");
                     // Retrieve raw depth data and convert it to 16_bit data
                     slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(secondIm, CV_16UC1);
+                    zed->setConfidenceThreshold(confidence);
                 } else {
                     ROS_DEBUG_STREAM("Publishing left and right Images");
                     // Retrieve RGBA Right image

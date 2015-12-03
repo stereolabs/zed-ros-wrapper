@@ -39,6 +39,11 @@ find_package(catkin REQUIRED COMPONENTS
   rosconsole
   sensor_msgs
   cv_bridge
+  dynamic_reconfigure
+)
+
+generate_dynamic_reconfigure_options(
+  cfg/Zed.cfg
 )
 
 catkin_package(
@@ -49,6 +54,7 @@ catkin_package(
     opencv2
     cv_bridge
     image_transport
+    dynamic_reconfigure
 )
 
 ###############################################################################
@@ -73,6 +79,7 @@ link_directories(${OpenCV_LIBRARY_DIRS})
 
 add_definitions(-std=c++11)# -m64) #-Wall)
 
+
 add_executable(
   zed_wrapper_node
   src/zed_wrapper_node.cpp
@@ -85,5 +92,11 @@ target_link_libraries(
 	${CUDA_LIBRARIES} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY}
         ${OpenCV_LIBS}  
     )
+
+add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)
 ###############################################################################
 
+#Add all files in subdirectories of the project in
+# a dummy_target so qtcreator have access to all files
+FILE(GLOB_RECURSE extra_files ${CMAKE_SOURCE_DIR}/*)
+add_custom_target(dummy_${PROJECT_NAME} SOURCES ${extra_files})
