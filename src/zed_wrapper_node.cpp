@@ -275,7 +275,7 @@ int main(int argc, char **argv) {
     fillCamInfo(zed, left_cam_info_msg, second_cam_info_msg, left_frame_id, second_frame_id);
 
     ros::Rate loop_rate(rate);
-
+    ros::Time old_t = ros::Time::now();
     bool old_image = false;
 
     try {
@@ -287,16 +287,38 @@ int main(int argc, char **argv) {
                 // Get current time
                 ros::Time t = ros::Time::now();
 
-                if (computeDepth)
+                if (computeDepth) {
+                    int actual_confidence = zed->getConfidenceThreshold();
+                    if(actual_confidence != confidence)
+                        zed->setConfidenceThreshold(confidence);
                     old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true);
+                }
                 else
                     old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), false, false);
 
                 if (old_image) {
-                    // Wait for a new image to proceed
+                    ROS_WARN("Wait for a new image to proceed");
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                    if ((t - old_t).toSec() > 5) {
+                      ROS_INFO("Reinit camera");
+                      ERRCODE err;
+                      if (computeDepth)
+                          err = zed->init(static_cast<sl::zed::MODE> (quality), -1, true);
+                      else
+                          err = zed->init(sl::zed::MODE::NONE, -1, true);
+
+                      // Quit if an error occurred
+                      if (err != SUCCESS) {
+                          //ERRCODE display
+                          ROS_ERROR_STREAM(errcode2str(err));
+                          delete zed;
+                          return 1;
+                      }
+                    }
                     continue;
                 }
+
+                old_t = ros::Time::now();
 
                 // Retrieve RGBA Left image
                 slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)).copyTo(leftImRGBA);
@@ -307,7 +329,6 @@ int main(int argc, char **argv) {
                     ROS_DEBUG_STREAM("Publishing left and depth Images");
                     // Retrieve raw depth data and convert it to 16_bit data
                     slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(secondIm, CV_16UC1);
-                    zed->setConfidenceThreshold(confidence);
                 } else {
                     ROS_DEBUG_STREAM("Publishing left and right Images");
                     // Retrieve RGBA Right image
