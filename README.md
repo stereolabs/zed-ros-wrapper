@@ -2,6 +2,7 @@
 Ros wrapper for the ZED Stereo Camera SDK
 
 **This sample is designed to work with the ZED stereo camera only and requires the ZED SDK. For more information: https://www.stereolabs.com**
+
 **This wrapper also require the PCL library**
 
 This sample is a wrapper for the ZED library in order to use the ZED Camera with ROS. It can provide the camera images, the depth map, and a 3D point cloud
