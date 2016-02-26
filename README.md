@@ -54,7 +54,7 @@ Open a terminal :
    
    	$ rosrun rviz rviz
 
-   Note that rviz isn't very good at displaying a camera feed and a point cloud at the same time. You should use an other instance of rviz or the `rosrun` command.
+   Note that rviz isn't very good at displaying a camera feed and a point cloud at the same time. You should use an other instance of rviz or the `rosrun` command. To display a camera feed in rviz, click on 'add' (bottom left), select the 'By Topic' tab, select the topic that you want and finaly select 'image [raw]'.
 
 ## Launch file parameters
 
