@@ -2,6 +2,7 @@
 Ros wrapper for the ZED Stereo Camera SDK
 
 **This sample is designed to work with the ZED stereo camera only and requires the ZED SDK. For more information: https://www.stereolabs.com**
+**This wrapper also require the PCL library**
 
 This sample is a wrapper for the ZED library in order to use the ZED Camera with ROS. It can provide the camera images, the depth map, and a 3D point cloud
 Published topics:
@@ -54,7 +55,7 @@ Open a terminal :
    
    	$ rosrun rviz rviz
 
-   Note that rviz isn't very good at displaying a camera feed and a point cloud at the same time. You should use an other instance of rviz or the `rosrun` command. To display a camera feed in rviz, click on 'add' (bottom left), select the 'By Topic' tab, select the topic that you want and finaly select 'image [raw]'.
+   Note that rviz isn't very good at displaying a camera feed and a point cloud at the same time. You should use an other instance of rviz or the `rosrun` command.
 
 ## Launch file parameters
 
