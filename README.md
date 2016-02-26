@@ -5,19 +5,22 @@ Ros wrapper for the ZED Stereo Camera SDK
 
 This sample is a wrapper for the ZED library in order to use the ZED Camera with ROS. It can provide the camera images, the depth map, and a 3D point cloud
 Published topics:
-    - /camera/point_cloud/cloud
-    - /camera/depth/camera_info
-    - /camera/depth/image_rect_color
-    - /camera/left/camera_info
-    - /camera/left/image_rect_color
-    - /camera/rgb/camera_info
-    - /camera/rgb/image_rect_color
+
+   - /camera/point_cloud/cloud
+   - /camera/depth/camera_info
+   - /camera/depth/image_rect_color
+   - /camera/left/camera_info
+   - /camera/left/image_rect_color
+   - /camera/rgb/camera_info
+   - /camera/rgb/image_rect_color
 
 A set of parameters can be specified in the launch file provided in the launch directory.
-    - zed.launch
+
+   - zed.launch
 
 The zed_ros_wrapper is a catkin package made to run on ROS Indigo, and depends
 on the following ROS packages:
+
    - roscpp
    - rosconsole
    - sensor_msgs
