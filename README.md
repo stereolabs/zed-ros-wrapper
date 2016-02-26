@@ -3,16 +3,26 @@ Ros wrapper for the ZED Stereo Camera SDK
 
 **This sample is designed to work with the ZED stereo camera only and requires the ZED SDK. For more information: https://www.stereolabs.com**
 
-This sample is a wrapper for the ZED library in order to use the ZED Camera with ROS.
-You can publish Left+Depth or Left+Right images and camera info on the topics of your choice.
+**This wrapper also requires the PCL library**
 
-A set of parameters can be specified in the launch file. Two launch files are provided in the launch directory:
+This sample is a wrapper for the ZED library in order to use the ZED Camera with ROS. It can provide the camera images, the depth map, and a 3D point cloud
+Published topics:
 
-       - zed_depth.launch: publish left and depth images with their camera info.
-       - zed_stereo.launch: publish left and right images with their camera info.
+   - /camera/point_cloud/cloud
+   - /camera/depth/camera_info
+   - /camera/depth/image_rect_color
+   - /camera/left/camera_info
+   - /camera/left/image_rect_color
+   - /camera/rgb/camera_info
+   - /camera/rgb/image_rect_color
 
-The zed_depth_stereo_wrapper is a catkin package made to run on ROS Indigo, and depends
+A set of parameters can be specified in the launch file provided in the launch directory.
+
+   - zed.launch
+
+The zed_ros_wrapper is a catkin package made to run on ROS Indigo, and depends
 on the following ROS packages:
+
    - roscpp
    - rosconsole
    - sensor_msgs
@@ -33,31 +43,58 @@ Open a terminal :
 
 ## Run the program
 
-   Open a terminal :
+   Open a terminal to launch the wrapper:
 
-   	$ roslaunch zed_wrapper zed_depth.launch
+   	$ roslaunch zed_wrapper zed.launch
 
-**WARNING : to get the depth in meters (it's a requirement for ROS), the baseline has to be set manually to 0.12 using ZED Settings App**
+   Open an other terminal to display images:
+
+   	$ rosrun image_view image_view image:=/camera/rgb/image_rect_color
+
+   If you want to see the point cloud, launch rviz, select zed_optical_frame in Displays->Global Options->Fixed Frame->zed_optical_frame.
+   Then click on 'add' (bottom left), select the 'By Topic' tab, select point_cloud->cloud->PointCloud2 and click 'OK'.
+   
+   	$ rosrun rviz rviz
+
+   Note that rviz isn't very good at displaying a camera feed and a point cloud at the same time. You should use an other instance of rviz or the `rosrun` command.
 
 ## Launch file parameters
 
-Parameter       |           Description           |              Value               
-------------------------|---------------------------------|---------------------------------
- computeDepth          | Toggle depth computation.       | '0': depth not computed, Left+Right images published 
-                       |                                 | '1': depth computed, Left+Depth images published 
- svo_file              | SVO filename                    | path to an SVO file              
- resolution            | ZED Camera resolution           | '0': HD2K                        
-                       |                                 | '1': HD1080                      
-                       |                                 | '2': HD720                       
-                       |                                 | '3': VGA                         
- quality               | Disparity Map quality           | '1': PERFORMANCE                 
-                      |                                 | '2': QUALITY                     
- sensing_mode          | Depth sensing mode              | '0': FULL                        
-                       |                                 | '1': RAW                         
-frame_rate            | Rate at which images are published  | int                              
- left_topic            | Topic to which left images are published | string                           
- second_topic          | Topic to which depth or right images are published   | string                           
- left_cam_info_topic   | Topic to which left camera info are published | string                           
- second_cam_info_topic | Topic to which right or depth camera info are published  | string                           
- left_frame_id         | ID specified in the left image message header | string                           
- second_frame_id       | ID specified in the depth or right image message header   | string                           
+ Parameter              |           Description           |              Value                
+------------------------|---------------------------------|---------------------------------  
+ svo_file               | SVO filename                    | path to an SVO file               
+ resolution             | ZED Camera resolution           | '0': HD2K                         
+ _                      | _                               | '1': HD1080                       
+ _                      | _                               | '2': HD720                        
+ _                      | _                               | '3': VGA                          
+ quality                | Disparity Map quality           | '1': PERFORMANCE                  
+ _                      | _                               | '2': QUALITY                      
+ sensing_mode           | Depth sensing mode              | '0': FULL                         
+ _                      | _                               | '1': RAW                          
+ frame_rate             | Rate at which images are published                          | int   
+ rgb_topic              | Topic to which rgb==default==left images are published      | string
+ rgb_cam_info_topic     | Topic to which rgb==default==left camera info are published | string
+ rgb_frame_id           | ID specified in the rgb==default==left image message header | string
+ left_topic             | Topic to which left images are published                    | string
+ left_cam_info_topic    | Topic to which left camera info are published               | string
+ left_frame_id          | ID specified in the left image message header               | string
+ right_topic            | Topic to which right images are published                   | string
+ right_cam_info_topic   | Topic to which right camera info are published              | string
+ right_frame_id         | ID specified in the right image message header              | string
+ depth_topic            | Topic to which depth map images are published               | string
+ depth_cam_info_topic   | Topic to which depth camera info are published              | string
+ depth_frame_id         | ID specified in the depth image message header              | string
+ point_cloud_topic      | Topic to which point clouds are published                   | string
+ cloud_frame_id         | ID specified in the point cloud message header              | string
+
+
+
+
+
+
+
+
+
+
+
+

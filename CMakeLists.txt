@@ -17,21 +17,11 @@ else()
 endif()
 ###############################################################################
 
-IF(WIN32) # Windows
-SET(ZED_INCLUDE_DIRS $ENV{ZED_INCLUDE_DIRS})
-    if (CMAKE_CL_64) # 64 bits
-        SET(ZED_LIBRARIES $ENV{ZED_LIBRARIES_64})
-    else(CMAKE_CL_64) # 32 bits
-        SET(ZED_LIBRARIES $ENV{ZED_LIBRARIES_32})
-    endif(CMAKE_CL_64)
-SET(ZED_LIBRARY_DIR $ENV{ZED_LIBRARY_DIR})
-SET(OPENCV_DIR $ENV{OPENCV_DIR})
-ELSE() # Linux
 find_package(ZED 0.9 REQUIRED)
-ENDIF(WIN32)
 
 find_package(CUDA 6.5 REQUIRED)
 find_package(OpenCV 2.4 COMPONENTS core highgui imgproc REQUIRED)
+find_package(PCL REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
   image_transport
@@ -64,13 +54,15 @@ catkin_package(
 include_directories(
 	${catkin_INCLUDE_DIRS} 
 	${CUDA_INCLUDE_DIRS}
-    ${ZED_INCLUDE_DIRS}
-    ${OpenCV_INCLUDE_DIRS}
+	${ZED_INCLUDE_DIRS}
+	${OpenCV_INCLUDE_DIRS}
+	${PCL_INCLUDE_DIRS}
 )
 
 link_directories(${ZED_LIBRARY_DIR})
 link_directories(${CUDA_LIBRARY_DIRS})
 link_directories(${OpenCV_LIBRARY_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
 
 ###############################################################################
 
@@ -90,7 +82,8 @@ target_link_libraries(
         ${catkin_LIBRARIES}
         ${ZED_LIBRARIES}
 	${CUDA_LIBRARIES} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY}
-        ${OpenCV_LIBS}  
+        ${OpenCV_LIBS}
+        ${PCL_LIBRARIES}  
     )
 
 add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)

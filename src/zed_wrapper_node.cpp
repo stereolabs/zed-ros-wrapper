@@ -34,8 +34,9 @@
 #include <math.h>
 #include <limits>
 #include <thread>
+#include <chrono>
 
-// ROS
+//ROS includes
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
@@ -53,57 +54,119 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 
+//PCL includes
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
 //ZED Includes
 #include <zed/Camera.hpp>
 
 using namespace sl::zed;
 using namespace std;
 
-int computeDepth;
 int confidence;
+bool computeDepth;
+bool pointCloudThreadRunning;
 
-// Function to publish left and depth/right images
 
-void publishImages(cv::Mat left, cv::Mat second, image_transport::Publisher &pub_left, image_transport::Publisher &pub_second,
-        string left_frame_id, string second_frame_id, ros::Time t) {
-
-    // Publish left image
-    cv_bridge::CvImage left_im;
-    left_im.image = left;
-    left_im.encoding = sensor_msgs::image_encodings::BGR8;
-    left_im.header.frame_id = left_frame_id;
-    left_im.header.stamp = t;
-    pub_left.publish(left_im.toImageMsg());
-
-    // Publish second image
-    cv_bridge::CvImage second_im;
-    second_im.image = second;
-    second_im.encoding = (computeDepth) ? sensor_msgs::image_encodings::TYPE_16UC1 : sensor_msgs::image_encodings::BGR8;
-    second_im.header.frame_id = second_frame_id;
-    second_im.header.stamp = t;
-    pub_second.publish(second_im.toImageMsg());
-
+/* \brief Publish a cv::Mat image with a ros Publisher
+ * \param img : the image to publish
+ * \param pub_img : the publisher object to use
+ * \param img_frame_id : the id of the reference frame of the image
+ * \param t : the ros::Time to stamp the image
+ */
+void publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_frame_id, ros::Time t) {
+    cv_bridge::CvImage img_im;
+    img_im.image = img;
+    img_im.encoding = sensor_msgs::image_encodings::BGR8;
+    img_im.header.frame_id = img_frame_id;
+    img_im.header.stamp = t;
+    pub_img.publish(img_im.toImageMsg());
 }
 
-// Function to publish camera info messages for both images
 
-void publishCamInfo(sensor_msgs::CameraInfoPtr left_cam_info_msg, sensor_msgs::CameraInfoPtr second_cam_info_msg,
-        ros::Publisher pub_left_cam_info, ros::Publisher pub_second_cam_info, ros::Time t) {
+/* \brief Publish a cv::Mat depth image with a ros Publisher
+ * \param depth : the depth image to publish
+ * \param pub_depth : the publisher object to use
+ * \param depth_frame_id : the id of the reference frame of the depth image
+ * \param t : the ros::Time to stamp the depth image
+ */
+void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string depth_frame_id, ros::Time t) {
+    cv_bridge::CvImage depth_im;
+    depth_im.image = depth;
+    depth_im.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+    depth_im.header.frame_id = depth_frame_id;
+    depth_im.header.stamp = t;
+    pub_depth.publish(depth_im.toImageMsg());
+}
+
+
+/* \brief Publish a pointCloud with a ros Publisher
+ * \param p_could : the float pointer to point cloud datas
+ * \param width : the width of the point cloud
+ * \param height : the height of the point cloud
+ * \param pub_cloud : the publisher object to use
+ * \param cloud_frame_id : the id of the reference frame of the point cloud
+ * \param t : the ros::Time to stamp the point cloud
+ */
+void publishPointCloud(float* p_cloud, int width, int height, ros::Publisher &pub_cloud, string cloud_frame_id, ros::Time t) {
+    pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
+    point_cloud.width = width;
+    point_cloud.height = height;
+    int size = width*height;
+    point_cloud.points.resize(size);
+    int index4 = 0;
+    float color;
+    for (int i = 0; i < size; i++) {
+        if(p_cloud[index4+2] < 0) { // Check if it's an unvalid point, the depth is lower than 0 
+            index4 += 4;
+            continue; 
+        }
+        pcl::PointXYZRGB point;
+        point.y = -p_cloud[index4++] * 0.001;
+        point.z = -p_cloud[index4++] * 0.001;
+        point.x = p_cloud[index4++] * 0.001;
+        color = p_cloud[index4++];
+        uint32_t color_uint = *(uint32_t*) & color; // Convert the color
+        unsigned char* color_uchar = (unsigned char*) &color_uint;
+        color_uint = ((uint32_t) color_uchar[0] << 16 | (uint32_t) color_uchar[1] << 8 | (uint32_t) color_uchar[2]);
+        point.rgb = *reinterpret_cast<float*> (&color_uint);
+        point_cloud.points[i] = point;
+    }
+    sensor_msgs::PointCloud2 output;
+    pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
+    output.header.frame_id = cloud_frame_id;// Set the header values of the ROS message
+    output.header.stamp = t;
+    pub_cloud.publish(output);
+    pointCloudThreadRunning = false;
+}
+
+
+/* \brief Publish the informations of a camera with a ros Publisher
+ * \param cam_info_msg : the information message to publish
+ * \param pub_cam_info : the publisher object to use
+ * \param t : the ros::Time to stamp the message
+ */
+void publishCamInfo(sensor_msgs::CameraInfoPtr cam_info_msg, ros::Publisher pub_cam_info, ros::Time t) {
     static int seq = 0;
-
-    left_cam_info_msg->header.stamp = second_cam_info_msg->header.stamp = t;
-    left_cam_info_msg->header.seq = second_cam_info_msg->header.seq = seq;
-
-    pub_left_cam_info.publish(left_cam_info_msg);
-    pub_second_cam_info.publish(second_cam_info_msg);
-
+    cam_info_msg->header.stamp = t;
+    cam_info_msg->header.seq = seq;
+    pub_cam_info.publish(cam_info_msg);
     seq++;
 }
 
-// Function to fill both camera info messages with camera's parameters
 
-void fillCamInfo(Camera* zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sensor_msgs::CameraInfoPtr second_cam_info_msg,
-        string left_frame_id, string second_frame_id) {
+/* \brief Get the information of the ZED cameras and store them in an information message
+ * \param zed : the sl::zed::Camera* pointer to an instance
+ * \param left_cam_info_msg : the information message to fill with the left camera informations
+ * \param right_cam_info_msg : the information message to fill with the right camera informations
+ * \param left_frame_id : the id of the reference frame of the left camera
+ * \param right_frame_id : the id of the reference frame of the right camera
+ */
+void fillCamInfo(Camera* zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sensor_msgs::CameraInfoPtr right_cam_info_msg,
+        string left_frame_id, string right_frame_id) {
 
     int width = zed->getImageSize().width;
     int height = zed->getImageSize().height;
@@ -125,42 +188,43 @@ void fillCamInfo(Camera* zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sens
     double p2 = 0;
 
     left_cam_info_msg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
-    second_cam_info_msg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+    right_cam_info_msg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
 
     left_cam_info_msg->D.resize(5);
-    second_cam_info_msg->D.resize(5);
-    left_cam_info_msg->D[0] = second_cam_info_msg->D[0] = k1;
-    left_cam_info_msg->D[1] = second_cam_info_msg->D[1] = k2;
-    left_cam_info_msg->D[2] = second_cam_info_msg->D[2] = k3;
-    left_cam_info_msg->D[3] = second_cam_info_msg->D[3] = p1;
-    left_cam_info_msg->D[4] = second_cam_info_msg->D[4] = p2;
+    right_cam_info_msg->D.resize(5);
+    left_cam_info_msg->D[0] = right_cam_info_msg->D[0] = k1;
+    left_cam_info_msg->D[1] = right_cam_info_msg->D[1] = k2;
+    left_cam_info_msg->D[2] = right_cam_info_msg->D[2] = k3;
+    left_cam_info_msg->D[3] = right_cam_info_msg->D[3] = p1;
+    left_cam_info_msg->D[4] = right_cam_info_msg->D[4] = p2;
 
     left_cam_info_msg->K.fill(0.0);
-    second_cam_info_msg->K.fill(0.0);
-    left_cam_info_msg->K[0] = second_cam_info_msg->K[0] = fx;
-    left_cam_info_msg->K[2] = second_cam_info_msg->K[2] = cx;
-    left_cam_info_msg->K[4] = second_cam_info_msg->K[4] = fy;
-    left_cam_info_msg->K[5] = second_cam_info_msg->K[5] = cy;
-    left_cam_info_msg->K[8] = second_cam_info_msg->K[8] = 1.0;
+    right_cam_info_msg->K.fill(0.0);
+    left_cam_info_msg->K[0] = right_cam_info_msg->K[0] = fx;
+    left_cam_info_msg->K[2] = right_cam_info_msg->K[2] = cx;
+    left_cam_info_msg->K[4] = right_cam_info_msg->K[4] = fy;
+    left_cam_info_msg->K[5] = right_cam_info_msg->K[5] = cy;
+    left_cam_info_msg->K[8] = right_cam_info_msg->K[8] = 1.0;
 
     left_cam_info_msg->R.fill(0.0);
-    second_cam_info_msg->R.fill(0.0);
+    right_cam_info_msg->R.fill(0.0);
 
     left_cam_info_msg->P.fill(0.0);
-    second_cam_info_msg->P.fill(0.0);
-    left_cam_info_msg->P[0] = second_cam_info_msg->P[0] = fx;
-    left_cam_info_msg->P[2] = second_cam_info_msg->P[2] = cx;
-    left_cam_info_msg->P[5] = second_cam_info_msg->P[5] = fy;
-    left_cam_info_msg->P[6] = second_cam_info_msg->P[6] = cy;
-    left_cam_info_msg->P[10] = second_cam_info_msg->P[10] = 1.0;
-    second_cam_info_msg->P[3] = (computeDepth) ? 0.0 : (-1 * fx * (baseline / 1000));
+    right_cam_info_msg->P.fill(0.0);
+    left_cam_info_msg->P[0] = right_cam_info_msg->P[0] = fx;
+    left_cam_info_msg->P[2] = right_cam_info_msg->P[2] = cx;
+    left_cam_info_msg->P[5] = right_cam_info_msg->P[5] = fy;
+    left_cam_info_msg->P[6] = right_cam_info_msg->P[6] = cy;
+    left_cam_info_msg->P[10] = right_cam_info_msg->P[10] = 1.0;
+    right_cam_info_msg->P[3] = (-1 * fx * (baseline / 1000));
 
-    left_cam_info_msg->width = second_cam_info_msg->width = width;
-    left_cam_info_msg->height = second_cam_info_msg->height = height;
+    left_cam_info_msg->width = right_cam_info_msg->width = width;
+    left_cam_info_msg->height = right_cam_info_msg->height = height;
 
     left_cam_info_msg->header.frame_id = left_frame_id;
-    second_cam_info_msg->header.frame_id = second_frame_id;
+    right_cam_info_msg->header.frame_id = right_frame_id;
 }
+
 
 void callback(zed_ros_wrapper::ZedConfig &config, uint32_t level) {
   ROS_INFO("Reconfigure confidence : %d",
@@ -168,16 +232,13 @@ void callback(zed_ros_wrapper::ZedConfig &config, uint32_t level) {
   confidence = config.confidence;
 }
 
-// Main function
 
 int main(int argc, char **argv) {
-    computeDepth = (argc >= 2) ? atoi(argv[1]) : 1; // Argument "computeDepth" in launch file, "0": publish left+right, "1": publish left+depth
-
     // Launch file parameters
     int resolution = sl::zed::VGA;
     int quality = sl::zed::MODE::PERFORMANCE;
     int sensing_mode = sl::zed::SENSING_MODE::RAW;
-    int rate = 25;
+    int rate = 30;
 
     std::string img_topic = "image_rect";
 #if 0
@@ -185,12 +246,25 @@ int main(int argc, char **argv) {
     img_topic = "image_raw";
 #endif
 
-    string left_topic = (computeDepth) ? "rgb/" + img_topic : "left/" + img_topic;
-    string second_topic = (computeDepth) ? "depth/" + img_topic : "right/" + img_topic;
-    string left_cam_info_topic = (computeDepth) ? "rgb/camera_info" : "left/camera_info";
-    string second_cam_info_topic = (computeDepth) ? "depth/camera_info" : "right/camera_info";
-    string left_frame_id = (computeDepth) ? "/zed_rgb_optical_frame" : "/zed_left_optical_frame";
-    string second_frame_id = (computeDepth) ? "/zed_depth_optical_frame" : "/zed_right_optical_frame";
+    // Set the default topic names
+    string rgb_topic = "rgb/" + img_topic ;
+    string rgb_cam_info_topic =  "rgb/camera_info";
+    string rgb_frame_id = "/zed_rgb_optical_frame";
+
+    string left_topic = "left/" + img_topic;
+    string left_cam_info_topic = "left/camera_info";
+    string left_frame_id = "/zed_left_optical_frame";
+
+    string right_topic = "right/" + img_topic;
+    string right_cam_info_topic = "right/camera_info";
+    string right_frame_id = "/zed_right_optical_frame";
+
+    string depth_topic = "depth/" + img_topic;
+    string depth_cam_info_topic = "depth/camera_info";
+    string depth_frame_id = "/zed_depth_optical_frame";
+
+    string point_cloud_topic = "point_cloud/" + img_topic;
+    string cloud_frame_id = "/zed_point_cloud";
 
     ros::init(argc, argv, "zed_depth_stereo_wrapper_node");
     ROS_INFO("ZED_WRAPPER Node initialized");
@@ -203,143 +277,199 @@ int main(int argc, char **argv) {
     nh_ns.getParam("quality", quality);
     nh_ns.getParam("sensing_mode", sensing_mode);
     nh_ns.getParam("frame_rate", rate);
+
+    nh_ns.getParam("rgb_topic", rgb_topic);
+    nh_ns.getParam("rgb_cam_info_topic", rgb_cam_info_topic);
+    nh_ns.getParam("rgb_frame_id", rgb_frame_id);
+
     nh_ns.getParam("left_topic", left_topic);
-    nh_ns.getParam("second_topic", second_topic);
     nh_ns.getParam("left_cam_info_topic", left_cam_info_topic);
-    nh_ns.getParam("second_cam_info_topic", second_cam_info_topic);
     nh_ns.getParam("left_frame_id", left_frame_id);
-    nh_ns.getParam("second_frame_id", second_frame_id);
 
+    nh_ns.getParam("right_topic", right_topic);
+    nh_ns.getParam("right_cam_info_topic", right_cam_info_topic);
+    nh_ns.getParam("right_frame_id", right_frame_id);
 
+    nh_ns.getParam("depth_topic", depth_topic);
+    nh_ns.getParam("depth_cam_info_topic", depth_cam_info_topic);
+    nh_ns.getParam("depth_frame_id", depth_frame_id);
+
+    nh_ns.getParam("point_cloud_topic", point_cloud_topic);
+    nh_ns.getParam("cloud_frame_id", cloud_frame_id);
+
+    // Create the ZED object
     sl::zed::Camera *zed;
-    if (argc == 3) {
-        zed = new sl::zed::Camera(argv[2]); // Argument "svo_file" in launch file
-        ROS_INFO_STREAM("Reading SVO file : " << argv[2]);
+    if (argc == 2) {
+        zed = new sl::zed::Camera(argv[1]); // Argument "svo_file" in launch file
+        ROS_INFO_STREAM("Reading SVO file : " << argv[1]);
     } else {
-        zed = new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution));
+        zed = new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate);
         ROS_INFO_STREAM("Using ZED Camera");
     }
 
-    ERRCODE err;
-    if (computeDepth)
+    // Try to initialize the ZED
+    ERRCODE err = ERRCODE::ZED_NOT_AVAILABLE;
+    while(err != SUCCESS){
         err = zed->init(static_cast<sl::zed::MODE> (quality), -1, true);
-    else
-        err = zed->init(sl::zed::MODE::NONE, -1, true);
-
-    //ERRCODE display
-    ROS_INFO_STREAM(errcode2str(err));
-    //cout << errcode2str(err) << endl;
-
-    // Quit if an error occurred
-    if (err != SUCCESS) {
-        delete zed;
-        return 1;
+        ROS_INFO_STREAM(errcode2str(err));
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
 
+    //ERRCODE display
     dynamic_reconfigure::Server<zed_ros_wrapper::ZedConfig> server;
     dynamic_reconfigure::Server<zed_ros_wrapper::ZedConfig>::CallbackType f;
 
     f = boost::bind(&callback, _1, _2);
     server.setCallback(f);
-
     confidence = 80;
+    
+    // Get the parameters of the ZED images
     int width = zed->getImageSize().width;
     int height = zed->getImageSize().height;
     ROS_DEBUG_STREAM("Image size : " << width << "x" << height);
 
-    cv::Size Taille(width, height);
+    cv::Size cvSize(width, height);
+    cv::Mat leftImRGBA(cvSize, CV_8UC4);
+    cv::Mat leftImRGB(cvSize, CV_8UC3);
+    cv::Mat rightImRGBA(cvSize, CV_8UC4);
+    cv::Mat rightImRGB(cvSize, CV_8UC3);
+    cv::Mat rightIm;
+    cv::Mat depthIm;
 
-    cv::Mat leftImRGBA(Taille, CV_8UC4);
-    cv::Mat leftImRGB(Taille, CV_8UC3);
-    cv::Mat secondImRaw;
-    cv::Mat secondIm;
+    // Create the array to store the pointCloud
+    float* p_cloud = new float[height * width * 4];
 
-    image_transport::ImageTransport it_zed(nh);
-
+    // Create all the publishers
     // Image publishers
-    image_transport::Publisher pub_left = it_zed.advertise(left_topic, 1);
+    image_transport::ImageTransport it_zed(nh);
+    image_transport::Publisher pub_rgb = it_zed.advertise(rgb_topic, 1); //rgb
+    ROS_INFO_STREAM("Advertized on topic " << rgb_topic);
+    image_transport::Publisher pub_left = it_zed.advertise(left_topic, 1); //left
     ROS_INFO_STREAM("Advertized on topic " << left_topic);
-    image_transport::Publisher pub_second = it_zed.advertise(second_topic, 1);
-    ROS_INFO_STREAM("Advertized on topic " << second_topic);
+    image_transport::Publisher pub_right = it_zed.advertise(right_topic, 1); //right
+    ROS_INFO_STREAM("Advertized on topic " << right_topic);
+    image_transport::Publisher pub_depth = it_zed.advertise(depth_topic, 1); //depth
+    ROS_INFO_STREAM("Advertized on topic " << depth_topic);
+
+    //PointCloud publisher
+    ros::Publisher pub_cloud = nh.advertise<sensor_msgs::PointCloud2> (point_cloud_topic, 1);
+    ROS_INFO_STREAM("Advertized on topic " << point_cloud_topic);
 
     // Camera info publishers
-    ros::Publisher pub_left_cam_info = nh.advertise<sensor_msgs::CameraInfo>(left_cam_info_topic, 1);
+    ros::Publisher pub_rgb_cam_info = nh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_topic, 1); //rgb
+    ROS_INFO_STREAM("Advertized on topic " << rgb_cam_info_topic);
+    ros::Publisher pub_left_cam_info = nh.advertise<sensor_msgs::CameraInfo>(left_cam_info_topic, 1); //left
     ROS_INFO_STREAM("Advertized on topic " << left_cam_info_topic);
-    ros::Publisher pub_second_cam_info = nh.advertise<sensor_msgs::CameraInfo>(second_cam_info_topic, 1);
-    ROS_INFO_STREAM("Advertized on topic " << second_cam_info_topic);
-
-    // Camera info messages
+    ros::Publisher pub_right_cam_info = nh.advertise<sensor_msgs::CameraInfo>(right_cam_info_topic, 1); //right
+    ROS_INFO_STREAM("Advertized on topic " << right_cam_info_topic);
+    ros::Publisher pub_depth_cam_info = nh.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); //depth
+    ROS_INFO_STREAM("Advertized on topic " << depth_cam_info_topic);
+    
+    // Create and fill the camera information messages
+    sensor_msgs::CameraInfoPtr rgb_cam_info_msg(new sensor_msgs::CameraInfo());
     sensor_msgs::CameraInfoPtr left_cam_info_msg(new sensor_msgs::CameraInfo());
-    sensor_msgs::CameraInfoPtr second_cam_info_msg(new sensor_msgs::CameraInfo());
-
-    fillCamInfo(zed, left_cam_info_msg, second_cam_info_msg, left_frame_id, second_frame_id);
+    sensor_msgs::CameraInfoPtr right_cam_info_msg(new sensor_msgs::CameraInfo());
+    sensor_msgs::CameraInfoPtr depth_cam_info_msg(new sensor_msgs::CameraInfo());
+    fillCamInfo(zed, left_cam_info_msg, right_cam_info_msg, left_frame_id, right_frame_id);
+    rgb_cam_info_msg = depth_cam_info_msg = left_cam_info_msg; // the reference camera is the Left one (next to the ZED logo)
 
     ros::Rate loop_rate(rate);
     ros::Time old_t = ros::Time::now();
     bool old_image = false;
+    pointCloudThreadRunning = false;
+    std::thread* pointCloudThread = NULL;
 
     try {
         // Main loop
         while (ros::ok()) {
             // Check for subscribers
-            if (pub_left.getNumSubscribers() > 0 || pub_second.getNumSubscribers() > 0) {
-
-                // Get current time
-                ros::Time t = ros::Time::now();
+            int rgb_SubNumber = pub_rgb.getNumSubscribers();
+            int left_SubNumber = pub_left.getNumSubscribers();
+            int right_SubNumber = pub_right.getNumSubscribers();
+            int depth_SubNumber = pub_depth.getNumSubscribers();
+            int cloud_SubNumber = pub_cloud.getNumSubscribers();
+            bool runLoop = (rgb_SubNumber + left_SubNumber + right_SubNumber + depth_SubNumber + cloud_SubNumber) > 0;
+            // Run the loop only if there is some subscribers
+            if (runLoop) {
+                computeDepth = (depth_SubNumber + cloud_SubNumber) > 0; // Detect if one of the subscriber need to have the depth information
+                ros::Time t = ros::Time::now(); // Get current time
 
                 if (computeDepth) {
                     int actual_confidence = zed->getConfidenceThreshold();
                     if(actual_confidence != confidence)
                         zed->setConfidenceThreshold(confidence);
-                    old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true);
+                    old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true); // Ask to compute the depth
                 }
                 else
-                    old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), false, false);
-
-                if (old_image) {
+                    old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), false, false); // Ask to not compute the depth
+                
+                
+                if (old_image) { // Detect if a error occuried (for exemple: the zed have been disconnected) and re-initialize the ZED
                     ROS_WARN("Wait for a new image to proceed");
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
                     if ((t - old_t).toSec() > 5) {
-                      ROS_INFO("Reinit camera");
-                      ERRCODE err;
-                      if (computeDepth)
-                          err = zed->init(static_cast<sl::zed::MODE> (quality), -1, true);
-                      else
-                          err = zed->init(sl::zed::MODE::NONE, -1, true);
-
-                      // Quit if an error occurred
-                      if (err != SUCCESS) {
-                          //ERRCODE display
-                          ROS_ERROR_STREAM(errcode2str(err));
-                          delete zed;
-                          return 1;
-                      }
+                        sl::zed::Camera* corruptedObject = zed;
+                        delete corruptedObject;
+                        if (argc == 2) {
+                            zed = new sl::zed::Camera(argv[1]); // Argument "svo_file" in launch file
+                            ROS_INFO_STREAM("Reading SVO file : " << argv[1]);
+                        } else {
+                            zed = new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate);
+                            ROS_INFO_STREAM("Using ZED Camera");
+                        }
+                        ROS_INFO("Reinit camera");
+                        ERRCODE err = ERRCODE::ZED_NOT_AVAILABLE;
+                        while(err != SUCCESS) {
+                            err = zed->init(static_cast<sl::zed::MODE> (quality), -1, true); // Try to initialize the ZED
+                            ROS_INFO_STREAM(errcode2str(err));
+                            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+                        }
                     }
                     continue;
                 }
 
                 old_t = ros::Time::now();
 
-                // Retrieve RGBA Left image
-                slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)).copyTo(leftImRGBA);
-                // Convert to RGB
-                cv::cvtColor(leftImRGBA, leftImRGB, CV_RGBA2RGB);
-
-                if (computeDepth) {
-                    ROS_DEBUG_STREAM("Publishing left and depth Images");
-                    // Retrieve raw depth data and convert it to 16_bit data
-                    slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(secondIm, CV_16UC1);
-                } else {
-                    ROS_DEBUG_STREAM("Publishing left and right Images");
-                    // Retrieve RGBA Right image
-                    slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::RIGHT)).copyTo(secondImRaw);
-                    // Convert to RGB
-                    cv::cvtColor(secondImRaw, secondIm, CV_RGBA2RGB);
+                // Publish the left == rgb image if someone has subscribed to
+                if(left_SubNumber>0 || rgb_SubNumber>0) {
+                    // Retrieve RGBA Left image
+                    cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), leftImRGB, CV_RGBA2RGB); // Convert to RGB
+                    if(left_SubNumber>0) {
+                        publishCamInfo(left_cam_info_msg, pub_left_cam_info, t);
+                        publishImage(leftImRGB, pub_left, left_frame_id, t);
+                    }
+                    if(rgb_SubNumber>0) {
+                        publishCamInfo(rgb_cam_info_msg, pub_rgb_cam_info, t);
+                        publishImage(leftImRGB, pub_rgb, rgb_frame_id, t); // rgb is the left image
+                    }
                 }
-                publishCamInfo(left_cam_info_msg, second_cam_info_msg, pub_left_cam_info, pub_second_cam_info, t);
-                ROS_DEBUG_STREAM("Camera info published");
-                publishImages(leftImRGB, secondIm, pub_left, pub_second, left_frame_id, second_frame_id, t);
-                ROS_DEBUG_STREAM("Images published");
+                
+                // Publish the right image if someone has subscribed to
+                if(right_SubNumber>0) {
+                    // Retrieve RGBA Right image
+                    cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::RIGHT)), rightImRGB, CV_RGBA2RGB); // Convert to RGB
+                    publishCamInfo(right_cam_info_msg, pub_right_cam_info, t);
+                    publishImage(rightImRGB, pub_right, right_frame_id, t);
+                }
+
+                // Publish the depth image if someone has subscribed to
+                if (depth_SubNumber>0) {
+                    // Retrieve raw depth data and convert it to 16_bit data
+                    slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(depthIm, CV_16UC1);
+                    publishDepth(depthIm, pub_depth, depth_frame_id, t);
+                }
+                
+                // Publish the point cloud if someone has subscribed to
+                if (cloud_SubNumber>0 && pointCloudThreadRunning == false) {
+                    // Retrieve raw pointCloud data
+                    float* cloud = (float*) zed->retrieveMeasure(sl::zed::MEASURE::XYZRGBA).data;
+                    // Run the point cloud convertion asynchronously to avoid slowing down all the program
+                    pointCloudThreadRunning = true;
+                    if(pointCloudThread)
+                        pointCloudThread->join();
+                    pointCloudThread = new std::thread(&publishPointCloud, cloud, width, height, std::ref(pub_cloud), cloud_frame_id, t);
+                   
+                }
 
                 ros::spinOnce();
                 loop_rate.sleep();
