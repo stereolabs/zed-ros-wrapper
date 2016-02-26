@@ -125,9 +125,9 @@ void publishPointCloud(float* p_cloud, int width, int height, ros::Publisher &pu
             continue; 
         }
         pcl::PointXYZRGB point;
-        point.y = -p_cloud[index4++];
-        point.z = -p_cloud[index4++];
-        point.x = p_cloud[index4++];
+        point.y = -p_cloud[index4++] * 0.001;
+        point.z = -p_cloud[index4++] * 0.001;
+        point.x = p_cloud[index4++] * 0.001;
         color = p_cloud[index4++];
         uint32_t color_uint = *(uint32_t*) & color; // Convert the color
         unsigned char* color_uchar = (unsigned char*) &color_uint;
@@ -314,7 +314,6 @@ int main(int argc, char **argv) {
         ROS_INFO_STREAM(errcode2str(err));
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
-    zed->setBaselineRatio(0.001); // convert the ZED values in meters
 
     //ERRCODE display
     dynamic_reconfigure::Server<zed_ros_wrapper::ZedConfig> server;
@@ -425,7 +424,6 @@ int main(int argc, char **argv) {
                             ROS_INFO_STREAM(errcode2str(err));
                             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
                         }
-                        zed->setBaselineRatio(0.001); // convert the ZED values in meters
                     }
                     continue;
                 }
@@ -434,8 +432,8 @@ int main(int argc, char **argv) {
 
                 // Publish the left == rgb image if someone has subscribed to
                 if(left_SubNumber>0 || rgb_SubNumber>0) {
-                    slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)).copyTo(leftImRGBA);// Retrieve RGBA Left image
-                    cv::cvtColor(leftImRGBA, leftImRGB, CV_RGBA2RGB); // Convert to RGB
+                    // Retrieve RGBA Left image
+                    cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), leftImRGB, CV_RGBA2RGB); // Convert to RGB
                     if(left_SubNumber>0) {
                         publishCamInfo(left_cam_info_msg, pub_left_cam_info, t);
                         publishImage(leftImRGB, pub_left, left_frame_id, t);
@@ -448,8 +446,8 @@ int main(int argc, char **argv) {
                 
                 // Publish the right image if someone has subscribed to
                 if(right_SubNumber>0) {
-                    slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::RIGHT)).copyTo(rightImRGBA);// Retrieve RGBA Right image
-                    cv::cvtColor(rightImRGBA, rightImRGB, CV_RGBA2RGB); // Convert to RGB
+                    // Retrieve RGBA Right image
+                    cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::RIGHT)), rightImRGB, CV_RGBA2RGB); // Convert to RGB
                     publishCamInfo(right_cam_info_msg, pub_right_cam_info, t);
                     publishImage(rightImRGB, pub_right, right_frame_id, t);
                 }
