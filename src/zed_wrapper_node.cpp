@@ -301,10 +301,10 @@ int main(int argc, char **argv) {
     // Create the ZED object
     std::unique_ptr<sl::zed::Camera> zed;
     if (argc == 2) {
-        zed = new sl::zed::Camera(argv[1]); // Argument "svo_file" in launch file
+        zed.reset(new sl::zed::Camera(argv[1])); // Argument "svo_file" in launch file
         ROS_INFO_STREAM("Reading SVO file : " << argv[1]);
     } else {
-        zed = new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate);
+        zed.reset(new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate));
         ROS_INFO_STREAM("Using ZED Camera");
     }
 
@@ -412,10 +412,10 @@ int main(int argc, char **argv) {
                         // delete the old object before constructing a new one
                         zed.reset();
                         if (argc == 2) {
-                            zed = new sl::zed::Camera(argv[1]); // Argument "svo_file" in launch file
+                            zed.reset(new sl::zed::Camera(argv[1])); // Argument "svo_file" in launch file
                             ROS_INFO_STREAM("Reading SVO file : " << argv[1]);
                         } else {
-                            zed = new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate);
+                            zed.reset(new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate));
                             ROS_INFO_STREAM("Using ZED Camera");
                         }
                         ROS_INFO("Reinit camera");
@@ -468,7 +468,7 @@ int main(int argc, char **argv) {
                     pointCloudThreadRunning = true;
                     if(pointCloudThread)
                         pointCloudThread->join();
-                    pointCloudThread = new std::thread(&publishPointCloud, cloud, width, height, std::ref(pub_cloud), cloud_frame_id, t);
+                    pointCloudThread.reset(new std::thread(&publishPointCloud, cloud, width, height, std::ref(pub_cloud), cloud_frame_id, t));
                    
                 }
 
