@@ -378,7 +378,7 @@ int main(int argc, char **argv) {
     ros::Time old_t = ros::Time::now();
     bool old_image = false;
     pointCloudThreadRunning = false;
-    std::unique_ptr<std::thread> pointCloudThread = NULL;
+    std::unique_ptr<std::thread> pointCloudThread = nullptr;
 
     try {
         // Main loop
