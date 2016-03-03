@@ -35,6 +35,7 @@
 #include <limits>
 #include <thread>
 #include <chrono>
+#include <memory>
 
 //ROS includes
 #include <ros/ros.h>
@@ -298,12 +299,12 @@ int main(int argc, char **argv) {
     nh_ns.getParam("cloud_frame_id", cloud_frame_id);
 
     // Create the ZED object
-    sl::zed::Camera *zed;
+    std::unique_ptr<sl::zed::Camera> zed;
     if (argc == 2) {
-        zed = new sl::zed::Camera(argv[1]); // Argument "svo_file" in launch file
+        zed.reset(new sl::zed::Camera(argv[1])); // Argument "svo_file" in launch file
         ROS_INFO_STREAM("Reading SVO file : " << argv[1]);
     } else {
-        zed = new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate);
+        zed.reset(new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate));
         ROS_INFO_STREAM("Using ZED Camera");
     }
 
@@ -370,14 +371,14 @@ int main(int argc, char **argv) {
     sensor_msgs::CameraInfoPtr left_cam_info_msg(new sensor_msgs::CameraInfo());
     sensor_msgs::CameraInfoPtr right_cam_info_msg(new sensor_msgs::CameraInfo());
     sensor_msgs::CameraInfoPtr depth_cam_info_msg(new sensor_msgs::CameraInfo());
-    fillCamInfo(zed, left_cam_info_msg, right_cam_info_msg, left_frame_id, right_frame_id);
+    fillCamInfo(zed.get(), left_cam_info_msg, right_cam_info_msg, left_frame_id, right_frame_id);
     rgb_cam_info_msg = depth_cam_info_msg = left_cam_info_msg; // the reference camera is the Left one (next to the ZED logo)
 
     ros::Rate loop_rate(rate);
     ros::Time old_t = ros::Time::now();
     bool old_image = false;
     pointCloudThreadRunning = false;
-    std::thread* pointCloudThread = NULL;
+    std::unique_ptr<std::thread> pointCloudThread = nullptr;
 
     try {
         // Main loop
@@ -408,13 +409,13 @@ int main(int argc, char **argv) {
                     ROS_WARN("Wait for a new image to proceed");
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
                     if ((t - old_t).toSec() > 5) {
-                        sl::zed::Camera* corruptedObject = zed;
-                        delete corruptedObject;
+                        // delete the old object before constructing a new one
+                        zed.reset();
                         if (argc == 2) {
-                            zed = new sl::zed::Camera(argv[1]); // Argument "svo_file" in launch file
+                            zed.reset(new sl::zed::Camera(argv[1])); // Argument "svo_file" in launch file
                             ROS_INFO_STREAM("Reading SVO file : " << argv[1]);
                         } else {
-                            zed = new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate);
+                            zed.reset(new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate));
                             ROS_INFO_STREAM("Using ZED Camera");
                         }
                         ROS_INFO("Reinit camera");
@@ -467,7 +468,7 @@ int main(int argc, char **argv) {
                     pointCloudThreadRunning = true;
                     if(pointCloudThread)
                         pointCloudThread->join();
-                    pointCloudThread = new std::thread(&publishPointCloud, cloud, width, height, std::ref(pub_cloud), cloud_frame_id, t);
+                    pointCloudThread.reset(new std::thread(&publishPointCloud, cloud, width, height, std::ref(pub_cloud), cloud_frame_id, t));
                    
                 }
 
@@ -480,8 +481,6 @@ int main(int argc, char **argv) {
         return 1;
     }
     ROS_INFO("Quitting zed_depth_stereo_wrapper_node ...\n");
-
-    delete zed;
 
     return 0;
 }
