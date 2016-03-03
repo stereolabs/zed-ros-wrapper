@@ -69,8 +69,13 @@ using namespace std;
 
 int confidence;
 bool computeDepth;
-bool pointCloudThreadRunning;
 
+// Point cloud thread variables
+float* cloud;
+bool pointCloudThreadRunning = true;
+bool point_cloud_data_processing = false;
+string point_cloud_frame_id = "";
+ros::Time point_cloud_time;
 
 /* \brief Publish a cv::Mat image with a ros Publisher
  * \param img : the image to publish
@@ -112,36 +117,41 @@ void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string d
  * \param cloud_frame_id : the id of the reference frame of the point cloud
  * \param t : the ros::Time to stamp the point cloud
  */
-void publishPointCloud(float* p_cloud, int width, int height, ros::Publisher &pub_cloud, string cloud_frame_id, ros::Time t) {
-    pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
-    point_cloud.width = width;
-    point_cloud.height = height;
-    int size = width*height;
-    point_cloud.points.resize(size);
-    int index4 = 0;
-    float color;
-    for (int i = 0; i < size; i++) {
-        if(p_cloud[index4+2] < 0) { // Check if it's an unvalid point, the depth is lower than 0 
-            index4 += 4;
-            continue; 
+void publishPointCloud(int width, int height, ros::Publisher &pub_cloud) {
+    while(pointCloudThreadRunning) // check if the thread has to continue
+    {
+        if(!point_cloud_data_processing){ // check if datas are available
+            std::this_thread::sleep_for(std::chrono::milliseconds(5)); // No data, we just wait
+            continue;
         }
-        pcl::PointXYZRGB point;
-        point.y = -p_cloud[index4++] * 0.001;
-        point.z = -p_cloud[index4++] * 0.001;
-        point.x = p_cloud[index4++] * 0.001;
-        color = p_cloud[index4++];
-        uint32_t color_uint = *(uint32_t*) & color; // Convert the color
-        unsigned char* color_uchar = (unsigned char*) &color_uint;
-        color_uint = ((uint32_t) color_uchar[0] << 16 | (uint32_t) color_uchar[1] << 8 | (uint32_t) color_uchar[2]);
-        point.rgb = *reinterpret_cast<float*> (&color_uint);
-        point_cloud.points[i] = point;
+        pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
+        point_cloud.width = width;
+        point_cloud.height = height;
+        int size = width*height;
+        point_cloud.points.resize(size);
+        int index4 = 0;
+        float color;
+        for (int i = 0; i < size; i++) {
+            if(cloud[index4+2] < 0) { // Check if it's an unvalid point, the depth is lower than 0 
+                index4 += 4;
+                continue; 
+            }
+            point_cloud.points[i].y = -cloud[index4++] * 0.001;
+            point_cloud.points[i].z = -cloud[index4++] * 0.001;
+            point_cloud.points[i].x = cloud[index4++] * 0.001;
+            color = cloud[index4++];
+            uint32_t color_uint = *(uint32_t*) & color; // Convert the color
+            unsigned char* color_uchar = (unsigned char*) &color_uint;
+            color_uint = ((uint32_t) color_uchar[0] << 16 | (uint32_t) color_uchar[1] << 8 | (uint32_t) color_uchar[2]);
+            point_cloud.points[i].rgb = *reinterpret_cast<float*> (&color_uint);
+        }
+        sensor_msgs::PointCloud2 output;
+        pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
+        output.header.frame_id = point_cloud_frame_id;// Set the header values of the ROS message
+        output.header.stamp = point_cloud_time;
+        pub_cloud.publish(output);
+        point_cloud_data_processing = false;
     }
-    sensor_msgs::PointCloud2 output;
-    pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
-    output.header.frame_id = cloud_frame_id;// Set the header values of the ROS message
-    output.header.stamp = t;
-    pub_cloud.publish(output);
-    pointCloudThreadRunning = false;
 }
 
 
@@ -337,9 +347,6 @@ int main(int argc, char **argv) {
     cv::Mat rightIm;
     cv::Mat depthIm;
 
-    // Create the array to store the pointCloud
-    float* p_cloud = new float[height * width * 4];
-
     // Create all the publishers
     // Image publishers
     image_transport::ImageTransport it_zed(nh);
@@ -377,8 +384,8 @@ int main(int argc, char **argv) {
     ros::Rate loop_rate(rate);
     ros::Time old_t = ros::Time::now();
     bool old_image = false;
-    pointCloudThreadRunning = false;
     std::unique_ptr<std::thread> pointCloudThread = nullptr;
+    pointCloudThread.reset(new std::thread(&publishPointCloud, width, height, std::ref(pub_cloud)));
 
     try {
         // Main loop
@@ -461,15 +468,13 @@ int main(int argc, char **argv) {
                 }
                 
                 // Publish the point cloud if someone has subscribed to
-                if (cloud_SubNumber>0 && pointCloudThreadRunning == false) {
+                if (cloud_SubNumber>0 && point_cloud_data_processing == false) {
+                    // Run the point cloud convertion asynchronously to avoid slowing down all the program                   
                     // Retrieve raw pointCloud data
-                    float* cloud = (float*) zed->retrieveMeasure(sl::zed::MEASURE::XYZRGBA).data;
-                    // Run the point cloud convertion asynchronously to avoid slowing down all the program
-                    pointCloudThreadRunning = true;
-                    if(pointCloudThread)
-                        pointCloudThread->join();
-                    pointCloudThread.reset(new std::thread(&publishPointCloud, cloud, width, height, std::ref(pub_cloud), cloud_frame_id, t));
-                   
+                    cloud = (float*) zed->retrieveMeasure(sl::zed::MEASURE::XYZRGBA).data;
+                    point_cloud_frame_id = cloud_frame_id;
+                    point_cloud_time = t;
+                    point_cloud_data_processing = true;
                 }
 
                 ros::spinOnce();
@@ -477,8 +482,17 @@ int main(int argc, char **argv) {
             } else std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
         }
     } catch (...) {
+	    if(pointCloudThread && pointCloudThreadRunning){
+            pointCloudThreadRunning = false;
+            pointCloudThread->join();
+        }
         ROS_ERROR("Unknown error.");
         return 1;
+    }
+    
+    if(pointCloudThread && pointCloudThreadRunning){
+        pointCloudThreadRunning = false;
+        pointCloudThread->join();
     }
     ROS_INFO("Quitting zed_depth_stereo_wrapper_node ...\n");
 
