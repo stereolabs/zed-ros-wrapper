@@ -67,6 +67,8 @@
 using namespace sl::zed;
 using namespace std;
 
+//#define OPENNI_DEPTH_MODE // 16 bit UC data in mm else 32F in m, for more info http://www.ros.org/reps/rep-0118.html
+
 int confidence;
 bool computeDepth;
 
@@ -92,7 +94,6 @@ void publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_f
     pub_img.publish(img_im.toImageMsg());
 }
 
-
 /* \brief Publish a cv::Mat depth image with a ros Publisher
  * \param depth : the depth image to publish
  * \param pub_depth : the publisher object to use
@@ -102,12 +103,15 @@ void publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_f
 void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string depth_frame_id, ros::Time t) {
     cv_bridge::CvImage depth_im;
     depth_im.image = depth;
+#ifdef OPENNI_DEPTH_MODE
+    depth_im.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+#else
     depth_im.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+#endif
     depth_im.header.frame_id = depth_frame_id;
     depth_im.header.stamp = t;
     pub_depth.publish(depth_im.toImageMsg());
 }
-
 
 /* \brief Publish a pointCloud with a ros Publisher
  * \param p_could : the float pointer to point cloud datas
@@ -118,9 +122,8 @@ void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string d
  * \param t : the ros::Time to stamp the point cloud
  */
 void publishPointCloud(int width, int height, ros::Publisher &pub_cloud) {
-    while(pointCloudThreadRunning) // check if the thread has to continue
-    {
-        if(!point_cloud_data_processing){ // check if datas are available
+    while (pointCloudThreadRunning) { // check if the thread has to continue
+        if (!point_cloud_data_processing) { // check if datas are available
             std::this_thread::sleep_for(std::chrono::milliseconds(5)); // No data, we just wait
             continue;
         }
@@ -132,9 +135,9 @@ void publishPointCloud(int width, int height, ros::Publisher &pub_cloud) {
         int index4 = 0;
         float color;
         for (int i = 0; i < size; i++) {
-            if(cloud[index4+2] < 0) { // Check if it's an unvalid point, the depth is lower than 0 
+            if (cloud[index4 + 2] < 0) { // Check if it's an unvalid point, the depth is lower than 0
                 index4 += 4;
-                continue; 
+                continue;
             }
             point_cloud.points[i].y = -cloud[index4++] * 0.001;
             point_cloud.points[i].z = -cloud[index4++] * 0.001;
@@ -147,13 +150,12 @@ void publishPointCloud(int width, int height, ros::Publisher &pub_cloud) {
         }
         sensor_msgs::PointCloud2 output;
         pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
-        output.header.frame_id = point_cloud_frame_id;// Set the header values of the ROS message
+        output.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
         output.header.stamp = point_cloud_time;
         pub_cloud.publish(output);
         point_cloud_data_processing = false;
     }
 }
-
 
 /* \brief Publish the informations of a camera with a ros Publisher
  * \param cam_info_msg : the information message to publish
@@ -167,7 +169,6 @@ void publishCamInfo(sensor_msgs::CameraInfoPtr cam_info_msg, ros::Publisher pub_
     pub_cam_info.publish(cam_info_msg);
     seq++;
 }
-
 
 /* \brief Get the information of the ZED cameras and store them in an information message
  * \param zed : the sl::zed::Camera* pointer to an instance
@@ -236,30 +237,23 @@ void fillCamInfo(Camera* zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sens
     right_cam_info_msg->header.frame_id = right_frame_id;
 }
 
-
 void callback(zed_ros_wrapper::ZedConfig &config, uint32_t level) {
-  ROS_INFO("Reconfigure confidence : %d",
-            config.confidence);
-  confidence = config.confidence;
+    ROS_INFO("Reconfigure confidence : %d", config.confidence);
+    confidence = config.confidence;
 }
-
 
 int main(int argc, char **argv) {
     // Launch file parameters
-    int resolution = sl::zed::VGA;
+    int resolution = sl::zed::HD720;
     int quality = sl::zed::MODE::PERFORMANCE;
     int sensing_mode = sl::zed::SENSING_MODE::RAW;
     int rate = 30;
 
     std::string img_topic = "image_rect";
-#if 0
-    // Used in some package
-    img_topic = "image_raw";
-#endif
 
     // Set the default topic names
-    string rgb_topic = "rgb/" + img_topic ;
-    string rgb_cam_info_topic =  "rgb/camera_info";
+    string rgb_topic = "rgb/" + img_topic;
+    string rgb_cam_info_topic = "rgb/camera_info";
     string rgb_frame_id = "/zed_rgb_optical_frame";
 
     string left_topic = "left/" + img_topic;
@@ -270,7 +264,12 @@ int main(int argc, char **argv) {
     string right_cam_info_topic = "right/camera_info";
     string right_frame_id = "/zed_right_optical_frame";
 
-    string depth_topic = "depth/" + img_topic;
+    string depth_topic = "depth/";
+#ifdef OPENNI_DEPTH_MODE
+    depth_topic += "image_raw";
+#else
+    depth_topic += img_topic;
+#endif
     string depth_cam_info_topic = "depth/camera_info";
     string depth_frame_id = "/zed_depth_optical_frame";
 
@@ -320,7 +319,7 @@ int main(int argc, char **argv) {
 
     // Try to initialize the ZED
     ERRCODE err = ERRCODE::ZED_NOT_AVAILABLE;
-    while(err != SUCCESS){
+    while (err != SUCCESS) {
         err = zed->init(static_cast<sl::zed::MODE> (quality), -1, true);
         ROS_INFO_STREAM(errcode2str(err));
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -333,18 +332,15 @@ int main(int argc, char **argv) {
     f = boost::bind(&callback, _1, _2);
     server.setCallback(f);
     confidence = 80;
-    
+
     // Get the parameters of the ZED images
     int width = zed->getImageSize().width;
     int height = zed->getImageSize().height;
     ROS_DEBUG_STREAM("Image size : " << width << "x" << height);
 
     cv::Size cvSize(width, height);
-    cv::Mat leftImRGBA(cvSize, CV_8UC4);
     cv::Mat leftImRGB(cvSize, CV_8UC3);
-    cv::Mat rightImRGBA(cvSize, CV_8UC4);
     cv::Mat rightImRGB(cvSize, CV_8UC3);
-    cv::Mat rightIm;
     cv::Mat depthIm;
 
     // Create all the publishers
@@ -372,7 +368,7 @@ int main(int argc, char **argv) {
     ROS_INFO_STREAM("Advertized on topic " << right_cam_info_topic);
     ros::Publisher pub_depth_cam_info = nh.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); //depth
     ROS_INFO_STREAM("Advertized on topic " << depth_cam_info_topic);
-    
+
     // Create and fill the camera information messages
     sensor_msgs::CameraInfoPtr rgb_cam_info_msg(new sensor_msgs::CameraInfo());
     sensor_msgs::CameraInfoPtr left_cam_info_msg(new sensor_msgs::CameraInfo());
@@ -404,15 +400,14 @@ int main(int argc, char **argv) {
 
                 if (computeDepth) {
                     int actual_confidence = zed->getConfidenceThreshold();
-                    if(actual_confidence != confidence)
+                    if (actual_confidence != confidence)
                         zed->setConfidenceThreshold(confidence);
                     old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true); // Ask to compute the depth
-                }
-                else
+                } else
                     old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), false, false); // Ask to not compute the depth
-                
-                
-                if (old_image) { // Detect if a error occuried (for exemple: the zed have been disconnected) and re-initialize the ZED
+
+
+                if (old_image) { // Detect if a error occurred (for example: the zed have been disconnected) and re-initialize the ZED
                     ROS_WARN("Wait for a new image to proceed");
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
                     if ((t - old_t).toSec() > 5) {
@@ -427,7 +422,7 @@ int main(int argc, char **argv) {
                         }
                         ROS_INFO("Reinit camera");
                         ERRCODE err = ERRCODE::ZED_NOT_AVAILABLE;
-                        while(err != SUCCESS) {
+                        while (err != SUCCESS) {
                             err = zed->init(static_cast<sl::zed::MODE> (quality), -1, true); // Try to initialize the ZED
                             ROS_INFO_STREAM(errcode2str(err));
                             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -439,21 +434,21 @@ int main(int argc, char **argv) {
                 old_t = ros::Time::now();
 
                 // Publish the left == rgb image if someone has subscribed to
-                if(left_SubNumber>0 || rgb_SubNumber>0) {
+                if (left_SubNumber > 0 || rgb_SubNumber > 0) {
                     // Retrieve RGBA Left image
                     cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), leftImRGB, CV_RGBA2RGB); // Convert to RGB
-                    if(left_SubNumber>0) {
+                    if (left_SubNumber > 0) {
                         publishCamInfo(left_cam_info_msg, pub_left_cam_info, t);
                         publishImage(leftImRGB, pub_left, left_frame_id, t);
                     }
-                    if(rgb_SubNumber>0) {
+                    if (rgb_SubNumber > 0) {
                         publishCamInfo(rgb_cam_info_msg, pub_rgb_cam_info, t);
                         publishImage(leftImRGB, pub_rgb, rgb_frame_id, t); // rgb is the left image
                     }
                 }
-                
+
                 // Publish the right image if someone has subscribed to
-                if(right_SubNumber>0) {
+                if (right_SubNumber > 0) {
                     // Retrieve RGBA Right image
                     cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::RIGHT)), rightImRGB, CV_RGBA2RGB); // Convert to RGB
                     publishCamInfo(right_cam_info_msg, pub_right_cam_info, t);
@@ -461,15 +456,19 @@ int main(int argc, char **argv) {
                 }
 
                 // Publish the depth image if someone has subscribed to
-                if (depth_SubNumber>0) {
+                if (depth_SubNumber > 0) {
+#ifdef OPENNI_DEPTH_MODE
                     // Retrieve raw depth data and convert it to 16_bit data
-                    slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(depthIm, CV_32FC1);
+                    slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(depthIm, CV_16UC1);
                     publishDepth(depthIm, pub_depth, depth_frame_id, t);
+#else
+                    publishDepth(slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)), pub_depth, depth_frame_id, t);
+#endif
                 }
-                
+
                 // Publish the point cloud if someone has subscribed to
-                if (cloud_SubNumber>0 && point_cloud_data_processing == false) {
-                    // Run the point cloud convertion asynchronously to avoid slowing down all the program                   
+                if (cloud_SubNumber > 0 && point_cloud_data_processing == false) {
+                    // Run the point cloud convertion asynchronously to avoid slowing down all the program
                     // Retrieve raw pointCloud data
                     cloud = (float*) zed->retrieveMeasure(sl::zed::MEASURE::XYZRGBA).data;
                     point_cloud_frame_id = cloud_frame_id;
@@ -482,15 +481,15 @@ int main(int argc, char **argv) {
             } else std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
         }
     } catch (...) {
-	    if(pointCloudThread && pointCloudThreadRunning){
+        if (pointCloudThread && pointCloudThreadRunning) {
             pointCloudThreadRunning = false;
             pointCloudThread->join();
         }
         ROS_ERROR("Unknown error.");
         return 1;
     }
-    
-    if(pointCloudThread && pointCloudThreadRunning){
+
+    if (pointCloudThread && pointCloudThreadRunning) {
         pointCloudThreadRunning = false;
         pointCloudThread->join();
     }
