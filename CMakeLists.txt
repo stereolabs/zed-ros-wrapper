@@ -19,7 +19,7 @@ endif()
 
 find_package(ZED 0.9 REQUIRED)
 
-find_package(CUDA 6.5 REQUIRED)
+find_package(CUDA REQUIRED)
 find_package(OpenCV 2.4 COMPONENTS core highgui imgproc REQUIRED)
 find_package(PCL REQUIRED)
 
