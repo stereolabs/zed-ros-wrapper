@@ -102,7 +102,7 @@ void publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_f
 void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string depth_frame_id, ros::Time t) {
     cv_bridge::CvImage depth_im;
     depth_im.image = depth;
-    depth_im.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+    depth_im.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
     depth_im.header.frame_id = depth_frame_id;
     depth_im.header.stamp = t;
     pub_depth.publish(depth_im.toImageMsg());
@@ -463,7 +463,7 @@ int main(int argc, char **argv) {
                 // Publish the depth image if someone has subscribed to
                 if (depth_SubNumber>0) {
                     // Retrieve raw depth data and convert it to 16_bit data
-                    slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(depthIm, CV_16UC1);
+                    slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(depthIm, CV_32FC1);
                     publishDepth(depthIm, pub_depth, depth_frame_id, t);
                 }
                 
