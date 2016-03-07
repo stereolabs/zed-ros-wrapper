@@ -459,10 +459,10 @@ int main(int argc, char **argv) {
                 if (depth_SubNumber > 0) {
 #ifdef OPENNI_DEPTH_MODE
                     // Retrieve raw depth data and convert it to 16_bit data
-                    slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(depthIm, CV_16UC1);
+                    slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(depthIm, CV_16UC1); // in mm, rounded
                     publishDepth(depthIm, pub_depth, depth_frame_id, t);
 #else
-                    publishDepth(slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)), pub_depth, depth_frame_id, t);
+                    publishDepth(slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH))*0.001, pub_depth, depth_frame_id, t); // in meters
 #endif
                 }
 
