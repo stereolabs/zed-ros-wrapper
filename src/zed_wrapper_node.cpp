@@ -457,6 +457,7 @@ int main(int argc, char **argv) {
 
                 // Publish the depth image if someone has subscribed to
                 if (depth_SubNumber > 0) {
+                    publishCamInfo(depth_cam_info_msg, pub_depth_cam_info, t);
 #ifdef OPENNI_DEPTH_MODE
                     // Retrieve raw depth data and convert it to 16_bit data
                     slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(depthIm, CV_16UC1); // in mm, rounded
