@@ -36,6 +36,7 @@
 #include <thread>
 #include <chrono>
 #include <memory>
+#include <sys/stat.h> // file exists
 
 //ROS includes
 #include <ros/ros.h>
@@ -47,6 +48,11 @@
 #include <image_transport/image_transport.h>
 #include <dynamic_reconfigure/server.h>
 #include <zed_wrapper/ZedConfig.h>
+#include <nav_msgs/Odometry.h>
+
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
 
 
 //opencv includes
@@ -67,10 +73,10 @@
 using namespace sl::zed;
 using namespace std;
 
-//#define OPENNI_DEPTH_MODE // 16 bit UC data in mm else 32F in m, for more info http://www.ros.org/reps/rep-0118.html
 
 int confidence;
 bool computeDepth;
+int openniDepthMode = 0; // 16 bit UC data in mm else 32F in m, for more info http://www.ros.org/reps/rep-0118.html
 
 // Point cloud thread variables
 float* cloud;
@@ -78,6 +84,60 @@ bool pointCloudThreadRunning = true;
 bool point_cloud_data_processing = false;
 string point_cloud_frame_id = "";
 ros::Time point_cloud_time;
+
+/* \brief Test if a file exist
+ * \param name : the path to the file
+ */
+bool file_exist(const std::string& name) {
+    struct stat buffer;
+    return (stat(name.c_str(), &buffer) == 0);
+}
+
+/* \brief Publish the pose of the camera with a ros Publisher
+ * \param Path : the 4x4 matrix representing the camera pose
+ * \param pub_odom : the publisher object to use
+ * \param odom_frame_id : the id of the reference frame of the pose
+ * \param t : the ros::Time to stamp the image
+ */
+void publishOdom(Eigen::Matrix4f Path, ros::Publisher &pub_odom, string odom_frame_id, ros::Time t) {
+    nav_msgs::Odometry odom;
+    odom.header.stamp = t;
+    odom.header.frame_id = odom_frame_id;
+    //odom.child_frame_id = "zed_optical_frame";
+
+    odom.pose.pose.position.y = -Path(0, 3);
+    odom.pose.pose.position.z = Path(1, 3);
+    odom.pose.pose.position.x = -Path(2, 3);
+    Eigen::Quaternionf quat(Path.block<3, 3>(0, 0));
+    odom.pose.pose.orientation.x = -quat.z();
+    odom.pose.pose.orientation.y = -quat.x();
+    odom.pose.pose.orientation.z = quat.y();
+    odom.pose.pose.orientation.w = quat.w();
+    pub_odom.publish(odom);
+}
+
+/* \brief Publish the pose of the camera as a transformation
+ * \param Path : the 4x4 matrix representing the camera pose
+ * \param trans_br : the TransformBroadcaster object to use
+ * \param odometry_transform_frame_id : the id of the transformation
+ * \param t : the ros::Time to stamp the image
+ */
+void publishTrackedFrame(Eigen::Matrix4f Path, tf2_ros::TransformBroadcaster &trans_br, string odometry_transform_frame_id, ros::Time t) {
+
+    geometry_msgs::TransformStamped transformStamped;
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = "zed_initial_frame";
+    transformStamped.child_frame_id = odometry_transform_frame_id;
+    transformStamped.transform.translation.x = -Path(0, 3);
+    transformStamped.transform.translation.y = Path(1, 3);
+    transformStamped.transform.translation.z = -Path(2, 3);
+    Eigen::Quaternionf quat(Path.block<3, 3>(0, 0));
+    transformStamped.transform.rotation.x = -quat.z();
+    transformStamped.transform.rotation.y = -quat.x();
+    transformStamped.transform.rotation.z = quat.y();
+    transformStamped.transform.rotation.w = quat.w();
+    trans_br.sendTransform(transformStamped);
+}
 
 /* \brief Publish a cv::Mat image with a ros Publisher
  * \param img : the image to publish
@@ -102,12 +162,14 @@ void publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_f
  */
 void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string depth_frame_id, ros::Time t) {
     cv_bridge::CvImage depth_im;
+    if (openniDepthMode) {
+        depth *= 1000.0f;
+        depth.convertTo(depth, CV_16UC1); // in mm, rounded
+        depth_im.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+    } else {
+        depth_im.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+    }
     depth_im.image = depth;
-#ifdef OPENNI_DEPTH_MODE
-    depth_im.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-#else
-    depth_im.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-#endif
     depth_im.header.frame_id = depth_frame_id;
     depth_im.header.stamp = t;
     pub_depth.publish(depth_im.toImageMsg());
@@ -124,7 +186,7 @@ void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string d
 void publishPointCloud(int width, int height, ros::Publisher &pub_cloud) {
     while (pointCloudThreadRunning) { // check if the thread has to continue
         if (!point_cloud_data_processing) { // check if datas are available
-            std::this_thread::sleep_for(std::chrono::milliseconds(5)); // No data, we just wait
+            std::this_thread::sleep_for(std::chrono::milliseconds(2)); // No data, we just wait
             continue;
         }
         pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
@@ -135,13 +197,13 @@ void publishPointCloud(int width, int height, ros::Publisher &pub_cloud) {
         int index4 = 0;
         float color;
         for (int i = 0; i < size; i++) {
-            if (cloud[index4 + 2] < 0) { // Check if it's an unvalid point, the depth is lower than 0
+            if (cloud[index4 + 2] > 0) { // Check if it's an unvalid point, the depth is more than 0
                 index4 += 4;
                 continue;
             }
-            point_cloud.points[i].y = -cloud[index4++] * 0.001;
-            point_cloud.points[i].z = -cloud[index4++] * 0.001;
-            point_cloud.points[i].x = cloud[index4++] * 0.001;
+            point_cloud.points[i].y = -cloud[index4++];
+            point_cloud.points[i].z = cloud[index4++];
+            point_cloud.points[i].x = -cloud[index4++];
             color = cloud[index4++];
             uint32_t color_uint = *(uint32_t*) & color; // Convert the color
             unsigned char* color_uchar = (unsigned char*) &color_uint;
@@ -185,7 +247,7 @@ void fillCamInfo(Camera* zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sens
 
     sl::zed::StereoParameters* zedParam = zed->getParameters();
 
-    float baseline = zedParam->baseline;
+    float baseline = zedParam->baseline * 0.001; // baseline converted in meters
 
     float fx = zedParam->LeftCam.fx;
     float fy = zedParam->LeftCam.fy;
@@ -228,7 +290,7 @@ void fillCamInfo(Camera* zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sens
     left_cam_info_msg->P[5] = right_cam_info_msg->P[5] = fy;
     left_cam_info_msg->P[6] = right_cam_info_msg->P[6] = cy;
     left_cam_info_msg->P[10] = right_cam_info_msg->P[10] = 1.0;
-    right_cam_info_msg->P[3] = (-1 * fx * (baseline / 1000));
+    right_cam_info_msg->P[3] = (-1 * fx * baseline);
 
     left_cam_info_msg->width = right_cam_info_msg->width = width;
     left_cam_info_msg->height = right_cam_info_msg->height = height;
@@ -246,35 +308,40 @@ int main(int argc, char **argv) {
     // Launch file parameters
     int resolution = sl::zed::HD720;
     int quality = sl::zed::MODE::PERFORMANCE;
-    int sensing_mode = sl::zed::SENSING_MODE::RAW;
+    int sensing_mode = sl::zed::SENSING_MODE::STANDARD;
     int rate = 30;
+    string odometry_DB = "";
 
     std::string img_topic = "image_rect";
 
     // Set the default topic names
     string rgb_topic = "rgb/" + img_topic;
     string rgb_cam_info_topic = "rgb/camera_info";
-    string rgb_frame_id = "/zed_rgb_optical_frame";
+    string rgb_frame_id = "/zed_tracked_frame";
 
     string left_topic = "left/" + img_topic;
     string left_cam_info_topic = "left/camera_info";
-    string left_frame_id = "/zed_left_optical_frame";
+    string left_frame_id = "/zed_tracked_frame";
 
     string right_topic = "right/" + img_topic;
     string right_cam_info_topic = "right/camera_info";
-    string right_frame_id = "/zed_right_optical_frame";
+    string right_frame_id = "/zed_tracked_frame";
 
     string depth_topic = "depth/";
-#ifdef OPENNI_DEPTH_MODE
-    depth_topic += "image_raw";
-#else
-    depth_topic += img_topic;
-#endif
+    if (openniDepthMode)
+        depth_topic += "image_raw";
+    else
+        depth_topic += img_topic;
+
     string depth_cam_info_topic = "depth/camera_info";
     string depth_frame_id = "/zed_depth_optical_frame";
 
     string point_cloud_topic = "point_cloud/" + img_topic;
-    string cloud_frame_id = "/zed_point_cloud";
+    string cloud_frame_id = "/zed_tracked_frame";
+
+    string odometry_topic = "odom";
+    string odometry_frame_id = "/zed_initial_frame";
+    string odometry_transform_frame_id = "/zed_tracked_frame";
 
     ros::init(argc, argv, "zed_depth_stereo_wrapper_node");
     ROS_INFO("ZED_WRAPPER Node initialized");
@@ -287,6 +354,10 @@ int main(int argc, char **argv) {
     nh_ns.getParam("quality", quality);
     nh_ns.getParam("sensing_mode", sensing_mode);
     nh_ns.getParam("frame_rate", rate);
+    nh_ns.getParam("odometry_DB", odometry_DB);
+    nh_ns.getParam("openni_depth_mode", openniDepthMode);
+    if (openniDepthMode)
+        ROS_INFO_STREAM("Openni depth mode activated");
 
     nh_ns.getParam("rgb_topic", rgb_topic);
     nh_ns.getParam("rgb_cam_info_topic", rgb_cam_info_topic);
@@ -307,6 +378,10 @@ int main(int argc, char **argv) {
     nh_ns.getParam("point_cloud_topic", point_cloud_topic);
     nh_ns.getParam("cloud_frame_id", cloud_frame_id);
 
+    nh_ns.getParam("odometry_topic", odometry_topic);
+    nh_ns.getParam("odometry_frame_id", odometry_frame_id);
+    nh_ns.getParam("odometry_transform_frame_id", odometry_transform_frame_id);
+
     // Create the ZED object
     std::unique_ptr<sl::zed::Camera> zed;
     if (argc == 2) {
@@ -318,12 +393,26 @@ int main(int argc, char **argv) {
     }
 
     // Try to initialize the ZED
+    sl::zed::InitParams param;
+    param.unit = UNIT::METER;
+    param.coordinate = COORDINATE_SYSTEM::RIGHT_HANDED;
+    param.mode = static_cast<sl::zed::MODE> (quality);
+    param.verbose = true;
+
     ERRCODE err = ERRCODE::ZED_NOT_AVAILABLE;
     while (err != SUCCESS) {
-        err = zed->init(static_cast<sl::zed::MODE> (quality), -1, true);
+        err = zed->init(param);
         ROS_INFO_STREAM(errcode2str(err));
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
+
+    zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true, true); //call the first grab
+
+    //Tracking variables
+    sl::zed::TRACKING_STATE track_state;
+    sl::zed::TRACKING_FRAME_STATE frame_state;
+    Eigen::Matrix4f Path;
+    Path.setIdentity(4, 4);
 
     //ERRCODE display
     dynamic_reconfigure::Server<zed_ros_wrapper::ZedConfig> server;
@@ -341,7 +430,7 @@ int main(int argc, char **argv) {
     cv::Size cvSize(width, height);
     cv::Mat leftImRGB(cvSize, CV_8UC3);
     cv::Mat rightImRGB(cvSize, CV_8UC3);
-    cv::Mat depthIm;
+
 
     // Create all the publishers
     // Image publishers
@@ -369,6 +458,11 @@ int main(int argc, char **argv) {
     ros::Publisher pub_depth_cam_info = nh.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); //depth
     ROS_INFO_STREAM("Advertized on topic " << depth_cam_info_topic);
 
+    //Odometry publisher
+    ros::Publisher pub_odom = nh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
+    tf2_ros::TransformBroadcaster transform_odom_broadcaster;
+    ROS_INFO_STREAM("Advertized on topic " << odometry_topic);
+
     // Create and fill the camera information messages
     sensor_msgs::CameraInfoPtr rgb_cam_info_msg(new sensor_msgs::CameraInfo());
     sensor_msgs::CameraInfoPtr left_cam_info_msg(new sensor_msgs::CameraInfo());
@@ -382,6 +476,7 @@ int main(int argc, char **argv) {
     bool old_image = false;
     std::unique_ptr<std::thread> pointCloudThread = nullptr;
     pointCloudThread.reset(new std::thread(&publishPointCloud, width, height, std::ref(pub_cloud)));
+    bool tracking_activated = false;
 
     try {
         // Main loop
@@ -392,23 +487,35 @@ int main(int argc, char **argv) {
             int right_SubNumber = pub_right.getNumSubscribers();
             int depth_SubNumber = pub_depth.getNumSubscribers();
             int cloud_SubNumber = pub_cloud.getNumSubscribers();
-            bool runLoop = (rgb_SubNumber + left_SubNumber + right_SubNumber + depth_SubNumber + cloud_SubNumber) > 0;
+            int odom_SubNumber = pub_odom.getNumSubscribers();
+            bool runLoop = (rgb_SubNumber + left_SubNumber + right_SubNumber + depth_SubNumber + cloud_SubNumber + odom_SubNumber) > 0;
             // Run the loop only if there is some subscribers
             if (runLoop) {
-                computeDepth = (depth_SubNumber + cloud_SubNumber) > 0; // Detect if one of the subscriber need to have the depth information
+                if (odom_SubNumber > 0 && !tracking_activated) { //Start the tracking
+                    if (odometry_DB != "" && !file_exist(odometry_DB)) {
+                        odometry_DB = "";
+                        ROS_WARN("odometry_DB path doesn't exist or is unreachable.");
+                    }
+                    zed->enableTracking(Path, true, odometry_DB);
+                    tracking_activated = true;
+                } else if (odom_SubNumber == 0 && tracking_activated) { //Stop the tracking
+                    zed->stopTracking();
+                    tracking_activated = false;
+                }
+                computeDepth = (depth_SubNumber + cloud_SubNumber + odom_SubNumber) > 0; // Detect if one of the subscriber need to have the depth information
                 ros::Time t = ros::Time::now(); // Get current time
 
                 if (computeDepth) {
                     int actual_confidence = zed->getConfidenceThreshold();
                     if (actual_confidence != confidence)
                         zed->setConfidenceThreshold(confidence);
-                    old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true); // Ask to compute the depth
+                    old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true, cloud_SubNumber > 0); // Ask to compute the depth
                 } else
                     old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), false, false); // Ask to not compute the depth
 
 
                 if (old_image) { // Detect if a error occurred (for example: the zed have been disconnected) and re-initialize the ZED
-                    ROS_WARN("Wait for a new image to proceed");
+                    ROS_DEBUG("Wait for a new image to proceed");
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
                     if ((t - old_t).toSec() > 5) {
                         // delete the old object before constructing a new one
@@ -423,9 +530,19 @@ int main(int argc, char **argv) {
                         ROS_INFO("Reinit camera");
                         ERRCODE err = ERRCODE::ZED_NOT_AVAILABLE;
                         while (err != SUCCESS) {
-                            err = zed->init(static_cast<sl::zed::MODE> (quality), -1, true); // Try to initialize the ZED
+                            err = zed->init(param); // Try to initialize the ZED
                             ROS_INFO_STREAM(errcode2str(err));
                             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+                        }
+                        zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true, cloud_SubNumber > 0); //call the first grab
+                        tracking_activated = false;
+                        if (odom_SubNumber > 0) { //Start the tracking
+                            if (odometry_DB != "" && !file_exist(odometry_DB)) {
+                                odometry_DB = "";
+                                ROS_WARN("odometry_DB path doesn't exist or is unreachable.");
+                            }
+                            zed->enableTracking(Path, true, odometry_DB);
+                            tracking_activated = true;
                         }
                     }
                     continue;
@@ -458,13 +575,7 @@ int main(int argc, char **argv) {
                 // Publish the depth image if someone has subscribed to
                 if (depth_SubNumber > 0) {
                     publishCamInfo(depth_cam_info_msg, pub_depth_cam_info, t);
-#ifdef OPENNI_DEPTH_MODE
-                    // Retrieve raw depth data and convert it to 16_bit data
-                    slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)).convertTo(depthIm, CV_16UC1); // in mm, rounded
-                    publishDepth(depthIm, pub_depth, depth_frame_id, t);
-#else
-                    publishDepth(slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH))*0.001, pub_depth, depth_frame_id, t); // in meters
-#endif
+                    publishDepth(slMat2cvMat(zed->retrieveMeasure(sl::zed::MEASURE::DEPTH)), pub_depth, depth_frame_id, t); // in meters
                 }
 
                 // Publish the point cloud if someone has subscribed to
@@ -477,9 +588,23 @@ int main(int argc, char **argv) {
                     point_cloud_data_processing = true;
                 }
 
+                // Publish the odometry if someone has subscribed to
+                if (odom_SubNumber > 0) {
+                    track_state = zed->getPosition(Path, MAT_TRACKING_TYPE::PATH);
+                    publishOdom(Path, pub_odom, odometry_frame_id, t);
+                }
+
+                //Note, the frame is published, but its values will only change if someone has subscribed to odom
+                publishTrackedFrame(Path, transform_odom_broadcaster, odometry_transform_frame_id, t); //publish the tracked Frame
+
                 ros::spinOnce();
                 loop_rate.sleep();
-            } else std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
+            } else {
+                publishTrackedFrame(Path, transform_odom_broadcaster, odometry_transform_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
+                std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
+            }
+
+
         }
     } catch (...) {
         if (pointCloudThread && pointCloudThreadRunning) {
