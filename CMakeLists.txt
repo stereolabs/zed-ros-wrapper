@@ -17,10 +17,21 @@ else()
 endif()
 ###############################################################################
 
-find_package(ZED REQUIRED)
+find_package(ZED 1.0 REQUIRED)
 
-find_package(CUDA REQUIRED)
-find_package(OpenCV 3.1 EXACT REQUIRED COMPONENTS core highgui imgproc REQUIRED)
+##For Jetson, OpenCV4Tegra is based on OpenCV2.4
+exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
+if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" OR CMAKE_SYSTEM_NAME2 MATCHES "armv7l" )
+    SET(OCV_VERSION "2.4")
+    SET(CUDA_VERSION "")
+else()
+    SET(CUDA_VERSION "7.5")
+    SET(OCV_VERSION "3.1")
+endif()
+
+find_package(OpenCV ${OCV_VERSION} COMPONENTS core highgui imgproc REQUIRED)
+find_package(CUDA ${CUDA_VERSION} REQUIRED)
+
 find_package(PCL REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -41,7 +52,7 @@ catkin_package(
     roscpp
     rosconsole
     sensor_msgs
-    opencv2
+    opencv
     image_transport
     dynamic_reconfigure
     tf2_ros
@@ -52,7 +63,7 @@ catkin_package(
 
 # Specify locations of header files.
 include_directories(
-	${catkin_INCLUDE_DIRS} 
+	${catkin_INCLUDE_DIRS}
 	${CUDA_INCLUDE_DIRS}
 	${ZED_INCLUDE_DIRS}
 	${OpenCV_INCLUDE_DIRS}
@@ -83,7 +94,7 @@ target_link_libraries(
         ${ZED_LIBRARIES}
 	${CUDA_LIBRARIES} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY}
         ${OpenCV_LIBS}
-        ${PCL_LIBRARIES}  
+        ${PCL_LIBRARIES}
     )
 
 add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)

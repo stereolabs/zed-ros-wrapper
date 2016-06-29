@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>zed_wrapper</name>
-  <version>0.1.0</version>
+  <version>1.0.0</version>
   <description>zed_wrapper is a ROS wrapper for the <a href="http://www.stereolabs.com/developers/">ZED library</a>
     for interfacing with the ZED camera.
   </description>
@@ -15,7 +15,7 @@
   <build_depend>roscpp</build_depend>
   <build_depend>rosconsole</build_depend>
   <build_depend>sensor_msgs</build_depend>
-  <build_depend>opencv2</build_depend>
+  <build_depend>opencv</build_depend>
   <build_depend>image_transport</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
   
@@ -24,7 +24,7 @@
   <run_depend>roscpp</run_depend>
   <run_depend>rosconsole</run_depend>
   <run_depend>sensor_msgs</run_depend>
-  <run_depend>opencv2</run_depend>
+  <run_depend>opencv</run_depend>
   <run_depend>image_transport</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
   

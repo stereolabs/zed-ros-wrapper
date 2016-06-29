@@ -104,11 +104,11 @@ bool file_exist(const std::string& name) {
 sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img, const std::string encodingType, std::string frameId, ros::Time t){
     sensor_msgs::ImagePtr ptr = boost::make_shared<sensor_msgs::Image>();
     sensor_msgs::Image& imgMessage = *ptr;
-    imgMessage.header.stamp=t;
-    imgMessage.header.frame_id=frameId;
+    imgMessage.header.stamp = t;
+    imgMessage.header.frame_id = frameId;
     imgMessage.height = img.rows;
     imgMessage.width = img.cols;
-    imgMessage.encoding=encodingType;
+    imgMessage.encoding = encodingType;
     int num = 1; //for endianness detection
     imgMessage.is_bigendian = !(*(char *)&num == 1);
     imgMessage.step = img.cols * img.elemSize();
@@ -141,10 +141,10 @@ void publishOdom(Eigen::Matrix4f Path, ros::Publisher &pub_odom, string odom_fra
     odom.header.frame_id = odom_frame_id;
     //odom.child_frame_id = "zed_optical_frame";
 
-    odom.pose.pose.position.y = -Path(0,3);
-    odom.pose.pose.position.z = Path(1,3);
-    odom.pose.pose.position.x = -Path(2,3);
-    Eigen::Quaternionf quat(Path.block<3,3>(0,0));
+    odom.pose.pose.position.y = -Path(0, 3);
+    odom.pose.pose.position.z = Path(1, 3);
+    odom.pose.pose.position.x = -Path(2, 3);
+    Eigen::Quaternionf quat(Path.block<3, 3>(0, 0));
     odom.pose.pose.orientation.x = -quat.z();
     odom.pose.pose.orientation.y = -quat.x();
     odom.pose.pose.orientation.z = quat.y();
@@ -164,10 +164,10 @@ void publishTrackedFrame(Eigen::Matrix4f Path, tf2_ros::TransformBroadcaster &tr
     transformStamped.header.stamp = ros::Time::now();
     transformStamped.header.frame_id = "zed_initial_frame";
     transformStamped.child_frame_id = odometry_transform_frame_id;
-    transformStamped.transform.translation.x = -Path(0,3);
-    transformStamped.transform.translation.y = Path(1,3);
-    transformStamped.transform.translation.z = -Path(2,3);
-    Eigen::Quaternionf quat(Path.block<3,3>(0,0));
+    transformStamped.transform.translation.x = -Path(0, 3);
+    transformStamped.transform.translation.y = Path(1, 3);
+    transformStamped.transform.translation.z = -Path(2, 3);
+    Eigen::Quaternionf quat(Path.block<3, 3>(0, 0));
     transformStamped.transform.rotation.x = -quat.z();
     transformStamped.transform.rotation.y = -quat.x();
     transformStamped.transform.rotation.z = quat.y();
@@ -363,7 +363,7 @@ int main(int argc, char **argv) {
     string right_frame_id = "/zed_tracked_frame";
 
     string depth_topic = "depth/";
-    if(openniDepthMode)
+    if (openniDepthMode)
         depth_topic += "image_raw";
     else
         depth_topic += img_topic;
@@ -391,7 +391,7 @@ int main(int argc, char **argv) {
     nh_ns.getParam("frame_rate", rate);
     nh_ns.getParam("odometry_DB", odometry_DB);
     nh_ns.getParam("openni_depth_mode", openniDepthMode);
-    if(openniDepthMode)
+    if (openniDepthMode)
         ROS_INFO_STREAM("Openni depth mode activated");
 
     nh_ns.getParam("rgb_topic", rgb_topic);
@@ -441,7 +441,7 @@ int main(int argc, char **argv) {
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
 
-    zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true, true);//call the first grab
+    zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true, true); //call the first grab
 
     //Tracking variables
     sl::zed::TRACKING_STATE track_state;
@@ -526,15 +526,14 @@ int main(int argc, char **argv) {
             bool runLoop = (rgb_SubNumber + left_SubNumber + right_SubNumber + depth_SubNumber + cloud_SubNumber + odom_SubNumber) > 0;
             // Run the loop only if there is some subscribers
             if (runLoop) {
-                if(odom_SubNumber>0 && !tracking_activated) { //Start the tracking
-			        if(odometry_DB != "" && !file_exist(odometry_DB)){
+                if (odom_SubNumber > 0 && !tracking_activated) { //Start the tracking
+                    if (odometry_DB != "" && !file_exist(odometry_DB)) {
                         odometry_DB = "";
                         ROS_WARN("odometry_DB path doesn't exist or is unreachable.");
                     }
                     zed->enableTracking(Path, true, odometry_DB);
                     tracking_activated = true;
-                }
-                else if(odom_SubNumber==0 && tracking_activated) { //Stop the tracking
+                } else if (odom_SubNumber == 0 && tracking_activated) { //Stop the tracking
                     zed->stopTracking();
                     tracking_activated = false;
                 }
@@ -570,10 +569,10 @@ int main(int argc, char **argv) {
                             ROS_INFO_STREAM(errcode2str(err));
                             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
                         }
-                        zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true, cloud_SubNumber > 0);//call the first grab
+                        zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true, cloud_SubNumber > 0); //call the first grab
                         tracking_activated = false;
-                        if(odom_SubNumber>0) { //Start the tracking
-                            if(odometry_DB != "" && !file_exist(odometry_DB)){
+                        if (odom_SubNumber > 0) { //Start the tracking
+                            if (odometry_DB != "" && !file_exist(odometry_DB)) {
                                 odometry_DB = "";
                                 ROS_WARN("odometry_DB path doesn't exist or is unreachable.");
                             }
@@ -640,8 +639,6 @@ int main(int argc, char **argv) {
                 publishTrackedFrame(Path, transform_odom_broadcaster, odometry_transform_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
                 std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
             }
-
-            
         }
     } catch (...) {
         if (pointCloudThread && pointCloudThreadRunning) {
