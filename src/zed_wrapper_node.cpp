@@ -92,7 +92,7 @@ ros::Time point_cloud_time;
  */
 bool file_exist(const std::string& name) {
   struct stat buffer;   
-  return (stat (name.c_str(), &buffer) == 0); 
+  return (stat(name.c_str(), &buffer) == 0); 
 }
 
 /* \brief Image to ros message conversion 
