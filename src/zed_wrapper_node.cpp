@@ -128,9 +128,9 @@ void publishTrackedFrame(Eigen::Matrix4f Path, tf2_ros::TransformBroadcaster &tr
     transformStamped.header.stamp = ros::Time::now();
     transformStamped.header.frame_id = "zed_initial_frame";
     transformStamped.child_frame_id = odometry_transform_frame_id;
-    transformStamped.transform.translation.x = -Path(0, 3);
-    transformStamped.transform.translation.y = Path(1, 3);
-    transformStamped.transform.translation.z = -Path(2, 3);
+    transformStamped.transform.translation.x = -Path(2, 3);
+    transformStamped.transform.translation.y = -Path(0, 3);
+    transformStamped.transform.translation.z = Path(1, 3);
     Eigen::Quaternionf quat(Path.block<3, 3>(0, 0));
     transformStamped.transform.rotation.x = -quat.z();
     transformStamped.transform.rotation.y = -quat.x();
