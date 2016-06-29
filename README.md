@@ -29,8 +29,7 @@ on the following ROS packages:
    - roscpp
    - rosconsole
    - sensor_msgs
-   - opencv
-   - cv_bridge
+   - opencv2
    - image_transport
    - dynamic_reconfigure
 
@@ -56,7 +55,7 @@ Open a terminal :
    	$ rosrun image_view image_view image:=/camera/rgb/image_rect_color
 
    If you want to see the point cloud, lauch rviz with the following command. Then click on **add** (bottom left), select the **By Topic** tab, select **point_cloud->cloud->PointCloud2** and click **OK**.
-
+   
    	$ rosrun rviz rviz
 
    Note that rviz isn't very good at displaying a camera feed and a point cloud at the same time. You should use an other instance of rviz or the `rosrun` command.
@@ -85,7 +84,7 @@ Open a terminal :
  sensing_mode                 | Depth sensing mode                                          | '0': FILL                   
  _                            | _                                                           | '1': STANDARD               
  openni_depth_mode            | Convert depth to 16bit in millimeters                       | '0': 32bit float meters     
- _		                      | _                                                           | '1': 16bit uchar millimeters
+ _		                      | _                                                           | '1': 16bit uchar millimeters 
  frame_rate                   | Rate at which images are published                          | int                         
  rgb_topic                    | Topic to which rgb==default==left images are published      | string                      
  rgb_cam_info_topic           | Topic to which rgb==default==left camera info are published | string                      
@@ -104,3 +103,15 @@ Open a terminal :
  odometry_topic               | Topic to which odometry is published                        | string                      
  odometry_frame_id            | ID specified in the odometry message header                 | string                      
  odometry_transform_frame_id  | Name of the transformation following the odometry           | string                      
+
+
+
+
+
+
+
+
+
+
+
+
