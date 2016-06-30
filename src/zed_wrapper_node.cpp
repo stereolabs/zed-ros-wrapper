@@ -43,7 +43,6 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/distortion_models.h>
-#include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <image_transport/image_transport.h>
 #include <dynamic_reconfigure/server.h>
@@ -60,6 +59,9 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
+
+//Boost includes
+#include <boost/make_shared.hpp>
 
 //PCL includes
 #include <sensor_msgs/PointCloud2.h>
@@ -89,8 +91,42 @@ ros::Time point_cloud_time;
  * \param name : the path to the file
  */
 bool file_exist(const std::string& name) {
-    struct stat buffer;
-    return (stat(name.c_str(), &buffer) == 0);
+  struct stat buffer;   
+  return (stat(name.c_str(), &buffer) == 0); 
+}
+
+/* \brief Image to ros message conversion 
+ * \param img : the image to publish
+ * \param encodingType : the sensor_msgs::image_encodings encoding type
+ * \param frameId : the id of the reference frame of the image
+ * \param t : the ros::Time to stamp the image
+*/
+sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img, const std::string encodingType, std::string frameId, ros::Time t){
+    sensor_msgs::ImagePtr ptr = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::Image& imgMessage = *ptr;
+    imgMessage.header.stamp = t;
+    imgMessage.header.frame_id = frameId;
+    imgMessage.height = img.rows;
+    imgMessage.width = img.cols;
+    imgMessage.encoding = encodingType;
+    int num = 1; //for endianness detection
+    imgMessage.is_bigendian = !(*(char *)&num == 1);
+    imgMessage.step = img.cols * img.elemSize();
+    size_t size = imgMessage.step * img.rows;
+    imgMessage.data.resize(size);
+
+    if (img.isContinuous())
+        memcpy((char*)(&imgMessage.data[0]), img.data, size);
+    else {
+        uchar* opencvData = img.data;
+        uchar* rosData = (uchar*)(&imgMessage.data[0]);
+        for (unsigned int i = 0; i < img.rows; i++) {
+            memcpy(rosData, opencvData, imgMessage.step);
+            rosData += imgMessage.step;
+            opencvData += img.step;
+        }
+    }
+    return ptr;
 }
 
 /* \brief Publish the pose of the camera with a ros Publisher
@@ -146,12 +182,10 @@ void publishTrackedFrame(Eigen::Matrix4f Path, tf2_ros::TransformBroadcaster &tr
  * \param t : the ros::Time to stamp the image
  */
 void publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_frame_id, ros::Time t) {
-    cv_bridge::CvImage img_im;
-    img_im.image = img;
-    img_im.encoding = sensor_msgs::image_encodings::BGR8;
-    img_im.header.frame_id = img_frame_id;
-    img_im.header.stamp = t;
-    pub_img.publish(img_im.toImageMsg());
+    pub_img.publish(imageToROSmsg(img
+                                , sensor_msgs::image_encodings::BGR8
+                                , img_frame_id
+                                , t ));
 }
 
 /* \brief Publish a cv::Mat depth image with a ros Publisher
@@ -161,18 +195,19 @@ void publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_f
  * \param t : the ros::Time to stamp the depth image
  */
 void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string depth_frame_id, ros::Time t) {
-    cv_bridge::CvImage depth_im;
-    if (openniDepthMode) {
+    string encoding;
+    if(openniDepthMode){
         depth *= 1000.0f;
         depth.convertTo(depth, CV_16UC1); // in mm, rounded
-        depth_im.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    } else {
-        depth_im.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+        encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     }
-    depth_im.image = depth;
-    depth_im.header.frame_id = depth_frame_id;
-    depth_im.header.stamp = t;
-    pub_depth.publish(depth_im.toImageMsg());
+    else {
+        encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+    }
+    pub_depth.publish(imageToROSmsg(depth
+                                , encoding
+                                , depth_frame_id
+                                , t ));
 }
 
 /* \brief Publish a pointCloud with a ros Publisher
@@ -600,11 +635,10 @@ int main(int argc, char **argv) {
                 ros::spinOnce();
                 loop_rate.sleep();
             } else {
+
                 publishTrackedFrame(Path, transform_odom_broadcaster, odometry_transform_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
                 std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
             }
-
-
         }
     } catch (...) {
         if (pointCloudThread && pointCloudThreadRunning) {

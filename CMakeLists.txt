@@ -39,7 +39,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rosconsole
   sensor_msgs
-  cv_bridge
   dynamic_reconfigure
   tf2_ros
 )
@@ -54,7 +53,6 @@ catkin_package(
     rosconsole
     sensor_msgs
     opencv
-    cv_bridge
     image_transport
     dynamic_reconfigure
     tf2_ros
