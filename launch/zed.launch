@@ -7,7 +7,7 @@
   <group ns="camera">
     <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file)" output="screen">
 
-      <param name="resolution"            value="2" />
+      <param name="resolution"            value="3" />
       <param name="quality"               value="3" />
       <param name="sensing_mode"          value="1" />
       <param name="frame_rate"            value="60" />
@@ -16,26 +16,26 @@
 
       <param name="rgb_topic"             value="rgb/image_rect_color" />
       <param name="rgb_cam_info_topic"    value="rgb/camera_info" />
-      <param name="rgb_frame_id"          value="/zed_tracked_frame" />
+      <param name="rgb_frame_id"          value="zed_tracked_frame" />
 
       <param name="left_topic"            value="left/image_rect_color" />
       <param name="left_cam_info_topic"   value="left/camera_info" />
-      <param name="left_frame_id"         value="/zed_tracked_frame" />
+      <param name="left_frame_id"         value="zed_tracked_frame" />
 
       <param name="right_topic"           value="right/image_rect_color" />
       <param name="right_cam_info_topic"  value="right/camera_info" />
-      <param name="right_frame_id"        value="/zed_tracked_frame" />
+      <param name="right_frame_id"        value="zed_tracked_frame" />
 
       <param name="depth_topic"           value="depth/image_rect_color" />
       <param name="depth_cam_info_topic"  value="depth/camera_info" />
-      <param name="depth_frame_id"        value="/zed_tracked_frame" />
+      <param name="depth_frame_id"        value="zed_tracked_frame" />
 
       <param name="point_cloud_topic"     value="point_cloud/cloud" />
-      <param name="cloud_frame_id"        value="/zed_tracked_frame" />
+      <param name="cloud_frame_id"        value="zed_tracked_frame" />
 
       <param name="odometry_topic"                value="odom" />
-      <param name="odometry_frame_id"             value="/zed_initial_frame" />
-      <param name="odometry_transform_frame_id"   value="/zed_tracked_frame" />
+      <param name="odometry_frame_id"             value="zed_initial_frame" />
+      <param name="odometry_transform_frame_id"   value="zed_tracked_frame" />
 
 
     </node>

@@ -455,7 +455,7 @@ int main(int argc, char **argv) {
 
     f = boost::bind(&callback, _1, _2);
     server.setCallback(f);
-    confidence = 80;
+    confidence = 100;
 
     // Get the parameters of the ZED images
     int width = zed->getImageSize().width;

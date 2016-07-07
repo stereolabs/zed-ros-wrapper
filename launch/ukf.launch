@@ -1,0 +1,106 @@
+<!-- Launch file for ukf_localization_node -->
+
+<launch>
+
+    <node pkg="robot_localization" type="ukf_localization_node" name="ukf_localization" clear_params="true">
+      <param name="frequency" value="30"/>
+      <param name="sensor_timeout" value="0.1"/>
+      <param name="two_d_mode" value="false"/>
+
+      <param name="map_frame" value="map"/>
+      <!-- Defaults to "odom" if unspecified -->
+      <param name="odom_frame" value="odom"/>
+      <!-- Defaults to "base_link" if unspecified -->
+      <param name="base_link_frame" value="base_link"/>
+      <!-- Defaults to the value of "odom_frame" if unspecified -->
+      <param name="world_frame" value="odom"/>
+
+      <param name="odom0" value="/camera/odom"/>
+
+      <!-- x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az -->
+      <rosparam param="odom0_config">[true, true, true,
+                                      true, true, true,
+                                      false,  false, false,
+                                      false, false, false,
+                                      false, false, false]</rosparam>
+      <param name="odom0_differential" value="false"/>
+      <param name="odom0_relative" value="true"/>
+
+      <param name="print_diagnostics" value="true"/>
+
+      <!-- ======== ADVANCED PARAMETERS ======== -->
+
+      <param name="odom0_queue_size" value="2"/>
+
+      <!-- If your data is subject to outliers, use these threshold settings, expressed as Mahalanobis distances, to control
+           how far away from the current vehicle state a sensor measurement is permitted to be. Each defaults to
+           numeric_limits<double>::max() if unspecified. -->
+      <param name="odom0_pose_rejection_threshold" value="0.75"/>
+      <param name="odom0_twist_rejection_threshold" value="0.75"/>
+
+      <!-- Debug settings. Not for the faint of heart. Outputs a ludicrous amount of information to the file
+           specified by debug_out_file. I hope you like matrices! Defaults to false if unspecified. -->
+      <param name="debug"           value="false"/>
+      <!-- Defaults to "robot_localization_debug.txt" if unspecified. -->
+      <param name="debug_out_file"  value="debug_ukf_localization.txt"/>
+
+      <!-- The process noise covariance matrix can be difficult to tune, and can vary for each application, so it
+           is exposed as a configuration parameter. The values are ordered as x, y, z, roll, pitch, yaw, vx, vy, vz,
+           vroll, vpitch, vyaw, ax, ay, az. Defaults to the matrix below if unspecified. -->
+      <rosparam param="process_noise_covariance">[0.05, 0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                                                  0,    0.05, 0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                                                  0,    0,    0.06, 0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                                                  0,    0,    0,    0.03, 0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                                                  0,    0,    0,    0,    0.03, 0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                                                  0,    0,    0,    0,    0,    0.06, 0,     0,     0,    0,    0,    0,    0,    0,    0,
+                                                  0,    0,    0,    0,    0,    0,    0.025, 0,     0,    0,    0,    0,    0,    0,    0,
+                                                  0,    0,    0,    0,    0,    0,    0,     0.025, 0,    0,    0,    0,    0,    0,    0,
+                                                  0,    0,    0,    0,    0,    0,    0,     0,     0.04, 0,    0,    0,    0,    0,    0,
+                                                  0,    0,    0,    0,    0,    0,    0,     0,     0,    0.01, 0,    0,    0,    0,    0,
+                                                  0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0.01, 0,    0,    0,    0,
+                                                  0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0.02, 0,    0,    0,
+                                                  0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0.01, 0,    0,
+                                                  0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0.01, 0,
+                                                  0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0.015]</rosparam>
+
+      <!-- This represents the initial value for the state estimate error covariance matrix. Setting a diagonal value (a
+           variance) to a large value will result in early measurements for that variable being accepted quickly. Users should
+           take care not to use large values for variables that will not be measured directly. The values are ordered as x, y,
+           z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az. Defaults to the matrix below if unspecified. -->
+           <rosparam param="initial_estimate_covariance">[1e-9, 0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                                          0,    1e-9, 0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                                          0,    0,    1e-9, 0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                                          0,    0,    0,    1e-9, 0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                                          0,    0,    0,    0,    1e-9, 0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                                          0,    0,    0,    0,    0,    1e-9, 0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                                          0,    0,    0,    0,    0,    0,    1e-9, 0,    0,    0,     0,     0,     0,    0,    0,
+                                                          0,    0,    0,    0,    0,    0,    0,    1e-9, 0,    0,     0,     0,     0,    0,    0,
+                                                          0,    0,    0,    0,    0,    0,    0,    0,    1e-9, 0,     0,     0,     0,    0,    0,
+                                                          0,    0,    0,    0,    0,    0,    0,    0,    0,    1e-9,  0,     0,     0,    0,    0,
+                                                          0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     1e-9,  0,     0,    0,    0,
+                                                          0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     1e-9,  0,    0,    0,
+                                                          0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     1e-9, 0,    0,
+                                                          0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    1e-9, 0,
+                                                          0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    1e-9]</rosparam>
+
+      <!-- ======== UKF-SPECIFIC PARAMETERS ======== -->
+
+      <!-- The alpha and kappa variables control the spread of the sigma points. Unless you are familiar with
+           UKFs, it's probably a good idea to leave these alone. -->
+      <!-- Defaults to 0.001 if unspecified. -->
+      <param name="alpha" value="0.001"/>
+      <!-- Defaults to 0 if unspecified. -->
+      <param name="kappa" value="0"/>
+
+      <!-- The beta variable relates to the distribution of the state vector. Again, it's probably best to leave
+           this alone if you're uncertain. -->
+      <!-- Defaults to 2 if unspecified. -->
+      <param name="beta" value="2"/>
+
+      <!--  By default, the node outputs an Odometry message with the topic name odometry/filtered. Uncomment and modify this
+            line if you want the node to output to another topic-->
+      <!-- <remap from="odometry/filtered" to="your_desired_topic"/> -->
+
+    </node>
+
+</launch>
