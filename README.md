@@ -30,7 +30,6 @@ on the following ROS packages:
    - rosconsole
    - sensor_msgs
    - opencv
-   - cv_bridge
    - image_transport
    - dynamic_reconfigure
 
@@ -85,7 +84,7 @@ Open a terminal :
  sensing_mode                 | Depth sensing mode                                          | '0': FILL                   
  _                            | _                                                           | '1': STANDARD               
  openni_depth_mode            | Convert depth to 16bit in millimeters                       | '0': 32bit float meters     
- _		                      | _                                                           | '1': 16bit uchar millimeters
+ _                            | _                                                           | '1': 16bit uchar millimeters
  frame_rate                   | Rate at which images are published                          | int                         
  rgb_topic                    | Topic to which rgb==default==left images are published      | string                      
  rgb_cam_info_topic           | Topic to which rgb==default==left camera info are published | string                      
