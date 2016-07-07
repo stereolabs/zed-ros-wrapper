@@ -2,31 +2,24 @@ cmake_minimum_required(VERSION 2.8.7)
 
 project(zed_wrapper)
 
-###############################################################################
-## Options
-option( DEBUG_ACTIVE "Enable Debug build" ON )
-
-if(DEBUG_ACTIVE)
-    MESSAGE( "Debug compilation active" )
-    set(ROS_BUILD_TYPE Debug)
-    set(CMAKE_BUILD_TYPE Debug)
-else()
-    MESSAGE( "Release compilation active" )
-    set(ROS_BUILD_TYPE Release)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
-###############################################################################
+# if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
+IF(NOT CMAKE_BUILD_TYPE)
+    SET(CMAKE_BUILD_TYPE Release)
+ENDIF(NOT CMAKE_BUILD_TYPE)
 
 find_package(ZED 1.0 REQUIRED)
 
 ##For Jetson, OpenCV4Tegra is based on OpenCV2.4
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
-if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" OR CMAKE_SYSTEM_NAME2 MATCHES "armv7l" )
+if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # X1
     SET(OCV_VERSION "2.4")
-    SET(CUDA_VERSION "")
-else()
-    SET(CUDA_VERSION "7.5")
+    SET(CUDA_VERSION "7.0")
+elseif(CMAKE_SYSTEM_NAME2 MATCHES "armv7l" ) # K1
+    SET(OCV_VERSION "2.4")
+    SET(CUDA_VERSION "6.5")
+else() # Desktop
     SET(OCV_VERSION "3.1")
+    SET(CUDA_VERSION "7.5")
 endif()
 
 find_package(OpenCV ${OCV_VERSION} COMPONENTS core highgui imgproc REQUIRED)
@@ -41,6 +34,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   dynamic_reconfigure
   tf2_ros
+  pcl_conversions
 )
 
 generate_dynamic_reconfigure_options(
@@ -56,6 +50,7 @@ catkin_package(
     image_transport
     dynamic_reconfigure
     tf2_ros
+    pcl_conversions
 )
 
 ###############################################################################
