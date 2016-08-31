@@ -210,6 +210,7 @@ void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string d
                                 , t ));
 }
 
+
 /* \brief Publish a pointCloud with a ros Publisher
  * \param p_could : the float pointer to point cloud datas
  * \param width : the width of the point cloud
@@ -221,7 +222,7 @@ void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string d
 void publishPointCloud(int width, int height, ros::Publisher &pub_cloud) {
     while (pointCloudThreadRunning) { // check if the thread has to continue
         if (!point_cloud_data_processing) { // check if datas are available
-            std::this_thread::sleep_for(std::chrono::milliseconds(2)); // No data, we just wait
+            std::this_thread::sleep_for(std::chrono::milliseconds(1)); // No data, we just wait
             continue;
         }
         pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
@@ -231,6 +232,7 @@ void publishPointCloud(int width, int height, ros::Publisher &pub_cloud) {
         point_cloud.points.resize(size);
         int index4 = 0;
         float color;
+
         for (int i = 0; i < size; i++) {
             if (cloud[index4 + 2] > 0) { // Check if it's an unvalid point, the depth is more than 0
                 index4 += 4;
@@ -239,12 +241,9 @@ void publishPointCloud(int width, int height, ros::Publisher &pub_cloud) {
             point_cloud.points[i].y = -cloud[index4++];
             point_cloud.points[i].z = cloud[index4++];
             point_cloud.points[i].x = -cloud[index4++];
-            color = cloud[index4++];
-            uint32_t color_uint = *(uint32_t*) & color; // Convert the color
-            unsigned char* color_uchar = (unsigned char*) &color_uint;
-            color_uint = ((uint32_t) color_uchar[0] << 16 | (uint32_t) color_uchar[1] << 8 | (uint32_t) color_uchar[2]);
-            point_cloud.points[i].rgb = *reinterpret_cast<float*> (&color_uint);
+            point_cloud.points[i].rgb = cloud[index4++];
         }
+
         sensor_msgs::PointCloud2 output;
         pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
         output.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
@@ -617,7 +616,7 @@ int main(int argc, char **argv) {
                 if (cloud_SubNumber > 0 && point_cloud_data_processing == false) {
                     // Run the point cloud convertion asynchronously to avoid slowing down all the program
                     // Retrieve raw pointCloud data
-                    cloud = (float*) zed->retrieveMeasure(sl::zed::MEASURE::XYZRGBA).data;
+                    cloud = (float*) zed->retrieveMeasure(sl::zed::MEASURE::XYZBGRA).data;
                     point_cloud_frame_id = cloud_frame_id;
                     point_cloud_time = t;
                     point_cloud_data_processing = true;
