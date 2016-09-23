@@ -7,12 +7,31 @@
   <group ns="camera">
     <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file)" output="screen">
 
+      <!-- Resolution
+        0 = HD2K    2208*1242, supported framerate : 15 fps
+        1 = HD1080  1920*1080, supported framerates : 15, 30 fps
+        2 = HD720   1280*720, supported framerates : 15, 30, 60 fps
+        3 = VGA     672*376, supported framerates : 15, 30, 60, 100 fps
+      -->
       <param name="resolution"            value="2" />
-      <param name="quality"               value="1" />
+
+      <!-- Quality
+        0 = NONE          Disparity map not computed, only the rectified images will be available.
+        1 = PERFORMANCE   Fastest mode, also requires less GPU memory, the disparity map is less robust
+        2 = MEDIUM        Balanced quality mode, requires less GPU memory but the disparity map is a little less detailed
+        3 = QUALITY       Better quality mode, the disparity map is more precise
+      -->
+      <param name="quality"               value="3" />
+
+      <!-- Sensing Mode
+        0 = FILL      Occlusion filling, edge sharpening, advanced post-filtering. Application example : Refocusing, Multi-view generation
+        1 = STANDARD  Structure conservative, no occlusion filling. Application example : Obstacle detection, 3D reconstructions, 3D measures
+      -->
       <param name="sensing_mode"          value="1" />
-      <param name="frame_rate"            value="60" />
+
+      <param name="frame_rate"            value="15" />
       <param name="odometry_DB"           value="" />
-      <param name="openni_depth_mode"     value="0" />
+      <param name="openni_depth_mode"     value="1" />
 
       <param name="rgb_topic"             value="rgb/image_rect_color" />
       <param name="rgb_cam_info_topic"    value="rgb/camera_info" />

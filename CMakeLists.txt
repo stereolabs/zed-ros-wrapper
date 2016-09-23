@@ -81,6 +81,7 @@ add_definitions(-std=c++11)# -m64) #-Wall)
 add_executable(
   zed_wrapper_node
   src/zed_wrapper_node.cpp
+  src/point_cloud.cpp
 )
 
 target_link_libraries(
@@ -90,6 +91,7 @@ target_link_libraries(
 	${CUDA_LIBRARIES} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY}
         ${OpenCV_LIBS}
         ${PCL_LIBRARIES}
+        -lcuda
     )
 
 add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)
