@@ -7,9 +7,7 @@
   <node pkg="tf2_ros" type="static_transform_publisher" name="$(arg camera)_base_link1"
     args="0 0 0 0 0 0 1 map $(arg tf_prefix)/$(arg camera)_initial_frame" />
 
-  <!--
-  <node pkg="tf2_ros" type="static_transform_publisher" name="$(arg camera)_base_link2"
-    args="$(arg optical_rotate) $(arg tf_prefix)/$(arg camera)_initial_frame $(arg tf_prefix)/$(arg camera)_tracked_frame" />
-  -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="$(arg camera)_base_link3"
+    args="0 0 0 0 0 0 1 $(arg tf_prefix)/$(arg camera)_tracked_frame ZED_left_camera" />
 
 </launch>

@@ -4,7 +4,12 @@
 
   <arg name="svo_file" default=""/>
   
+      <param name="robot_description" textfile="$(find zed_wrapper)/urdf/zed.urdf" />
+
   <group ns="camera">
+
+    <node name="zed_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
     <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file)" output="screen">
 
       <param name="resolution"            value="2" />

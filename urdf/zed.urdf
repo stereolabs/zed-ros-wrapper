@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<robot name="zed_camera">
+
+    <link name="ZED_left_camera">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 1.57 0"/>
+            <geometry>
+                <cylinder radius="0.007" length=".031"/>
+            </geometry>
+            <material name="dark_grey">
+                <color rgba="0.1 0.1 0.1 1"/>
+            </material>
+        </visual>
+    </link>
+    <link name="ZED_center">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://zed_wrapper/urdf/ZED.stl" />
+            </geometry>
+            <material name="light_grey">
+                <color rgba="0.8 0.8 0.8 0.8"/>
+            </material>
+        </visual>
+    </link>
+    <link name="ZED_right_camera">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 1.57 0"/>
+            <geometry>
+                <cylinder radius="0.007" length=".031"/>
+            </geometry>
+            <material name="dark_grey">
+                <color rgba="0.1 0.1 0.1 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="ZED_center_joint" type="fixed">
+        <parent link="ZED_left_camera"/>
+        <child link="ZED_center"/>
+        <origin xyz="0 -0.06 0" rpy="0 0 0" />
+    </joint>
+
+    <joint name="ZED_right_camera_joint" type="fixed">
+        <parent link="ZED_left_camera"/>
+        <child link="ZED_right_camera"/>
+        <origin xyz="0 -0.12 0" rpy="0 0 0" />
+    </joint>
+
+</robot>
