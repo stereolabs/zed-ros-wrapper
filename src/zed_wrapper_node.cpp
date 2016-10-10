@@ -44,6 +44,7 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/distortion_models.h>
 #include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <image_transport/image_transport.h>
 #include <dynamic_reconfigure/server.h>
 #include <zed_wrapper/ZedConfig.h>
@@ -63,12 +64,6 @@
 //Boost includes
 #include <boost/make_shared.hpp>
 
-//PCL includes
-#include <sensor_msgs/PointCloud2.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-
 //ZED Includes
 #include <zed/Camera.hpp>
 
@@ -81,11 +76,7 @@ bool computeDepth;
 int openniDepthMode = 0; // 16 bit UC data in mm else 32F in m, for more info http://www.ros.org/reps/rep-0118.html
 
 // Point cloud thread variables
-float* cloud;
-bool pointCloudThreadRunning = true;
-bool point_cloud_data_processing = false;
-string point_cloud_frame_id = "";
-ros::Time point_cloud_time;
+#include "point_cloud.h"
 
 /* \brief Test if a file exist
  * \param name : the path to the file
@@ -210,49 +201,6 @@ void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string d
                                 , t ));
 }
 
-
-/* \brief Publish a pointCloud with a ros Publisher
- * \param p_could : the float pointer to point cloud datas
- * \param width : the width of the point cloud
- * \param height : the height of the point cloud
- * \param pub_cloud : the publisher object to use
- * \param cloud_frame_id : the id of the reference frame of the point cloud
- * \param t : the ros::Time to stamp the point cloud
- */
-void publishPointCloud(int width, int height, ros::Publisher &pub_cloud) {
-    while (pointCloudThreadRunning) { // check if the thread has to continue
-        if (!point_cloud_data_processing) { // check if datas are available
-            std::this_thread::sleep_for(std::chrono::milliseconds(1)); // No data, we just wait
-            continue;
-        }
-        pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
-        point_cloud.width = width;
-        point_cloud.height = height;
-        int size = width*height;
-        point_cloud.points.resize(size);
-        int index4 = 0;
-        float color;
-
-        for (int i = 0; i < size; i++) {
-            if (cloud[index4 + 2] > 0) { // Check if it's an unvalid point, the depth is more than 0
-                index4 += 4;
-                continue;
-            }
-            point_cloud.points[i].y = -cloud[index4++];
-            point_cloud.points[i].z = cloud[index4++];
-            point_cloud.points[i].x = -cloud[index4++];
-            point_cloud.points[i].rgb = cloud[index4++];
-        }
-
-        sensor_msgs::PointCloud2 output;
-        pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
-        output.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
-        output.header.stamp = point_cloud_time;
-        pub_cloud.publish(output);
-        point_cloud_data_processing = false;
-    }
-}
-
 /* \brief Publish the informations of a camera with a ros Publisher
  * \param cam_info_msg : the information message to publish
  * \param pub_cam_info : the publisher object to use
@@ -334,6 +282,7 @@ void fillCamInfo(Camera* zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sens
 }
 
 void callback(zed_ros_wrapper::ZedConfig &config, uint32_t level) {
+	config.confidence = 100;
     ROS_INFO("Reconfigure confidence : %d", config.confidence);
     confidence = config.confidence;
 }
@@ -454,7 +403,7 @@ int main(int argc, char **argv) {
 
     f = boost::bind(&callback, _1, _2);
     server.setCallback(f);
-    confidence = 80;
+    confidence = 100;
 
     // Get the parameters of the ZED images
     int width = zed->getImageSize().width;
@@ -508,9 +457,9 @@ int main(int argc, char **argv) {
     ros::Rate loop_rate(rate);
     ros::Time old_t = ros::Time::now();
     bool old_image = false;
-    std::unique_ptr<std::thread> pointCloudThread = nullptr;
-    pointCloudThread.reset(new std::thread(&publishPointCloud, width, height, std::ref(pub_cloud)));
     bool tracking_activated = false;
+    
+    zw_cloud::start(pub_cloud);
 
     try {
         // Main loop
@@ -542,7 +491,7 @@ int main(int argc, char **argv) {
                 if (computeDepth) {
                     int actual_confidence = zed->getConfidenceThreshold();
                     if (actual_confidence != confidence)
-                        zed->setConfidenceThreshold(confidence);
+                        zed->setConfidenceThreshold(100 /*confidence*/);
                     old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), true, true, cloud_SubNumber > 0); // Ask to compute the depth
                 } else
                     old_image = zed->grab(static_cast<sl::zed::SENSING_MODE> (sensing_mode), false, false); // Ask to not compute the depth
@@ -613,13 +562,8 @@ int main(int argc, char **argv) {
                 }
 
                 // Publish the point cloud if someone has subscribed to
-                if (cloud_SubNumber > 0 && point_cloud_data_processing == false) {
-                    // Run the point cloud convertion asynchronously to avoid slowing down all the program
-                    // Retrieve raw pointCloud data
-                    cloud = (float*) zed->retrieveMeasure(sl::zed::MEASURE::XYZBGRA).data;
-                    point_cloud_frame_id = cloud_frame_id;
-                    point_cloud_time = t;
-                    point_cloud_data_processing = true;
+                if (cloud_SubNumber > 0) {
+					zw_cloud::store(*zed, cloud_frame_id, t);
                 }
 
                 // Publish the odometry if someone has subscribed to
@@ -640,19 +584,12 @@ int main(int argc, char **argv) {
             }
         }
     } catch (...) {
-        if (pointCloudThread && pointCloudThreadRunning) {
-            pointCloudThreadRunning = false;
-            pointCloudThread->join();
-        }
+		zw_cloud::quit();
         ROS_ERROR("Unknown error.");
         return 1;
     }
-
-    if (pointCloudThread && pointCloudThreadRunning) {
-        pointCloudThreadRunning = false;
-        pointCloudThread->join();
-    }
+    
+    zw_cloud::quit();
     ROS_INFO("Quitting zed_depth_stereo_wrapper_node ...\n");
-
     return 0;
 }
