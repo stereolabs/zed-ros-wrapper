@@ -85,6 +85,7 @@ Open a terminal :
  _                            | _                                                           | '1': STANDARD               
  openni_depth_mode            | Convert depth to 16bit in millimeters                       | '0': 32bit float meters     
  _                            | _                                                           | '1': 16bit uchar millimeters
+ zed_id            | ZED Camera ID, ignore if SVO file given                       | int, default '0' 
  gpu_id            | GPU device ID, define which CUDA device will handle the computation                       | int, default '-1' (best device found)
  frame_rate                   | Rate at which images are published                          | int                         
  rgb_topic                    | Topic to which rgb==default==left images are published      | string                      

@@ -354,6 +354,7 @@ int main(int argc, char **argv) {
     int sensing_mode = sl::zed::SENSING_MODE::STANDARD;
     int rate = 30;
     int gpu_id = -1;
+    int zed_id = 0;
     string odometry_DB = "";
 
     std::string img_topic = "image_rect";
@@ -401,7 +402,7 @@ int main(int argc, char **argv) {
     nh_ns.getParam("odometry_DB", odometry_DB);
     nh_ns.getParam("openni_depth_mode", openniDepthMode);
     nh_ns.getParam("gpu_id", gpu_id);
-
+    nh_ns.getParam("zed_id", zed_id);
     if (openniDepthMode)
         ROS_INFO_STREAM("Openni depth mode activated");
 
@@ -434,7 +435,7 @@ int main(int argc, char **argv) {
         zed.reset(new sl::zed::Camera(argv[1])); // Argument "svo_file" in launch file
         ROS_INFO_STREAM("Reading SVO file : " << argv[1]);
     } else {
-        zed.reset(new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate));
+        zed.reset(new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate, zed_id));
         ROS_INFO_STREAM("Using ZED Camera");
     }
 
@@ -571,7 +572,7 @@ int main(int argc, char **argv) {
                             zed.reset(new sl::zed::Camera(argv[1])); // Argument "svo_file" in launch file
                             ROS_INFO_STREAM("Reading SVO file : " << argv[1]);
                         } else {
-                            zed.reset(new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate));
+                            zed.reset(new sl::zed::Camera(static_cast<sl::zed::ZEDResolution_mode> (resolution), rate, zed_id));
                             ROS_INFO_STREAM("Using ZED Camera");
                         }
                         ROS_INFO("Reinit camera");

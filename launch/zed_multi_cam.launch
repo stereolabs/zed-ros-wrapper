@@ -1,0 +1,126 @@
+<launch>
+
+    <include file="$(find zed_wrapper)/launch/zed_tf.launch" />
+
+    <param name="robot_description" textfile="$(find zed_wrapper)/urdf/zed.urdf" />
+
+    <arg name="svo_file1" default=""/>
+    <arg name="svo_file2" default=""/>
+    <arg name="svo_file3" default="path/to/svo/file.svo"/>
+
+  <group ns="camera">
+
+
+    <node name="zed_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+    <node name="zed_wrapper_node1" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file1)" output="screen">
+
+      <param name="resolution"            value="2" />
+      <param name="quality"               value="1" />
+      <param name="sensing_mode"          value="1" />
+      <param name="frame_rate"            value="30" />
+      <param name="odometry_DB"           value="" />
+      <param name="openni_depth_mode"     value="0" />
+      <param name="gpu_id"                value="-1" />
+      <param name="zed_id"                value="0" />
+
+      <param name="rgb_topic"             value="rgb/image_rect_color" />
+      <param name="rgb_cam_info_topic"    value="rgb/camera_info" />
+      <param name="rgb_frame_id"          value="/zed_tracked_frame" />
+
+      <param name="left_topic"            value="left/image_rect_color" />
+      <param name="left_cam_info_topic"   value="left/camera_info" />
+      <param name="left_frame_id"         value="/zed_tracked_frame" />
+
+      <param name="right_topic"           value="right/image_rect_color" />
+      <param name="right_cam_info_topic"  value="right/camera_info" />
+      <param name="right_frame_id"        value="/zed_tracked_frame" />
+
+      <param name="depth_topic"           value="depth/image_rect_color" />
+      <param name="depth_cam_info_topic"  value="depth/camera_info" />
+      <param name="depth_frame_id"        value="/zed_tracked_frame" />
+
+      <param name="point_cloud_topic"     value="point_cloud/cloud" />
+      <param name="cloud_frame_id"        value="/zed_tracked_frame" />
+
+      <param name="odometry_topic"                value="odom" />
+      <param name="odometry_frame_id"             value="/zed_initial_frame" />
+      <param name="odometry_transform_frame_id"   value="/zed_tracked_frame" />
+
+
+    </node>
+
+    <node name="zed_wrapper_node2" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file2)" output="screen">
+
+      <param name="resolution"            value="2" />
+      <param name="quality"               value="1" />
+      <param name="sensing_mode"          value="1" />
+      <param name="frame_rate"            value="30" />
+      <param name="odometry_DB"           value="" />
+      <param name="openni_depth_mode"     value="0" />
+      <param name="gpu_id"                value="-1" />
+      <param name="zed_id"                value="1" />
+
+      <param name="rgb_topic"             value="rgb/image_rect_color_1" />
+      <param name="rgb_cam_info_topic"    value="rgb/camera_info_1" />
+      <param name="rgb_frame_id"          value="/zed_tracked_frame_1" />
+
+      <param name="left_topic"            value="left/image_rect_color_1" />
+      <param name="left_cam_info_topic"   value="left/camera_info_1" />
+      <param name="left_frame_id"         value="/zed_tracked_frame_1" />
+
+      <param name="right_topic"           value="right/image_rect_color_1" />
+      <param name="right_cam_info_topic"  value="right/camera_info_1" />
+      <param name="right_frame_id"        value="/zed_tracked_frame_1" />
+
+      <param name="depth_topic"           value="depth/image_rect_color_1" />
+      <param name="depth_cam_info_topic"  value="depth/camera_info_1" />
+      <param name="depth_frame_id"        value="/zed_tracked_frame_1" />
+
+      <param name="point_cloud_topic"     value="point_cloud/cloud_1" />
+      <param name="cloud_frame_id"        value="/zed_tracked_frame_1" />
+
+      <param name="odometry_topic"                value="odom_1" />
+      <param name="odometry_frame_id"             value="/zed_initial_frame_1" />
+      <param name="odometry_transform_frame_id"   value="/zed_tracked_frame_1" />
+
+
+    </node>
+
+    <!-- <node name="zed_wrapper_node3" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file3)" output="screen">
+
+      <param name="resolution"            value="2" />
+      <param name="quality"               value="1" />
+      <param name="sensing_mode"          value="1" />
+      <param name="frame_rate"            value="15" />
+      <param name="odometry_DB"           value="" />
+      <param name="openni_depth_mode"     value="0" />
+      <param name="gpu_id"                value="-1" />
+
+      <param name="rgb_topic"             value="rgb/image_rect_color_2" />
+      <param name="rgb_cam_info_topic"    value="rgb/camera_info_2" />
+      <param name="rgb_frame_id"          value="/zed_tracked_frame_2" />
+
+      <param name="left_topic"            value="left/image_rect_color_2" />
+      <param name="left_cam_info_topic"   value="left/camera_info_2" />
+      <param name="left_frame_id"         value="/zed_tracked_frame_2" />
+
+      <param name="right_topic"           value="right/image_rect_color_2" />
+      <param name="right_cam_info_topic"  value="right/camera_info_2" />
+      <param name="right_frame_id"        value="/zed_tracked_frame_2" />
+
+      <param name="depth_topic"           value="depth/image_rect_color_2" />
+      <param name="depth_cam_info_topic"  value="depth/camera_info_2" />
+      <param name="depth_frame_id"        value="/zed_tracked_frame_2" />
+
+      <param name="point_cloud_topic"     value="point_cloud/cloud_2" />
+      <param name="cloud_frame_id"        value="/zed_tracked_frame_2" />
+
+      <param name="odometry_topic"                value="odom_2" />
+      <param name="odometry_frame_id"             value="/zed_initial_frame_2" />
+      <param name="odometry_transform_frame_id"   value="/zed_tracked_frame_2" />
+
+
+    </node> -->
+  </group>
+</launch>
