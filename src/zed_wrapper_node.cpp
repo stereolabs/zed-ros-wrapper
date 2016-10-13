@@ -353,6 +353,7 @@ int main(int argc, char **argv) {
     int quality = sl::zed::MODE::PERFORMANCE;
     int sensing_mode = sl::zed::SENSING_MODE::STANDARD;
     int rate = 30;
+    int gpu_id = -1;
     string odometry_DB = "";
 
     std::string img_topic = "image_rect";
@@ -399,6 +400,8 @@ int main(int argc, char **argv) {
     nh_ns.getParam("frame_rate", rate);
     nh_ns.getParam("odometry_DB", odometry_DB);
     nh_ns.getParam("openni_depth_mode", openniDepthMode);
+    nh_ns.getParam("gpu_id", gpu_id);
+
     if (openniDepthMode)
         ROS_INFO_STREAM("Openni depth mode activated");
 
@@ -441,6 +444,7 @@ int main(int argc, char **argv) {
     param.coordinate = COORDINATE_SYSTEM::RIGHT_HANDED;
     param.mode = static_cast<sl::zed::MODE> (quality);
     param.verbose = true;
+    param.device = gpu_id;
 
     ERRCODE err = ERRCODE::ZED_NOT_AVAILABLE;
     while (err != SUCCESS) {

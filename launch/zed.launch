@@ -18,6 +18,7 @@
       <param name="frame_rate"            value="60" />
       <param name="odometry_DB"           value="" />
       <param name="openni_depth_mode"     value="0" />
+      <param name="gpu_id"                value="-1" />
 
       <param name="rgb_topic"             value="rgb/image_rect_color" />
       <param name="rgb_cam_info_topic"    value="rgb/camera_info" />
