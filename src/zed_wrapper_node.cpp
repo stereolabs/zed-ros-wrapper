@@ -357,36 +357,40 @@ int main(int argc, char **argv) {
     int zed_id = 0;
     string odometry_DB = "";
 
-    std::string img_topic = "image_rect";
+    std::string img_topic = "image_rect_color";
+    std::string img_raw_topic = "image_raw_color";
 
     // Set the default topic names
     string rgb_topic = "rgb/" + img_topic;
+    string rgb_raw_topic = "rgb/" + img_raw_topic;
     string rgb_cam_info_topic = "rgb/camera_info";
-    string rgb_frame_id = "/zed_tracked_frame";
+    string rgb_frame_id = "/zed_current_frame";
 
     string left_topic = "left/" + img_topic;
+    string left_raw_topic = "left/" + img_raw_topic;
     string left_cam_info_topic = "left/camera_info";
-    string left_frame_id = "/zed_tracked_frame";
+    string left_frame_id = "/zed_current_frame";
 
     string right_topic = "right/" + img_topic;
+    string right_raw_topic = "right/" + img_raw_topic;
     string right_cam_info_topic = "right/camera_info";
-    string right_frame_id = "/zed_tracked_frame";
+    string right_frame_id = "/zed_current_frame";
 
     string depth_topic = "depth/";
     if (openniDepthMode)
-        depth_topic += "image_raw";
+        depth_topic += "depth_raw_registered";
     else
-        depth_topic += img_topic;
+        depth_topic += "depth_registered";
 
     string depth_cam_info_topic = "depth/camera_info";
-    string depth_frame_id = "/zed_depth_optical_frame";
+    string depth_frame_id = "/zed_current_frame";
 
-    string point_cloud_topic = "point_cloud/" + img_topic;
-    string cloud_frame_id = "/zed_tracked_frame";
+    string point_cloud_topic = "point_cloud/cloud_registered";
+    string cloud_frame_id = "/zed_current_frame";
 
     string odometry_topic = "odom";
     string odometry_frame_id = "/zed_initial_frame";
-    string odometry_transform_frame_id = "/zed_tracked_frame";
+    string odometry_transform_frame_id = "/zed_current_frame";
 
     ros::init(argc, argv, "zed_depth_stereo_wrapper_node");
     ROS_INFO("ZED_WRAPPER Node initialized");
@@ -407,27 +411,23 @@ int main(int argc, char **argv) {
         ROS_INFO_STREAM("Openni depth mode activated");
 
     nh_ns.getParam("rgb_topic", rgb_topic);
+    nh_ns.getParam("rgb_raw_topic", rgb_raw_topic);
     nh_ns.getParam("rgb_cam_info_topic", rgb_cam_info_topic);
-    nh_ns.getParam("rgb_frame_id", rgb_frame_id);
 
     nh_ns.getParam("left_topic", left_topic);
+    nh_ns.getParam("left_raw_topic", left_raw_topic);
     nh_ns.getParam("left_cam_info_topic", left_cam_info_topic);
-    nh_ns.getParam("left_frame_id", left_frame_id);
 
     nh_ns.getParam("right_topic", right_topic);
+    nh_ns.getParam("right_raw_topic", right_raw_topic);
     nh_ns.getParam("right_cam_info_topic", right_cam_info_topic);
-    nh_ns.getParam("right_frame_id", right_frame_id);
 
     nh_ns.getParam("depth_topic", depth_topic);
     nh_ns.getParam("depth_cam_info_topic", depth_cam_info_topic);
-    nh_ns.getParam("depth_frame_id", depth_frame_id);
 
     nh_ns.getParam("point_cloud_topic", point_cloud_topic);
-    nh_ns.getParam("cloud_frame_id", cloud_frame_id);
 
     nh_ns.getParam("odometry_topic", odometry_topic);
-    nh_ns.getParam("odometry_frame_id", odometry_frame_id);
-    nh_ns.getParam("odometry_transform_frame_id", odometry_transform_frame_id);
 
     // Create the ZED object
     std::unique_ptr<sl::zed::Camera> zed;
@@ -485,10 +485,16 @@ int main(int argc, char **argv) {
     image_transport::ImageTransport it_zed(nh);
     image_transport::Publisher pub_rgb = it_zed.advertise(rgb_topic, 1); //rgb
     ROS_INFO_STREAM("Advertized on topic " << rgb_topic);
+    image_transport::Publisher pub_raw_rgb = it_zed.advertise(rgb_raw_topic, 1); //rgb raw
+    ROS_INFO_STREAM("Advertized on topic " << rgb_raw_topic);
     image_transport::Publisher pub_left = it_zed.advertise(left_topic, 1); //left
     ROS_INFO_STREAM("Advertized on topic " << left_topic);
+    image_transport::Publisher pub_raw_left = it_zed.advertise(left_raw_topic, 1); //left raw
+    ROS_INFO_STREAM("Advertized on topic " << left_raw_topic);
     image_transport::Publisher pub_right = it_zed.advertise(right_topic, 1); //right
     ROS_INFO_STREAM("Advertized on topic " << right_topic);
+    image_transport::Publisher pub_raw_right = it_zed.advertise(right_raw_topic, 1); //right raw
+    ROS_INFO_STREAM("Advertized on topic " << right_raw_topic);
     image_transport::Publisher pub_depth = it_zed.advertise(depth_topic, 1); //depth
     ROS_INFO_STREAM("Advertized on topic " << depth_topic);
 
@@ -529,12 +535,15 @@ int main(int argc, char **argv) {
         while (ros::ok()) {
             // Check for subscribers
             int rgb_SubNumber = pub_rgb.getNumSubscribers();
+            int rgb_raw_SubNumber = pub_raw_rgb.getNumSubscribers();
             int left_SubNumber = pub_left.getNumSubscribers();
+            int left_raw_SubNumber = pub_raw_left.getNumSubscribers();
             int right_SubNumber = pub_right.getNumSubscribers();
+            int right_raw_SubNumber = pub_raw_right.getNumSubscribers();
             int depth_SubNumber = pub_depth.getNumSubscribers();
             int cloud_SubNumber = pub_cloud.getNumSubscribers();
             int odom_SubNumber = pub_odom.getNumSubscribers();
-            bool runLoop = (rgb_SubNumber + left_SubNumber + right_SubNumber + depth_SubNumber + cloud_SubNumber + odom_SubNumber) > 0;
+            bool runLoop = (rgb_SubNumber + rgb_raw_SubNumber + left_SubNumber + left_raw_SubNumber + right_SubNumber + right_raw_SubNumber + depth_SubNumber + cloud_SubNumber + odom_SubNumber) > 0;
             // Run the loop only if there is some subscribers
             if (runLoop) {
                 if (odom_SubNumber > 0 && !tracking_activated) { //Start the tracking
@@ -612,12 +621,34 @@ int main(int argc, char **argv) {
                     }
                 }
 
+                // Publish the left_raw == rgb_raw image if someone has subscribed to
+                if (left_raw_SubNumber > 0 || rgb_raw_SubNumber > 0) {
+                    // Retrieve RGBA Left image
+                    cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT_UNRECTIFIED)), leftImRGB, CV_RGBA2RGB); // Convert to RGB
+                    if (left_raw_SubNumber > 0) {
+                        publishCamInfo(left_cam_info_msg, pub_left_cam_info, t);
+                        publishImage(leftImRGB, pub_raw_left, left_frame_id, t);
+                    }
+                    if (rgb_raw_SubNumber > 0) {
+                        publishCamInfo(rgb_cam_info_msg, pub_rgb_cam_info, t);
+                        publishImage(leftImRGB, pub_raw_rgb, rgb_frame_id, t);
+                    }
+                }
+
                 // Publish the right image if someone has subscribed to
                 if (right_SubNumber > 0) {
                     // Retrieve RGBA Right image
                     cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::RIGHT)), rightImRGB, CV_RGBA2RGB); // Convert to RGB
                     publishCamInfo(right_cam_info_msg, pub_right_cam_info, t);
                     publishImage(rightImRGB, pub_right, right_frame_id, t);
+                }
+
+                // Publish the right image if someone has subscribed to
+                if (right_raw_SubNumber > 0) {
+                    // Retrieve RGBA Right image
+                    cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::RIGHT_UNRECTIFIED)), rightImRGB, CV_RGBA2RGB); // Convert to RGB
+                    publishCamInfo(right_cam_info_msg, pub_right_cam_info, t);
+                    publishImage(rightImRGB, pub_raw_right, right_frame_id, t);
                 }
 
                 // Publish the depth image if someone has subscribed to

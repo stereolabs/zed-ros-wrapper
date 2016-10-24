@@ -8,6 +8,6 @@
     args="0 0 0 0 0 0 1 map $(arg tf_prefix)/$(arg camera)_initial_frame" />
 
   <node pkg="tf2_ros" type="static_transform_publisher" name="$(arg camera)_base_link3"
-    args="0 0 0 0 0 0 1 $(arg tf_prefix)/$(arg camera)_tracked_frame ZED_left_camera" />
+    args="0 0 0 0 0 0 1 $(arg tf_prefix)/$(arg camera)_current_frame ZED_left_camera" />
 
 </launch>
