@@ -45,6 +45,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   tf2_ros
   pcl_conversions
+  nodelet
 )
 
 generate_dynamic_reconfigure_options(
@@ -87,21 +88,19 @@ link_directories(${PCL_LIBRARY_DIRS})
 
 add_definitions(-std=c++11)# -m64) #-Wall)
 
+set(LINK_LIBRARIES
+  ${catkin_LIBRARIES}
+  ${ZED_LIBRARIES}
+  ${CUDA_LIBRARIES} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY}
+  ${OpenCV_LIBS}
+  ${PCL_LIBRARIES})
 
-add_executable(
-  zed_wrapper_node
-  src/zed_wrapper_node.cpp
-)
+add_library(ZEDWrapper src/zed_wrapper_nodelet.cpp)
+target_link_libraries(ZEDWrapper ${LINK_LIBRARIES})
+add_dependencies(ZEDWrapper ${PROJECT_NAME}_gencfg)
 
-target_link_libraries(
-        zed_wrapper_node
-        ${catkin_LIBRARIES}
-        ${ZED_LIBRARIES}
-	${CUDA_LIBRARIES} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY}
-        ${OpenCV_LIBS}
-        ${PCL_LIBRARIES}
-    )
-
+add_executable(zed_wrapper_node src/zed_wrapper_node.cpp)
+target_link_libraries(zed_wrapper_node ZEDWrapper ${LINK_LIBRARIES})
 add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)
 ###############################################################################
 
