@@ -1,5 +1,7 @@
 <launch>
   <arg name="svo_file"/>
+  <arg name="zed_id"/>
+
   <include file="$(find zed_wrapper)/launch/zed_tf.launch" />
   <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen">
 
@@ -7,6 +9,8 @@
     <param name="svo_filepath" value="$(arg svo_file)" />
 
     <!-- ZED parameters -->
+    <param name="zed_id"                value="$(arg zed_id)" />
+
     <param name="resolution"            value="2" />
     <param name="quality"               value="1" />
     <param name="sensing_mode"          value="1" />

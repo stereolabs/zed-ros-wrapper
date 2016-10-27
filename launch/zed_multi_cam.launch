@@ -1,12 +1,16 @@
 <launch>
 
   <arg name="svo_file1" default=""/> <!-- <arg name="svo_file1" default="path/to/svo/file.svo"> -->
-  <arg name="svo_file2" default=""/>
+  <arg name="zed_id1" default="0"/>
+  
+  <arg name="svo_file2" default=""/>  
+  <arg name="zed_id2" default="1"/>
 
   <!-- First ZED camera -->
   <group ns="zed1">
     <include file="$(find zed_wrapper)/launch/zed_camera.launch">
       <arg name="svo_file" value="$(arg svo_file1)" />
+      <arg name="zed_id" value="$(arg zed_id1)" />
     </include>
   </group>
 
@@ -14,6 +18,7 @@
   <group ns="zed2">
     <include file="$(find zed_wrapper)/launch/zed_camera.launch">
       <arg name="svo_file" value="$(arg svo_file2)" />
+      <arg name="zed_id" value="$(arg zed_id2)" />
     </include>
   </group>
 

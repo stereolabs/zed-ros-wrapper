@@ -1,51 +1,55 @@
 <launch>
 
   <arg name="svo_file1" default=""/> <!-- <arg name="svo_file1" default="path/to/svo/file.svo"> -->
-  <arg name="svo_file2" default=""/>
+  <arg name="zed_id1" default="0"/>  
 
+  <arg name="svo_file2" default=""/>
+  <arg name="zed_id2" default="1"/>
 
 
   <!-- First ZED camera on GPU 0-->
   <group ns="zed_GPU0">
     <include file="$(find zed_wrapper)/launch/zed_tf.launch" />
-		<node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file1)" output="screen">
+        <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file1)" output="screen">
 
-		  <!-- ZED parameters -->
-		  <param name="resolution"            value="2" />
-		  <param name="quality"               value="1" />
-		  <param name="sensing_mode"          value="1" />
-		  <param name="frame_rate"            value="60" />
-		  <param name="odometry_db"           value="" />
-		  <param name="openni_depth_mode"     value="0" />
-		  <param name="gpu_id"                value="0" />
+          <!-- ZED parameters -->
+          <param name="zed_id"                value="$(arg zed_id1)" />
 
-		  <!-- ROS topic names -->
-		  <param name="rgb_topic"             value="rgb/image_rect_color" />
-		  <param name="rgb_raw_topic"         value="rgb/image_raw_color" />
-		  <param name="rgb_cam_info_topic"    value="rgb/camera_info" />
+          <param name="resolution"            value="2" />
+          <param name="quality"               value="1" />
+          <param name="sensing_mode"          value="1" />
+          <param name="frame_rate"            value="30" />
+          <param name="odometry_db"           value="" />
+          <param name="openni_depth_mode"     value="0" />
+          <param name="gpu_id"                value="0" />
 
-		  <param name="left_topic"            value="left/image_rect_color" />
-		  <param name="left_raw_topic"        value="left/image_raw_color" />
-		  <param name="left_cam_info_topic"   value="left/camera_info" />
+          <!-- ROS topic names -->
+          <param name="rgb_topic"             value="rgb/image_rect_color" />
+          <param name="rgb_raw_topic"         value="rgb/image_raw_color" />
+          <param name="rgb_cam_info_topic"    value="rgb/camera_info" />
 
-		  <param name="right_topic"           value="right/image_rect_color" />
-		  <param name="right_raw_topic"       value="right/image_raw_color" />
-		  <param name="right_cam_info_topic"  value="right/camera_info" />
+          <param name="left_topic"            value="left/image_rect_color" />
+          <param name="left_raw_topic"        value="left/image_raw_color" />
+          <param name="left_cam_info_topic"   value="left/camera_info" />
 
-		  <param name="depth_topic"           value="depth/depth_registered" />
-		  <param name="depth_cam_info_topic"  value="depth/camera_info" />
+          <param name="right_topic"           value="right/image_rect_color" />
+          <param name="right_raw_topic"       value="right/image_raw_color" />
+          <param name="right_cam_info_topic"  value="right/camera_info" />
 
-		  <param name="point_cloud_topic"     value="point_cloud/cloud_registered" />
+          <param name="depth_topic"           value="depth/depth_registered" />
+          <param name="depth_cam_info_topic"  value="depth/camera_info" />
 
-		  <param name="odometry_topic"        value="odom" />
+          <param name="point_cloud_topic"     value="point_cloud/cloud_registered" />
 
-		</node>
+          <param name="odometry_topic"        value="odom" />
 
-		<!-- ROS URDF description of the ZED -->
-		<param name="zed_description" textfile="$(find zed_wrapper)/urdf/zed.urdf" />
-		<node name="zed_state_publisher" pkg="robot_state_publisher" type="state_publisher">
-		  <remap from="robot_description" to="zed_description" />
-		</node>
+        </node>
+
+        <!-- ROS URDF description of the ZED -->
+        <param name="zed_description" textfile="$(find zed_wrapper)/urdf/zed.urdf" />
+        <node name="zed_state_publisher" pkg="robot_state_publisher" type="state_publisher">
+          <remap from="robot_description" to="zed_description" />
+        </node>
   </group>
 
 
@@ -53,44 +57,46 @@
   <!-- Seconnd ZED camera on GPU 1-->
   <group ns="zed_GPU1">
     <include file="$(find zed_wrapper)/launch/zed_tf.launch" />
-		<node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file2)" output="screen">
+        <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file2)" output="screen">
 
-		  <!-- ZED parameters -->
-		  <param name="resolution"            value="2" />
-		  <param name="quality"               value="1" />
-		  <param name="sensing_mode"          value="1" />
-		  <param name="frame_rate"            value="60" />
-		  <param name="odometry_db"           value="" />
-		  <param name="openni_depth_mode"     value="0" />
-		  <param name="gpu_id"                value="1" />
+          <!-- ZED parameters -->
+          <param name="zed_id"                value="$(arg zed_id2)" />
 
-		  <!-- ROS topic names -->
-		  <param name="rgb_topic"             value="rgb/image_rect_color" />
-		  <param name="rgb_raw_topic"         value="rgb/image_raw_color" />
-		  <param name="rgb_cam_info_topic"    value="rgb/camera_info" />
+          <param name="resolution"            value="2" />
+          <param name="quality"               value="1" />
+          <param name="sensing_mode"          value="1" />
+          <param name="frame_rate"            value="30" />
+          <param name="odometry_db"           value="" />
+          <param name="openni_depth_mode"     value="0" />
+          <param name="gpu_id"                value="1" />
 
-		  <param name="left_topic"            value="left/image_rect_color" />
-		  <param name="left_raw_topic"        value="left/image_raw_color" />
-		  <param name="left_cam_info_topic"   value="left/camera_info" />
+          <!-- ROS topic names -->
+          <param name="rgb_topic"             value="rgb/image_rect_color" />
+          <param name="rgb_raw_topic"         value="rgb/image_raw_color" />
+          <param name="rgb_cam_info_topic"    value="rgb/camera_info" />
 
-		  <param name="right_topic"           value="right/image_rect_color" />
-		  <param name="right_raw_topic"       value="right/image_raw_color" />
-		  <param name="right_cam_info_topic"  value="right/camera_info" />
+          <param name="left_topic"            value="left/image_rect_color" />
+          <param name="left_raw_topic"        value="left/image_raw_color" />
+          <param name="left_cam_info_topic"   value="left/camera_info" />
 
-		  <param name="depth_topic"           value="depth/depth_registered" />
-		  <param name="depth_cam_info_topic"  value="depth/camera_info" />
+          <param name="right_topic"           value="right/image_rect_color" />
+          <param name="right_raw_topic"       value="right/image_raw_color" />
+          <param name="right_cam_info_topic"  value="right/camera_info" />
 
-		  <param name="point_cloud_topic"     value="point_cloud/cloud_registered" />
+          <param name="depth_topic"           value="depth/depth_registered" />
+          <param name="depth_cam_info_topic"  value="depth/camera_info" />
 
-		  <param name="odometry_topic"        value="odom" />
+          <param name="point_cloud_topic"     value="point_cloud/cloud_registered" />
 
-		</node>
+          <param name="odometry_topic"        value="odom" />
 
-		<!-- ROS URDF description of the ZED -->
-		<param name="zed_description" textfile="$(find zed_wrapper)/urdf/zed.urdf" />
-		<node name="zed_state_publisher" pkg="robot_state_publisher" type="state_publisher">
-		  <remap from="robot_description" to="zed_description" />
-		</node>
+        </node>
+
+        <!-- ROS URDF description of the ZED -->
+        <param name="zed_description" textfile="$(find zed_wrapper)/urdf/zed.urdf" />
+        <node name="zed_state_publisher" pkg="robot_state_publisher" type="state_publisher">
+          <remap from="robot_description" to="zed_description" />
+        </node>
   </group>
 
 </launch>
