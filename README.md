@@ -129,7 +129,7 @@ To learn how to use rviz to display ZED data, check out our [ROS wiki](http://wi
 
 It is possible to use multiple ZED cameras with ROS. Simply launch [zed_multi_cam](https://github.com/stereolabs/zed-ros-wrapper/blob/master/launch/zed_multi_cam.launch) using the `roslaunch` command:
 
-    $ roslaunch zed_wrapper zed_multi_cam.launch
+    roslaunch zed_wrapper zed_multi_cam.launch
 
 
 
