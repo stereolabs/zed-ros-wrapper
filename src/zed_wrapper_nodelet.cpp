@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2015, STEREOLABS.
+// Copyright (c) 2016, STEREOLABS.
 //
 // All rights reserved.
 //
@@ -28,7 +28,6 @@
  ** A set of parameters can be specified in the launch file.                                       **
  ****************************************************************************************************/
 
-//standard includes
 #include <csignal>
 #include <cstdio>
 #include <math.h>
@@ -38,7 +37,6 @@
 #include <memory>
 #include <sys/stat.h> // file exists
 
-//ROS includes
 #include <ros/ros.h>
 #include <nodelet/nodelet.h>
 #include <sensor_msgs/Image.h>
@@ -49,31 +47,24 @@
 #include <dynamic_reconfigure/server.h>
 #include <zed_wrapper/ZedConfig.h>
 #include <nav_msgs/Odometry.h>
-
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 
-
-//opencv includes
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 
-//Boost includes
 #include <boost/make_shared.hpp>
 
-//PCL includes
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-//ZED Includes
 #include <zed/Camera.hpp>
 
-//CUDA includes
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
