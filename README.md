@@ -135,7 +135,7 @@ It is possible to use multiple ZED cameras with ROS. Simply launch [zed_multi_ca
 
 #### Assigning a GPU to a camera
 
-To improve performance, you can specify in the [launch file ](https://github.com/stereolabs/zed-ros-wrapper/blob/master/launch/zed_multi_gpu.launch) the `gpu_id` of the graphics card that will be used for depth computation. By default, (-1) will select the GPU with the higher number of CUDA cores. When using multiple ZED, you can assign specific GPUs to different cameras.
+To improve performance, you can specify in the [launch file ](https://github.com/stereolabs/zed-ros-wrapper/blob/master/launch/zed_multi_gpu.launch) the `gpu_id` of the graphics card that will be used for depth computation. By default, (-1) will select the GPU with the highest number of CUDA cores. When using multiple ZED, you can assign specific GPUs to different cameras.
 
 
 ## Limitations
