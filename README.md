@@ -45,33 +45,33 @@ Open a terminal and launch the wrapper:
 
 Open a second terminal to display the rectified left color image (reference view):
 
-    rosrun image_view image_view image:=/camera/rgb/image_rect_color
+    rosrun image_view image_view image:=/zed/rgb/image_rect_color
 
 ## Features
 
 ### Topics
 
 #### Left camera
-   - */camera/rgb/image_rect_color* : `Color rectified image (left RGB image by default).`
-   - */camera/rgb/image_raw_color* : `Color unrectified image (left RGB image by default).`
-   - */camera/rgb/camera_info* : `Camera calibration data.`
-   - */camera/left/image_rect_color* : `Color rectified left image.`
-   - */camera/left/image_raw_color* : `Color unrectified left image.`
-   - */camera/left/camera_info* : `Left camera calibration data.`
+   - */zed/rgb/image_rect_color* : `Color rectified image (left RGB image by default).`
+   - */zed/rgb/image_raw_color* : `Color unrectified image (left RGB image by default).`
+   - */zed/rgb/camera_info* : `Camera calibration data.`
+   - */zed/left/image_rect_color* : `Color rectified left image.`
+   - */zed/left/image_raw_color* : `Color unrectified left image.`
+   - */zed/left/camera_info* : `Left camera calibration data.`
 
 #### Right camera
-  - */camera/right/image_rect_color* : `Color rectified right image.`
-  - */camera/right/image_raw_color* : `Color unrectified right image.`
-  - */camera/right/camera_info* : `Right camera calibration data.`
+  - */zed/right/image_rect_color* : `Color rectified right image.`
+  - */zed/right/image_raw_color* : `Color unrectified right image.`
+  - */zed/right/camera_info* : `Right camera calibration data.`
 
 #### Depth and point cloud
-   - */camera/depth/depth_registered* : `Depth map image registered on left image (by default 32 bits float, in meters).`
-   - */camera/point_cloud/cloud_registered* : `Registered color point cloud.`
+   - */zed/depth/depth_registered* : `Depth map image registered on left image (by default 32 bits float, in meters).`
+   - */zed/point_cloud/cloud_registered* : `Registered color point cloud.`
 
 #### Visual odometry
-   - */camera/odom* : `Absolute 3D position and orientation relative to zed_initial_frame.`
+   - */zed/odom* : `Absolute 3D position and orientation relative to zed_initial_frame.`
 
-All topics have their *id* published.
+All topics have their *id* published. When using [*zed_multi_cam.launch*](https://github.com/stereolabs/zed-ros-wrapper/blob/master/launch/zed_multi_cam.launch) topics begin with */zed[CameraID]/...* (for instance */zed1/...*) instead of a pure */zed/...*.
 
 ### Launch file parameters
 
