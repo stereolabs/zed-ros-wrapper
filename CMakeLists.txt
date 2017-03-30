@@ -9,14 +9,6 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 
 find_package(ZED 2.0 REQUIRED)
 
-#If you have compilation issues, edit OCV_VERSION and CUDA_VERSION according to the following values :
-#ZED SDK 1.1.1 : (https://www.stereolabs.com/developers/#download_anchor)
-#   TX1 Jetpack 2.3 : OpenCV 2.4, CUDA 8.0
-#   TX1 Jetpack < 2.3 : OpenCV 2.4, CUDA 7.0
-#   TK1 : OpenCV 2.4, CUDA 6.5
-#   Ubuntu 14 : OpenCV 3.1, CUDA 7.5
-#   Ubuntu 16 : OpenCV 3.1, CUDA 8.0
-
 ##For Jetson, OpenCV4Tegra is based on OpenCV2.4
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
 if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # Jetson TX1
