@@ -1,13 +1,15 @@
 <launch>
-  <arg name="camera" default="zed"/>
   <arg name="tf_prefix" default="" />
   <arg name="pi/2" value="1.5707963267948966" />
   <arg name="optical_rotate" value="0 0 0 -$(arg pi/2) 0 -$(arg pi/2)" />
 
-  <node pkg="tf2_ros" type="static_transform_publisher" name="$(arg camera)_base_link1"
-    args="0 0 0 0 0 0 1 map $(arg tf_prefix)/$(arg camera)_initial_frame" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="zed_base_link1"
+    args="0 0 0 0 0 0 1 map $(arg tf_prefix)/zed_initial_frame" />
 
-  <node pkg="tf2_ros" type="static_transform_publisher" name="$(arg camera)_base_link3"
-    args="0 0 0 0 0 0 1 $(arg tf_prefix)/$(arg camera)_current_frame ZED_left_camera" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="zed_base_link3"
+    args="0 0 0 0 0 0 1 $(arg tf_prefix)/zed_current_frame ZED_left_camera" />
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="zed_base_link4"
+    args="0 0 0 -$(arg pi/2) 0 -$(arg pi/2) $(arg tf_prefix)/zed_current_frame zed_depth_frame" />
 
 </launch>

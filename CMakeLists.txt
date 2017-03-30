@@ -7,7 +7,7 @@ IF(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-find_package(ZED 1.1 REQUIRED)
+find_package(ZED 2.0 REQUIRED)
 
 #If you have compilation issues, edit OCV_VERSION and CUDA_VERSION according to the following values :
 #ZED SDK 1.1.1 : (https://www.stereolabs.com/developers/#download_anchor)
@@ -22,15 +22,10 @@ exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
 if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # Jetson TX1
     SET(OCV_VERSION "2.4")
     SET(CUDA_VERSION "8.0")
-    set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
-elseif(CMAKE_SYSTEM_NAME2 MATCHES "armv7l" ) # Jetson TK1
-    SET(OCV_VERSION "2.4")
-    SET(CUDA_VERSION "6.5")
-    set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+    SET(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 else() # Ubuntu Desktop
     SET(OCV_VERSION "3.1")
     SET(CUDA_VERSION "8.0")
-    message("*** On Ubuntu 14, change line 30 of CMakeLists.txt to CUDA 7.5")
 endif()
 find_package(OpenCV ${OCV_VERSION} COMPONENTS core highgui imgproc REQUIRED)
 find_package(CUDA ${CUDA_VERSION} REQUIRED)
@@ -86,8 +81,8 @@ link_directories(${PCL_LIBRARY_DIRS})
 ###############################################################################
 # EXECUTABLE
 
-add_definitions(-std=c++11)# -m64) #-Wall)
-
+add_definitions(-std=c++11)
+list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4") ## if using from pcl package (pcl/vtk bug)
 set(LINK_LIBRARIES
   ${catkin_LIBRARIES}
   ${ZED_LIBRARIES}
