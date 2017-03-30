@@ -11,7 +11,7 @@ This package lets you use the ZED stereo camera with ROS. It outputs the camera 
 ### Prerequisites
 
 - Ubuntu 16.04
-- [ZED SDK](https://www.stereolabs.com/developers/) and its dependencies ([OpenCV](http://docs.opencv.org/3.1.0/d7/d9f/tutorial_linux_install.html), [CUDA](https://developer.nvidia.com/cuda-downloads))
+- [ZED SDK **2.0**](https://www.stereolabs.com/developers/) and its dependencies ([OpenCV](http://docs.opencv.org/3.1.0/d7/d9f/tutorial_linux_install.html), [CUDA](https://developer.nvidia.com/cuda-downloads))
 - [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu)
 - [Point Cloud Library (PCL)](https://github.com/PointCloudLibrary/pcl)
 
@@ -148,3 +148,8 @@ However, the ROS layer introduces significant latency and a performance hit. If 
 #### Using multiple ZED
 
 The ZED camera uses the full USB 3.0 bandwidth to output video. When using multiple ZED, you may need to reduce camera framerate and resolution to avoid corrupted frames (green or purple frames). You can also use multiple GPUs to load-balance computations and improve performance.
+
+#### Jetson TK1 Support
+
+The support for the Jetson TK1 has been dropped with the ZED SDK 2.0, therefore this version of zed-ros-wrapper won't work on this board. 
+Please use this [version](https://github.com/stereolabs/zed-ros-wrapper/releases/tag/v1.2.0) alongside the [ZED SDK 1.2.0](https://www.stereolabs.com/developers/release/1.2/) instead.
