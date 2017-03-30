@@ -22,7 +22,7 @@
 
 
 /****************************************************************************************************
- ** This sample is a wrapper for the ZED library in order to use the ZED Camera with ROS.          **                                                                                        **
+ ** This sample is a wrapper for the ZED library in order to use the ZED Camera with ROS.          **
  ** A set of parameters can be specified in the launch file.                                       **
  ****************************************************************************************************/
 
@@ -122,6 +122,43 @@ namespace zed_wrapper {
         sl::Mat cloud;
         string point_cloud_frame_id = "";
         ros::Time point_cloud_time;
+
+        /* \brief Convert an sl:Mat to a cv::Mat
+         * \param mat : the sl::Mat to convert
+         */
+        cv::Mat toCVMat(sl::Mat &mat) {
+            if (mat.getMemoryType() == sl::MEM_GPU)
+                mat.updateCPUfromGPU();
+
+            int cvType;
+            switch (mat.getDataType()) {
+                case sl::MAT_TYPE_32F_C1:
+                    cvType = CV_32FC1;
+                    break;
+                case sl::MAT_TYPE_32F_C2:
+                    cvType = CV_32FC2;
+                    break;
+                case sl::MAT_TYPE_32F_C3:
+                    cvType = CV_32FC3;
+                    break;
+                case sl::MAT_TYPE_32F_C4:
+                    cvType = CV_32FC4;
+                    break;
+                case sl::MAT_TYPE_8U_C1:
+                    cvType = CV_8UC1;
+                    break;
+                case sl::MAT_TYPE_8U_C2:
+                    cvType = CV_8UC2;
+                    break;
+                case sl::MAT_TYPE_8U_C3:
+                    cvType = CV_8UC3;
+                    break;
+                case sl::MAT_TYPE_8U_C4:
+                    cvType = CV_8UC4;
+                    break;
+            }
+            return cv::Mat((int) mat.getHeight(), (int) mat.getWidth(), cvType, mat.getPtr<sl::uchar1>(sl::MEM_CPU), mat.getStepBytes(sl::MEM_CPU));
+        }
 
         /* \brief Test if a file exist
          * \param name : the path to the file
@@ -467,7 +504,7 @@ namespace zed_wrapper {
                     if (left_SubNumber > 0 || rgb_SubNumber > 0) {
                         // Retrieve RGBA Left image
                         zed->retrieveImage(leftZEDMat, sl::VIEW_LEFT);
-                        cv::cvtColor(leftZEDMat.toCVMat(), leftImRGB, CV_RGBA2RGB);
+                        cv::cvtColor(toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
                         if (left_SubNumber > 0) {
                             publishCamInfo(left_cam_info_msg, pub_left_cam_info, t);
                             publishImage(leftImRGB, pub_left, left_frame_id, t);
@@ -482,7 +519,7 @@ namespace zed_wrapper {
                     if (left_raw_SubNumber > 0 || rgb_raw_SubNumber > 0) {
                         // Retrieve RGBA Left image
                         zed->retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED);
-                        cv::cvtColor(leftZEDMat.toCVMat(), leftImRGB, CV_RGBA2RGB);
+                        cv::cvtColor(toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
                         if (left_raw_SubNumber > 0) {
                             publishCamInfo(left_cam_info_msg, pub_left_cam_info, t);
                             publishImage(leftImRGB, pub_raw_left, left_frame_id, t);
@@ -497,7 +534,7 @@ namespace zed_wrapper {
                     if (right_SubNumber > 0) {
                         // Retrieve RGBA Right image
                         zed->retrieveImage(rightZEDMat, sl::VIEW_RIGHT);
-                        cv::cvtColor(rightZEDMat.toCVMat(), rightImRGB, CV_RGBA2RGB);
+                        cv::cvtColor(toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
                         publishCamInfo(right_cam_info_msg, pub_right_cam_info, t);
                         publishImage(rightImRGB, pub_right, right_frame_id, t);
                     }
@@ -506,7 +543,7 @@ namespace zed_wrapper {
                     if (right_raw_SubNumber > 0) {
                         // Retrieve RGBA Right image
                         zed->retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED);
-                        cv::cvtColor(rightZEDMat.toCVMat(), rightImRGB, CV_RGBA2RGB);
+                        cv::cvtColor(toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
                         publishCamInfo(right_cam_info_msg, pub_right_cam_info, t);
                         publishImage(rightImRGB, pub_raw_right, right_frame_id, t);
                     }
@@ -515,12 +552,12 @@ namespace zed_wrapper {
                     if (depth_SubNumber > 0) {
                         zed->retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH);
                         publishCamInfo(depth_cam_info_msg, pub_depth_cam_info, t);
-                        publishDepth(depthZEDMat.toCVMat(), pub_depth, depth_frame_id, t); // in meters
+                        publishDepth(toCVMat(depthZEDMat), pub_depth, depth_frame_id, t); // in meters
                     }
 
                     // Publish the point cloud if someone has subscribed to
                     if (cloud_SubNumber > 0) {
-                        // Run the point cloud conversion asynchronously to avoid slowing down all the program
+                        // Run the point cloud convertion asynchronously to avoid slowing down all the program
                         // Retrieve raw pointCloud data
                         zed->retrieveMeasure(cloud, sl::MEASURE_XYZBGRA);
                         point_cloud_frame_id = cloud_frame_id;
