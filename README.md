@@ -117,8 +117,7 @@ map
 ```
 
 
-
-## Using RVIZ
+## Using RVIZ
 
 rviz (ROS visualization) is a 3D visualizer for displaying sensor data and state information. Using rviz, you can visualize ZED left and right images, depth, point cloud and 3D trajectory.
 
