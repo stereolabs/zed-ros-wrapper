@@ -35,7 +35,17 @@ Open a terminal and build the package:
 
     cd ~/catkin_ws/
     catkin_make
-    source ./devel/setup.bash
+    echo source $(pwd)/devel/setup.bash >> ~/.bashrc
+    source ~/.bashrc
+
+**Note:** If you are using a different console interface like zsh, you have to change the `source` command like this : `echo source $(pwd)/devel/setup.zsh >> ~/.zshrc` and `source ~/.zshrc`.
+
+**Error:** If an error about `/usr/lib/x86_64-linux-gnu/libEGL.so` is blocking the compilation, simply use the following command to repair the libEGl symlink. Then restart the `catkin_make` command.
+
+```
+#Only on libEGL error
+sudo rm /usr/lib/x86_64-linux-gnu/libEGL.so; sudo ln /usr/lib/x86_64-linux-gnu/libEGL.so.1 /usr/lib/x86_64-linux-gnu/libEGL.so
+```
 
 ### Run the program
 
