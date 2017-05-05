@@ -695,7 +695,8 @@ namespace zed_wrapper {
             dynamic_reconfigure::Server<zed_wrapper::ZedConfig>::CallbackType f;
             f = boost::bind(&ZEDWrapperNodelet::callback, this, _1, _2);
             server->setCallback(f);
-            confidence = 80;
+
+            nh_ns.getParam("confidence", confidence);
 
 
             // Create all the publishers
