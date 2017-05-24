@@ -579,6 +579,11 @@ namespace zed_wrapper {
 
                     publishTrackedFrame(pose, transform_odom_broadcaster, odometry_transform_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
                     std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
+
+                    if (tracking_activated) { //Stop the tracking
+                      zed->disableTracking();
+                      tracking_activated = false;
+                    }
                 }
             } // while loop
             zed.reset();
