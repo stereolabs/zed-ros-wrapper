@@ -93,7 +93,7 @@ Specify your launch parameters in the zed_camera.launch file available  [here](h
  svo_file                     | Specify SVO filename                                                 | Path to an SVO file         
  resolution                   | Select ZED camera resolution                                       | '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
   frame_rate                   | Set ZED camera video framerate | int                      
-  sensing_mode                 | Select depth sensing mode                                          | '0': FILL, '1': STANDARD                   
+  sensing_mode                 | Select depth sensing mode                                          | '0': STANDARD, '1': FILL                    
  quality                      | Select depth map quality                                       | '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY
  openni_depth_mode            | Convert 32bit depth in meters to 16bit in millimeters                       | '0': 32bit float meters, '1': 16bit uchar millimeters   
  zed_id                    | Select a ZED camera by its ID. ID are assigned by Ubuntu. Useful when multiple cameras are connected. ID is ignored if an SVO path is specified.                      | int, default '0'
