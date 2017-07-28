@@ -22,7 +22,8 @@
           <param name="odometry_db"           value="" />
           <param name="openni_depth_mode"     value="0" />
           <param name="gpu_id"                value="0" />
-          <param name="confidence"            value="80" />
+          <param name="confidence"            value="100" />
+          <param name="depth_stabilization"   value="1" />
 
           <!-- ROS topic names -->
           <param name="rgb_topic"             value="rgb/image_rect_color" />
@@ -70,7 +71,8 @@
           <param name="odometry_db"           value="" />
           <param name="openni_depth_mode"     value="0" />
           <param name="gpu_id"                value="1" />
-          <param name="confidence"            value="80" />
+          <param name="confidence"            value="100" />
+          <param name="depth_stabilization"   value="1" />
 
           <!-- ROS topic names -->
           <param name="rgb_topic"             value="rgb/image_rect_color" />

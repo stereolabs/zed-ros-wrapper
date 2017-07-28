@@ -14,12 +14,7 @@ exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
 if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # Jetson TX1
     SET(OCV_VERSION "2.4")
     SET(CUDA_VERSION "8.0")
-    
-    unset(CUDA_USE_STATIC_CUDA_RUNTIME CACHE)
-    option(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
-    message ("CUDA_USE_STATIC_CUDA_RUNTIME : ${CUDA_USE_STATIC_CUDA_RUNTIME}")
-    ##to prevent from opencv_dep_cudart dependencies error...
-    ## cmake with -DCUDA_USE_STATIC_CUDA_RUNTIME=false can also be called.
+    SET(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 else() # Ubuntu Desktop
     SET(OCV_VERSION "3.1")
     SET(CUDA_VERSION "8.0")

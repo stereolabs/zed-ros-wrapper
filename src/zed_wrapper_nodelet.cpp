@@ -102,6 +102,7 @@ namespace zed_wrapper {
         int rate;
         int gpu_id;
         int zed_id;
+        int depth_stabilization;
         std::string odometry_DB;
         std::string svo_filepath;
 
@@ -445,14 +446,14 @@ namespace zed_wrapper {
                     runParams.enable_point_cloud = true;
                 // Run the loop only if there is some subscribers
                 if (runLoop) {
-                    if (odom_SubNumber > 0 && !tracking_activated) { //Start the tracking
+                    if ( (depth_stabilization || odom_SubNumber > 0) && !tracking_activated) { //Start the tracking
                         if (odometry_DB != "" && !file_exist(odometry_DB)) {
                             odometry_DB = "";
                             NODELET_WARN("odometry_DB path doesn't exist or is unreachable.");
                         }
                         zed->enableTracking(trackParams);
                         tracking_activated = true;
-                    } else if (odom_SubNumber == 0 && tracking_activated) { //Stop the tracking
+                    } else if (!depth_stabilization && odom_SubNumber == 0 && tracking_activated) { //Stop the tracking
                         zed->disableTracking();
                         tracking_activated = false;
                     }
@@ -486,7 +487,7 @@ namespace zed_wrapper {
                                 std::this_thread::sleep_for(std::chrono::milliseconds(2000));
                             }
                             tracking_activated = false;
-                            if (odom_SubNumber > 0) { //Start the tracking
+                            if (depth_stabilization || odom_SubNumber > 0) { //Start the tracking
                                 if (odometry_DB != "" && !file_exist(odometry_DB)) {
                                     odometry_DB = "";
                                     NODELET_WARN("odometry_DB path doesn't exist or is unreachable.");
@@ -583,6 +584,7 @@ namespace zed_wrapper {
             } // while loop
             zed.reset();
         }
+
         boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> server;
         void onInit() {
             // Launch file parameters
@@ -641,6 +643,8 @@ namespace zed_wrapper {
             nh_ns.getParam("openni_depth_mode", openniDepthMode);
             nh_ns.getParam("gpu_id", gpu_id);
             nh_ns.getParam("zed_id", zed_id);
+            nh_ns.getParam("depth_stabilization", depth_stabilization);
+
             if (openniDepthMode)
                 NODELET_INFO_STREAM("Openni depth mode activated");
 
@@ -682,6 +686,7 @@ namespace zed_wrapper {
             param.depth_mode = static_cast<sl::DEPTH_MODE> (quality);
             param.sdk_verbose = true;
             param.sdk_gpu_id = gpu_id;
+            param.depth_stabilization = depth_stabilization;
 
             sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
             while (err != sl::SUCCESS) {
