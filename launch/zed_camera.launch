@@ -22,12 +22,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen">
 
-    <!-- Configuration frame camera -->
-    <rosparam subst_value="true">
-        base_frame: zed_center
-        camera_frame: zed_left_camera
-        odometry_frame: map
-    </rosparam>
+    <!-- Configuration frame camera -->    
+    <param name="odometry_frame"        value="map" />
+    <param name="base_frame"            value="zed_center" />
+    <param name="camera_frame"          value="zed_left_camera" />
+    
     <!-- SVO file path -->
     <param name="svo_filepath" value="$(arg svo_file)" />
 

@@ -30,11 +30,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file1)" output="screen">
 
           <!-- Configuration frame camera -->
-          <rosparam subst_value="true">
-              base_frame: zed_center
-              camera_frame: zed_left_camera
-              odometry_frame: map
-          </rosparam>
+          <param name="odometry_frame"        value="map" />
+          <param name="base_frame"            value="zed_center" />
+          <param name="camera_frame"          value="zed_left_camera" />
           <!-- ZED parameters -->
           <param name="zed_id"                value="$(arg zed_id1)" />
 
@@ -84,11 +82,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file2)" output="screen">
 
           <!-- Configuration frame camera -->
-          <rosparam subst_value="true">
-              base_frame: ZED_center
-              camera_frame: ZED_left_camera
-              odometry_frame: map
-          </rosparam>
+          <param name="odometry_frame"        value="map" />
+          <param name="base_frame"            value="zed_center" />
+          <param name="camera_frame"          value="zed_left_camera" />
           <!-- ZED parameters -->
           <param name="zed_id"                value="$(arg zed_id2)" />
 
