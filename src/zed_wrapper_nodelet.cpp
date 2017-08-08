@@ -45,6 +45,8 @@
 #include <dynamic_reconfigure/server.h>
 #include <zed_wrapper/ZedConfig.h>
 #include <nav_msgs/Odometry.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
@@ -95,6 +97,9 @@ namespace zed_wrapper {
         std::string odometry_frame_id;
         std::string base_frame_id;
         std::string odometry_transform_frame_id;
+        // initialization Transform listener
+        boost::shared_ptr<tf2_ros::Buffer> tfBuffer;
+        boost::shared_ptr<tf2_ros::TransformListener> tf_listener;
 
         // Launch file parameters
         int resolution;
@@ -567,6 +572,26 @@ namespace zed_wrapper {
                         publishPointCloud(width, height, pub_cloud);
                     }
 
+                    // Find transform
+                    geometry_msgs::TransformStamped base_to_sensor;
+                    // Look up the transformation from base frame to camera link
+                    try{
+
+                      base_to_sensor = tfBuffer->lookupTransform(base_frame_id, odometry_transform_frame_id, t);
+
+                      ROS_INFO_THROTTLE(2.0, "Position: %f", base_to_sensor.transform.translation.x);
+                    }
+                    catch (tf2::TransformException &ex) {
+                      ROS_WARN_THROTTLE(10.0, "The tf from '%s' to '%s' does not seem to be available, "
+                                              "will assume it as identity!",
+                                              base_frame_id.c_str(),
+                                              odometry_transform_frame_id.c_str());
+                      ROS_DEBUG("Transform error: %s", ex.what());
+                      // TODO
+                      // base_to_sensor.setIdentity();
+                    }
+
+
                     // Publish the odometry if someone has subscribed to
                     if (odom_SubNumber > 0) {
                         zed->getPosition(pose);
@@ -574,12 +599,12 @@ namespace zed_wrapper {
                     }
 
                     //Note, the frame is published, but its values will only change if someone has subscribed to odom
-                    publishTrackedFrame(pose, transform_odom_broadcaster, odometry_transform_frame_id, t); //publish the tracked Frame
+                    publishTrackedFrame(pose, transform_odom_broadcaster, base_frame_id, t); //publish the tracked Frame
 
                     loop_rate.sleep();
                 } else {
 
-                    publishTrackedFrame(pose, transform_odom_broadcaster, odometry_transform_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
+                    publishTrackedFrame(pose, transform_odom_broadcaster, base_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
                     std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
                 }
             } // while loop
@@ -669,12 +694,16 @@ namespace zed_wrapper {
             nh_ns.param<std::string>("svo_filepath", svo_filepath, std::string());
 
             // set frame
-            nh_ns.param<std::string>("odometry_frame", odometry_frame_id, "/zed_initial_frame");
-            nh_ns.param<std::string>("base_frame", base_frame_id, "/base_link");
-            nh_ns.param<std::string>("camera_frame", odometry_transform_frame_id, "/zed_current_frame");
+            nh_ns.param<std::string>("odometry_frame", odometry_frame_id, "zed_initial_frame");
+            nh_ns.param<std::string>("base_frame", base_frame_id, "base_link");
+            nh_ns.param<std::string>("camera_frame", odometry_transform_frame_id, "zed_current_frame");
 
             // Print order frames
             ROS_INFO_STREAM("Order: odometry_frame[" << odometry_frame_id << "]->base_frame[" << base_frame_id << "]->camera_frame[" << odometry_transform_frame_id << "]");
+
+            // Initialization transformation listener
+            tfBuffer.reset( new tf2_ros::Buffer );
+            tf_listener.reset( new tf2_ros::TransformListener(*tfBuffer) );
 
             // Create the ZED object
             zed.reset(new sl::Camera());
