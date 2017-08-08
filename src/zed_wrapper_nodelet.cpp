@@ -93,6 +93,7 @@ namespace zed_wrapper {
         std::string depth_frame_id;
         std::string cloud_frame_id;
         std::string odometry_frame_id;
+        std::string base_frame_id;
         std::string odometry_transform_frame_id;
 
         // Launch file parameters
@@ -628,8 +629,6 @@ namespace zed_wrapper {
             cloud_frame_id = "/zed_current_frame";
 
             string odometry_topic = "odom";
-            odometry_frame_id = "/zed_initial_frame";
-            odometry_transform_frame_id = "/zed_current_frame";
 
             nh = getMTNodeHandle();
             nh_ns = getMTPrivateNodeHandle();
@@ -668,6 +667,14 @@ namespace zed_wrapper {
             nh_ns.getParam("odometry_topic", odometry_topic);
 
             nh_ns.param<std::string>("svo_filepath", svo_filepath, std::string());
+
+            // set frame
+            nh_ns.param<std::string>("odometry_frame", odometry_frame_id, "/zed_initial_frame");
+            nh_ns.param<std::string>("base_frame", base_frame_id, "/base_link");
+            nh_ns.param<std::string>("camera_frame", odometry_transform_frame_id, "/zed_current_frame");
+
+            // Print order frames
+            ROS_INFO_STREAM("Order: odometry_frame[" << odometry_frame_id << "]->base_frame[" << base_frame_id << "]->camera_frame[" << odometry_transform_frame_id << "]");
 
             // Create the ZED object
             zed.reset(new sl::Camera());
