@@ -637,6 +637,15 @@ namespace zed_wrapper {
             zed_id = 0;
             odometry_DB = "";
 
+            nh = getMTNodeHandle();
+            nh_ns = getMTPrivateNodeHandle();
+
+            // set frame
+            nh_ns.param<std::string>("odometry_frame", odometry_frame_id, "zed_initial_frame");
+            nh_ns.param<std::string>("base_frame", base_frame_id, "base_link");
+            nh_ns.param<std::string>("camera_frame", odometry_transform_frame_id, "zed_current_frame");
+            nh_ns.param<std::string>("depth_frame", depth_frame_id, "zed_depth_frame");
+
             std::string img_topic = "image_rect_color";
             std::string img_raw_topic = "image_raw_color";
 
@@ -644,17 +653,17 @@ namespace zed_wrapper {
             string rgb_topic = "rgb/" + img_topic;
             string rgb_raw_topic = "rgb/" + img_raw_topic;
             string rgb_cam_info_topic = "rgb/camera_info";
-            rgb_frame_id = "/zed_current_frame";
+            rgb_frame_id = odometry_transform_frame_id;
 
             string left_topic = "left/" + img_topic;
             string left_raw_topic = "left/" + img_raw_topic;
             string left_cam_info_topic = "left/camera_info";
-            left_frame_id = "/zed_current_frame";
+            left_frame_id = odometry_transform_frame_id;
 
             string right_topic = "right/" + img_topic;
             string right_raw_topic = "right/" + img_raw_topic;
             string right_cam_info_topic = "right/camera_info";
-            right_frame_id = "/zed_current_frame";
+            right_frame_id = odometry_transform_frame_id;
 
             string depth_topic = "depth/";
             if (openniDepthMode)
@@ -663,15 +672,11 @@ namespace zed_wrapper {
                 depth_topic += "depth_registered";
 
             string depth_cam_info_topic = "depth/camera_info";
-            depth_frame_id = "/zed_depth_frame";
 
             string point_cloud_topic = "point_cloud/cloud_registered";
-            cloud_frame_id = "/zed_current_frame";
+            cloud_frame_id = odometry_transform_frame_id;
 
             string odometry_topic = "odom";
-
-            nh = getMTNodeHandle();
-            nh_ns = getMTPrivateNodeHandle();
 
             // Get parameters from launch file
             nh_ns.getParam("resolution", resolution);
@@ -707,11 +712,6 @@ namespace zed_wrapper {
             nh_ns.getParam("odometry_topic", odometry_topic);
 
             nh_ns.param<std::string>("svo_filepath", svo_filepath, std::string());
-
-            // set frame
-            nh_ns.param<std::string>("odometry_frame", odometry_frame_id, "zed_initial_frame");
-            nh_ns.param<std::string>("base_frame", base_frame_id, "base_link");
-            nh_ns.param<std::string>("camera_frame", odometry_transform_frame_id, "zed_current_frame");
 
             // Print order frames
             ROS_INFO_STREAM("Order: odometry_frame[" << odometry_frame_id << "]->base_frame[" << base_frame_id << "]->camera_frame[" << odometry_transform_frame_id << "]");

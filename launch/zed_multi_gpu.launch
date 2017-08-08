@@ -1,3 +1,21 @@
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2017, STEREOLABS.
+
+All rights reserved.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
 <launch>
 
   <arg name="svo_file1" default=""/> <!-- <arg name="svo_file1" default="path/to/svo/file.svo"> -->
@@ -9,9 +27,14 @@
 
   <!-- First ZED camera on GPU 0-->
   <group ns="zed_GPU0">
-    <include file="$(find zed_wrapper)/launch/zed_tf.launch" />
         <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file1)" output="screen">
 
+          <!-- Configuration frame camera -->
+          <rosparam subst_value="true">
+              base_frame: zed_center
+              camera_frame: zed_left_camera
+              odometry_frame: map
+          </rosparam>
           <!-- ZED parameters -->
           <param name="zed_id"                value="$(arg zed_id1)" />
 
@@ -58,9 +81,14 @@
 
   <!-- Seconnd ZED camera on GPU 1-->
   <group ns="zed_GPU1">
-    <include file="$(find zed_wrapper)/launch/zed_tf.launch" />
         <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file2)" output="screen">
 
+          <!-- Configuration frame camera -->
+          <rosparam subst_value="true">
+              base_frame: ZED_center
+              camera_frame: ZED_left_camera
+              odometry_frame: map
+          </rosparam>
           <!-- ZED parameters -->
           <param name="zed_id"                value="$(arg zed_id2)" />
 
