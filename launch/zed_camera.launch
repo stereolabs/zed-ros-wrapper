@@ -22,6 +22,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen">
 
+    <!-- publish odometry frame -->
+    <param name="publish_tf"        value="true" />
     <!-- Configuration frame camera -->    
     <param name="odometry_frame"        value="map" />
     <param name="base_frame"            value="zed_center" />

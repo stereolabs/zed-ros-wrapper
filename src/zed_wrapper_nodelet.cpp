@@ -101,6 +101,7 @@ namespace zed_wrapper {
         // initialization Transform listener
         boost::shared_ptr<tf2_ros::Buffer> tfBuffer;
         boost::shared_ptr<tf2_ros::TransformListener> tf_listener;
+        bool publish_tf;
 
         // Launch file parameters
         int resolution;
@@ -613,13 +614,18 @@ namespace zed_wrapper {
                         publishOdom(camera_transform, base_to_sensor, pub_odom, odometry_frame_id, t);
                     }
 
-                    //Note, the frame is published, but its values will only change if someone has subscribed to odom
-                    publishTrackedFrame(camera_transform, base_to_sensor, transform_odom_broadcaster, base_frame_id, t); //publish the tracked Frame
+                    // Publish odometry tf only if enabled
+                    if(publish_tf) {
+                        //Note, the frame is published, but its values will only change if someone has subscribed to odom
+                        publishTrackedFrame(camera_transform, base_to_sensor, transform_odom_broadcaster, base_frame_id, t); //publish the tracked Frame
+                    }
 
                     loop_rate.sleep();
                 } else {
-
-                    publishTrackedFrame(camera_transform, base_to_sensor, transform_odom_broadcaster, base_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
+                    // Publish odometry tf only if enabled
+                    if(publish_tf) {
+                        publishTrackedFrame(camera_transform, base_to_sensor, transform_odom_broadcaster, base_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
+                    }
                     std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
                 }
             } // while loop
@@ -645,6 +651,9 @@ namespace zed_wrapper {
             nh_ns.param<std::string>("base_frame", base_frame_id, "base_link");
             nh_ns.param<std::string>("camera_frame", odometry_transform_frame_id, "zed_current_frame");
             nh_ns.param<std::string>("depth_frame", depth_frame_id, "zed_depth_frame");
+
+            // Publish odometry tf
+            nh_ns.param<bool>("publish_tf", publish_tf, true);
 
             std::string img_topic = "image_rect_color";
             std::string img_raw_topic = "image_raw_color";

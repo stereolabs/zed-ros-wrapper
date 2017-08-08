@@ -29,6 +29,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <group ns="zed_GPU0">
         <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file1)" output="screen">
 
+          <!-- publish odometry frame -->
+          <param name="publish_tf"        value="true" />
           <!-- Configuration frame camera -->
           <param name="odometry_frame"        value="map" />
           <param name="base_frame"            value="zed_center" />
@@ -81,6 +83,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <group ns="zed_GPU1">
         <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" args="$(arg svo_file2)" output="screen">
 
+          <!-- publish odometry frame -->
+          <param name="publish_tf"        value="true" />
           <!-- Configuration frame camera -->
           <param name="odometry_frame"        value="map" />
           <param name="base_frame"            value="zed_center" />
