@@ -116,7 +116,7 @@ namespace zed_wrapper {
 
         //Tracking variables
         sl::Pose pose;
-        tf2::Transform camera_transform;
+        tf2::Transform base_transform;
 
         // zed object
         sl::InitParameters param;
@@ -213,19 +213,16 @@ namespace zed_wrapper {
         }
 
         /* \brief Publish the pose of the camera with a ros Publisher
-         * \param camera_transform : Transformation representing the camera pose
-         * \param base_to_sensor : the transformation matrix and pose from base frame to sensor frame
+         * \param base_transform : Transformation representing the camera pose from base frame
          * \param pub_odom : the publisher object to use
          * \param odom_frame_id : the id of the reference frame of the pose
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdom(tf2::Transform camera_transform, tf2::Transform base_to_sensor, ros::Publisher &pub_odom, string odom_frame_id, ros::Time t) {
+        void publishOdom(tf2::Transform base_transform, ros::Publisher &pub_odom, string odom_frame_id, ros::Time t) {
             nav_msgs::Odometry odom;
             odom.header.stamp = t;
             odom.header.frame_id = odom_frame_id; // odom_frame
             odom.child_frame_id = base_frame_id;  // base_frame
-            // Transformation from camera sensor to base frame
-            tf2::Transform base_transform = base_to_sensor * camera_transform * base_to_sensor.inverse();
             // conversion from Tranform to message
             geometry_msgs::Transform base2 = tf2::toMsg(base_transform);
             // Add all value in odometry message
@@ -241,19 +238,16 @@ namespace zed_wrapper {
         }
 
         /* \brief Publish the pose of the camera as a transformation
-         * \param camera_transform : Transformation representing the camera pose
-         * \param base_to_sensor : the transformation matrix and pose from base frame to sensor frame
+         * \param base_transform : Transformation representing the camera pose from base frame
          * \param trans_br : the TransformBroadcaster object to use
          * \param odometry_transform_frame_id : the id of the transformation
          * \param t : the ros::Time to stamp the image
          */
-        void publishTrackedFrame(tf2::Transform camera_transform, tf2::Transform base_to_sensor, tf2_ros::TransformBroadcaster &trans_br, string odometry_transform_frame_id, ros::Time t) {
+        void publishTrackedFrame(tf2::Transform base_transform, tf2_ros::TransformBroadcaster &trans_br, string odometry_transform_frame_id, ros::Time t) {
             geometry_msgs::TransformStamped transformStamped;
             transformStamped.header.stamp = ros::Time::now();
             transformStamped.header.frame_id = odometry_frame_id;
             transformStamped.child_frame_id = odometry_transform_frame_id;
-            // Transformation from camera sensor to base frame
-            tf2::Transform base_transform = base_to_sensor * camera_transform * base_to_sensor.inverse();
             // conversion from Tranform to message
             transformStamped.transform = tf2::toMsg(base_transform);
             // Publish transformation
@@ -449,10 +443,6 @@ namespace zed_wrapper {
                 int cloud_SubNumber = pub_cloud.getNumSubscribers();
                 int odom_SubNumber = pub_odom.getNumSubscribers();
                 bool runLoop = (rgb_SubNumber + rgb_raw_SubNumber + left_SubNumber + left_raw_SubNumber + right_SubNumber + right_raw_SubNumber + depth_SubNumber + cloud_SubNumber + odom_SubNumber) > 0;
-                // Transform from base to sensor
-                tf2::Transform base_to_sensor;
-                // Set identity
-                base_to_sensor.setIdentity();
 
                 runParams.enable_point_cloud = false;
                 if (cloud_SubNumber > 0)
@@ -579,6 +569,8 @@ namespace zed_wrapper {
                         publishPointCloud(width, height, pub_cloud);
                     }
 
+                    // Transform from base to sensor
+                    tf2::Transform base_to_sensor;
                     // Look up the transformation from base frame to camera link
                     try {
                         // Save the transformation from base to frame
@@ -599,6 +591,7 @@ namespace zed_wrapper {
                     if (odom_SubNumber > 0) {
                         zed->getPosition(pose);
                         // Transform ZED pose in TF2 Transformation
+                        tf2::Transform camera_transform;
                         geometry_msgs::Transform c2s;
                         sl::Translation translation = pose.getTranslation();
                         c2s.translation.x = translation(2);
@@ -610,21 +603,23 @@ namespace zed_wrapper {
                         c2s.rotation.z = -quat(1);
                         c2s.rotation.w = quat(3);
                         tf2::fromMsg(c2s, camera_transform);
-
-                        publishOdom(camera_transform, base_to_sensor, pub_odom, odometry_frame_id, t);
+                        // Transformation from camera sensor to base frame
+                        base_transform = base_to_sensor * camera_transform * base_to_sensor.inverse();
+                        // Publish odometry message
+                        publishOdom(base_transform, pub_odom, odometry_frame_id, t);
                     }
 
                     // Publish odometry tf only if enabled
                     if(publish_tf) {
                         //Note, the frame is published, but its values will only change if someone has subscribed to odom
-                        publishTrackedFrame(camera_transform, base_to_sensor, transform_odom_broadcaster, base_frame_id, t); //publish the tracked Frame
+                        publishTrackedFrame(base_transform, transform_odom_broadcaster, base_frame_id, t); //publish the tracked Frame
                     }
 
                     loop_rate.sleep();
                 } else {
                     // Publish odometry tf only if enabled
                     if(publish_tf) {
-                        publishTrackedFrame(camera_transform, base_to_sensor, transform_odom_broadcaster, base_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
+                        publishTrackedFrame(base_transform, transform_odom_broadcaster, base_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
                     }
                     std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
                 }
@@ -724,6 +719,8 @@ namespace zed_wrapper {
 
             // Print order frames
             ROS_INFO_STREAM("Order: odometry_frame[" << odometry_frame_id << "]->base_frame[" << base_frame_id << "]->camera_frame[" << odometry_transform_frame_id << "]");
+            // Status of odometry TF
+            ROS_INFO_STREAM("Publish odometry_frame[" << odometry_frame_id << "] = " << publish_tf);
 
             // Initialization transformation listener
             tfBuffer.reset( new tf2_ros::Buffer );
@@ -732,7 +729,7 @@ namespace zed_wrapper {
             // Create the ZED object
             zed.reset(new sl::Camera());
             // Initialize tf2 transformation
-            camera_transform.setIdentity();
+            base_transform.setIdentity();
 
             // Try to initialize the ZED
             if (!svo_filepath.empty())
