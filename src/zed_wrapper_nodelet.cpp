@@ -648,8 +648,27 @@ namespace zed_wrapper {
             nh_ns.param<std::string>("camera_frame", camera_frame_id, "camera_frame");
             nh_ns.param<std::string>("depth_frame", depth_frame_id, "depth_frame");
 
+            // Get parameters from launch file
+            nh_ns.getParam("resolution", resolution);
+            nh_ns.getParam("quality", quality);
+            nh_ns.getParam("sensing_mode", sensing_mode);
+            nh_ns.getParam("frame_rate", rate);
+            nh_ns.getParam("odometry_DB", odometry_DB);
+            nh_ns.getParam("openni_depth_mode", openniDepthMode);
+            nh_ns.getParam("gpu_id", gpu_id);
+            nh_ns.getParam("zed_id", zed_id);
+            nh_ns.getParam("depth_stabilization", depth_stabilization);
+
             // Publish odometry tf
             nh_ns.param<bool>("publish_tf", publish_tf, true);
+
+            // Print order frames
+            ROS_INFO_STREAM("odometry_frame: " << odometry_frame_id);
+            ROS_INFO_STREAM("base_frame: "     << base_frame_id);
+            ROS_INFO_STREAM("camera_frame: "   << camera_frame_id);
+            ROS_INFO_STREAM("depth_frame: "    << depth_frame_id);
+            // Status of odometry TF
+            ROS_INFO_STREAM("Publish " << odometry_frame_id << " [" << (publish_tf ? "TRUE" : "FALSE") << "]");
 
             std::string img_topic = "image_rect_color";
             std::string img_raw_topic = "image_raw_color";
@@ -671,10 +690,12 @@ namespace zed_wrapper {
             rgb_frame_id = depth_frame_id;
 
             string depth_topic = "depth/";
-            if (openniDepthMode)
+            if (openniDepthMode) {
+                NODELET_INFO_STREAM("Openni depth mode activated");
                 depth_topic += "depth_raw_registered";
-            else
+            } else {
                 depth_topic += "depth_registered";
+            }
 
             string depth_cam_info_topic = "depth/camera_info";
 
@@ -682,20 +703,6 @@ namespace zed_wrapper {
             cloud_frame_id = camera_frame_id;
 
             string odometry_topic = "odom";
-
-            // Get parameters from launch file
-            nh_ns.getParam("resolution", resolution);
-            nh_ns.getParam("quality", quality);
-            nh_ns.getParam("sensing_mode", sensing_mode);
-            nh_ns.getParam("frame_rate", rate);
-            nh_ns.getParam("odometry_DB", odometry_DB);
-            nh_ns.getParam("openni_depth_mode", openniDepthMode);
-            nh_ns.getParam("gpu_id", gpu_id);
-            nh_ns.getParam("zed_id", zed_id);
-            nh_ns.getParam("depth_stabilization", depth_stabilization);
-
-            if (openniDepthMode)
-                NODELET_INFO_STREAM("Openni depth mode activated");
 
             nh_ns.getParam("rgb_topic", rgb_topic);
             nh_ns.getParam("rgb_raw_topic", rgb_raw_topic);
@@ -718,10 +725,6 @@ namespace zed_wrapper {
 
             nh_ns.param<std::string>("svo_filepath", svo_filepath, std::string());
 
-            // Print order frames
-            ROS_INFO_STREAM("Order: odometry_frame[" << odometry_frame_id << "]->base_frame[" << base_frame_id << "]->camera_frame[" << camera_frame_id << "]");
-            // Status of odometry TF
-            ROS_INFO_STREAM("Publish odometry_frame[" << odometry_frame_id << "] = " << (publish_tf ? "true" : "false"));
 
             // Initialization transformation listener
             tfBuffer.reset( new tf2_ros::Buffer );
