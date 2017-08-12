@@ -97,7 +97,7 @@ namespace zed_wrapper {
         std::string cloud_frame_id;
         std::string odometry_frame_id;
         std::string base_frame_id;
-        std::string odometry_transform_frame_id;
+        std::string camera_frame_id;
         // initialization Transform listener
         boost::shared_ptr<tf2_ros::Buffer> tfBuffer;
         boost::shared_ptr<tf2_ros::TransformListener> tf_listener;
@@ -574,7 +574,7 @@ namespace zed_wrapper {
                     // Look up the transformation from base frame to camera link
                     try {
                         // Save the transformation from base to frame
-                        geometry_msgs::TransformStamped b2s = tfBuffer->lookupTransform(base_frame_id, odometry_transform_frame_id, t);
+                        geometry_msgs::TransformStamped b2s = tfBuffer->lookupTransform(base_frame_id, camera_frame_id, t);
                         // Get the TF2 transformation
                         tf2::fromMsg(b2s.transform, base_to_sensor);
 
@@ -582,7 +582,7 @@ namespace zed_wrapper {
                       ROS_WARN_THROTTLE(10.0, "The tf from '%s' to '%s' does not seem to be available, "
                                               "will assume it as identity!",
                                               base_frame_id.c_str(),
-                                              odometry_transform_frame_id.c_str());
+                                              camera_frame_id.c_str());
                       ROS_DEBUG("Transform error: %s", ex.what());
                       base_to_sensor.setIdentity();
                     }
@@ -641,11 +641,12 @@ namespace zed_wrapper {
             nh = getMTNodeHandle();
             nh_ns = getMTPrivateNodeHandle();
 
-            // set frame
-            nh_ns.param<std::string>("odometry_frame", odometry_frame_id, "zed_initial_frame");
-            nh_ns.param<std::string>("base_frame", base_frame_id, "base_link");
-            nh_ns.param<std::string>("camera_frame", odometry_transform_frame_id, "zed_current_frame");
-            nh_ns.param<std::string>("depth_frame", depth_frame_id, "zed_depth_frame");
+            // Set  default cordinate frames
+            // If unknown left and right frames are set in the same camera coordinate frame
+            nh_ns.param<std::string>("odometry_frame", odometry_frame_id, "odometry_frame");
+            nh_ns.param<std::string>("base_frame", base_frame_id, "base_frame");
+            nh_ns.param<std::string>("camera_frame", camera_frame_id, "camera_frame");
+            nh_ns.param<std::string>("depth_frame", depth_frame_id, "depth_frame");
 
             // Publish odometry tf
             nh_ns.param<bool>("publish_tf", publish_tf, true);
@@ -657,12 +658,12 @@ namespace zed_wrapper {
             string left_topic = "left/" + img_topic;
             string left_raw_topic = "left/" + img_raw_topic;
             string left_cam_info_topic = "left/camera_info";
-            left_frame_id = odometry_transform_frame_id;
+            left_frame_id = camera_frame_id;
 
             string right_topic = "right/" + img_topic;
             string right_raw_topic = "right/" + img_raw_topic;
             string right_cam_info_topic = "right/camera_info";
-            right_frame_id = odometry_transform_frame_id;
+            right_frame_id = camera_frame_id;
 
             string rgb_topic = "rgb/" + img_topic;
             string rgb_raw_topic = "rgb/" + img_raw_topic;
@@ -678,7 +679,7 @@ namespace zed_wrapper {
             string depth_cam_info_topic = "depth/camera_info";
 
             string point_cloud_topic = "point_cloud/cloud_registered";
-            cloud_frame_id = odometry_transform_frame_id;
+            cloud_frame_id = camera_frame_id;
 
             string odometry_topic = "odom";
 
@@ -718,9 +719,9 @@ namespace zed_wrapper {
             nh_ns.param<std::string>("svo_filepath", svo_filepath, std::string());
 
             // Print order frames
-            ROS_INFO_STREAM("Order: odometry_frame[" << odometry_frame_id << "]->base_frame[" << base_frame_id << "]->camera_frame[" << odometry_transform_frame_id << "]");
+            ROS_INFO_STREAM("Order: odometry_frame[" << odometry_frame_id << "]->base_frame[" << base_frame_id << "]->camera_frame[" << camera_frame_id << "]");
             // Status of odometry TF
-            ROS_INFO_STREAM("Publish odometry_frame[" << odometry_frame_id << "] = " << publish_tf);
+            ROS_INFO_STREAM("Publish odometry_frame[" << odometry_frame_id << "] = " << (publish_tf ? "true" : "false"));
 
             // Initialization transformation listener
             tfBuffer.reset( new tf2_ros::Buffer );
