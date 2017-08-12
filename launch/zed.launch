@@ -17,15 +17,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
+    <!-- Odometry coordinate frame -->
+    <arg name="odometry_frame"        default="map" />
 
-  <arg name="svo_file" default=""/>
-  <arg name="zed_id" default="0"/>
-
-  <group ns="zed">
-    <include file="$(find zed_wrapper)/launch/zed_camera.launch">
-      <arg name="svo_file" value="$(arg svo_file)" />
-      <arg name="zed_id" value="$(arg zed_id)" />
-    </include>
-  </group>
+    <group ns="zed">
+        <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+            <!-- compliant mode for rviz -->
+            <arg name="odometry_frame"        value="$(arg odometry_frame)" />
+        </include>
+    </group>
 
 </launch>

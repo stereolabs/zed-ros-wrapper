@@ -654,11 +654,6 @@ namespace zed_wrapper {
             std::string img_raw_topic = "image_raw_color";
 
             // Set the default topic names
-            string rgb_topic = "rgb/" + img_topic;
-            string rgb_raw_topic = "rgb/" + img_raw_topic;
-            string rgb_cam_info_topic = "rgb/camera_info";
-            rgb_frame_id = odometry_transform_frame_id;
-
             string left_topic = "left/" + img_topic;
             string left_raw_topic = "left/" + img_raw_topic;
             string left_cam_info_topic = "left/camera_info";
@@ -668,6 +663,11 @@ namespace zed_wrapper {
             string right_raw_topic = "right/" + img_raw_topic;
             string right_cam_info_topic = "right/camera_info";
             right_frame_id = odometry_transform_frame_id;
+
+            string rgb_topic = "rgb/" + img_topic;
+            string rgb_raw_topic = "rgb/" + img_raw_topic;
+            string rgb_cam_info_topic = "rgb/camera_info";
+            rgb_frame_id = depth_frame_id;
 
             string depth_topic = "depth/";
             if (openniDepthMode)

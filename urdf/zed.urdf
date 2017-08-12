@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             </material>
         </visual>
     </link>
-    <link name="zed_depth_frame" />
+    <link name="zed_depth_camera" />
 
     <joint name="zed_left_camera_joint" type="fixed">
         <parent link="zed_center"/>
@@ -60,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </joint>
     <joint name="zed_depth_camera_joint" type="fixed">
         <parent link="zed_left_camera"/>
-        <child link="zed_depth_frame"/>
+        <child link="zed_depth_camera"/>
         <origin xyz="0 0 0" rpy="-1.5707963267948966 0 -1.5707963267948966" />
     </joint>
 
