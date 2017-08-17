@@ -4,9 +4,9 @@ This package lets you use the ZED stereo camera with ROS. It outputs the camera 
 
 ## Getting started
 
-- First, download the latest version of the ZED SDK on [stereolabs.com](https://www.stereolabs.com)
+- First, download the latest version of the ZED SDK on [stereolabs.com](https://www.stereolabs.com/developers/)
 - Download the ZED ROS wrapper [here](https://github.com/stereolabs/zed-ros-wrapper/archive/master.zip).
-- For more information, check out our [ROS wiki](http://wiki.ros.org/zed-ros-wrapper) or [blog post](https://www.stereolabs.com/blog/index.php/2015/09/07/use-your-zed-camera-with-ros/) and read the ZED [API documentation](https://www.stereolabs.com/developers/documentation/API/)
+- For more information, check out our [ROS documentation](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html), our [ROS wiki](http://wiki.ros.org/zed-ros-wrapper) or our [blog post](https://www.stereolabs.com/blog/index.php/2015/09/07/use-your-zed-camera-with-ros/). If you want to customize the wrapper, check the [ZED API documentation](https://www.stereolabs.com/developers/documentation/API/).
 
 ### Prerequisites
 
@@ -20,6 +20,7 @@ This package lets you use the ZED stereo camera with ROS. It outputs the camera 
 The zed_ros_wrapper is a catkin package. It depends on the following ROS packages:
 
    - tf2_ros
+   - tf2_geometry_msgs
    - nav_msgs
    - roscpp
    - rosconsole
@@ -39,13 +40,12 @@ Open a terminal and build the package:
 
 ### Run the program
 
-Open a terminal and launch the wrapper:
+To launch the wrapper along with an Rviz preview, open a terminal and launch:
+
+    roslaunch zed_wrapper display.launch
+
+To launch the wrapper without Rviz, use:
 
     roslaunch zed_wrapper zed.launch
-
-Open a second terminal to display the rectified left color image (reference view):
-
-    rosrun image_view image_view image:=/camera/rgb/image_rect_color
-
 
 [More](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
