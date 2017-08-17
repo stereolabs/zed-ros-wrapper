@@ -17,14 +17,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
-    <!-- Odometry coordinate frame -->
-    <arg name="odometry_frame"        default="map" />
 
-    <group ns="zed">
-        <include file="$(find zed_wrapper)/launch/zed_camera.launch">
-            <!-- compliant mode for rviz -->
-            <arg name="odometry_frame"        value="$(arg odometry_frame)" />
-        </include>
-    </group>
+  <!-- Launch ZED camera wrapper -->
+  <include file="$(find zed_wrapper)/launch/zed.launch" />
+  
+  <!-- Launch rivz display -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_wrapper)/rviz/zed.rviz" output="screen" />
 
 </launch>

@@ -7,7 +7,20 @@ IF(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-find_package(ZED 2.0 REQUIRED)
+function(checkPackage package customMessage)
+    set(varName "${package}_FOUND")
+    if (NOT "${${varName}}")
+        string(REPLACE "_" "-" aptPackage ${package})
+        if("${customMessage}" STREQUAL "")
+            message(FATAL_ERROR "\n\n ${package} is missing, please try to install it with:\n sudo apt-get install ros-$(rosversion -d)-${aptPackage}\n\n")
+        else()
+            message(FATAL_ERROR "\n\n ${customMessage} \n\n")
+        endif()
+    endif()
+endfunction(checkPackage)
+
+find_package(ZED 2.0)
+checkPackage("ZED" "ZED SDK not found, install it from:\n https://www.stereolabs.com/developers/")
 
 ##For Jetson, OpenCV4Tegra is based on OpenCV2.4
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
@@ -19,12 +32,19 @@ else() # Ubuntu Desktop
     SET(OCV_VERSION "3.1")
     SET(CUDA_VERSION "8.0")
 endif()
-find_package(OpenCV ${OCV_VERSION} COMPONENTS core highgui imgproc REQUIRED)
-find_package(CUDA ${CUDA_VERSION} REQUIRED)
 
-find_package(PCL REQUIRED)
+find_package(OpenCV ${OCV_VERSION} COMPONENTS core highgui imgproc)
+checkPackage("OpenCV_core" "OpenCV core not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
+checkPackage("OpenCV_highgui" "OpenCV highgui not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
+checkPackage("OpenCV_imgproc" "OpenCV imgproc not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
 
-find_package(catkin REQUIRED COMPONENTS
+find_package(CUDA ${CUDA_VERSION})
+checkPackage("CUDA" "CUDA not found, install it from:\n https://developer.nvidia.com/cuda-downloads")
+
+find_package(PCL)
+checkPackage("PCL" "PCL not found, try to install it with:\n sudo apt-get install libpcl1 ros-$(rosversion -d)-pcl-ros")
+
+find_package(catkin COMPONENTS
   image_transport
   roscpp
   rosconsole
@@ -33,7 +53,18 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   pcl_conversions
   nodelet
+  tf2_geometry_msgs
 )
+
+checkPackage("image_transport" "")
+checkPackage("roscpp" "")
+checkPackage("rosconsole" "")
+checkPackage("sensor_msgs" "")
+checkPackage("dynamic_reconfigure" "")
+checkPackage("tf2_ros" "")
+checkPackage("pcl_conversions" "")
+checkPackage("nodelet" "")
+checkPackage("tf2_geometry_msgs" "")
 
 generate_dynamic_reconfigure_options(
   cfg/Zed.cfg
@@ -48,9 +79,9 @@ catkin_package(
     image_transport
     dynamic_reconfigure
     tf2_ros
+    tf2_geometry_msgs
     pcl_conversions
 )
-
 ###############################################################################
 # INCLUDES
 
