@@ -34,9 +34,9 @@ else() # Ubuntu Desktop
 endif()
 
 find_package(OpenCV ${OCV_VERSION} COMPONENTS core highgui imgproc)
-checkPackage("OpenCV_core" "OpenCV core not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
-checkPackage("OpenCV_highgui" "OpenCV highgui not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
-checkPackage("OpenCV_imgproc" "OpenCV imgproc not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
+checkPackage("OPENCV_CORE" "OpenCV core not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
+checkPackage("OPENCV_HIGHGUI" "OpenCV highgui not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
+checkPackage("OPENCV_IMGPROC" "OpenCV imgproc not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
 
 find_package(CUDA ${CUDA_VERSION})
 checkPackage("CUDA" "CUDA not found, install it from:\n https://developer.nvidia.com/cuda-downloads")
