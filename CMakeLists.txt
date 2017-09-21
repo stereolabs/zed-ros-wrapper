@@ -19,7 +19,7 @@ function(checkPackage package customMessage)
     endif()
 endfunction(checkPackage)
 
-find_package(ZED 2.0)
+find_package(ZED 2.1)
 checkPackage("ZED" "ZED SDK not found, install it from:\n https://www.stereolabs.com/developers/")
 
 ##For Jetson, OpenCV4Tegra is based on OpenCV2.4
