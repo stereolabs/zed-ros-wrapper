@@ -22,23 +22,17 @@ endfunction(checkPackage)
 find_package(ZED 2.1)
 checkPackage("ZED" "ZED SDK not found, install it from:\n https://www.stereolabs.com/developers/")
 
-##For Jetson, OpenCV4Tegra is based on OpenCV2.4
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
-if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # Jetson TX1
-    SET(OCV_VERSION "2.4")
-    SET(CUDA_VERSION "8.0")
+if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # Jetson TX
     SET(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
-else() # Ubuntu Desktop
-    SET(OCV_VERSION "3.1")
-    SET(CUDA_VERSION "8.0")
 endif()
 
-find_package(OpenCV ${OCV_VERSION} COMPONENTS core highgui imgproc)
+find_package(OpenCV COMPONENTS core highgui imgproc)
 checkPackage("OPENCV_CORE" "OpenCV core not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
 checkPackage("OPENCV_HIGHGUI" "OpenCV highgui not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
 checkPackage("OPENCV_IMGPROC" "OpenCV imgproc not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
 
-find_package(CUDA ${CUDA_VERSION})
+find_package(CUDA)
 checkPackage("CUDA" "CUDA not found, install it from:\n https://developer.nvidia.com/cuda-downloads")
 
 find_package(PCL)
@@ -104,12 +98,19 @@ link_directories(${PCL_LIBRARY_DIRS})
 ###############################################################################
 # EXECUTABLE
 
+
+if(NOT DEFINED CUDA_NPP_LIBRARIES_ZED)
+    #To deal with cuda 9 nppi libs and previous versions of ZED SDK
+    set(CUDA_NPP_LIBRARIES_ZED ${CUDA_npp_LIBRARY} ${CUDA_npps_LIBRARY} ${CUDA_nppi_LIBRARY})   
+endif()
+
+
 add_definitions(-std=c++11)
 list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4") ## if using from pcl package (pcl/vtk bug)
 set(LINK_LIBRARIES
   ${catkin_LIBRARIES}
   ${ZED_LIBRARIES}
-  ${CUDA_LIBRARIES} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY}
+  ${CUDA_LIBRARIES} ${CUDA_NPP_LIBRARIES_ZED}
   ${OpenCV_LIBS}
   ${PCL_LIBRARIES})
 
