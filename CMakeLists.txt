@@ -27,7 +27,7 @@ if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # Jetson TX
     SET(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 endif()
 
-find_package(OpenCV COMPONENTS core highgui imgproc)
+find_package(OpenCV 3 COMPONENTS core highgui imgproc)
 checkPackage("OPENCV_CORE" "OpenCV core not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
 checkPackage("OPENCV_HIGHGUI" "OpenCV highgui not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
 checkPackage("OPENCV_IMGPROC" "OpenCV imgproc not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
