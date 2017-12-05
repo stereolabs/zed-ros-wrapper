@@ -60,14 +60,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="rgb_topic"             value="rgb/image_rect_color" />
         <param name="rgb_raw_topic"         value="rgb/image_raw_color" />
         <param name="rgb_cam_info_topic"    value="rgb/camera_info" />
+        <param name="rgb_cam_info_raw_topic"    value="rgb/camera_info_raw" />
 
         <param name="left_topic"            value="left/image_rect_color" />
         <param name="left_raw_topic"        value="left/image_raw_color" />
         <param name="left_cam_info_topic"   value="left/camera_info" />
-    
+        <param name="left_cam_info_raw_topic"   value="left/camera_info_raw" />
+
         <param name="right_topic"           value="right/image_rect_color" />
         <param name="right_raw_topic"       value="right/image_raw_color" />
         <param name="right_cam_info_topic"  value="right/camera_info" />
+        <param name="right_cam_info_raw_topic"  value="right/camera_info_raw" />
 
         <param name="depth_topic"           value="depth/depth_registered" />
         <param name="depth_cam_info_topic"  value="depth/camera_info" />

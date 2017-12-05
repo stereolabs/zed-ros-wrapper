@@ -85,6 +85,9 @@ namespace zed_wrapper {
         ros::Publisher pub_rgb_cam_info;
         ros::Publisher pub_left_cam_info;
         ros::Publisher pub_right_cam_info;
+        ros::Publisher pub_rgb_cam_info_raw;
+        ros::Publisher pub_left_cam_info_raw;
+        ros::Publisher pub_right_cam_info_raw;
         ros::Publisher pub_depth_cam_info;
         ros::Publisher pub_odom;
 
@@ -170,6 +173,50 @@ namespace zed_wrapper {
             return cv::Mat((int) mat.getHeight(), (int) mat.getWidth(), cvType, mat.getPtr<sl::uchar1>(sl::MEM_CPU), mat.getStepBytes(sl::MEM_CPU));
         }
 
+        cv::Mat convertRodrigues(sl::float3 r) {
+            double theta = sqrt(r.x * r.x + r.y * r.y + r.z * r.z);
+            cv::Mat R = cv::Mat::eye(3, 3, CV_32F);
+
+            if (theta < DBL_EPSILON) {
+                return R;
+            } else {
+                double c = cos(theta);
+                double s = sin(theta);
+                double c1 = 1. - c;
+                double itheta = theta ? 1. / theta : 0.;
+
+                r *= itheta;
+
+                cv::Mat rrt = cv::Mat::eye(3, 3, CV_32F);
+                float* p = (float*) rrt.data;
+                p[0] = r.x * r.x;
+                p[1] = r.x * r.y;
+                p[2] = r.x * r.z;
+                p[3] = r.x * r.y;
+                p[4] = r.y * r.y;
+                p[5] = r.y * r.z;
+                p[6] = r.x * r.z;
+                p[7] = r.y * r.z;
+                p[8] = r.z * r.z;
+
+                cv::Mat r_x = cv::Mat::eye(3, 3, CV_32F);
+                p = (float*) r_x.data;
+                p[0] = 0;
+                p[1] = -r.z;
+                p[2] = r.y;
+                p[3] = r.z;
+                p[4] = 0;
+                p[5] = -r.x;
+                p[6] = -r.y;
+                p[7] = r.x;
+                p[8] = 0;
+
+                // R = cos(theta)*I + (1 - cos(theta))*r*rT + sin(theta)*[r_x]
+                R = c * cv::Mat::eye(3, 3, CV_32F) + c1 * rrt + s*r_x;
+            }
+            return R;
+        }
+
         /* \brief Test if a file exist
          * \param name : the path to the file
          */
@@ -222,7 +269,7 @@ namespace zed_wrapper {
             nav_msgs::Odometry odom;
             odom.header.stamp = t;
             odom.header.frame_id = odom_frame_id; // odom_frame
-            odom.child_frame_id = base_frame_id;  // base_frame
+            odom.child_frame_id = base_frame_id; // base_frame
             // conversion from Tranform to message
             geometry_msgs::Transform base2 = tf2::toMsg(base_transform);
             // Add all value in odometry message
@@ -334,57 +381,75 @@ namespace zed_wrapper {
          * \param right_frame_id : the id of the reference frame of the right camera
          */
         void fillCamInfo(sl::Camera* zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sensor_msgs::CameraInfoPtr right_cam_info_msg,
-                string left_frame_id, string right_frame_id) {
+                string left_frame_id, string right_frame_id, bool raw_param = false) {
 
             int width = zed->getResolution().width;
             int height = zed->getResolution().height;
 
-            sl::CameraInformation zedParam = zed->getCameraInformation();
+            sl::CalibrationParameters zedParam;
 
-            float baseline = zedParam.calibration_parameters.T[0] * 0.001; // baseline converted in meters
+            if (raw_param) zedParam = zed->getCameraInformation().calibration_parameters_raw;
+            else zedParam = zed->getCameraInformation().calibration_parameters;
 
-            float fx = zedParam.calibration_parameters.left_cam.fx;
-            float fy = zedParam.calibration_parameters.left_cam.fy;
-            float cx = zedParam.calibration_parameters.left_cam.cx;
-            float cy = zedParam.calibration_parameters.left_cam.cy;
-
-            // There is no distorsions since the images are rectified
-            double k1 = 0;
-            double k2 = 0;
-            double k3 = 0;
-            double p1 = 0;
-            double p2 = 0;
+            float baseline = zedParam.T[0] * 0.001; // baseline converted in meters
 
             left_cam_info_msg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
             right_cam_info_msg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
 
             left_cam_info_msg->D.resize(5);
             right_cam_info_msg->D.resize(5);
-            left_cam_info_msg->D[0] = right_cam_info_msg->D[0] = k1;
-            left_cam_info_msg->D[1] = right_cam_info_msg->D[1] = k2;
-            left_cam_info_msg->D[2] = right_cam_info_msg->D[2] = k3;
-            left_cam_info_msg->D[3] = right_cam_info_msg->D[3] = p1;
-            left_cam_info_msg->D[4] = right_cam_info_msg->D[4] = p2;
+            left_cam_info_msg->D[0] = zedParam.left_cam.disto[0]; // k1
+            left_cam_info_msg->D[1] = zedParam.left_cam.disto[1]; // k2
+            left_cam_info_msg->D[2] = zedParam.left_cam.disto[4]; // k3
+            left_cam_info_msg->D[3] = zedParam.left_cam.disto[2]; // p1
+            left_cam_info_msg->D[4] = zedParam.left_cam.disto[3]; // p2
+            right_cam_info_msg->D[0] = zedParam.right_cam.disto[0]; // k1
+            right_cam_info_msg->D[1] = zedParam.right_cam.disto[1]; // k2
+            right_cam_info_msg->D[2] = zedParam.right_cam.disto[4]; // k3
+            right_cam_info_msg->D[3] = zedParam.right_cam.disto[2]; // p1
+            right_cam_info_msg->D[4] = zedParam.right_cam.disto[3]; // p2
 
             left_cam_info_msg->K.fill(0.0);
             right_cam_info_msg->K.fill(0.0);
-            left_cam_info_msg->K[0] = right_cam_info_msg->K[0] = fx;
-            left_cam_info_msg->K[2] = right_cam_info_msg->K[2] = cx;
-            left_cam_info_msg->K[4] = right_cam_info_msg->K[4] = fy;
-            left_cam_info_msg->K[5] = right_cam_info_msg->K[5] = cy;
+            left_cam_info_msg->K[0] = zedParam.left_cam.fx;
+            left_cam_info_msg->K[2] = zedParam.left_cam.cx;
+            left_cam_info_msg->K[4] = zedParam.left_cam.fy;
+            left_cam_info_msg->K[5] = zedParam.left_cam.cy;
             left_cam_info_msg->K[8] = right_cam_info_msg->K[8] = 1.0;
+            right_cam_info_msg->K[0] = zedParam.right_cam.fx;
+            right_cam_info_msg->K[2] = zedParam.right_cam.cx;
+            right_cam_info_msg->K[4] = zedParam.right_cam.fy;
+            right_cam_info_msg->K[5] = zedParam.right_cam.cy;
 
             left_cam_info_msg->R.fill(0.0);
             right_cam_info_msg->R.fill(0.0);
+            for (int i = 0; i < 3; i++) {
+                // identity
+                right_cam_info_msg->R[i + i * 3] = 1;
+                left_cam_info_msg->R[i + i * 3] = 1;
+            }
+
+            if (raw_param) {
+                cv::Mat R_ = convertRodrigues(zedParam.R);
+                float* p = (float*) R_.data;
+                for (int i = 0; i < 9; i++)
+                    right_cam_info_msg->R[i] = p[i];
+            }
 
             left_cam_info_msg->P.fill(0.0);
             right_cam_info_msg->P.fill(0.0);
-            left_cam_info_msg->P[0] = right_cam_info_msg->P[0] = fx;
-            left_cam_info_msg->P[2] = right_cam_info_msg->P[2] = cx;
-            left_cam_info_msg->P[5] = right_cam_info_msg->P[5] = fy;
-            left_cam_info_msg->P[6] = right_cam_info_msg->P[6] = cy;
+            left_cam_info_msg->P[0] = zedParam.left_cam.fx;
+            left_cam_info_msg->P[2] = zedParam.left_cam.cx;
+            left_cam_info_msg->P[5] = zedParam.left_cam.fy;
+            left_cam_info_msg->P[6] = zedParam.left_cam.cy;
             left_cam_info_msg->P[10] = right_cam_info_msg->P[10] = 1.0;
-            right_cam_info_msg->P[3] = (-1 * fx * baseline);
+            //http://docs.ros.org/api/sensor_msgs/html/msg/CameraInfo.html
+            right_cam_info_msg->P[3] = (-1 * zedParam.left_cam.fx * baseline);
+
+            right_cam_info_msg->P[0] = zedParam.right_cam.fx;
+            right_cam_info_msg->P[2] = zedParam.right_cam.cx;
+            right_cam_info_msg->P[5] = zedParam.right_cam.fy;
+            right_cam_info_msg->P[6] = zedParam.right_cam.cy;
 
             left_cam_info_msg->width = right_cam_info_msg->width = width;
             left_cam_info_msg->height = right_cam_info_msg->height = height;
@@ -417,9 +482,14 @@ namespace zed_wrapper {
             sensor_msgs::CameraInfoPtr rgb_cam_info_msg(new sensor_msgs::CameraInfo());
             sensor_msgs::CameraInfoPtr left_cam_info_msg(new sensor_msgs::CameraInfo());
             sensor_msgs::CameraInfoPtr right_cam_info_msg(new sensor_msgs::CameraInfo());
+            sensor_msgs::CameraInfoPtr rgb_cam_info_raw_msg(new sensor_msgs::CameraInfo());
+            sensor_msgs::CameraInfoPtr left_cam_info_raw_msg(new sensor_msgs::CameraInfo());
+            sensor_msgs::CameraInfoPtr right_cam_info_raw_msg(new sensor_msgs::CameraInfo());
             sensor_msgs::CameraInfoPtr depth_cam_info_msg(new sensor_msgs::CameraInfo());
             fillCamInfo(zed.get(), left_cam_info_msg, right_cam_info_msg, left_frame_id, right_frame_id);
+            fillCamInfo(zed.get(), left_cam_info_raw_msg, right_cam_info_raw_msg, left_frame_id, right_frame_id, true);
             rgb_cam_info_msg = depth_cam_info_msg = left_cam_info_msg; // the reference camera is the Left one (next to the ZED logo)
+            rgb_cam_info_raw_msg = left_cam_info_raw_msg;
 
 
             sl::RuntimeParameters runParams;
@@ -449,7 +519,7 @@ namespace zed_wrapper {
                     runParams.enable_point_cloud = true;
                 // Run the loop only if there is some subscribers
                 if (runLoop) {
-                    if ( (depth_stabilization || odom_SubNumber > 0) && !tracking_activated) { //Start the tracking
+                    if ((depth_stabilization || odom_SubNumber > 0) && !tracking_activated) { //Start the tracking
                         if (odometry_DB != "" && !file_exist(odometry_DB)) {
                             odometry_DB = "";
                             NODELET_WARN("odometry_DB path doesn't exist or is unreachable.");
@@ -482,7 +552,7 @@ namespace zed_wrapper {
                             // delete the old object before constructing a new one
                             zed.reset();
                             zed.reset(new sl::Camera());
-                            NODELET_INFO("Re-openning the ZED");
+                            NODELET_INFO("Re-opening the ZED");
                             sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
                             while (err != sl::SUCCESS) {
                                 err = zed->open(param); // Try to initialize the ZED
@@ -525,11 +595,11 @@ namespace zed_wrapper {
                         zed->retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED);
                         cv::cvtColor(toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
                         if (left_raw_SubNumber > 0) {
-                            publishCamInfo(left_cam_info_msg, pub_left_cam_info, t);
+                            publishCamInfo(left_cam_info_raw_msg, pub_left_cam_info_raw, t);
                             publishImage(leftImRGB, pub_raw_left, left_frame_id, t);
                         }
                         if (rgb_raw_SubNumber > 0) {
-                            publishCamInfo(rgb_cam_info_msg, pub_rgb_cam_info, t);
+                            publishCamInfo(rgb_cam_info_raw_msg, pub_rgb_cam_info_raw, t);
                             publishImage(leftImRGB, pub_raw_rgb, rgb_frame_id, t);
                         }
                     }
@@ -548,7 +618,7 @@ namespace zed_wrapper {
                         // Retrieve RGBA Right image
                         zed->retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED);
                         cv::cvtColor(toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
-                        publishCamInfo(right_cam_info_msg, pub_right_cam_info, t);
+                        publishCamInfo(right_cam_info_raw_msg, pub_right_cam_info_raw, t);
                         publishImage(rightImRGB, pub_raw_right, right_frame_id, t);
                     }
 
@@ -561,7 +631,7 @@ namespace zed_wrapper {
 
                     // Publish the point cloud if someone has subscribed to
                     if (cloud_SubNumber > 0) {
-                        // Run the point cloud convertion asynchronously to avoid slowing down all the program
+                        // Run the point cloud conversion asynchronously to avoid slowing down all the program
                         // Retrieve raw pointCloud data
                         zed->retrieveMeasure(cloud, sl::MEASURE_XYZBGRA);
                         point_cloud_frame_id = cloud_frame_id;
@@ -579,12 +649,12 @@ namespace zed_wrapper {
                         tf2::fromMsg(b2s.transform, base_to_sensor);
 
                     } catch (tf2::TransformException &ex) {
-                      ROS_WARN_THROTTLE(10.0, "The tf from '%s' to '%s' does not seem to be available, "
-                                              "will assume it as identity!",
-                                              base_frame_id.c_str(),
-                                              camera_frame_id.c_str());
-                      ROS_DEBUG("Transform error: %s", ex.what());
-                      base_to_sensor.setIdentity();
+                        ROS_WARN_THROTTLE(10.0, "The tf from '%s' to '%s' does not seem to be available, "
+                                "will assume it as identity!",
+                                base_frame_id.c_str(),
+                                camera_frame_id.c_str());
+                        ROS_DEBUG("Transform error: %s", ex.what());
+                        base_to_sensor.setIdentity();
                     }
 
                     // Publish the odometry if someone has subscribed to
@@ -610,7 +680,7 @@ namespace zed_wrapper {
                     }
 
                     // Publish odometry tf only if enabled
-                    if(publish_tf) {
+                    if (publish_tf) {
                         //Note, the frame is published, but its values will only change if someone has subscribed to odom
                         publishTrackedFrame(base_transform, transform_odom_broadcaster, base_frame_id, t); //publish the tracked Frame
                     }
@@ -618,7 +688,7 @@ namespace zed_wrapper {
                     loop_rate.sleep();
                 } else {
                     // Publish odometry tf only if enabled
-                    if(publish_tf) {
+                    if (publish_tf) {
                         publishTrackedFrame(base_transform, transform_odom_broadcaster, base_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
                     }
                     std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
@@ -628,6 +698,7 @@ namespace zed_wrapper {
         }
 
         boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> server;
+
         void onInit() {
             // Launch file parameters
             resolution = sl::RESOLUTION_HD720;
@@ -641,7 +712,7 @@ namespace zed_wrapper {
             nh = getMTNodeHandle();
             nh_ns = getMTPrivateNodeHandle();
 
-            // Set  default cordinate frames
+            // Set  default coordinate frames
             // If unknown left and right frames are set in the same camera coordinate frame
             nh_ns.param<std::string>("odometry_frame", odometry_frame_id, "odometry_frame");
             nh_ns.param<std::string>("base_frame", base_frame_id, "base_frame");
@@ -664,9 +735,9 @@ namespace zed_wrapper {
 
             // Print order frames
             ROS_INFO_STREAM("odometry_frame: " << odometry_frame_id);
-            ROS_INFO_STREAM("base_frame: "     << base_frame_id);
-            ROS_INFO_STREAM("camera_frame: "   << camera_frame_id);
-            ROS_INFO_STREAM("depth_frame: "    << depth_frame_id);
+            ROS_INFO_STREAM("base_frame: " << base_frame_id);
+            ROS_INFO_STREAM("camera_frame: " << camera_frame_id);
+            ROS_INFO_STREAM("depth_frame: " << depth_frame_id);
             // Status of odometry TF
             ROS_INFO_STREAM("Publish " << odometry_frame_id << " [" << (publish_tf ? "TRUE" : "FALSE") << "]");
 
@@ -677,16 +748,19 @@ namespace zed_wrapper {
             string left_topic = "left/" + img_topic;
             string left_raw_topic = "left/" + img_raw_topic;
             string left_cam_info_topic = "left/camera_info";
+            string left_cam_info_raw_topic = "left/camera_info_raw";
             left_frame_id = camera_frame_id;
 
             string right_topic = "right/" + img_topic;
             string right_raw_topic = "right/" + img_raw_topic;
             string right_cam_info_topic = "right/camera_info";
+            string right_cam_info_raw_topic = "right/camera_info_raw";
             right_frame_id = camera_frame_id;
 
             string rgb_topic = "rgb/" + img_topic;
             string rgb_raw_topic = "rgb/" + img_raw_topic;
             string rgb_cam_info_topic = "rgb/camera_info";
+            string rgb_cam_info_raw_topic = "rgb/camera_info_raw";
             rgb_frame_id = depth_frame_id;
 
             string depth_topic = "depth/";
@@ -707,14 +781,17 @@ namespace zed_wrapper {
             nh_ns.getParam("rgb_topic", rgb_topic);
             nh_ns.getParam("rgb_raw_topic", rgb_raw_topic);
             nh_ns.getParam("rgb_cam_info_topic", rgb_cam_info_topic);
+            nh_ns.getParam("rgb_cam_info_raw_topic", rgb_cam_info_raw_topic);
 
             nh_ns.getParam("left_topic", left_topic);
             nh_ns.getParam("left_raw_topic", left_raw_topic);
             nh_ns.getParam("left_cam_info_topic", left_cam_info_topic);
+            nh_ns.getParam("left_cam_info_raw_topic", left_cam_info_raw_topic);
 
             nh_ns.getParam("right_topic", right_topic);
             nh_ns.getParam("right_raw_topic", right_raw_topic);
             nh_ns.getParam("right_cam_info_topic", right_cam_info_topic);
+            nh_ns.getParam("right_cam_info_raw_topic", right_cam_info_raw_topic);
 
             nh_ns.getParam("depth_topic", depth_topic);
             nh_ns.getParam("depth_cam_info_topic", depth_cam_info_topic);
@@ -727,8 +804,8 @@ namespace zed_wrapper {
 
 
             // Initialization transformation listener
-            tfBuffer.reset( new tf2_ros::Buffer );
-            tf_listener.reset( new tf2_ros::TransformListener(*tfBuffer) );
+            tfBuffer.reset(new tf2_ros::Buffer);
+            tf_listener.reset(new tf2_ros::TransformListener(*tfBuffer));
 
             // Create the ZED object
             zed.reset(new sl::Camera());
@@ -759,7 +836,7 @@ namespace zed_wrapper {
             }
 
             //Reconfigure confidence
-            server = boost::make_shared<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>>();
+            server = boost::make_shared<dynamic_reconfigure::Server < zed_wrapper::ZedConfig >> ();
             dynamic_reconfigure::Server<zed_wrapper::ZedConfig>::CallbackType f;
             f = boost::bind(&ZEDWrapperNodelet::callback, this, _1, _2);
             server->setCallback(f);
@@ -798,6 +875,13 @@ namespace zed_wrapper {
             NODELET_INFO_STREAM("Advertized on topic " << right_cam_info_topic);
             pub_depth_cam_info = nh.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); //depth
             NODELET_INFO_STREAM("Advertized on topic " << depth_cam_info_topic);
+            // Raw
+            pub_rgb_cam_info_raw = nh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_raw_topic, 1); // raw rgb
+            NODELET_INFO_STREAM("Advertized on topic " << rgb_cam_info_raw_topic);
+            pub_left_cam_info_raw = nh.advertise<sensor_msgs::CameraInfo>(left_cam_info_raw_topic, 1); // raw left
+            NODELET_INFO_STREAM("Advertized on topic " << left_cam_info_raw_topic);
+            pub_right_cam_info_raw = nh.advertise<sensor_msgs::CameraInfo>(right_cam_info_raw_topic, 1); // raw right
+            NODELET_INFO_STREAM("Advertized on topic " << right_cam_info_raw_topic);
 
             //Odometry publisher
             pub_odom = nh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
