@@ -70,6 +70,25 @@ using namespace std;
 
 namespace zed_wrapper {
 
+    int checkCameraReady(unsigned int serial_number) {
+        int id = -1;
+        auto f = sl::Camera::getDeviceList();
+        for (auto &it : f)
+            if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::CAMERA_STATE_AVAILABLE)
+                id = it.id;
+        return id;
+    }
+
+    sl::DeviceProperties getZEDFromSN(unsigned int serial_number) {
+        sl::DeviceProperties prop;
+        auto f = sl::Camera::getDeviceList();
+        for (auto &it : f) {
+            if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::CAMERA_STATE_AVAILABLE)
+                prop = it;
+        }
+        return prop;
+    }
+
     class ZEDWrapperNodelet : public nodelet::Nodelet {
         ros::NodeHandle nh;
         ros::NodeHandle nh_ns;
@@ -124,6 +143,7 @@ namespace zed_wrapper {
         // zed object
         sl::InitParameters param;
         sl::Camera zed;
+        unsigned int serial_number;
 
         // flags
         int confidence;
@@ -470,7 +490,7 @@ namespace zed_wrapper {
         void device_poll() {
             ros::Rate loop_rate(rate);
             ros::Time old_t = ros::Time::now();
-            bool old_image = false;
+            sl::ERROR_CODE grab_status;
             bool tracking_activated = false;
 
             // Get the parameters of the ZED images
@@ -546,20 +566,31 @@ namespace zed_wrapper {
                     } else
                         runParams.enable_depth = false;
 
-                    old_image = zed.grab(runParams); // Ask to not compute the depth
+                    grab_status = zed.grab(runParams); // Ask to not compute the depth
 
                     grabbing = false;
-                    if (old_image) { // Detect if a error occurred (for example: the zed have been disconnected) and re-initialize the ZED
-                        NODELET_DEBUG("Wait for a new image to proceed");
+
+                    //cout << toString(grab_status) << endl;
+                    if (grab_status != sl::ERROR_CODE::SUCCESS) { // Detect if a error occurred (for example: the zed have been disconnected) and re-initialize the ZED
+
+                        if (grab_status == sl::ERROR_CODE_NOT_A_NEW_FRAME) {
+                            NODELET_DEBUG("Wait for a new image to proceed");
+                        } else NODELET_INFO_ONCE(toString(grab_status));
+
                         std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
                         if ((t - old_t).toSec() > 5) {
                             zed.close();
-                            
+
                             NODELET_INFO("Re-opening the ZED");
                             sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
                             while (err != sl::SUCCESS) {
-                                err = zed.open(param); // Try to initialize the ZED
-                                NODELET_INFO_STREAM(errorCode2str(err));
+                                int id = checkCameraReady(serial_number);
+                                if (id > 0) {
+                                    param.camera_linux_id = id;
+                                    err = zed.open(param); // Try to initialize the ZED
+                                    NODELET_INFO_STREAM(toString(err));
+                                } else NODELET_INFO("Waiting for the ZED to be re-connected");
                                 std::this_thread::sleep_for(std::chrono::milliseconds(2000));
                             }
                             tracking_activated = false;
@@ -710,6 +741,7 @@ namespace zed_wrapper {
             rate = 30;
             gpu_id = -1;
             zed_id = 0;
+            serial_number = 0;
             odometry_DB = "";
 
             nh = getMTNodeHandle();
@@ -732,9 +764,15 @@ namespace zed_wrapper {
             nh_ns.getParam("gpu_id", gpu_id);
             nh_ns.getParam("zed_id", zed_id);
             nh_ns.getParam("depth_stabilization", depth_stabilization);
+            int tmp_sn = 0;
+            nh_ns.getParam("serial_number", tmp_sn);
+            if (tmp_sn > 0) serial_number = tmp_sn;
 
             // Publish odometry tf
             nh_ns.param<bool>("publish_tf", publish_tf, true);
+
+            if (serial_number > 0)
+                ROS_INFO_STREAM("SN : " << serial_number);
 
             // Print order frames
             ROS_INFO_STREAM("odometry_frame: " << odometry_frame_id);
@@ -819,7 +857,22 @@ namespace zed_wrapper {
             else {
                 param.camera_fps = rate;
                 param.camera_resolution = static_cast<sl::RESOLUTION> (resolution);
-                param.camera_linux_id = zed_id;
+                if (serial_number == 0)
+                    param.camera_linux_id = zed_id;
+                else {
+                    bool waiting_for_camera = true;
+                    while (waiting_for_camera) {
+                        sl::DeviceProperties prop = getZEDFromSN(serial_number);
+                        if (prop.id < -1 || prop.camera_state == sl::CAMERA_STATE::CAMERA_STATE_NOT_AVAILABLE) {
+                            std::string msg = "ZED SN" + to_string(serial_number) + " not detected ! Please connect this ZED";
+                            NODELET_INFO(msg.c_str());
+                            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+                        } else {
+                            waiting_for_camera = false;
+                            param.camera_linux_id = prop.id;
+                        }
+                    }
+                }
             }
 
             param.coordinate_units = sl::UNIT_METER;
@@ -832,9 +885,11 @@ namespace zed_wrapper {
             sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
             while (err != sl::SUCCESS) {
                 err = zed.open(param);
-                NODELET_INFO_STREAM(errorCode2str(err));
+                NODELET_INFO_STREAM(toString(err));
                 std::this_thread::sleep_for(std::chrono::milliseconds(2000));
             }
+
+            serial_number = zed.getCameraInformation().serial_number;
 
             //Reconfigure confidence
             server = boost::make_shared<dynamic_reconfigure::Server < zed_wrapper::ZedConfig >> ();
@@ -888,8 +943,7 @@ namespace zed_wrapper {
             pub_odom = nh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
             NODELET_INFO_STREAM("Advertized on topic " << odometry_topic);
 
-            device_poll_thread = boost::shared_ptr<boost::thread>
-                    (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
+            device_poll_thread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
         }
     }; // class ZEDROSWrapperNodelet
 } // namespace

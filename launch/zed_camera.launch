@@ -20,6 +20,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="camera_model"          default="0" /> <!-- 0=ZED, 1=ZEDM-->
     <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
     <arg name="zed_id"                default="0" />
+    <!-- If a ZED SN is given, zed_id is ignored and the wrapper will specifically look for the ZED with the corresponding serial number -->
+    <arg name="serial_number"                default="0" /> 
+
     <!-- GPU ID-->
     <arg name="gpu_id"                default="-1" />
     <!-- Definition coordinate frames -->
@@ -47,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- ZED parameters -->
         <param name="zed_id"                value="$(arg zed_id)" />
+        <param name="serial_number"      value="$(arg serial_number)" />
 
         <param name="resolution"            value="2" />
         <param name="quality"               value="1" />
