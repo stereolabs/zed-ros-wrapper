@@ -54,4 +54,8 @@ To launch the wrapper without Rviz, use:
 
     roslaunch zed_wrapper zed.launch
 
+ To select the ZED from its serial number
+
+    roslaunch zed_wrapper zed.launch serial_number:=1010 #replace 1010 with the actual SN
+
 [More](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)

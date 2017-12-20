@@ -18,14 +18,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
     <!-- Odometry coordinate frame -->
-    <arg name="odometry_frame"        default="map" />
-    <arg name="camera_model" default="0" /> <!-- 0=ZED, 1=ZEDM-->
+    <arg name="odometry_frame"       default="map" />
+    <arg name="camera_model"          default="0" /> <!-- 0=ZED, 1=ZEDM-->
+    <arg name="serial_number"           default="0" /> 
 
     <group ns="zed">
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
             <!-- compliant mode for rviz -->
             <arg name="odometry_frame"        value="$(arg odometry_frame)" />
             <arg name="camera_model"        value="$(arg camera_model)" />
+            <arg name="serial_number"           default="$(arg serial_number)" /> 
         </include>
     </group>
 
