@@ -147,6 +147,10 @@ namespace zed_wrapper {
 
         // flags
         int confidence;
+        int exposure;
+        int gain;
+        bool autoExposure;
+        bool triggerAutoExposure;
         bool computeDepth;
         bool grabbing = false;
         int openniDepthMode = 0; // 16 bit UC data in mm else 32F in m, for more info http://www.ros.org/reps/rep-0118.html
@@ -483,8 +487,26 @@ namespace zed_wrapper {
         }
 
         void callback(zed_wrapper::ZedConfig &config, uint32_t level) {
-            NODELET_INFO("Reconfigure confidence : %d", config.confidence);
-            confidence = config.confidence;
+            switch (level) {
+                case 0:
+                    NODELET_INFO("Reconfigure confidence : %d", config.confidence);
+                    confidence = config.confidence;
+                    break;
+                case 1:
+                    NODELET_INFO("Reconfigure exposure : %d", config.exposure);
+                    exposure = config.exposure;
+                    break;
+                case 2:
+                    NODELET_INFO("Reconfigure gain : %d", config.gain);
+                    gain = config.gain;
+                    break;
+                case 3:
+                    NODELET_INFO("Reconfigure auto control of exposure and gain : %s", config.auto_exposure ? "Enable" : "Disable");
+                    autoExposure = config.auto_exposure;
+                    if (autoExposure)
+                        triggerAutoExposure = true;
+                    break;
+            }
         }
 
         void device_poll() {
@@ -607,6 +629,23 @@ namespace zed_wrapper {
                     }
 
                     old_t = ros::Time::now();
+
+                    if (autoExposure) {
+                        // getCameraSettings() can't check status of auto exposure
+                        // triggerAutoExposure is used to execute setCameraSettings() only once
+                        if (triggerAutoExposure) {
+                            zed.setCameraSettings(sl::CAMERA_SETTINGS_EXPOSURE, 0, true);
+                            triggerAutoExposure = false;
+                        }
+                    } else {
+                        int actual_exposure = zed.getCameraSettings(sl::CAMERA_SETTINGS_EXPOSURE);
+                        if (actual_exposure != exposure)
+                            zed.setCameraSettings(sl::CAMERA_SETTINGS_EXPOSURE, exposure);
+
+                        int actual_gain = zed.getCameraSettings(sl::CAMERA_SETTINGS_GAIN);
+                        if (actual_gain != gain)
+                            zed.setCameraSettings(sl::CAMERA_SETTINGS_GAIN, gain);
+                    }
 
                     // Publish the left == rgb image if someone has subscribed to
                     if (left_SubNumber > 0 || rgb_SubNumber > 0) {
@@ -891,14 +930,18 @@ namespace zed_wrapper {
 
             serial_number = zed.getCameraInformation().serial_number;
 
-            //Reconfigure confidence
+            //Reconfigure parameters
             server = boost::make_shared<dynamic_reconfigure::Server < zed_wrapper::ZedConfig >> ();
             dynamic_reconfigure::Server<zed_wrapper::ZedConfig>::CallbackType f;
             f = boost::bind(&ZEDWrapperNodelet::callback, this, _1, _2);
             server->setCallback(f);
 
             nh_ns.getParam("confidence", confidence);
-
+            nh_ns.getParam("exposure", exposure);
+            nh_ns.getParam("gain", gain);
+            nh_ns.getParam("auto_exposure", autoExposure);
+            if (autoExposure)
+                triggerAutoExposure = true;
 
             // Create all the publishers
             // Image publishers

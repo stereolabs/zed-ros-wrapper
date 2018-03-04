@@ -60,6 +60,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="openni_depth_mode"     value="0" />
         <param name="gpu_id"                value="$(arg gpu_id)" />
         <param name="confidence"            value="100" />
+        <param name="gain"                  value="100" />
+        <param name="exposure"              value="100" />
+        <param name="auto_exposure"         value="true" />
         <param name="depth_stabilization"   value="1" />
 
         <!-- ROS topic names -->
