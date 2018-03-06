@@ -25,6 +25,7 @@ The zed_ros_wrapper is a catkin package. It depends on the following ROS package
    - roscpp
    - rosconsole
    - sensor_msgs
+   - stereo_msgs
    - opencv
    - image_transport
    - dynamic_reconfigure

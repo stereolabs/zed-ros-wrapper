@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="base_frame"            default="zed_center" />
     <arg name="camera_frame"          default="zed_left_camera" />
     <arg name="depth_frame"           default="zed_depth_camera" />
+    <arg name="disparity_frame"       default="zed_depth_camera" />
     <!-- Publish urdf zed -->
     <arg name="publish_urdf"          default="true" />
     
@@ -44,7 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="base_frame"            value="$(arg base_frame)" />
         <param name="camera_frame"          value="$(arg camera_frame)" />
         <param name="depth_frame"           value="$(arg depth_frame)" />
-    
+        <param name="disparity_frame"       value="$(arg disparity_frame)" />
+        
         <!-- SVO file path -->
         <param name="svo_filepath"          value="$(arg svo_file)" />
 

@@ -42,6 +42,7 @@
 #include <sensor_msgs/distortion_models.h>
 #include <sensor_msgs/image_encodings.h>
 #include <image_transport/image_transport.h>
+#include <stereo_msgs/DisparityImage.h>
 #include <dynamic_reconfigure/server.h>
 #include <zed_wrapper/ZedConfig.h>
 #include <nav_msgs/Odometry.h>
@@ -100,6 +101,7 @@ namespace zed_wrapper {
         image_transport::Publisher pub_right;
         image_transport::Publisher pub_raw_right;
         image_transport::Publisher pub_depth;
+        ros::Publisher pub_disparity;
         ros::Publisher pub_cloud;
         ros::Publisher pub_rgb_cam_info;
         ros::Publisher pub_left_cam_info;
@@ -116,6 +118,7 @@ namespace zed_wrapper {
         std::string right_frame_id;
         std::string rgb_frame_id;
         std::string depth_frame_id;
+        std::string disparity_frame_id;
         std::string cloud_frame_id;
         std::string odometry_frame_id;
         std::string base_frame_id;
@@ -352,6 +355,26 @@ namespace zed_wrapper {
             }
             pub_depth.publish(imageToROSmsg(depth, encoding, depth_frame_id, t));
         }
+        
+        /* \brief Publish a cv::Mat disparity image with a ros Publisher
+         * \param disparity : the disparity image to publish
+         * \param pub_disparity : the publisher object to use
+         * \param disparity_frame_id : the id of the reference frame of the depth image
+         * \param t : the ros::Time to stamp the depth image
+         */
+        void publishDisparity(cv::Mat disparity, ros::Publisher& pub_disparity, string disparity_frame_id, ros::Time t) {
+            sl::CameraInformation zedParam = zed.getCameraInformation();
+            sensor_msgs::ImagePtr disparity_image = imageToROSmsg(disparity,  sensor_msgs::image_encodings::TYPE_32FC1, disparity_frame_id, t);
+            
+            stereo_msgs::DisparityImage msg;
+            msg.image = *disparity_image;
+            msg.header = msg.image.header;
+            msg.f = zedParam.calibration_parameters.left_cam.fx;
+            msg.T = zedParam.calibration_parameters.T.x;
+            msg.min_disparity = msg.f * msg.T / zed.getDepthMaxRangeValue();
+            msg.max_disparity = msg.f * msg.T / zed.getDepthMinRangeValue();
+            pub_disparity.publish(msg);
+        }
 
         /* \brief Publish a pointCloud with a ros Publisher
          * \param width : the width of the point cloud
@@ -523,7 +546,7 @@ namespace zed_wrapper {
             trackParams.area_file_path = odometry_DB.c_str();
 
 
-            sl::Mat leftZEDMat, rightZEDMat, depthZEDMat;
+            sl::Mat leftZEDMat, rightZEDMat, depthZEDMat, disparityZEDMat;
             // Main loop
             while (nh_ns.ok()) {
                 // Check for subscribers
@@ -534,9 +557,10 @@ namespace zed_wrapper {
                 int right_SubNumber = pub_right.getNumSubscribers();
                 int right_raw_SubNumber = pub_raw_right.getNumSubscribers();
                 int depth_SubNumber = pub_depth.getNumSubscribers();
+                int disparity_SubNumber = pub_disparity.getNumSubscribers();
                 int cloud_SubNumber = pub_cloud.getNumSubscribers();
                 int odom_SubNumber = pub_odom.getNumSubscribers();
-                bool runLoop = (rgb_SubNumber + rgb_raw_SubNumber + left_SubNumber + left_raw_SubNumber + right_SubNumber + right_raw_SubNumber + depth_SubNumber + cloud_SubNumber + odom_SubNumber) > 0;
+                bool runLoop = (rgb_SubNumber + rgb_raw_SubNumber + left_SubNumber + left_raw_SubNumber + right_SubNumber + right_raw_SubNumber + depth_SubNumber + disparity_SubNumber + cloud_SubNumber + odom_SubNumber) > 0;
 
                 runParams.enable_point_cloud = false;
                 if (cloud_SubNumber > 0)
@@ -554,7 +578,7 @@ namespace zed_wrapper {
                         zed.disableTracking();
                         tracking_activated = false;
                     }
-                    computeDepth = (depth_SubNumber + cloud_SubNumber + odom_SubNumber) > 0; // Detect if one of the subscriber need to have the depth information
+                    computeDepth = (depth_SubNumber + disparity_SubNumber + cloud_SubNumber + odom_SubNumber) > 0; // Detect if one of the subscriber need to have the depth information
                     ros::Time t = ros::Time::now(); // Get current time
 
                     grabbing = true;
@@ -663,6 +687,14 @@ namespace zed_wrapper {
                         publishDepth(toCVMat(depthZEDMat), pub_depth, depth_frame_id, t); // in meters
                     }
 
+                    // Publish the disparity image if someone has subscribed to
+                    if (disparity_SubNumber > 0) {
+                        zed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY);
+                        // Need to flip sign, but cause of this is not sure
+                        cv::Mat disparity = toCVMat(disparityZEDMat) * -1.0;
+                        publishDisparity(disparity, pub_disparity, disparity_frame_id, t);
+                    }
+
                     // Publish the point cloud if someone has subscribed to
                     if (cloud_SubNumber > 0) {
                         // Run the point cloud conversion asynchronously to avoid slowing down all the program
@@ -753,7 +785,8 @@ namespace zed_wrapper {
             nh_ns.param<std::string>("base_frame", base_frame_id, "base_frame");
             nh_ns.param<std::string>("camera_frame", camera_frame_id, "camera_frame");
             nh_ns.param<std::string>("depth_frame", depth_frame_id, "depth_frame");
-
+            nh_ns.param<std::string>("disparity_frame", disparity_frame_id, "dispairty_frame");
+            
             // Get parameters from launch file
             nh_ns.getParam("resolution", resolution);
             nh_ns.getParam("quality", quality);
@@ -814,6 +847,8 @@ namespace zed_wrapper {
 
             string depth_cam_info_topic = "depth/camera_info";
 
+            string disparity_topic = "disparity/disparity_image";
+
             string point_cloud_topic = "point_cloud/cloud_registered";
             cloud_frame_id = camera_frame_id;
 
@@ -836,6 +871,8 @@ namespace zed_wrapper {
 
             nh_ns.getParam("depth_topic", depth_topic);
             nh_ns.getParam("depth_cam_info_topic", depth_cam_info_topic);
+
+            nh_ns.getParam("disparity_topic", disparity_topic);
 
             nh_ns.getParam("point_cloud_topic", point_cloud_topic);
 
@@ -917,6 +954,10 @@ namespace zed_wrapper {
             NODELET_INFO_STREAM("Advertized on topic " << right_raw_topic);
             pub_depth = it_zed.advertise(depth_topic, 1); //depth
             NODELET_INFO_STREAM("Advertized on topic " << depth_topic);
+
+            // Disparity publisher
+            pub_disparity = nh.advertise<stereo_msgs::DisparityImage>(disparity_topic, 1);
+            NODELET_INFO_STREAM("Advertized on topic " << disparity_topic);
 
             //PointCloud publisher
             pub_cloud = nh.advertise<sensor_msgs::PointCloud2> (point_cloud_topic, 1);
