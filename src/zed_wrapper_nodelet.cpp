@@ -52,6 +52,8 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 
+#include "XmlRpcException.h"
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -69,6 +71,8 @@
 using namespace std;
 
 namespace zed_wrapper {
+
+    const int COV_SIZE = 36;
 
     int checkCameraReady(unsigned int serial_number) {
         int id = -1;
@@ -144,6 +148,9 @@ namespace zed_wrapper {
         sl::InitParameters param;
         sl::Camera zed;
         unsigned int serial_number;
+
+        // Covariance
+        boost::array<double, COV_SIZE> covariance_matrix;
 
         // flags
         int confidence;
@@ -308,6 +315,7 @@ namespace zed_wrapper {
             odom.pose.pose.orientation.y = base2.rotation.y;
             odom.pose.pose.orientation.z = base2.rotation.z;
             odom.pose.pose.orientation.w = base2.rotation.w;
+            odom.pose.covariance = covariance_matrix;
             // Publish odometry message
             pub_odom.publish(odom);
         }
@@ -942,6 +950,39 @@ namespace zed_wrapper {
             nh_ns.getParam("auto_exposure", autoExposure);
             if (autoExposure)
                 triggerAutoExposure = true;
+
+            // Get covariance matrix
+            XmlRpc::XmlRpcValue cov_matrix_param;
+
+            try
+            {
+                nh_ns.getParam("covariance", cov_matrix_param);
+
+                ROS_ASSERT(cov_matrix_param.getType() == XmlRpc::XmlRpcValue::TypeArray);
+
+                if (cov_matrix_param.size() != COV_SIZE)
+                {
+                    NODELET_WARN_STREAM("Configuration vector for covariance should have 36 entries.");
+                }
+
+                for (int i = 0; i < cov_matrix_param.size(); i++)
+                {
+                    // Reading matrices can cause problems if not all numbers
+                    // aren't specified with decimal points. Handle that
+                    // using string streams.
+                    std::ostringstream ostr;
+                    ostr << cov_matrix_param[i];
+                    std::istringstream istr(ostr.str());
+                    istr >> covariance_matrix[i];
+                }
+            }
+            catch (XmlRpc::XmlRpcException &e)
+            {
+                NODELET_FATAL_STREAM("Could not read covariance matrix" <<
+                            " (type: " << cov_matrix_param.getType() <<
+                            ", expected: " << XmlRpc::XmlRpcValue::TypeArray
+                            << "). Error was " << e.getMessage() << "\n");
+            }
 
             // Create all the publishers
             // Image publishers
