@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<launch>
+<group ns="zed">
+	<arg name="gpu_id"		default="-1" />
+	<node pkg="nodelet" type="nodelet" args="manager" name="sample_nodelet_manager" output="screen" />
+	<node pkg="nodelet" type="nodelet" args="load zed_wrapper/ZEDWrapperNodelet sample_nodelet_manager" name="zed_wrapper_nodelet_loader" output="screen">
+	<param name="camera_model"	value="zed" />
+	<param name="point_cloud_topic" value="depth_registered/points" />
+	<param name="publish_tf"	value="true" />
+	<!-- Configuration frame camera -->    
+	<param name="odometry_frame"	value="map" />
+	<param name="base_frame"	value="zed_center" />
+	<param name="camera_frame"	value="zed_left_camera" />
+	<param name="depth_frame"	value="zed_depth_camera" />
+	<!-- ZED parameters -->
+	<param name="resolution"	value="2" />
+	<param name="quality"		value="2" />
+	<param name="sensing_mode"	value="0" />
+	<param name="frame_rate"	value="30" />
+	<param name="odometry_db"	value="" />
+	<param name="openni_depth_mode"	value="0" />
+	<param name="gpu_id"		value="$(arg gpu_id)" />
+	<param name="confidence"	value="80" />
+	<param name="depth_stabilization" value="1" />
+</node>
+</group>
+</launch>
+
