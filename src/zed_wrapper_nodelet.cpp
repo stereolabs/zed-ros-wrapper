@@ -143,7 +143,6 @@ namespace zed_wrapper {
 
         // zed object
         sl::InitParameters param;
-        sl::SpatialMappingParameters spatial_mapping_param;
         sl::MeshFilterParameters filter_param;
         sl::TRACKING_STATE tracking_state;
         sl::Mesh mesh;
@@ -158,6 +157,7 @@ namespace zed_wrapper {
         bool triggerAutoExposure;
         bool computeDepth;
         bool grabbing = false;
+        bool enableSpatialMapping = false;
         int openniDepthMode = 0; // 16 bit UC data in mm else 32F in m, for more info http://www.ros.org/reps/rep-0118.html
 
         // Point cloud variables
@@ -770,40 +770,42 @@ namespace zed_wrapper {
                         //Note, the frame is published, but its values will only change if someone has subscribed to odom
                         publishTrackedFrame(base_transform, transform_odom_broadcaster, base_frame_id, t); //publish the tracked Frame
                     }
+                    
+                    if (enableSpatialMapping) {
+                        if ((t - last_sm_t).toSec() > 0.5) {
+                            zed.requestMeshAsync();
+                            last_sm_t = t;
+                        }
 
-                    if ((t - last_sm_t).toSec() > 0.5) {
-                        zed.requestMeshAsync();
-                        last_sm_t = t;
-                    }
+                        if (zed.getMeshRequestStatusAsync() == sl::SUCCESS) {
+                            if (zed.retrieveMeshAsync(mesh) == sl::SUCCESS) {
+                                int lv = 0;
+                                for (int c = 0; c < mesh.chunks.size(); ++c) {
+                                    if (mesh.chunks[c].has_been_updated) {
+                                        for (int v = 0; v < mesh.chunks[c].vertices.size(); ++v) {
+                                            point_cloud.points[v + lv].x = mesh.chunks[c].vertices[v][2];
+                                            point_cloud.points[v + lv].y = -mesh.chunks[c].vertices[v][0];
+                                            point_cloud.points[v + lv].z = -mesh.chunks[c].vertices[v][1];
+                                            point_cloud.points[v + lv].r = 255;
+                                            point_cloud.points[v + lv].g = 255;
+                                            point_cloud.points[v + lv].b = 255;
 
-                    if (zed.getMeshRequestStatusAsync() == sl::SUCCESS) {
-                        if (zed.retrieveMeshAsync(mesh) == sl::SUCCESS) {
-                            int lv = 0;
-                            for (int c = 0; c < mesh.chunks.size(); ++c) {
-                                if (mesh.chunks[c].has_been_updated) {
-                                    for (int v = 0; v < mesh.chunks[c].vertices.size(); ++v) {
-                                        point_cloud.points[v + lv].x = mesh.chunks[c].vertices[v][2];
-                                        point_cloud.points[v + lv].y = -mesh.chunks[c].vertices[v][0];
-                                        point_cloud.points[v + lv].z = -mesh.chunks[c].vertices[v][1];
-                                        point_cloud.points[v + lv].r = 255;
-                                        point_cloud.points[v + lv].g = 255;
-                                        point_cloud.points[v + lv].b = 255;
-
+                                        }
                                     }
+
+                                    lv += mesh.chunks[c].vertices.size();
                                 }
 
-                                lv += mesh.chunks[c].vertices.size();
+                                sensor_msgs::PointCloud2 output;
+                                pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
+                                output.header.frame_id = odometry_frame_id; // Set the header values of the ROS message
+                                output.header.stamp = point_cloud_time;
+                                output.height = height;
+                                output.width = width;
+                                output.is_bigendian = false;
+                                output.is_dense = false;
+                                pub_cloud_merged.publish(output);
                             }
-
-                            sensor_msgs::PointCloud2 output;
-                            pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
-                            output.header.frame_id = odometry_frame_id; // Set the header values of the ROS message
-                            output.header.stamp = point_cloud_time;
-                            output.height = height;
-                            output.width = width;
-                            output.is_bigendian = false;
-                            output.is_dense = false;
-                            pub_cloud_merged.publish(output);
                         }
                     }
 
@@ -842,15 +844,7 @@ namespace zed_wrapper {
             serial_number = 0;
             odometry_DB = "";
 
-            // Configure Spatial Mapping and filtering parameters
-            spatial_mapping_param.range_meter = sl::SpatialMappingParameters::get(sl::SpatialMappingParameters::MAPPING_RANGE_FAR);
-            spatial_mapping_param.resolution_meter = sl::SpatialMappingParameters::get(sl::SpatialMappingParameters::MAPPING_RESOLUTION_LOW);
-            spatial_mapping_param.save_texture = false;
-            spatial_mapping_param.max_memory_usage = 512;
-            spatial_mapping_param.use_chunk_only = 1;
-
-            filter_param.set(sl::MeshFilterParameters::MESH_FILTER_LOW);
-
+            
             nh = getMTNodeHandle();
             nh_ns = getMTPrivateNodeHandle();
 
@@ -877,6 +871,29 @@ namespace zed_wrapper {
 
             // Publish odometry tf
             nh_ns.param<bool>("publish_tf", publish_tf, true);
+
+            nh_ns.getParam("enable_spatial_mapping", enableSpatialMapping);
+
+            // Configure Spatial Mapping and filtering parameters
+            sl::SpatialMappingParameters spatial_mapping_param;
+            if (enableSpatialMapping) {
+                int sp_range_meter = 2;
+                int sp_resolution_meter = 2;
+
+                spatial_mapping_param.save_texture = false;
+                spatial_mapping_param.max_memory_usage = 512;
+                spatial_mapping_param.use_chunk_only = 1;
+
+                nh_ns.getParam("sp_range_meter", sp_range_meter);
+                spatial_mapping_param.range_meter = sl::SpatialMappingParameters::get(static_cast<sl::SpatialMappingParameters::MAPPING_RANGE>(sp_range_meter));
+                nh_ns.getParam("sp_resolution_meter", sp_resolution_meter);
+                spatial_mapping_param.resolution_meter = sl::SpatialMappingParameters::get(static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(sp_resolution_meter));
+                nh_ns.getParam("sp_save_texture", spatial_mapping_param.save_texture);
+                nh_ns.getParam("sp_max_memory_usage", spatial_mapping_param.max_memory_usage);
+                nh_ns.getParam("sp_use_chunk_only", spatial_mapping_param.use_chunk_only);
+
+                filter_param.set(sl::MeshFilterParameters::MESH_FILTER_LOW);
+            }
 
             if (serial_number > 0)
                 ROS_INFO_STREAM("SN : " << serial_number);
@@ -1059,9 +1076,11 @@ namespace zed_wrapper {
 
             device_poll_thread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            zed.enableSpatialMapping(spatial_mapping_param);
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            if (enableSpatialMapping) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                zed.enableSpatialMapping(spatial_mapping_param);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            }
         }
     }; // class ZEDROSWrapperNodelet
 } // namespace
