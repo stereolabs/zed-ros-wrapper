@@ -780,10 +780,8 @@ namespace zed_wrapper {
                         if (zed.retrieveMeshAsync(mesh) == sl::SUCCESS) {
                             int lv = 0;
                             for (int c = 0; c < mesh.chunks.size(); ++c) {
-                                std::cout << "<-- mesh chunk: " << c << std::endl;
                                 if (mesh.chunks[c].has_been_updated) {
                                     for (int v = 0; v < mesh.chunks[c].vertices.size(); ++v) {
-                                        std::cout << "vertices.size() = " << mesh.chunks[c].vertices.size() << std::endl;
                                         point_cloud.points[v + lv].x = mesh.chunks[c].vertices[v][2];
                                         point_cloud.points[v + lv].y = -mesh.chunks[c].vertices[v][0];
                                         point_cloud.points[v + lv].z = -mesh.chunks[c].vertices[v][1];
@@ -791,13 +789,10 @@ namespace zed_wrapper {
                                         point_cloud.points[v + lv].g = 255;
                                         point_cloud.points[v + lv].b = 255;
 
-                                        std::cout << "x, y, z: " << mesh.chunks[c].vertices[v];
                                     }
                                 }
 
                                 lv += mesh.chunks[c].vertices.size();
-                                std::cout << "<-- mesh chunk -->" << std::endl;
-
                             }
 
                             sensor_msgs::PointCloud2 output;
