@@ -101,6 +101,7 @@ namespace zed_wrapper {
         image_transport::Publisher pub_raw_right;
         image_transport::Publisher pub_depth;
         ros::Publisher pub_cloud;
+        ros::Publisher pub_cloud_merged;
         ros::Publisher pub_rgb_cam_info;
         ros::Publisher pub_left_cam_info;
         ros::Publisher pub_right_cam_info;
@@ -142,6 +143,10 @@ namespace zed_wrapper {
 
         // zed object
         sl::InitParameters param;
+        sl::SpatialMappingParameters spatial_mapping_param;
+        sl::MeshFilterParameters filter_param;
+        sl::TRACKING_STATE tracking_state;
+        sl::Mesh mesh;
         sl::Camera zed;
         unsigned int serial_number;
 
@@ -512,13 +517,13 @@ namespace zed_wrapper {
         void device_poll() {
             ros::Rate loop_rate(rate);
             ros::Time old_t = ros::Time::now();
+            ros::Time last_sm_t = ros::Time::now();
             sl::ERROR_CODE grab_status;
             bool tracking_activated = false;
 
             // Get the parameters of the ZED images
             int width = zed.getResolution().width;
             int height = zed.getResolution().height;
-            NODELET_DEBUG_STREAM("Image size : " << width << "x" << height);
 
             cv::Size cvSize(width, height);
             cv::Mat leftImRGB(cvSize, CV_8UC3);
@@ -546,6 +551,14 @@ namespace zed_wrapper {
 
 
             sl::Mat leftZEDMat, rightZEDMat, depthZEDMat;
+            
+            pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
+            point_cloud.width = width;
+            point_cloud.height = height;
+            int size = width*height;
+            point_cloud.points.resize(size);
+
+
             // Main loop
             while (nh_ns.ok()) {
                 // Check for subscribers
@@ -758,6 +771,47 @@ namespace zed_wrapper {
                         publishTrackedFrame(base_transform, transform_odom_broadcaster, base_frame_id, t); //publish the tracked Frame
                     }
 
+                    if ((t - last_sm_t).toSec() > 0.5) {
+                        zed.requestMeshAsync();
+                        last_sm_t = t;
+                    }
+
+                    if (zed.getMeshRequestStatusAsync() == sl::SUCCESS) {
+                        if (zed.retrieveMeshAsync(mesh) == sl::SUCCESS) {
+                            int lv = 0;
+                            for (int c = 0; c < mesh.chunks.size(); ++c) {
+                                std::cout << "<-- mesh chunk: " << c << std::endl;
+                                if (mesh.chunks[c].has_been_updated) {
+                                    for (int v = 0; v < mesh.chunks[c].vertices.size(); ++v) {
+                                        std::cout << "vertices.size() = " << mesh.chunks[c].vertices.size() << std::endl;
+                                        point_cloud.points[v + lv].x = mesh.chunks[c].vertices[v][2];
+                                        point_cloud.points[v + lv].y = -mesh.chunks[c].vertices[v][0];
+                                        point_cloud.points[v + lv].z = -mesh.chunks[c].vertices[v][1];
+                                        point_cloud.points[v + lv].r = 255;
+                                        point_cloud.points[v + lv].g = 255;
+                                        point_cloud.points[v + lv].b = 255;
+
+                                        std::cout << "x, y, z: " << mesh.chunks[c].vertices[v];
+                                    }
+                                }
+
+                                lv += mesh.chunks[c].vertices.size();
+                                std::cout << "<-- mesh chunk -->" << std::endl;
+
+                            }
+
+                            sensor_msgs::PointCloud2 output;
+                            pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
+                            output.header.frame_id = odometry_frame_id; // Set the header values of the ROS message
+                            output.header.stamp = point_cloud_time;
+                            output.height = height;
+                            output.width = width;
+                            output.is_bigendian = false;
+                            output.is_dense = false;
+                            pub_cloud_merged.publish(output);
+                        }
+                    }
+
                     loop_rate.sleep();
                 } else {
                     // Publish odometry tf only if enabled
@@ -767,7 +821,17 @@ namespace zed_wrapper {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
                 }
             } // while loop
+
+            std::cout << "extract whole mesh." << std::endl;
+            zed.extractWholeMesh(mesh);
+            mesh.filter(filter_param);
+            mesh.save("/home/daikimaekawa/test_ws/mesh.obj");
+            
+            zed.disableSpatialMapping();
+            zed.disableTracking();
             zed.close();
+            std::cout << "mesh saved." << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
         boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> server;
@@ -782,6 +846,15 @@ namespace zed_wrapper {
             zed_id = 0;
             serial_number = 0;
             odometry_DB = "";
+
+            // Configure Spatial Mapping and filtering parameters
+            spatial_mapping_param.range_meter = sl::SpatialMappingParameters::get(sl::SpatialMappingParameters::MAPPING_RANGE_FAR);
+            spatial_mapping_param.resolution_meter = sl::SpatialMappingParameters::get(sl::SpatialMappingParameters::MAPPING_RESOLUTION_LOW);
+            spatial_mapping_param.save_texture = false;
+            spatial_mapping_param.max_memory_usage = 512;
+            spatial_mapping_param.use_chunk_only = 1;
+
+            filter_param.set(sl::MeshFilterParameters::MESH_FILTER_LOW);
 
             nh = getMTNodeHandle();
             nh_ns = getMTPrivateNodeHandle();
@@ -916,6 +989,7 @@ namespace zed_wrapper {
 
             param.coordinate_units = sl::UNIT_METER;
             param.coordinate_system = sl::COORDINATE_SYSTEM_IMAGE;
+            //param.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP;
             param.depth_mode = static_cast<sl::DEPTH_MODE> (quality);
             param.sdk_verbose = true;
             param.sdk_gpu_id = gpu_id;
@@ -964,6 +1038,8 @@ namespace zed_wrapper {
             //PointCloud publisher
             pub_cloud = nh.advertise<sensor_msgs::PointCloud2> (point_cloud_topic, 1);
             NODELET_INFO_STREAM("Advertized on topic " << point_cloud_topic);
+            pub_cloud_merged = nh.advertise<sensor_msgs::PointCloud2> ("point_cloud_merged", 1);
+            NODELET_INFO_STREAM("Advertized on topic " << "point_cloud_merged");
 
             // Camera info publishers
             pub_rgb_cam_info = nh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_topic, 1); //rgb
@@ -987,6 +1063,10 @@ namespace zed_wrapper {
             NODELET_INFO_STREAM("Advertized on topic " << odometry_topic);
 
             device_poll_thread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            zed.enableSpatialMapping(spatial_mapping_param);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }; // class ZEDROSWrapperNodelet
 } // namespace
