@@ -823,7 +823,7 @@ namespace zed_wrapper {
                     std::cout << "extract whole mesh to " << mesh_filepath << std::endl;
                     zed.extractWholeMesh(mesh);
                     mesh.filter(filter_param);
-                    mesh.save(mesh_filepath.c_str());
+                    mesh.save((mesh_filepath + "/zed_mesh.obj").c_str());
                 }
 
                 zed.disableSpatialMapping();
@@ -895,6 +895,7 @@ namespace zed_wrapper {
                 nh_ns.getParam("sp_max_memory_usage", spatial_mapping_param.max_memory_usage);
                 nh_ns.getParam("sp_use_chunk_only", spatial_mapping_param.use_chunk_only);
                 nh_ns.getParam("sp_mesh_filepath", mesh_filepath);
+                //nh_ns.param<std::string>("sp_mesh_filepath", svo_filepath, std::string());
 
                 filter_param.set(sl::MeshFilterParameters::MESH_FILTER_LOW);
             }
@@ -1005,7 +1006,6 @@ namespace zed_wrapper {
 
             param.coordinate_units = sl::UNIT_METER;
             param.coordinate_system = sl::COORDINATE_SYSTEM_IMAGE;
-            //param.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Y_UP;
             param.depth_mode = static_cast<sl::DEPTH_MODE> (quality);
             param.sdk_verbose = true;
             param.sdk_gpu_id = gpu_id;
