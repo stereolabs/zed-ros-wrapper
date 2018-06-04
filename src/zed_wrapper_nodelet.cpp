@@ -136,6 +136,7 @@ namespace zed_wrapper {
         int depth_stabilization;
         std::string odometry_DB;
         std::string svo_filepath;
+        std::string mesh_filepath;
 
         //Tracking variables
         sl::Pose pose;
@@ -770,7 +771,7 @@ namespace zed_wrapper {
                         //Note, the frame is published, but its values will only change if someone has subscribed to odom
                         publishTrackedFrame(base_transform, transform_odom_broadcaster, base_frame_id, t); //publish the tracked Frame
                     }
-                    
+
                     if (enableSpatialMapping) {
                         if ((t - last_sm_t).toSec() > 0.5) {
                             zed.requestMeshAsync();
@@ -817,15 +818,19 @@ namespace zed_wrapper {
                 }
             } // while loop
 
-            std::cout << "extract whole mesh." << std::endl;
-            zed.extractWholeMesh(mesh);
-            mesh.filter(filter_param);
-            mesh.save("/home/daikimaekawa/test_ws/mesh.obj");
-            
-            zed.disableSpatialMapping();
+            if (enableSpatialMapping) {
+                if (!mesh_filepath.empty()) {
+                    std::cout << "extract whole mesh to " << mesh_filepath << std::endl;
+                    zed.extractWholeMesh(mesh);
+                    mesh.filter(filter_param);
+                    mesh.save(mesh_filepath.c_str());
+                }
+
+                zed.disableSpatialMapping();
+            }
+
             zed.disableTracking();
             zed.close();
-            std::cout << "mesh saved." << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
@@ -889,6 +894,7 @@ namespace zed_wrapper {
                 nh_ns.getParam("sp_save_texture", spatial_mapping_param.save_texture);
                 nh_ns.getParam("sp_max_memory_usage", spatial_mapping_param.max_memory_usage);
                 nh_ns.getParam("sp_use_chunk_only", spatial_mapping_param.use_chunk_only);
+                nh_ns.getParam("sp_mesh_filepath", mesh_filepath);
 
                 filter_param.set(sl::MeshFilterParameters::MESH_FILTER_LOW);
             }
