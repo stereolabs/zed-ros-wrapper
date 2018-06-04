@@ -781,16 +781,14 @@ namespace zed_wrapper {
                             if (zed.retrieveMeshAsync(mesh) == sl::SUCCESS) {
                                 int lv = 0;
                                 for (int c = 0; c < mesh.chunks.size(); ++c) {
-                                    if (mesh.chunks[c].has_been_updated) {
-                                        for (int v = 0; v < mesh.chunks[c].vertices.size(); ++v) {
-                                            point_cloud.points[v + lv].x = mesh.chunks[c].vertices[v][2];
-                                            point_cloud.points[v + lv].y = -mesh.chunks[c].vertices[v][0];
-                                            point_cloud.points[v + lv].z = -mesh.chunks[c].vertices[v][1];
-                                            point_cloud.points[v + lv].r = 255;
-                                            point_cloud.points[v + lv].g = 255;
-                                            point_cloud.points[v + lv].b = 255;
+                                    for (int v = 0; v < mesh.chunks[c].vertices.size(); ++v) {
+                                        point_cloud.points[v + lv].x = mesh.chunks[c].vertices[v][2];
+                                        point_cloud.points[v + lv].y = -mesh.chunks[c].vertices[v][0];
+                                        point_cloud.points[v + lv].z = -mesh.chunks[c].vertices[v][1];
+                                        point_cloud.points[v + lv].r = 255;
+                                        point_cloud.points[v + lv].g = 255;
+                                        point_cloud.points[v + lv].b = 255;
 
-                                        }
                                     }
 
                                     lv += mesh.chunks[c].vertices.size();
