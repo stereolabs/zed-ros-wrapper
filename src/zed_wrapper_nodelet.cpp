@@ -891,7 +891,6 @@ namespace zed_wrapper {
                 spatial_mapping_param.range_meter = sl::SpatialMappingParameters::get(static_cast<sl::SpatialMappingParameters::MAPPING_RANGE>(sp_range_meter));
                 nh_ns.getParam("sp_resolution_meter", sp_resolution_meter);
                 spatial_mapping_param.resolution_meter = sl::SpatialMappingParameters::get(static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(sp_resolution_meter));
-                nh_ns.getParam("sp_save_texture", spatial_mapping_param.save_texture);
                 nh_ns.getParam("sp_max_memory_usage", spatial_mapping_param.max_memory_usage);
                 nh_ns.getParam("sp_use_chunk_only", spatial_mapping_param.use_chunk_only);
                 nh_ns.getParam("sp_mesh_filepath", mesh_filepath);
