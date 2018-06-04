@@ -895,7 +895,6 @@ namespace zed_wrapper {
                 nh_ns.getParam("sp_max_memory_usage", spatial_mapping_param.max_memory_usage);
                 nh_ns.getParam("sp_use_chunk_only", spatial_mapping_param.use_chunk_only);
                 nh_ns.getParam("sp_mesh_filepath", mesh_filepath);
-                //nh_ns.param<std::string>("sp_mesh_filepath", svo_filepath, std::string());
 
                 filter_param.set(sl::MeshFilterParameters::MESH_FILTER_LOW);
             }
