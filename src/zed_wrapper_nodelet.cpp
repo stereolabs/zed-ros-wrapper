@@ -41,6 +41,7 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/distortion_models.h>
 #include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/Imu.h>
 #include <image_transport/image_transport.h>
 #include <dynamic_reconfigure/server.h>
 #include <zed_wrapper/ZedConfig.h>
@@ -109,6 +110,8 @@ namespace zed_wrapper {
         ros::Publisher pub_right_cam_info_raw;
         ros::Publisher pub_depth_cam_info;
         ros::Publisher pub_odom;
+        ros::Publisher pub_imu;
+        ros::Timer  pub_imu_timer;
 
         // tf
         tf2_ros::TransformBroadcaster transform_odom_broadcaster;
@@ -857,6 +860,7 @@ namespace zed_wrapper {
             cloud_frame_id = camera_frame_id;
 
             string odometry_topic = "odom";
+            string imu_topic = "imu";
 
             nh_ns.getParam("rgb_topic", rgb_topic);
             nh_ns.getParam("rgb_raw_topic", rgb_raw_topic);
@@ -879,6 +883,10 @@ namespace zed_wrapper {
             nh_ns.getParam("point_cloud_topic", point_cloud_topic);
 
             nh_ns.getParam("odometry_topic", odometry_topic);
+            nh_ns.getParam("imu_topic", imu_topic);
+
+            double imu_pub_rate;
+            nh_ns.param("imu_pub_rate", imu_pub_rate, 100.0);
 
             nh_ns.param<std::string>("svo_filepath", svo_filepath, std::string());
 
@@ -987,7 +995,46 @@ namespace zed_wrapper {
             NODELET_INFO_STREAM("Advertized on topic " << odometry_topic);
 
             device_poll_thread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
+
+            // Imu
+            if(imu_pub_rate > 0)
+              {
+                pub_imu = nh.advertise<sensor_msgs::Imu>(imu_topic, 1);
+                pub_imu_timer = nh_ns.createTimer(ros::Duration(1.0 / imu_pub_rate), &ZEDWrapperNodelet::imuPubFunc,this);
+              }
+
         }
+
+      void imuPubFunc(const ros::TimerEvent & e)
+      {
+        sl::IMUData imu_data;
+        zed.getIMUData(imu_data, sl::TIME_REFERENCE_CURRENT);
+
+        sensor_msgs::Imu imu_msg;
+        imu_msg.header.stamp = ros::Time().fromNSec(imu_data.timestamp);
+        imu_msg.orientation.x = imu_data.getOrientation()[0];
+        imu_msg.orientation.y = imu_data.getOrientation()[1];
+        imu_msg.orientation.z = imu_data.getOrientation()[2];
+        imu_msg.orientation.w = imu_data.getOrientation()[3];
+
+        imu_msg.angular_velocity.x = imu_data.angular_velocity[0];
+        imu_msg.angular_velocity.y = imu_data.angular_velocity[1];
+        imu_msg.angular_velocity.z = imu_data.angular_velocity[2];
+
+        imu_msg.linear_acceleration.x = imu_data.linear_acceleration[0];
+        imu_msg.linear_acceleration.y = imu_data.linear_acceleration[1];
+        imu_msg.linear_acceleration.z = imu_data.linear_acceleration[2];
+
+        for(int i = 0; i < 9; i++ )
+          {
+            imu_msg.orientation_covariance[i] = imu_data.orientation_covariance.r[i];
+            imu_msg.linear_acceleration_covariance[i] = imu_data.linear_acceleration_convariance.r[i];
+            imu_msg.angular_velocity_covariance[i] = imu_data.angular_velocity_convariance.r[i];
+          }
+
+        pub_imu.publish(imu_msg);
+      }
+
     }; // class ZEDROSWrapperNodelet
 } // namespace
 
