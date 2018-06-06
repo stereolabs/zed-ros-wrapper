@@ -1078,11 +1078,14 @@ namespace zed_wrapper {
 
             device_poll_thread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
 
-            if (enableSpatialMapping) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                zed.enableSpatialMapping(spatial_mapping_param);
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            while (enableSpatialMapping &&
+                   zed.enableSpatialMapping(spatial_mapping_param) != sl::SUCCESS)
+            {
+                NODELET_INFO_STREAM("Wait until spatial mapping is ready to start...");
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
+
+            NODELET_INFO_STREAM("Initialization is done.");
         }
     }; // class ZEDROSWrapperNodelet
 } // namespace
