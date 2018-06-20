@@ -20,6 +20,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="camera_model"          default="0" /> <!-- 0=ZED, 1=ZEDM-->
     <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
     <arg name="zed_id"                default="0" />
+    <arg name="zed_slam"              default="false" />
+    <arg name="fps"                   default="60" />
     <!-- If a ZED SN is given, zed_id is ignored and the wrapper will specifically look for the ZED with the corresponding serial number -->
     <arg name="serial_number"                default="0" /> 
 
@@ -35,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="publish_urdf"          default="true" />
     
     <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" --> 
-
+        <param name="enable_spatial_mapping" value="$(arg zed_slam)" />
         <param name="camera_model" value="$(arg camera_model)" />
         <!-- publish odometry frame -->
         <param name="publish_tf"            value="$(arg publish_tf)" />
@@ -55,7 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="resolution"            value="2" />
         <param name="quality"               value="1" />
         <param name="sensing_mode"          value="0" />
-        <param name="frame_rate"            value="60" />
+        <param name="frame_rate"            value="$(arg fps)" />
         <param name="odometry_db"           value="" />
         <param name="openni_depth_mode"     value="0" />
         <param name="gpu_id"                value="$(arg gpu_id)" />
