@@ -138,6 +138,7 @@ namespace zed_wrapper {
         int depth_stabilization;
         std::string odometry_DB;
         std::string svo_filepath;
+        double imu_pub_rate;
 
         //Tracking variables
         sl::Pose pose;
@@ -147,6 +148,7 @@ namespace zed_wrapper {
         sl::InitParameters param;
         sl::Camera zed;
         unsigned int serial_number;
+        int user_cam_model;
 
         // flags
         int confidence;
@@ -785,6 +787,7 @@ namespace zed_wrapper {
             zed_id = 0;
             serial_number = 0;
             odometry_DB = "";
+            imu_pub_rate = 100.0;
 
             nh = getMTNodeHandle();
             nh_ns = getMTPrivateNodeHandle();
@@ -809,6 +812,7 @@ namespace zed_wrapper {
             int tmp_sn = 0;
             nh_ns.getParam("serial_number", tmp_sn);
             if (tmp_sn > 0) serial_number = tmp_sn;
+            nh_ns.getParam("camera_model", user_cam_model);
 
             // Publish odometry tf
             nh_ns.param<bool>("publish_tf", publish_tf, true);
@@ -883,13 +887,11 @@ namespace zed_wrapper {
             nh_ns.getParam("point_cloud_topic", point_cloud_topic);
 
             nh_ns.getParam("odometry_topic", odometry_topic);
-            nh_ns.getParam("imu_topic", imu_topic);
 
-            double imu_pub_rate;
-            nh_ns.param("imu_pub_rate", imu_pub_rate, 100.0);
+            nh_ns.getParam("imu_topic", imu_topic);            
+            nh_ns.getParam("imu_pub_rate", imu_pub_rate);
 
             nh_ns.param<std::string>("svo_filepath", svo_filepath, std::string());
-
 
             // Initialization transformation listener
             tfBuffer.reset(new tf2_ros::Buffer);
@@ -935,6 +937,23 @@ namespace zed_wrapper {
                 NODELET_INFO_STREAM(toString(err));
                 std::this_thread::sleep_for(std::chrono::milliseconds(2000));
             }
+
+            sl::MODEL realCamModel = zed.getCameraInformation().camera_model;
+
+            std::string camModelStr = "LAST";
+            if( realCamModel == sl::MODEL_ZED  ){
+                camModelStr = "ZED";
+                if( user_cam_model != 0){
+                    NODELET_WARN("Camera model does not match user parameter. Please modify the value of the parameter 'camera_model' to 0");
+                } 
+            } else if( realCamModel == sl::MODEL_ZED_M  ){
+                camModelStr = "ZED M";
+                if( user_cam_model != 1){
+                    NODELET_WARN("Camera model does not match user parameter. Please modify the value of the parameter 'camera_model' to 1");
+                } 
+            }
+
+            ROS_INFO_STREAM("CAMERA MODEL : " << realCamModel);
 
             serial_number = zed.getCameraInformation().serial_number;
 
@@ -994,19 +1013,28 @@ namespace zed_wrapper {
             pub_odom = nh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
             NODELET_INFO_STREAM("Advertized on topic " << odometry_topic);
 
-            device_poll_thread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
+            device_poll_thread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));        
 
-            // Imu
-            if(imu_pub_rate > 0)
-              {
-                pub_imu = nh.advertise<sensor_msgs::Imu>(imu_topic, 1);
-                pub_imu_timer = nh_ns.createTimer(ros::Duration(1.0 / imu_pub_rate), &ZEDWrapperNodelet::imuPubFunc,this);
-              }
+            
+
+            // Imu publisher
+            if(imu_pub_rate > 0 && realCamModel == sl::MODEL_ZED_M) {
+              pub_imu = nh.advertise<sensor_msgs::Imu>(imu_topic, 1);
+              pub_imu_timer = nh_ns.createTimer(ros::Duration(1.0 / imu_pub_rate), &ZEDWrapperNodelet::imuPubFunc,this);
+              NODELET_INFO_STREAM("Advertized on topic " << imu_topic << " @ " << imu_pub_rate << " Hz");
+            } else if(imu_pub_rate > 0 && realCamModel == sl::MODEL_ZED) {
+              NODELET_WARN_STREAM( "'imu_pub_rate' set to " << imu_pub_rate << " Hz" << " but ZED camera model does not support IMU data publishing.");
+            }
 
         }
 
       void imuPubFunc(const ros::TimerEvent & e)
       {
+        int imu_SubNumber = pub_imu.getNumSubscribers();
+        if (imu_SubNumber < 1) {
+          return;
+        }
+
         sl::IMUData imu_data;
         zed.getIMUData(imu_data, sl::TIME_REFERENCE_CURRENT);
 
