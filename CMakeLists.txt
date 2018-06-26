@@ -43,6 +43,7 @@ find_package(catkin COMPONENTS
   roscpp
   rosconsole
   sensor_msgs
+  stereo_msgs
   dynamic_reconfigure
   tf2_ros
   pcl_conversions
@@ -54,6 +55,7 @@ checkPackage("image_transport" "")
 checkPackage("roscpp" "")
 checkPackage("rosconsole" "")
 checkPackage("sensor_msgs" "")
+checkPackage("stereo_msgs" "")
 checkPackage("dynamic_reconfigure" "")
 checkPackage("tf2_ros" "")
 checkPackage("pcl_conversions" "")
@@ -69,6 +71,7 @@ catkin_package(
     roscpp
     rosconsole
     sensor_msgs
+    stereo_msgs
     opencv3
     image_transport
     dynamic_reconfigure

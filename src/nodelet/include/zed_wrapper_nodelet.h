@@ -40,6 +40,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Imu.h>
 #include <image_transport/image_transport.h>
+#include <stereo_msgs/DisparityImage.h>
 #include <dynamic_reconfigure/server.h>
 #include <zed_wrapper/ZedConfig.h>
 #include <nav_msgs/Odometry.h>
@@ -138,6 +139,12 @@ namespace zed_wrapper {
          */
         void publishCamInfo(sensor_msgs::CameraInfoPtr cam_info_msg, ros::Publisher pub_cam_info, ros::Time t);
 
+        /* \brief Publish a cv::Mat disparity image with a ros Publisher
+         * \param disparity : the disparity image to publish
+         * \param t : the ros::Time to stamp the depth image
+         */
+        void publishDisparity(cv::Mat disparity, ros::Time t);
+
         /* \brief Get the information of the ZED cameras and store them in an information message
          * \param zed : the sl::zed::Camera* pointer to an instance
          * \param left_cam_info_msg : the information message to fill with the left camera informations
@@ -168,6 +175,7 @@ namespace zed_wrapper {
         image_transport::Publisher pub_right;
         image_transport::Publisher pub_raw_right;
         image_transport::Publisher pub_depth;
+        ros::Publisher pub_disparity; // TODO use image_transport?
         ros::Publisher pub_cloud;
         ros::Publisher pub_rgb_cam_info;
         ros::Publisher pub_left_cam_info;
@@ -186,6 +194,7 @@ namespace zed_wrapper {
         std::string right_frame_id;
         std::string rgb_frame_id;
         std::string depth_frame_id;
+        std::string disparity_frame_id;
         std::string cloud_frame_id;
         std::string odometry_frame_id;
         std::string base_frame_id;
