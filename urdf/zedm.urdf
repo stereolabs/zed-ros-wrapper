@@ -32,10 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             </material>
         </visual>
     </link>
-    <link name="zed_right_camera">
-
-    </link>
+    <link name="zed_right_camera" />
     <link name="zed_depth_camera" />
+    <link name="imu_link" />
     
     <joint name="zed_left_camera_joint" type="fixed">
         <parent link="zed_center"/>
@@ -47,11 +46,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <child link="zed_depth_camera"/>
         <origin xyz="0 0 0" rpy="-1.5707963267948966 0 -1.5707963267948966" />
     </joint>
-
     <joint name="zed_right_camera_joint" type="fixed">
         <parent link="zed_center"/>
         <child link="zed_right_camera"/>
         <origin xyz="0 -0.03 0" rpy="0 0 0" />
+    </joint>
+    <joint name="imu_link_joint" type="fixed">
+        <parent link="zed_center"/>
+        <child link="imu_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
     </joint>
  
 </robot>

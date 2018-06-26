@@ -123,6 +123,8 @@ namespace zed_wrapper {
         std::string odometry_frame_id;
         std::string base_frame_id;
         std::string camera_frame_id;
+        std::string imu_frame_id;
+
         // initialization Transform listener
         boost::shared_ptr<tf2_ros::Buffer> tfBuffer;
         boost::shared_ptr<tf2_ros::TransformListener> tf_listener;
@@ -374,11 +376,18 @@ namespace zed_wrapper {
             int size = width*height;
             point_cloud.points.resize(size);
 
+            // TODO memcpy?
             sl::Vector4<float>* cpu_cloud = cloud.getPtr<sl::float4>();
             for (int i = 0; i < size; i++) {
-                point_cloud.points[i].x = cpu_cloud[i][2];
+                // TODO use commented code when COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD is available in SDK
+                // point_cloud.points[i].x = cpu_cloud[i][0];
+                // point_cloud.points[i].y = cpu_cloud[i][1];
+                // point_cloud.points[i].z = cpu_cloud[i][2];
+                // point_cloud.points[i].rgb = cpu_cloud[i][3];
+
+                point_cloud.points[i].x = cpu_cloud[i][1];
                 point_cloud.points[i].y = -cpu_cloud[i][0];
-                point_cloud.points[i].z = -cpu_cloud[i][1];
+                point_cloud.points[i].z = cpu_cloud[i][2];
                 point_cloud.points[i].rgb = cpu_cloud[i][3];
             }
 
@@ -738,18 +747,30 @@ namespace zed_wrapper {
                     // Publish the odometry if someone has subscribed to
                     if (odom_SubNumber > 0 || cloud_SubNumber > 0) {
                         zed.getPosition(pose);
+
                         // Transform ZED pose in TF2 Transformation
                         tf2::Transform camera_transform;
                         geometry_msgs::Transform c2s;
                         sl::Translation translation = pose.getTranslation();
-                        c2s.translation.x = translation(2);
+                        // TODO use commented code when COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD is available in SDK
+                        // c2s.translation.x = translation(0);
+                        // c2s.translation.y = translation(1);
+                        // c2s.translation.z = translation(2);
+                        c2s.translation.x = translation(1);
                         c2s.translation.y = -translation(0);
-                        c2s.translation.z = -translation(1);
+                        c2s.translation.z = translation(2);
+
                         sl::Orientation quat = pose.getOrientation();
-                        c2s.rotation.x = quat(2);
+                        // TODO use commented code when COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD is available in SDK
+                        // c2s.rotation.x = quat(1);
+                        // c2s.rotation.y = -quat(0);
+                        // c2s.rotation.z = quat(2);
+                        // c2s.rotation.w = quat(3);
+                        c2s.rotation.x = quat(1);
                         c2s.rotation.y = -quat(0);
-                        c2s.rotation.z = -quat(1);
+                        c2s.rotation.z = quat(2);
                         c2s.rotation.w = quat(3);
+
                         tf2::fromMsg(c2s, camera_transform);
                         // Transformation from camera sensor to base frame
                         base_transform = base_to_sensor * camera_transform * base_to_sensor.inverse();
@@ -798,6 +819,7 @@ namespace zed_wrapper {
             nh_ns.param<std::string>("base_frame", base_frame_id, "base_frame");
             nh_ns.param<std::string>("camera_frame", camera_frame_id, "camera_frame");
             nh_ns.param<std::string>("depth_frame", depth_frame_id, "depth_frame");
+            nh_ns.param<std::string>("imu_frame", imu_frame_id, "imu_link");
 
             // Get parameters from launch file
             nh_ns.getParam("resolution", resolution);
@@ -925,7 +947,8 @@ namespace zed_wrapper {
             }
 
             param.coordinate_units = sl::UNIT_METER;
-            param.coordinate_system = sl::COORDINATE_SYSTEM_IMAGE;
+            param.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP; // TODO remove when X_FWD will be available in SDK
+            //param.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD; // ROS Convention as in REP103 
             param.depth_mode = static_cast<sl::DEPTH_MODE> (quality);
             param.sdk_verbose = true;
             param.sdk_gpu_id = gpu_id;
@@ -1040,26 +1063,41 @@ namespace zed_wrapper {
 
         sensor_msgs::Imu imu_msg;
         imu_msg.header.stamp = ros::Time().fromNSec(imu_data.timestamp);
-        imu_msg.orientation.x = imu_data.getOrientation()[0];
-        imu_msg.orientation.y = imu_data.getOrientation()[1];
+        imu_msg.header.frame_id = imu_frame_id;       
+        
+        // TODO use commented code when COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD is available in SDK
+        // imu_msg.orientation.x = imu_data.getOrientation()[0];
+        // imu_msg.orientation.y = imu_data.getOrientation()[1];
+        // imu_msg.orientation.z = imu_data.getOrientation()[2];
+        // imu_msg.orientation.w = imu_data.getOrientation()[3];
+        imu_msg.orientation.x = imu_data.getOrientation()[1];
+        imu_msg.orientation.y = -imu_data.getOrientation()[0];
         imu_msg.orientation.z = imu_data.getOrientation()[2];
         imu_msg.orientation.w = imu_data.getOrientation()[3];
 
-        imu_msg.angular_velocity.x = imu_data.angular_velocity[0];
-        imu_msg.angular_velocity.y = imu_data.angular_velocity[1];
+        // TODO use commented code when COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD is available in SDK
+        // imu_msg.angular_velocity.x = imu_data.angular_velocity[0];
+        // imu_msg.angular_velocity.y = imu_data.angular_velocity[1];
+        // imu_msg.angular_velocity.z = imu_data.angular_velocity[2];
+        imu_msg.angular_velocity.x = imu_data.angular_velocity[1];
+        imu_msg.angular_velocity.y = -imu_data.angular_velocity[0];
         imu_msg.angular_velocity.z = imu_data.angular_velocity[2];
 
-        imu_msg.linear_acceleration.x = imu_data.linear_acceleration[0];
-        imu_msg.linear_acceleration.y = imu_data.linear_acceleration[1];
+        // TODO use commented code when COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD is available in SDK
+        // imu_msg.linear_acceleration.x = imu_data.linear_acceleration[0];
+        // imu_msg.linear_acceleration.y = imu_data.linear_acceleration[1];
+        // imu_msg.linear_acceleration.z = imu_data.linear_acceleration[2];
+        imu_msg.linear_acceleration.x = imu_data.linear_acceleration[1];
+        imu_msg.linear_acceleration.y = -imu_data.linear_acceleration[0];
         imu_msg.linear_acceleration.z = imu_data.linear_acceleration[2];
 
         for(int i = 0; i < 9; i++ )
-          {
-            imu_msg.orientation_covariance[i] = imu_data.orientation_covariance.r[i];
-            imu_msg.linear_acceleration_covariance[i] = imu_data.linear_acceleration_convariance.r[i];
-            imu_msg.angular_velocity_covariance[i] = imu_data.angular_velocity_convariance.r[i];
-          }
-
+        {
+          imu_msg.orientation_covariance[i] = imu_data.orientation_covariance.r[i];
+          imu_msg.linear_acceleration_covariance[i] = imu_data.linear_acceleration_convariance.r[i];
+          imu_msg.angular_velocity_covariance[i] = imu_data.angular_velocity_convariance.r[i];
+        }
+        
         pub_imu.publish(imu_msg);
       }
 

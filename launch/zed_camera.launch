@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="base_frame"            default="zed_center" />
     <arg name="camera_frame"          default="zed_left_camera" />
     <arg name="depth_frame"           default="zed_depth_camera" />
+    <arg name="imu_frame"             default="imu_link" />
 
     <!-- Publish urdf zed -->
     <arg name="publish_urdf"          default="true" />
@@ -92,7 +93,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <param name="odometry_topic"        value="odom" />
 
-        <param name="imu_topic"             value="imu" />
+        <param name="imu_topic"             value="imu/data" />
 
         <param name="imu_pub_rate"          value="100.0" />
 
