@@ -417,10 +417,10 @@ namespace zed_wrapper {
         return ptr;
     }
 
-    void ZEDWrapperNodelet::publishOdom(tf2::Transform base_transform, ros::Publisher &pub_odom, string odom_frame_id, ros::Time t) {
+    void ZEDWrapperNodelet::publishOdom(tf2::Transform base_transform, ros::Time t) {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
-        odom.header.frame_id = odom_frame_id; // odom_frame
+        odom.header.frame_id = odometry_frame_id; // odom_frame
         odom.child_frame_id = base_frame_id; // base_frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2 = tf2::toMsg(base_transform);
@@ -436,22 +436,22 @@ namespace zed_wrapper {
         pub_odom.publish(odom);
     }
 
-    void ZEDWrapperNodelet::publishTrackedFrame(tf2::Transform base_transform, tf2_ros::TransformBroadcaster &trans_br, string odometry_transform_frame_id, ros::Time t) {
+    void ZEDWrapperNodelet::publishTrackedFrame(tf2::Transform base_transform, ros::Time t) {
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = ros::Time::now();
         transformStamped.header.frame_id = odometry_frame_id;
-        transformStamped.child_frame_id = odometry_transform_frame_id;
+        transformStamped.child_frame_id = base_frame_id;
         // conversion from Tranform to message
         transformStamped.transform = tf2::toMsg(base_transform);
         // Publish transformation
-        trans_br.sendTransform(transformStamped);
+        transform_odom_broadcaster.sendTransform(transformStamped);
     }
 
     void ZEDWrapperNodelet::publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_frame_id, ros::Time t) {
         pub_img.publish(imageToROSmsg(img, sensor_msgs::image_encodings::BGR8, img_frame_id, t));
     }
 
-    void ZEDWrapperNodelet::publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string depth_frame_id, ros::Time t) {
+    void ZEDWrapperNodelet::publishDepth(cv::Mat depth, ros::Time t) {
         string encoding;
         if (openniDepthMode) {
             depth *= 1000.0f;
@@ -460,17 +460,18 @@ namespace zed_wrapper {
         } else {
             encoding = sensor_msgs::image_encodings::TYPE_32FC1;
         }
+
         pub_depth.publish(imageToROSmsg(depth, encoding, depth_frame_id, t));
     }
 
-    void ZEDWrapperNodelet::publishPointCloud(int width, int height, ros::Publisher &pub_cloud) {
+    void ZEDWrapperNodelet::publishPointCloud(int width, int height) {
         pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
         point_cloud.width = width;
         point_cloud.height = height;
         int size = width*height;
         point_cloud.points.resize(size);
 
-        // TODO memcpy?
+        // TODO memcpy instead of this huge for cycle when no conversion is needed?
         sl::Vector4<float>* cpu_cloud = cloud.getPtr<sl::float4>();
         for (int i = 0; i < size; i++) {
             // TODO use commented code when COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD is available in SDK
@@ -845,7 +846,7 @@ namespace zed_wrapper {
                 if (depth_SubNumber > 0) {
                     zed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH);
                     publishCamInfo(depth_cam_info_msg, pub_depth_cam_info, t);
-                    publishDepth(toCVMat(depthZEDMat), pub_depth, depth_frame_id, t); // in meters
+                    publishDepth(toCVMat(depthZEDMat), t); // in meters
                 }
 
                 // Publish the point cloud if someone has subscribed to
@@ -855,7 +856,7 @@ namespace zed_wrapper {
                     zed.retrieveMeasure(cloud, sl::MEASURE_XYZBGRA);
                     point_cloud_frame_id = cloud_frame_id;
                     point_cloud_time = t;
-                    publishPointCloud(width, height, pub_cloud);
+                    publishPointCloud(width, height );
                 }
 
                 // Transform from base to sensor
@@ -907,20 +908,20 @@ namespace zed_wrapper {
                     // Transformation from camera sensor to base frame
                     base_transform = base_to_sensor * camera_transform * base_to_sensor.inverse();
                     // Publish odometry message
-                    publishOdom(base_transform, pub_odom, odometry_frame_id, t);
+                    publishOdom(base_transform, t);
                 }
 
                 // Publish odometry tf only if enabled
                 if (publish_tf) {
                     //Note, the frame is published, but its values will only change if someone has subscribed to odom
-                    publishTrackedFrame(base_transform, transform_odom_broadcaster, base_frame_id, t); //publish the tracked Frame
+                    publishTrackedFrame(base_transform, t); //publish the tracked Frame
                 }
 
                 loop_rate.sleep();
             } else {
                 // Publish odometry tf only if enabled
                 if (publish_tf) {
-                    publishTrackedFrame(base_transform, transform_odom_broadcaster, base_frame_id, ros::Time::now()); //publish the tracked Frame before the sleep
+                    publishTrackedFrame(base_transform, ros::Time::now()); //publish the tracked Frame before the sleep
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
             }

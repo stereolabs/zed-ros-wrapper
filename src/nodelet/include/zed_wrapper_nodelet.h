@@ -101,42 +101,35 @@ namespace zed_wrapper {
 
         /* \brief Publish the pose of the camera with a ros Publisher
          * \param base_transform : Transformation representing the camera pose from base frame
-         * \param pub_odom : the publisher object to use
-         * \param odom_frame_id : the id of the reference frame of the pose
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdom(tf2::Transform base_transform, ros::Publisher &pub_odom, string odom_frame_id, ros::Time t);
+        void publishOdom(tf2::Transform base_transform, ros::Time t);
 
         /* \brief Publish the pose of the camera as a transformation
          * \param base_transform : Transformation representing the camera pose from base frame
-         * \param trans_br : the TransformBroadcaster object to use
-         * \param odometry_transform_frame_id : the id of the transformation
          * \param t : the ros::Time to stamp the image
          */
-        void publishTrackedFrame(tf2::Transform base_transform, tf2_ros::TransformBroadcaster &trans_br, string odometry_transform_frame_id, ros::Time t);
+        void publishTrackedFrame(tf2::Transform base_transform, ros::Time t);
 
         /* \brief Publish a cv::Mat image with a ros Publisher
          * \param img : the image to publish
-         * \param pub_img : the publisher object to use
-         * \param img_frame_id : the id of the reference frame of the image
+         * \param pub_img : the publisher object to use (different image publishers exist)
+         * \param img_frame_id : the id of the reference frame of the image (different image frames exist)
          * \param t : the ros::Time to stamp the image
          */
         void publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_frame_id, ros::Time t);
 
         /* \brief Publish a cv::Mat depth image with a ros Publisher
          * \param depth : the depth image to publish
-         * \param pub_depth : the publisher object to use
-         * \param depth_frame_id : the id of the reference frame of the depth image
          * \param t : the ros::Time to stamp the depth image
          */
-        void publishDepth(cv::Mat depth, image_transport::Publisher &pub_depth, string depth_frame_id, ros::Time t);
+        void publishDepth(cv::Mat depth, ros::Time t);
 
         /* \brief Publish a pointCloud with a ros Publisher
          * \param width : the width of the point cloud
          * \param height : the height of the point cloud
-         * \param pub_cloud : the publisher object to use
          */
-        void publishPointCloud(int width, int height, ros::Publisher &pub_cloud);
+        void publishPointCloud(int width, int height);
 
         /* \brief Publish the informations of a camera with a ros Publisher
          * \param cam_info_msg : the information message to publish
