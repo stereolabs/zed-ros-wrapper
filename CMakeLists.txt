@@ -76,6 +76,15 @@ catkin_package(
     tf2_geometry_msgs
     pcl_conversions
 )
+
+###############################################################################
+# SOURCES
+
+set(NODE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_wrapper_node.cpp)
+set(NODELET_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.cpp)
+
+###############################################################################
+
 ###############################################################################
 # INCLUDES
 
@@ -86,6 +95,7 @@ include_directories(
 	${ZED_INCLUDE_DIRS}
 	${OpenCV_INCLUDE_DIRS}
 	${PCL_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/include
 )
 
 link_directories(${ZED_LIBRARY_DIR})
@@ -114,11 +124,11 @@ set(LINK_LIBRARIES
   ${OpenCV_LIBS}
   ${PCL_LIBRARIES})
 
-add_library(ZEDWrapper src/zed_wrapper_nodelet.cpp)
+add_library(ZEDWrapper ${NODELET_SRC})
 target_link_libraries(ZEDWrapper ${LINK_LIBRARIES})
 add_dependencies(ZEDWrapper ${PROJECT_NAME}_gencfg)
 
-add_executable(zed_wrapper_node src/zed_wrapper_node.cpp)
+add_executable(zed_wrapper_node ${NODE_SRC})
 target_link_libraries(zed_wrapper_node ZEDWrapper ${LINK_LIBRARIES})
 add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)
 
