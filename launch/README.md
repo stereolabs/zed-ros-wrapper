@@ -25,3 +25,9 @@ A sample **zed\_multi\_gpu.launch** file is available to show how to work with d
 ```
 roslaunch zed_wrapper zed_multi_gpu.launch
 ```
+### Start the nodelet
+First compile the sample nodelet manager from github/cryborg21/sample_nodelet
+The Zed nodelet allows publishing PointCloud2 data (and other image streams) from the Zed camera to your ROS nodes faster than the larger Zed node.
+```
+roslaunch zed_wrapper zed_nodelet.launch
+```
