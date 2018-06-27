@@ -21,8 +21,10 @@
 #include "sl_tools.h"
 
 #include <sys/stat.h>
+#include <vector>
+#include <sstream>
 
-namespace sl_tool {
+namespace sl_tools {
 
     int checkCameraReady(unsigned int serial_number) {
         int id = -1;
@@ -124,6 +126,36 @@ namespace sl_tool {
     bool file_exist(const std::string& name) {
         struct stat buffer;
         return (stat(name.c_str(), &buffer) == 0);
+    }
+
+    std::string getSDKVersion( int& major, int& minor, int& sub_minor) {
+        std::string ver = sl::Camera::getSDKVersion().c_str();
+
+        std::vector<std::string> strings;
+        std::istringstream f(ver);
+        std::string s;    
+        
+        while (getline(f, s, '.')) {
+            strings.push_back(s);
+        }   
+
+        major = 0;
+        minor = 0;
+        sub_minor = 0;
+
+        switch( strings.size() )
+        {
+            case 3:
+                sub_minor = std::stoi(strings[2]);
+
+            case 2:
+                minor = std::stoi(strings[1]);
+
+            case 1:
+                major = std::stoi(strings[0]);
+        }
+
+        return ver;
     }
 
 } // namespace

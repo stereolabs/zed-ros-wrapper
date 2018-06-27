@@ -70,7 +70,7 @@ namespace zed_wrapper {
          */
         virtual void onInit();
 
-        /* \brief ZED camera polling thread
+        /* \brief ZED camera polling thread function
          */
         void device_poll();        
 
@@ -141,9 +141,17 @@ namespace zed_wrapper {
         void imuPubCallback(const ros::TimerEvent & e);
 
     private:
+        // SDK version
+        int ver_major;
+        int ver_minor;
+        int ver_sub_minor;
+
+        // ROS
         ros::NodeHandle nh;
         ros::NodeHandle nh_ns;
         boost::shared_ptr<boost::thread> device_poll_thread;
+
+        // Publishers
         image_transport::Publisher pub_rgb;
         image_transport::Publisher pub_raw_rgb;
         image_transport::Publisher pub_left;

@@ -21,10 +21,11 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#include <string>
 #include <sl/Camera.hpp>
 #include <opencv2/core/core.hpp>
 
-namespace sl_tool {
+namespace sl_tools {
 
     /* \brief Check if a ZED camera is ready
     * \param serial_number : the serial number of the camera to be checked
@@ -47,6 +48,13 @@ namespace sl_tool {
     * \param name : the path to the file
     */
     bool file_exist(const std::string& name);
+
+    /* \brief Get Stereolabs SDK version
+     * \param major : major value for version
+     * \param minor : minor value for version
+     * \param sub_minor _ sub_minor value for version
+     */ 
+    std::string getSDKVersion( int& major, int& minor, int& sub_minor);
     
 } // namespace
 
