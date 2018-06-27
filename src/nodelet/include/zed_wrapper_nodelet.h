@@ -1,3 +1,6 @@
+#ifndef ZED_WRAPPER_NODELET_H
+#define ZED_WRAPPER_NODELET_H
+
 ///////////////////////////////////////////////////////////////////////////
 //
 // Copyright (c) 2017, STEREOLABS.
@@ -30,7 +33,6 @@
 #include <thread>
 #include <chrono>
 #include <memory>
-#include <sys/stat.h>
 
 #include <ros/ros.h>
 #include <nodelet/nodelet.h>
@@ -52,9 +54,6 @@
 #include <geometry_msgs/TransformStamped.h>
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
 
 #include <boost/make_shared.hpp>
 
@@ -72,25 +71,13 @@ namespace zed_wrapper {
     class ZEDWrapperNodelet : public nodelet::Nodelet {
         
     public:
+        /* \brief Default constructor
+         */
         ZEDWrapperNodelet();
+
+        /* \brief \ref ZEDWrapperNodelet destructor
+         */
         virtual ~ZEDWrapperNodelet();
-
-    private:
-        virtual void onInit();
-        void device_poll();        
-
-    protected:
-        /* \brief Convert an sl:Mat to a cv::Mat
-         * \param mat : the sl::Mat to convert
-         */
-        cv::Mat toCVMat(sl::Mat &mat);
-
-        cv::Mat convertRodrigues(sl::float3 r);
-
-        /* \brief Test if a file exist
-         * \param name : the path to the file
-         */
-        bool file_exist(const std::string& name);
 
         /* \brief Image to ros message conversion
          * \param img : the image to publish
@@ -98,7 +85,18 @@ namespace zed_wrapper {
          * \param frameId : the id of the reference frame of the image
          * \param t : the ros::Time to stamp the image
          */
-        sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img, const std::string encodingType, std::string frameId, ros::Time t);
+        static sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img, const std::string encodingType, std::string frameId, ros::Time t);
+
+    private:
+        /* \brief Initialization function called by the Nodelet base class
+         */
+        virtual void onInit();
+
+        /* \brief ZED camera polling thread
+         */
+        void device_poll();        
+
+    protected:       
 
         /* \brief Publish the pose of the camera with a ros Publisher
          * \param base_transform : Transformation representing the camera pose from base frame
@@ -251,3 +249,5 @@ namespace zed_wrapper {
 
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(zed_wrapper::ZEDWrapperNodelet, nodelet::Nodelet);
+
+#endif // ZED_WRAPPER_NODELET_H

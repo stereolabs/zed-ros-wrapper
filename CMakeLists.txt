@@ -83,6 +83,7 @@ catkin_package(
 ###############################################################################
 # SOURCES
 
+set(TOOLS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp)
 set(NODE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_wrapper_node.cpp)
 set(NODELET_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.cpp)
 
@@ -98,6 +99,7 @@ include_directories(
 	${ZED_INCLUDE_DIRS}
 	${OpenCV_INCLUDE_DIRS}
 	${PCL_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/include
 )
 
@@ -110,7 +112,6 @@ link_directories(${PCL_LIBRARY_DIRS})
 
 ###############################################################################
 # EXECUTABLE
-
 
 if(NOT DEFINED CUDA_NPP_LIBRARIES_ZED)
     #To deal with cuda 9 nppi libs and previous versions of ZED SDK
@@ -127,7 +128,7 @@ set(LINK_LIBRARIES
   ${OpenCV_LIBS}
   ${PCL_LIBRARIES})
 
-add_library(ZEDWrapper ${NODELET_SRC})
+add_library(ZEDWrapper ${TOOLS_SRC} ${NODELET_SRC})
 target_link_libraries(ZEDWrapper ${LINK_LIBRARIES})
 add_dependencies(ZEDWrapper ${PROJECT_NAME}_gencfg)
 
