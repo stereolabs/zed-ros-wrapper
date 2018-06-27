@@ -17,13 +17,39 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////
-
 #include "zed_wrapper_nodelet.h"
+
+#include <csignal>
+#include <cstdio>
+#include <math.h>
+#include <limits>
+#include <thread>
+#include <chrono>
+#include <memory>
+
 #include "sl_tools.h"
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
+
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <sensor_msgs/distortion_models.h>
+#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/Imu.h>
+#include <stereo_msgs/DisparityImage.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <nav_msgs/Odometry.h>
+#include <tf2_ros/buffer.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 
 using namespace std;
 
@@ -177,7 +203,7 @@ namespace zed_wrapper {
             else {
                 bool waiting_for_camera = true;
                 while (waiting_for_camera) {
-                    sl::DeviceProperties prop = getZEDFromSN(serial_number);
+                    sl::DeviceProperties prop = sl_tool::getZEDFromSN(serial_number);
                     if (prop.id < -1 || prop.camera_state == sl::CAMERA_STATE::CAMERA_STATE_NOT_AVAILABLE) {
                         std::string msg = "ZED SN" + to_string(serial_number) + " not detected ! Please connect this ZED";
                         NODELET_INFO_STREAM(msg.c_str());
@@ -478,7 +504,7 @@ namespace zed_wrapper {
         }
 
         if (raw_param) {
-            cv::Mat R_ = convertRodrigues(zedParam.R);
+            cv::Mat R_ = sl_tool::convertRodrigues(zedParam.R);
             float* p = (float*) R_.data;
             for (int i = 0; i < 9; i++)
                 right_cam_info_msg->R[i] = p[i];
@@ -638,7 +664,7 @@ namespace zed_wrapper {
             // Run the loop only if there is some subscribers
             if (runLoop) {
                 if ((depth_stabilization || odom_SubNumber > 0) && !tracking_activated) { //Start the tracking
-                    if (odometry_DB != "" && !file_exist(odometry_DB)) {
+                    if (odometry_DB != "" && !sl_tool::file_exist(odometry_DB)) {
                         odometry_DB = "";
                         NODELET_WARN("odometry_DB path doesn't exist or is unreachable.");
                     }
@@ -679,7 +705,7 @@ namespace zed_wrapper {
                         NODELET_INFO("Re-opening the ZED");
                         sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
                         while (err != sl::SUCCESS) {
-                            int id = checkCameraReady(serial_number);
+                            int id = sl_tool::checkCameraReady(serial_number);
                             if (id > 0) {
                                 param.camera_linux_id = id;
                                 err = zed.open(param); // Try to initialize the ZED
@@ -689,7 +715,7 @@ namespace zed_wrapper {
                         }
                         tracking_activated = false;
                         if (depth_stabilization || odom_SubNumber > 0) { //Start the tracking
-                            if (odometry_DB != "" && !file_exist(odometry_DB)) {
+                            if (odometry_DB != "" && !sl_tool::file_exist(odometry_DB)) {
                                 odometry_DB = "";
                                 NODELET_WARN("odometry_DB path doesn't exist or is unreachable.");
                             }
@@ -723,7 +749,7 @@ namespace zed_wrapper {
                 if (left_SubNumber > 0 || rgb_SubNumber > 0) {
                     // Retrieve RGBA Left image
                     zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT);
-                    cv::cvtColor(toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
+                    cv::cvtColor(sl_tool::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
                     if (left_SubNumber > 0) {
                         publishCamInfo(left_cam_info_msg, pub_left_cam_info, t);
                         publishImage(leftImRGB, pub_left, left_frame_id, t);
@@ -738,7 +764,7 @@ namespace zed_wrapper {
                 if (left_raw_SubNumber > 0 || rgb_raw_SubNumber > 0) {
                     // Retrieve RGBA Left image
                     zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED);
-                    cv::cvtColor(toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
+                    cv::cvtColor(sl_tool::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
                     if (left_raw_SubNumber > 0) {
                         publishCamInfo(left_cam_info_raw_msg, pub_left_cam_info_raw, t);
                         publishImage(leftImRGB, pub_raw_left, left_frame_id, t);
@@ -753,7 +779,7 @@ namespace zed_wrapper {
                 if (right_SubNumber > 0) {
                     // Retrieve RGBA Right image
                     zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT);
-                    cv::cvtColor(toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
+                    cv::cvtColor(sl_tool::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
                     publishCamInfo(right_cam_info_msg, pub_right_cam_info, t);
                     publishImage(rightImRGB, pub_right, right_frame_id, t);
                 }
@@ -762,7 +788,7 @@ namespace zed_wrapper {
                 if (right_raw_SubNumber > 0) {
                     // Retrieve RGBA Right image
                     zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED);
-                    cv::cvtColor(toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
+                    cv::cvtColor(sl_tool::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
                     publishCamInfo(right_cam_info_raw_msg, pub_right_cam_info_raw, t);
                     publishImage(rightImRGB, pub_raw_right, right_frame_id, t);
                 }
@@ -771,14 +797,14 @@ namespace zed_wrapper {
                 if (depth_SubNumber > 0) {
                     zed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH);
                     publishCamInfo(depth_cam_info_msg, pub_depth_cam_info, t);
-                    publishDepth(toCVMat(depthZEDMat), t); // in meters
+                    publishDepth(sl_tool::toCVMat(depthZEDMat), t); // in meters
                 }
 
                 // Publish the disparity image if someone has subscribed to
                 if (disparity_SubNumber > 0) {
                     zed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY);
                     // Need to flip sign, but cause of this is not sure
-                    cv::Mat disparity = toCVMat(disparityZEDMat) * -1.0;
+                    cv::Mat disparity = sl_tool::toCVMat(disparityZEDMat) * -1.0;
                     publishDisparity(disparity, t);
                 }
 

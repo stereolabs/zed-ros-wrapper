@@ -24,26 +24,30 @@
 #include <sl/Camera.hpp>
 #include <opencv2/core/core.hpp>
 
-/* \brief Check if a ZED camera is ready
- * \param serial_number : the serial number of the camera to be checked
- */
-int checkCameraReady(unsigned int serial_number);
+namespace sl_tool {
 
-/* \brief Get ZED camera properties
- * \param serial_number : the serial number of the camera
- */
-sl::DeviceProperties getZEDFromSN(unsigned int serial_number);
+    /* \brief Check if a ZED camera is ready
+    * \param serial_number : the serial number of the camera to be checked
+    */
+    int checkCameraReady(unsigned int serial_number);
 
-/* \brief Convert an sl:Mat to a cv::Mat
- * \param mat : the sl::Mat to convert
- */
-cv::Mat toCVMat(sl::Mat &mat);
+    /* \brief Get ZED camera properties
+    * \param serial_number : the serial number of the camera
+    */
+    sl::DeviceProperties getZEDFromSN(unsigned int serial_number);
 
-cv::Mat convertRodrigues(sl::float3 r);
+    /* \brief Convert an sl:Mat to a cv::Mat
+    * \param mat : the sl::Mat to convert
+    */
+    cv::Mat toCVMat(sl::Mat &mat);
 
-/* \brief Test if a file exist
-* \param name : the path to the file
-*/
-bool file_exist(const std::string& name);
+    cv::Mat convertRodrigues(sl::float3 r);
+
+    /* \brief Test if a file exist
+    * \param name : the path to the file
+    */
+    bool file_exist(const std::string& name);
+    
+} // namespace
 
 #endif // SL_TOOLS_H

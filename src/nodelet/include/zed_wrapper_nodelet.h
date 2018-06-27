@@ -26,43 +26,21 @@
  ** A set of parameters can be specified in the launch file.                                       **
  ****************************************************************************************************/
 
-#include <csignal>
-#include <cstdio>
-#include <math.h>
-#include <limits>
-#include <thread>
-#include <chrono>
-#include <memory>
+#include <sl/Camera.hpp>
 
 #include <ros/ros.h>
 #include <nodelet/nodelet.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/distortion_models.h>
-#include <sensor_msgs/image_encodings.h>
-#include <sensor_msgs/Imu.h>
-#include <image_transport/image_transport.h>
-#include <stereo_msgs/DisparityImage.h>
-#include <dynamic_reconfigure/server.h>
-#include <zed_wrapper/ZedConfig.h>
-#include <nav_msgs/Odometry.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2_ros/buffer.h>
+#include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/transform_listener.h>
-#include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <geometry_msgs/TransformStamped.h>
+#include <image_transport/image_transport.h>
+#include <dynamic_reconfigure/server.h>
 
-#include <opencv2/core/core.hpp>
+#include <zed_wrapper/ZedConfig.h>
 
 #include <boost/make_shared.hpp>
 
-#include <sensor_msgs/PointCloud2.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-
-#include <sl/Camera.hpp>
+#include <opencv2/core/core.hpp>
 
 using namespace std;
 
@@ -173,7 +151,7 @@ namespace zed_wrapper {
         image_transport::Publisher pub_right;
         image_transport::Publisher pub_raw_right;
         image_transport::Publisher pub_depth;
-        ros::Publisher pub_disparity; // TODO use image_transport?
+        ros::Publisher pub_disparity;
         ros::Publisher pub_cloud;
         ros::Publisher pub_rgb_cam_info;
         ros::Publisher pub_left_cam_info;
