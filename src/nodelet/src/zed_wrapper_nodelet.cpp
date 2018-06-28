@@ -18,6 +18,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 #include "zed_wrapper_nodelet.h"
+#include "sl_tools.h"
 
 #include <csignal>
 #include <cstdio>
@@ -26,8 +27,6 @@
 #include <thread>
 #include <chrono>
 #include <memory>
-
-#include "sl_tools.h"
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -358,6 +357,8 @@ namespace zed_wrapper {
         else {
             uchar* opencvData = img.data;
             uchar* rosData = (uchar*) (&imgMessage.data[0]);
+
+            #pragma omp parallel for
             for (unsigned int i = 0; i < img.rows; i++) {
                 memcpy(rosData, opencvData, imgMessage.step);
                 rosData += imgMessage.step;
@@ -434,11 +435,11 @@ namespace zed_wrapper {
         point_cloud.height = height;
         int size = width*height;
         point_cloud.points.resize(size);
-
         
         sl::Vector4<float>* cpu_cloud = cloud.getPtr<sl::float4>();
 
         if( param.coordinate_system == sl::COORDINATE_SYSTEM_IMAGE ) {
+            #pragma omp parallel for
             for (int i = 0; i < size; i++) {
                 // COORDINATE_SYSTEM_IMAGE
                 point_cloud.points[i].x =  cpu_cloud[i][2];
@@ -446,7 +447,8 @@ namespace zed_wrapper {
                 point_cloud.points[i].z = -cpu_cloud[i][1];
                 point_cloud.points[i].rgb = cpu_cloud[i][3];
             }            
-        } else if( param.coordinate_system == sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {        
+        } else if( param.coordinate_system == sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {  
+            #pragma omp parallel for      
             for (int i = 0; i < size; i++) {
                 // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
                 point_cloud.points[i].x =  cpu_cloud[i][1];
@@ -455,9 +457,17 @@ namespace zed_wrapper {
                 point_cloud.points[i].rgb = cpu_cloud[i][3];
             }
         } else if( param.coordinate_system == sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
-            // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
-            // TODO check correctness
-            memcpy( &(*point_cloud.points.begin()), cpu_cloud, size );
+            #pragma omp parallel for
+            for (int i = 0; i < size; i++) {
+                // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
+
+                // TODO Check! A manual conversion should not be required here
+
+                point_cloud.points[i].x = -cpu_cloud[i][1];
+                point_cloud.points[i].y = -cpu_cloud[i][2];
+                point_cloud.points[i].z = -cpu_cloud[i][0];
+                point_cloud.points[i].rgb = cpu_cloud[i][3];
+            }
         } else {
             NODELET_ERROR_STREAM("Camera coordinate system not supported");            
         }       
