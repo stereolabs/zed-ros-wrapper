@@ -4,10 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
         - /RobotModel1/Links1
-        - /TF1
         - /TF1/Frames1
-        - /Odometry1
         - /Odometry1/Shape1
       Splitter Ratio: 0.5
     Tree Height: 451
@@ -96,7 +95,7 @@ Visualization Manager:
         imu_link:
           Value: false
         map:
-          Value: false
+          Value: true
         zed_center:
           Value: true
         zed_depth_camera:
@@ -188,8 +187,8 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 5
       Selectable: true
-      Size (Pixels): 3
-      Style: Flat Squares
+      Size (Pixels): 1
+      Style: Points
       Topic Filter: true
       Use Fixed Frame: true
       Use rainbow: true
@@ -217,10 +216,10 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
+        Max Value: 0.240854248
+        Min Value: -1.55063653
         Value: true
-      Axis: Z
+      Axis: X
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
@@ -234,11 +233,11 @@ Visualization Manager:
       Min Intensity: 0
       Name: PointCloud2
       Position Transformer: XYZ
-      Queue Size: 10
+      Queue Size: 2
       Selectable: true
-      Size (Pixels): 3
+      Size (Pixels): 1
       Size (m): 0.00999999978
-      Style: Flat Squares
+      Style: Points
       Topic: /zed/point_cloud/cloud_registered
       Unreliable: false
       Use Fixed Frame: true
@@ -292,7 +291,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.86687708
+      Distance: 3.98344159
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -307,10 +306,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.899797022
+      Pitch: 0.434796959
       Target Frame: zed_left_camera
       Value: Orbit (rviz)
-      Yaw: 2.48227477
+      Yaw: 1.16227484
     Saved: ~
 Window Geometry:
   Camera:

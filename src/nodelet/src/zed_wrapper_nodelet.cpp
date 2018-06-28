@@ -460,14 +460,12 @@ namespace zed_wrapper {
             #pragma omp parallel for
             for (int i = 0; i < size; i++) {
                 // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
-
-                // TODO Check! A manual conversion should not be required here
-
-                point_cloud.points[i].x = -cpu_cloud[i][1];
-                point_cloud.points[i].y = -cpu_cloud[i][2];
-                point_cloud.points[i].z = -cpu_cloud[i][0];
+                point_cloud.points[i].x = cpu_cloud[i][0];
+                point_cloud.points[i].y = cpu_cloud[i][1];
+                point_cloud.points[i].z = cpu_cloud[i][2];
                 point_cloud.points[i].rgb = cpu_cloud[i][3];
-            }
+            }            
+            //memcpy( (float*)(&(point_cloud.points[0])), (float*)(&(cpu_cloud[0])), 4*size*sizeof(float)  );
         } else {
             NODELET_ERROR_STREAM("Camera coordinate system not supported");            
         }       
@@ -720,6 +718,8 @@ namespace zed_wrapper {
         rgb_cam_info_msg = depth_cam_info_msg = left_cam_info_msg; // the reference camera is the Left one (next to the ZED logo)
         rgb_cam_info_raw_msg = left_cam_info_raw_msg;
 
+        // Disable spatial mapping to improve performaces
+        zed.disableSpatialMapping();
 
         sl::RuntimeParameters runParams;
         runParams.sensing_mode = static_cast<sl::SENSING_MODE> (sensing_mode);
