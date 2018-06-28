@@ -102,13 +102,13 @@ set(NODELET_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.
 
 # Specify locations of header files.
 include_directories(
-	${catkin_INCLUDE_DIRS}
-	${CUDA_INCLUDE_DIRS}
-	${ZED_INCLUDE_DIRS}
-	${OpenCV_INCLUDE_DIRS}
-	${PCL_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/include
+        ${catkin_INCLUDE_DIRS}
+        ${CUDA_INCLUDE_DIRS}
+        ${ZED_INCLUDE_DIRS}
+        ${OpenCV_INCLUDE_DIRS}
+        ${PCL_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/include
 )
 
 link_directories(${ZED_LIBRARY_DIR})

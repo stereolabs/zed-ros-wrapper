@@ -21,7 +21,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
     <arg name="zed_id"                default="0" />
     <!-- If a ZED SN is given, zed_id is ignored and the wrapper will specifically look for the ZED with the corresponding serial number -->
-    <arg name="serial_number"                default="0" /> 
+    <arg name="serial_number"         default="0" /> 
+    <arg name="resolution"            default="2" />
 
     <!-- GPU ID-->
     <arg name="gpu_id"                default="-1" />
@@ -59,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="zed_id"                value="$(arg zed_id)" />
         <param name="serial_number"      value="$(arg serial_number)" />
 
-        <param name="resolution"            value="2" />
+        <param name="resolution"            value="$(arg resolution)" />
         <param name="quality"               value="1" />
         <param name="sensing_mode"          value="0" />
         <param name="frame_rate"            value="60" />
