@@ -37,10 +37,13 @@
 #include <dynamic_reconfigure/server.h>
 
 #include <zed_wrapper/ZedConfig.h>
+#include <zed_wrapper/reset_tracking.h>
 
 #include <boost/make_shared.hpp>
 
 #include <opencv2/core/core.hpp>
+
+
 
 using namespace std;
 
@@ -140,6 +143,11 @@ namespace zed_wrapper {
          */
         void imuPubCallback(const ros::TimerEvent & e);
 
+        /* \brief Service callback to reset tracking
+         */
+        bool reset_tracking(zed_wrapper::reset_tracking::Request  &req,
+                            zed_wrapper::reset_tracking::Response &res);
+
     private:
         // SDK version
         int ver_major;
@@ -171,6 +179,10 @@ namespace zed_wrapper {
         ros::Publisher pub_odom;
         ros::Publisher pub_imu;
         ros::Timer  pub_imu_timer;
+
+        // Service
+        bool tracking_activated;
+        ros::ServiceServer srv_reset_tracking;
 
         // tf
         tf2_ros::TransformBroadcaster transform_odom_broadcaster;

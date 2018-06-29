@@ -333,6 +333,9 @@ namespace zed_wrapper {
             NODELET_WARN_STREAM( "'imu_pub_rate' set to " << imu_pub_rate << " Hz" << " but ZED camera model does not support IMU data publishing.");
         }
 
+        // Service
+        srv_reset_tracking = nh.advertiseService( "reset_tracking", &ZEDWrapperNodelet::reset_tracking, this );
+
         // Start pool thread
         device_poll_thread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));        
 
@@ -366,6 +369,27 @@ namespace zed_wrapper {
             }
         }
         return ptr;
+    }
+
+    bool ZEDWrapperNodelet::reset_tracking(zed_wrapper::reset_tracking::Request  &req,
+                                           zed_wrapper::reset_tracking::Response &res)
+    {
+        if( !tracking_activated )
+        {
+            res.reset_done = false;
+            return false;
+        }
+        
+        sl::Rotation rot;
+        rot.setIdentity();
+        sl::Translation t(0.0,0.0,0.0);
+
+        sl::Transform transf(rot,t);
+
+        zed.resetTracking( transf );
+        res.reset_done = true;
+
+        return true;
     }
 
     void ZEDWrapperNodelet::publishOdom(tf2::Transform base_transform, ros::Time t) {
@@ -694,7 +718,7 @@ namespace zed_wrapper {
         ros::Rate loop_rate(rate);
         ros::Time old_t = ros::Time::now();
         sl::ERROR_CODE grab_status;
-        bool tracking_activated = false;
+        tracking_activated = false;
 
         // Get the parameters of the ZED images
         int width = zed.getResolution().width;

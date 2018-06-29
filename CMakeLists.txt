@@ -74,6 +74,11 @@ generate_dynamic_reconfigure_options(
   cfg/Zed.cfg
 )
 
+add_service_files(FILES
+  reset_tracking.srv)
+
+generate_messages()
+
 catkin_package(
   CATKIN_DEPENDS
     roscpp
@@ -86,6 +91,7 @@ catkin_package(
     tf2_ros
     tf2_geometry_msgs
     pcl_conversions
+    message_runtime
 )
 
 ###############################################################################
