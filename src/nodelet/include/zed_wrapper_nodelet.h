@@ -186,15 +186,23 @@ namespace zed_wrapper {
 
         // tf
         tf2_ros::TransformBroadcaster transform_odom_broadcaster;
-        std::string left_frame_id;
-        std::string right_frame_id;
         std::string rgb_frame_id;
+        std::string rgb_opt_frame_id;
+        
         std::string depth_frame_id;
+        std::string depth_opt_frame_id;
+
         std::string disparity_frame_id;
+        std::string disparity_opt_frame_id;
+
         std::string cloud_frame_id;
+
         std::string odometry_frame_id;
         std::string base_frame_id;
-        std::string camera_frame_id;
+        std::string right_cam_frame_id;
+        std::string right_cam_opt_frame_id;
+        std::string left_cam_frame_id;
+        std::string left_cam_opt_frame_id;
         std::string imu_frame_id;
 
         // initialization Transform listener

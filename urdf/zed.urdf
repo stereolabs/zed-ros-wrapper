@@ -18,17 +18,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <robot name="zed_camera">
 
-    <link name="zed_left_camera">
-        <visual>
-            <origin xyz="0 0 0" rpy="0 1.57 0"/>
-            <geometry>
-                <cylinder radius="0.007" length=".031"/>
-            </geometry>
-            <material name="dark_grey">
-                <color rgba="0.1 0.1 0.1 1"/>
-            </material>
-        </visual>
-    </link>
+<!-- Camera Center -->
     <link name="zed_center">
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -40,34 +30,41 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             </material>
         </visual>
     </link>
-    <link name="zed_right_camera">
-        <visual>
-            <origin xyz="0 0 0" rpy="0 1.57 0"/>
-            <geometry>
-                <cylinder radius="0.007" length=".031"/>
-            </geometry>
-            <material name="dark_grey">
-                <color rgba="0.1 0.1 0.1 1"/>
-            </material>
-        </visual>
-    </link>
-    <link name="zed_depth_camera" />
+
+<!-- Left Camera -->
 
     <joint name="zed_left_camera_joint" type="fixed">
         <parent link="zed_center"/>
-        <child link="zed_left_camera"/>
+        <child link="zed_left_camera_frame"/>
         <origin xyz="0 0.06 0" rpy="0 0 0" />
     </joint>
-    <joint name="zed_depth_camera_joint" type="fixed">
-        <parent link="zed_left_camera"/>
-        <child link="zed_depth_camera"/>
-        <origin xyz="0 0 0" rpy="-1.5707963267948966 0 -1.5707963267948966" />
+
+    <link name="zed_left_camera_frame" />
+
+    <joint name="zed_left_camera_optical_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="-1.57079632679 0.0 -1.57079632679"/>
+        <parent link="zed_left_camera_frame"/>
+        <child link="zed_left_camera_optical_frame"/>
     </joint>
+
+    <link name="zed_left_camera_optical_frame"/>
+
+<!-- Right Camera -->
 
     <joint name="zed_right_camera_joint" type="fixed">
         <parent link="zed_center"/>
-        <child link="zed_right_camera"/>
+        <child link="zed_right_camera_frame"/>
         <origin xyz="0 -0.06 0" rpy="0 0 0" />
     </joint>
 
+    <link name="zed_right_camera_frame" />
+
+    <joint name="zed_right_camera_optical_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="-1.57079632679 0.0 -1.57079632679"/>
+        <parent link="zed_right_camera_frame"/>
+        <child link="zed_right_camera_optical_frame"/>
+    </joint>
+
+    <link name="zed_right_camera_optical_frame"/>
+    
 </robot>

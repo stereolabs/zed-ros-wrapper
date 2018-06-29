@@ -8,8 +8,7 @@ Panels:
         - /RobotModel1/Links1
         - /TF1/Frames1
         - /Odometry1/Shape1
-        - /DepthCloud1
-        - /Imu1
+        - /Camera1
       Splitter Ratio: 0.5
     Tree Height: 451
   - Class: rviz/Selection
@@ -71,15 +70,19 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        zed_depth_camera:
+        zed_left_camera_frame:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        zed_left_camera:
+        zed_left_camera_optical_frame:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        zed_right_camera:
+        zed_right_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed_right_camera_optical_frame:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -100,11 +103,13 @@ Visualization Manager:
           Value: true
         zed_center:
           Value: true
-        zed_depth_camera:
+        zed_left_camera_frame:
           Value: false
-        zed_left_camera:
+        zed_left_camera_optical_frame:
           Value: false
-        zed_right_camera:
+        zed_right_camera_frame:
+          Value: false
+        zed_right_camera_optical_frame:
           Value: false
       Marker Scale: 1
       Name: TF
@@ -114,13 +119,14 @@ Visualization Manager:
       Tree:
         map:
           zed_center:
-            imu_link:
-              {}
-            zed_left_camera:
-              zed_depth_camera:
+            zed_left_camera_frame:
+              imu_link:
                 {}
-            zed_right_camera:
-              {}
+              zed_left_camera_optical_frame:
+                {}
+            zed_right_camera_frame:
+              zed_right_camera_optical_frame:
+                {}
       Update Interval: 0
       Value: true
     - Angle Tolerance: 0
@@ -170,7 +176,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/DepthCloud
       Color: 255; 255; 255
-      Color Image Topic: /zed/rgb/image_raw_color
+      Color Image Topic: /zed/rgb/image_rect_color
       Color Transformer: RGB8
       Color Transport Hint: raw
       Decay Time: 0
@@ -293,25 +299,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.98344159
+      Distance: 4.59502316
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.234707952
-        Y: -0.0350969173
-        Z: 0.785105944
+        X: -0.43964839
+        Y: -0.266723037
+        Z: 0.94536221
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.264796913
+      Pitch: -0.160203591
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.54727817
+      Yaw: 3.74728036
     Saved: ~
 Window Geometry:
   Camera:
