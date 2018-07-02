@@ -51,8 +51,8 @@
 #include <pcl/point_types.h>
 
 // >>>>> Backward compatibility
-#define COORDINATE_SYSTEM_IMAGE 			static_cast<sl::COORDINATE_SYSTEM>(0)
-#define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP		static_cast<sl::COORDINATE_SYSTEM>(3)
+#define COORDINATE_SYSTEM_IMAGE                     static_cast<sl::COORDINATE_SYSTEM>(0)
+#define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP         static_cast<sl::COORDINATE_SYSTEM>(3)
 #define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD	static_cast<sl::COORDINATE_SYSTEM>(5)
 // <<<<< Backward compatibility
 
@@ -268,6 +268,12 @@ namespace zed_wrapper {
             err = zed.open(param);
             NODELET_INFO_STREAM(toString(err));
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+            if( !nh_ns.ok() )
+            {
+                zed.close();
+                return;
+            }
         }
         
         sl::MODEL realCamModel = zed.getCameraInformation().camera_model;
@@ -841,6 +847,13 @@ namespace zed_wrapper {
                         NODELET_INFO("Re-opening the ZED");
                         sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
                         while (err != sl::SUCCESS) {
+
+                            if( !nh_ns.ok() )
+                            {
+                                zed.close();
+                                return;
+                            }
+
                             int id = sl_tools::checkCameraReady(serial_number);
                             if (id > 0) {
                                 param.camera_linux_id = id;
@@ -1039,6 +1052,7 @@ namespace zed_wrapper {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
             }
         } // while loop
+
         zed.close();
     }
 
