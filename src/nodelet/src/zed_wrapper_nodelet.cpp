@@ -50,6 +50,13 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+// >>>>> Backward compatibility
+#define COORDINATE_SYSTEM_IMAGE 			static_cast<sl::COORDINATE_SYSTEM>(0)
+#define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP		static_cast<sl::COORDINATE_SYSTEM>(3)
+#define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD	static_cast<sl::COORDINATE_SYSTEM>(5)
+// <<<<< Backward compatibility
+
+
 using namespace std;
 
 namespace zed_wrapper {
@@ -238,14 +245,14 @@ namespace zed_wrapper {
 
         if( ver_major<2 ) {
             NODELET_WARN_STREAM( "Please consider to upgrade to latest SDK version to get better performances");
-            param.coordinate_system = sl::COORDINATE_SYSTEM_IMAGE;    
+            param.coordinate_system = COORDINATE_SYSTEM_IMAGE;    
             NODELET_INFO_STREAM("Camera coordinate system set to COORDINATE_SYSTEM_IMAGE");      
         } else if( ver_major==2 && ver_minor<5) { 
             NODELET_WARN_STREAM( "Please consider to upgrade to latest SDK version to get latest features");
-            param.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP;
+            param.coordinate_system = COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP;
             NODELET_INFO_STREAM("Camera coordinate system set to COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP");
         } else {
-            param.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD;
+            param.coordinate_system = COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD;
             NODELET_INFO_STREAM("Camera coordinate system set to COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD");
         } 
 
@@ -480,7 +487,7 @@ namespace zed_wrapper {
         
         sl::Vector4<float>* cpu_cloud = cloud.getPtr<sl::float4>();
 
-        if( param.coordinate_system == sl::COORDINATE_SYSTEM_IMAGE ) {
+        if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
             #pragma omp parallel for
             for (int i = 0; i < size; i++) {
                 // COORDINATE_SYSTEM_IMAGE
@@ -489,7 +496,7 @@ namespace zed_wrapper {
                 point_cloud.points[i].z = -cpu_cloud[i][1];
                 point_cloud.points[i].rgb = cpu_cloud[i][3];
             }            
-        } else if( param.coordinate_system == sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {  
+        } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {  
             #pragma omp parallel for      
             for (int i = 0; i < size; i++) {
                 // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
@@ -498,7 +505,7 @@ namespace zed_wrapper {
                 point_cloud.points[i].z =  cpu_cloud[i][2];
                 point_cloud.points[i].rgb = cpu_cloud[i][3];
             }
-        } else if( param.coordinate_system == sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
+        } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
             #pragma omp parallel for
             for (int i = 0; i < size; i++) {
                 // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
@@ -646,7 +653,7 @@ namespace zed_wrapper {
         imu_msg.header.stamp = ros::Time().fromNSec(imu_data.timestamp);
         imu_msg.header.frame_id = imu_frame_id;      
 
-        if( param.coordinate_system == sl::COORDINATE_SYSTEM_IMAGE ) {
+        if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
             // COORDINATE_SYSTEM_IMAGE
             imu_msg.orientation.x =  imu_data.getOrientation()[2];
             imu_msg.orientation.y = -imu_data.getOrientation()[0];
@@ -675,7 +682,7 @@ namespace zed_wrapper {
                 imu_msg.angular_velocity_covariance[i*3+1] = imu_data.angular_velocity_convariance.r[i*3+0];
                 imu_msg.angular_velocity_covariance[i*3+2] = imu_data.angular_velocity_convariance.r[i*3+1];
             }      
-        } else if( param.coordinate_system == sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
+        } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
             // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
             imu_msg.orientation.x =  imu_data.getOrientation()[1];
             imu_msg.orientation.y = -imu_data.getOrientation()[0];
@@ -704,7 +711,7 @@ namespace zed_wrapper {
                 imu_msg.angular_velocity_covariance[i*3+1] = imu_data.angular_velocity_convariance.r[i*3+0];
                 imu_msg.angular_velocity_covariance[i*3+2] = imu_data.angular_velocity_convariance.r[i*3+2];
             }
-        } else if( param.coordinate_system == sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
+        } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
             // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
             imu_msg.orientation.x = imu_data.getOrientation()[0];
             imu_msg.orientation.y = imu_data.getOrientation()[1];
@@ -976,7 +983,7 @@ namespace zed_wrapper {
                     sl::Translation translation = pose.getTranslation();   
                     sl::Orientation quat = pose.getOrientation();
 
-                    if( param.coordinate_system == sl::COORDINATE_SYSTEM_IMAGE ) {
+                    if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
                         // COORDINATE_SYSTEM_IMAGE
                         c2s.translation.x =  translation(2);
                         c2s.translation.y = -translation(0);
@@ -986,7 +993,7 @@ namespace zed_wrapper {
                         c2s.rotation.y = -quat(0);
                         c2s.rotation.z = -quat(1);
                         c2s.rotation.w =  quat(3);
-                    } else if( param.coordinate_system == sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
+                    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
                         // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
                         c2s.translation.x =  translation(1);
                         c2s.translation.y = -translation(0);
@@ -996,7 +1003,7 @@ namespace zed_wrapper {
                         c2s.rotation.y = -quat(0);
                         c2s.rotation.z =  quat(2);
                         c2s.rotation.w =  quat(3);
-                    } else if( param.coordinate_system == sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
+                    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
                         // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
                         c2s.translation.x = translation(0);
                         c2s.translation.y = translation(1);
