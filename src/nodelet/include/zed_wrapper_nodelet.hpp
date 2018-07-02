@@ -105,6 +105,12 @@ namespace zed_wrapper {
          */
         void publishDepth(cv::Mat depth, ros::Time t);
 
+        /* \brief Publish a cv::Mat confidence image with a ros Publisher
+         * \param conf : the confidence image to publish
+         * \param t : the ros::Time to stamp the depth image
+         */
+        void publishConf(cv::Mat conf, ros::Time t);
+
         /* \brief Publish a pointCloud with a ros Publisher
          * \param width : the width of the point cloud
          * \param height : the height of the point cloud
@@ -167,6 +173,8 @@ namespace zed_wrapper {
         image_transport::Publisher pub_right;
         image_transport::Publisher pub_raw_right;
         image_transport::Publisher pub_depth;
+        image_transport::Publisher pub_conf_img;
+        ros::Publisher pub_conf_map;
         ros::Publisher pub_disparity;
         ros::Publisher pub_cloud;
         ros::Publisher pub_rgb_cam_info;
@@ -194,6 +202,9 @@ namespace zed_wrapper {
 
         std::string disparity_frame_id;
         std::string disparity_opt_frame_id;
+
+        std::string confidence_frame_id;
+        std::string confidence_opt_frame_id;
 
         std::string cloud_frame_id;
 

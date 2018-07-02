@@ -96,6 +96,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <param name="point_cloud_topic"     value="point_cloud/cloud_registered" />
 
+        <param name="disparity_topic"       value="disparity/disparity_image" />
+        <param name="confidence_img_topic"  value="confidence/confidence_image" />
+        <param name="confidence_map_topic"  value="confidence/confidence_map" />
+
         <param name="odometry_topic"        value="odom" />
 
         <param name="imu_topic"             value="imu/data" />

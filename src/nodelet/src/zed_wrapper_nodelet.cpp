@@ -56,7 +56,6 @@
 #define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD	static_cast<sl::COORDINATE_SYSTEM>(5)
 // <<<<< Backward compatibility
 
-
 using namespace std;
 
 namespace zed_wrapper {
@@ -105,7 +104,10 @@ namespace zed_wrapper {
         rgb_opt_frame_id  = cloud_frame_id;
         
         disparity_frame_id = depth_frame_id;
-        disparity_opt_frame_id = depth_opt_frame_id;        
+        disparity_opt_frame_id = depth_opt_frame_id;
+
+        confidence_frame_id = depth_frame_id;
+        confidence_opt_frame_id = depth_opt_frame_id;
 
         // Get parameters from launch file
         nh_ns.getParam("resolution", resolution);
@@ -177,6 +179,9 @@ namespace zed_wrapper {
 
         string point_cloud_topic = "point_cloud/cloud_registered";
 
+        string conf_img_topic = "confidence/confidence_image";
+        string conf_map_topic = "confidence/confidence_map";
+
         string odometry_topic = "odom";
         string imu_topic = "imu";
 
@@ -199,6 +204,9 @@ namespace zed_wrapper {
         nh_ns.getParam("depth_cam_info_topic", depth_cam_info_topic);
 
         nh_ns.getParam("disparity_topic", disparity_topic);
+
+        nh_ns.getParam("confidence_img_topic", conf_img_topic);
+        nh_ns.getParam("confidence_map_topic", conf_map_topic);
 
         nh_ns.getParam("point_cloud_topic", point_cloud_topic);
 
@@ -324,7 +332,14 @@ namespace zed_wrapper {
         pub_raw_right = it_zed.advertise(right_raw_topic, 1); //right raw
         NODELET_INFO_STREAM("Advertized on topic " << right_raw_topic);
         pub_depth = it_zed.advertise(depth_topic, 1); //depth
-        NODELET_INFO_STREAM("Advertized on topic " << depth_topic);
+        NODELET_INFO_STREAM("Advertized on topic " << depth_topic);        
+        pub_conf_img = it_zed.advertise(conf_img_topic, 1); //confidence image
+        NODELET_INFO_STREAM("Advertized on topic " << conf_img_topic);
+
+        // Confidence Map publisher
+        pub_conf_map = nh.advertise<sensor_msgs::Image>(conf_map_topic, 1); //confidence map
+        NODELET_INFO_STREAM("Advertized on topic " << conf_map_topic);
+
 
         // Disparity publisher
         pub_disparity = nh.advertise<stereo_msgs::DisparityImage>(disparity_topic, 1);
@@ -759,6 +774,8 @@ namespace zed_wrapper {
         cv::Size cvSize(width, height);
         cv::Mat leftImRGB(cvSize, CV_8UC3);
         cv::Mat rightImRGB(cvSize, CV_8UC3);
+        cv::Mat confImRGB(cvSize, CV_8UC3);
+        cv::Mat confMapFloat(cvSize, CV_32FC1);
 
         // Create and fill the camera information messages
         sensor_msgs::CameraInfoPtr rgb_cam_info_msg(new sensor_msgs::CameraInfo());
@@ -783,7 +800,7 @@ namespace zed_wrapper {
         trackParams.area_file_path = odometry_DB.c_str();
 
 
-        sl::Mat leftZEDMat, rightZEDMat, depthZEDMat, disparityZEDMat;
+        sl::Mat leftZEDMat, rightZEDMat, depthZEDMat, disparityZEDMat, confImgZEDMat, confMapZEDMat;
         // Main loop
         while (nh_ns.ok()) {
             // Check for subscribers
@@ -797,8 +814,10 @@ namespace zed_wrapper {
             int disparity_SubNumber = pub_disparity.getNumSubscribers();
             int cloud_SubNumber = pub_cloud.getNumSubscribers();
             int odom_SubNumber = pub_odom.getNumSubscribers();
+            int conf_img_SubNumber = pub_conf_img.getNumSubscribers();
+            int conf_map_SubNumber = pub_conf_map.getNumSubscribers();
             bool runLoop = (rgb_SubNumber + rgb_raw_SubNumber + left_SubNumber + left_raw_SubNumber + right_SubNumber + 
-                            right_raw_SubNumber + depth_SubNumber + disparity_SubNumber + cloud_SubNumber + odom_SubNumber) > 0;
+                            right_raw_SubNumber + depth_SubNumber + disparity_SubNumber + cloud_SubNumber + odom_SubNumber + conf_img_SubNumber + conf_map_SubNumber) > 0;
 
             runParams.enable_point_cloud = false;
             if (cloud_SubNumber > 0)
@@ -816,7 +835,7 @@ namespace zed_wrapper {
                     zed.disableTracking();
                     tracking_activated = false;
                 }
-                computeDepth = (depth_SubNumber + disparity_SubNumber + cloud_SubNumber + odom_SubNumber) > 0; // Detect if one of the subscriber need to have the depth information
+                computeDepth = (depth_SubNumber + disparity_SubNumber + cloud_SubNumber + odom_SubNumber + conf_img_SubNumber + conf_map_SubNumber) > 0; // Detect if one of the subscriber need to have the depth information
                 ros::Time t = ros::Time::now(); // Get current time
 
                 grabbing = true;
@@ -940,10 +959,10 @@ namespace zed_wrapper {
                     cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
                     publishCamInfo(right_cam_info_raw_msg, pub_right_cam_info_raw, t);
                     publishImage(rightImRGB, pub_raw_right, right_cam_opt_frame_id, t);
-                }
+                }                
 
                 // Publish the depth image if someone has subscribed to
-                if (depth_SubNumber > 0) {
+                if (depth_SubNumber > 0 || disparity_SubNumber > 0) {
                     zed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH);
                     publishCamInfo(depth_cam_info_msg, pub_depth_cam_info, t);
                     publishDepth(sl_tools::toCVMat(depthZEDMat), t); // in meters
@@ -955,6 +974,20 @@ namespace zed_wrapper {
                     // Need to flip sign, but cause of this is not sure
                     cv::Mat disparity = sl_tools::toCVMat(disparityZEDMat) * -1.0;
                     publishDisparity(disparity, t);
+                }
+
+                // Publish the confidence image if someone has subscribed to
+                if (conf_img_SubNumber > 0) {
+                    zed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE);
+                    cv::cvtColor(sl_tools::toCVMat(confImgZEDMat), confImRGB, CV_RGBA2RGB);
+                    publishImage(confImRGB, pub_conf_img, confidence_opt_frame_id, t);
+                }
+
+                // Publish the confidence map if someone has subscribed to
+                if (conf_map_SubNumber > 0) {
+                    zed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE);
+                    confMapFloat = sl_tools::toCVMat(confMapZEDMat);
+                    pub_conf_map.publish(imageToROSmsg(confMapFloat, sensor_msgs::image_encodings::TYPE_32FC1, confidence_opt_frame_id, t));
                 }
 
                 // Publish the point cloud if someone has subscribed to

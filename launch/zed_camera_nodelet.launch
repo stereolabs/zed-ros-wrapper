@@ -22,82 +22,89 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="zed_id"                default="0" />
     <!-- If a ZED SN is given, zed_id is ignored and the wrapper will specifically look for the ZED with the corresponding serial number -->
     <arg name="serial_number"         default="0" /> 
+    <arg name="resolution"            default="2" />
 
     <!-- GPU ID-->
     <arg name="gpu_id"                default="-1" />
 
     <!-- Definition coordinate frames -->
     <arg name="publish_tf"            default="true" />
-    <arg name="odometry_frame"        default="odom" />
-    <arg name="base_frame"            default="zed_center" />
-    <arg name="camera_frame"          default="zed_left_camera" />
-    <arg name="depth_frame"           default="zed_depth_camera" />
-    <arg name="disparity_frame"       default="zed_depth_camera" />
-    <arg name="imu_frame"             default="imu_link" />
+    <arg name="odometry_frame"                default="odom" />
+    <arg name="base_frame"                    default="zed_center" />
+    <arg name="left_camera_frame"             default="zed_left_camera_frame" />
+    <arg name="left_camera_optical_frame"     default="zed_left_camera_optical_frame" />
+    <arg name="right_camera_frame"            default="zed_right_camera_frame" />
+    <arg name="right_camera_optical_frame"    default="zed_right_camera_optical_frame" />
+    <arg name="imu_frame"                     default="imu_link" />
 
     <!-- Publish urdf zed -->
     <arg name="publish_urdf"          default="true" />
     
     <node pkg="nodelet" type="nodelet" name="ZED_nodelet" args="load zed_wrapper/ZEDWrapperNodelet nodelet_manager" output="screen"> 
 
-        <param name="camera_model" value="$(arg camera_model)" />
+<param name="camera_model" value="$(arg camera_model)" />
 
-        <!-- publish odometry frame -->
-        <param name="publish_tf"            value="$(arg publish_tf)" />
+<!-- publish odometry frame -->
+<param name="publish_tf"            value="$(arg publish_tf)" />
 
-        <!-- Configuration frame camera -->    
-        <param name="odometry_frame"        value="$(arg odometry_frame)" />
-        <param name="base_frame"            value="$(arg base_frame)" />
-        <param name="camera_frame"          value="$(arg camera_frame)" />
-        <param name="depth_frame"           value="$(arg depth_frame)" />
-        <param name="disparity_frame"       value="$(arg disparity_frame)" />
-    
-        <!-- SVO file path -->
-        <param name="svo_filepath"          value="$(arg svo_file)" />
+<!-- Configuration frame camera -->
+<param name="odometry_frame"                value="$(arg odometry_frame)" />
+<param name="base_frame"                    value="$(arg base_frame)" />
+<param name="left_camera_frame"             value="$(arg left_camera_frame)" />
+<param name="left_camera_optical_frame"     value="$(arg left_camera_optical_frame)" />
+<param name="right_camera_frame"            value="$(arg right_camera_frame)" />
+<param name="right_camera_optical_frame"    value="$(arg right_camera_optical_frame)" />
 
-        <!-- ZED parameters -->
-        <param name="zed_id"                value="$(arg zed_id)" />
-        <param name="serial_number"      value="$(arg serial_number)" />
+<!-- SVO file path -->
+<param name="svo_filepath"          value="$(arg svo_file)" />
 
-        <param name="resolution"            value="2" />
-        <param name="quality"               value="1" />
-        <param name="sensing_mode"          value="0" />
-        <param name="frame_rate"            value="60" />
-        <param name="odometry_db"           value="" />
-        <param name="openni_depth_mode"     value="0" />
-        <param name="gpu_id"                value="$(arg gpu_id)" />
-        <param name="confidence"            value="100" />
-        <param name="gain"                  value="100" />
-        <param name="exposure"              value="100" />
-        <param name="auto_exposure"         value="true" />
-        <param name="depth_stabilization"   value="1" />
+<!-- ZED parameters -->
+<param name="zed_id"                value="$(arg zed_id)" />
+<param name="serial_number"      value="$(arg serial_number)" />
 
-        <!-- ROS topic names -->
-        <param name="rgb_topic"             value="rgb/image_rect_color" />
-        <param name="rgb_raw_topic"         value="rgb/image_raw_color" />
-        <param name="rgb_cam_info_topic"    value="rgb/camera_info" />
-        <param name="rgb_cam_info_raw_topic"    value="rgb/camera_info_raw" />
+<param name="resolution"            value="$(arg resolution)" />
+<param name="quality"               value="1" />
+<param name="sensing_mode"          value="0" />
+<param name="frame_rate"            value="60" />
+<param name="odometry_db"           value="" />
+<param name="openni_depth_mode"     value="0" />
+<param name="gpu_id"                value="$(arg gpu_id)" />
+<param name="confidence"            value="100" />
+<param name="gain"                  value="100" />
+<param name="exposure"              value="100" />
+<param name="auto_exposure"         value="true" />
+<param name="depth_stabilization"   value="1" />
 
-        <param name="left_topic"            value="left/image_rect_color" />
-        <param name="left_raw_topic"        value="left/image_raw_color" />
-        <param name="left_cam_info_topic"   value="left/camera_info" />
-        <param name="left_cam_info_raw_topic"   value="left/camera_info_raw" />
+<!-- ROS topic names -->
+<param name="rgb_topic"             value="rgb/image_rect_color" />
+<param name="rgb_raw_topic"         value="rgb/image_raw_color" />
+<param name="rgb_cam_info_topic"    value="rgb/camera_info" />
+<param name="rgb_cam_info_raw_topic"    value="rgb/camera_info_raw" />
 
-        <param name="right_topic"           value="right/image_rect_color" />
-        <param name="right_raw_topic"       value="right/image_raw_color" />
-        <param name="right_cam_info_topic"  value="right/camera_info" />
-        <param name="right_cam_info_raw_topic"  value="right/camera_info_raw" />
+<param name="left_topic"            value="left/image_rect_color" />
+<param name="left_raw_topic"        value="left/image_raw_color" />
+<param name="left_cam_info_topic"   value="left/camera_info" />
+<param name="left_cam_info_raw_topic"   value="left/camera_info_raw" />
 
-        <param name="depth_topic"           value="depth/depth_registered" />
-        <param name="depth_cam_info_topic"  value="depth/camera_info" />
+<param name="right_topic"           value="right/image_rect_color" />
+<param name="right_raw_topic"       value="right/image_raw_color" />
+<param name="right_cam_info_topic"  value="right/camera_info" />
+<param name="right_cam_info_raw_topic"  value="right/camera_info_raw" />
 
-        <param name="point_cloud_topic"     value="point_cloud/cloud_registered" />
+<param name="depth_topic"           value="depth/depth_registered" />
+<param name="depth_cam_info_topic"  value="depth/camera_info" />
 
-        <param name="odometry_topic"        value="odom" />
+<param name="point_cloud_topic"     value="point_cloud/cloud_registered" />
 
-        <param name="imu_topic"             value="imu/data" />
+<param name="disparity_topic"       value="disparity/disparity_image" />
+<param name="confidence_img_topic"  value="confidence/confidence_image" />
+<param name="confidence_map_topic"  value="confidence/confidence_map" />
 
-        <param name="imu_pub_rate"          value="100.0" />
+<param name="odometry_topic"        value="odom" />
+
+<param name="imu_topic"             value="imu/data" />
+
+<param name="imu_pub_rate"          value="100.0" />
 
     </node>
 
