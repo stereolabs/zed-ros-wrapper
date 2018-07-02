@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2017, STEREOLABS.
+// Copyright (c) 2018, STEREOLABS.
 //
 // All rights reserved.
 //
@@ -986,7 +986,7 @@ namespace zed_wrapper {
                 }
 
                 // Publish the odometry if someone has subscribed to
-                if (odom_SubNumber > 0 || cloud_SubNumber > 0) {
+                if (odom_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0) {
                     zed.getPosition(pose);
 
                     // Transform ZED pose in TF2 Transformation
