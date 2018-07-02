@@ -17,7 +17,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////
-#include "zed_wrapper_nodelet.h"
+#include "zed_wrapper_nodelet.hpp"
 #include "sl_tools.h"
 
 #include <csignal>
@@ -119,23 +119,23 @@ namespace zed_wrapper {
         nh_ns.param<bool>("publish_tf", publish_tf, true);
 
         if (serial_number > 0)
-            ROS_INFO_STREAM("SN : " << serial_number);
+            NODELET_INFO_STREAM("SN : " << serial_number);
 
         // Print order frames
-        ROS_INFO_STREAM("odometry_frame \t\t   -> " << odometry_frame_id);
-        ROS_INFO_STREAM("base_frame \t\t   -> " << base_frame_id);
-        ROS_INFO_STREAM("imu_link \t\t   -> " << imu_frame_id);
-        ROS_INFO_STREAM("left_camera_frame \t   -> " << left_cam_frame_id);
-        ROS_INFO_STREAM("left_camera_optical_frame  -> " << left_cam_opt_frame_id);
-        ROS_INFO_STREAM("right_camera_frame \t   -> " << right_cam_frame_id);        
-        ROS_INFO_STREAM("right_camera_optical_frame -> " << right_cam_opt_frame_id);
-        ROS_INFO_STREAM("depth_frame \t\t   -> " << depth_frame_id); 
-        ROS_INFO_STREAM("depth_optical_frame \t   -> " << depth_opt_frame_id);
-        ROS_INFO_STREAM("disparity_frame \t   -> " << disparity_frame_id);
-        ROS_INFO_STREAM("disparity_optical_frame    -> " << disparity_opt_frame_id);
+        NODELET_INFO_STREAM("odometry_frame \t\t   -> " << odometry_frame_id);
+        NODELET_INFO_STREAM("base_frame \t\t   -> " << base_frame_id);
+        NODELET_INFO_STREAM("imu_link \t\t   -> " << imu_frame_id);
+        NODELET_INFO_STREAM("left_camera_frame \t   -> " << left_cam_frame_id);
+        NODELET_INFO_STREAM("left_camera_optical_frame  -> " << left_cam_opt_frame_id);
+        NODELET_INFO_STREAM("right_camera_frame \t   -> " << right_cam_frame_id);
+        NODELET_INFO_STREAM("right_camera_optical_frame -> " << right_cam_opt_frame_id);
+        NODELET_INFO_STREAM("depth_frame \t\t   -> " << depth_frame_id);
+        NODELET_INFO_STREAM("depth_optical_frame \t   -> " << depth_opt_frame_id);
+        NODELET_INFO_STREAM("disparity_frame \t   -> " << disparity_frame_id);
+        NODELET_INFO_STREAM("disparity_optical_frame    -> " << disparity_opt_frame_id);
 
         // Status of odometry TF
-        ROS_INFO_STREAM("Publish " << odometry_frame_id << " [" << (publish_tf ? "TRUE" : "FALSE") << "]");
+        NODELET_INFO_STREAM("Publish " << odometry_frame_id << " [" << (publish_tf ? "TRUE" : "FALSE") << "]");
 
         std::string img_topic = "image_rect_color";
         std::string img_raw_topic = "image_raw_color";
@@ -278,7 +278,7 @@ namespace zed_wrapper {
             } 
         }
 
-        ROS_INFO_STREAM("CAMERA MODEL : " << realCamModel);
+        NODELET_INFO_STREAM("CAMERA MODEL : " << realCamModel);
 
         serial_number = zed.getCameraInformation().serial_number;
 

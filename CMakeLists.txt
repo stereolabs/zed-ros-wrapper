@@ -57,6 +57,7 @@ find_package(catkin COMPONENTS
   pcl_conversions
   nodelet
   tf2_geometry_msgs
+  message_generation
 )
 
 checkPackage("image_transport" "")
@@ -69,15 +70,16 @@ checkPackage("tf2_ros" "")
 checkPackage("pcl_conversions" "")
 checkPackage("nodelet" "")
 checkPackage("tf2_geometry_msgs" "")
+checkPackage("message_generation" "")
+
+add_service_files( FILES
+  reset_tracking.srv)
+
+generate_messages()
 
 generate_dynamic_reconfigure_options(
   cfg/Zed.cfg
 )
-
-add_service_files(FILES
-  reset_tracking.srv)
-
-generate_messages()
 
 catkin_package(
   CATKIN_DEPENDS
@@ -90,7 +92,7 @@ catkin_package(
     dynamic_reconfigure
     tf2_ros
     tf2_geometry_msgs
-    pcl_conversions
+    pcl_conversions    
     message_runtime
 )
 
