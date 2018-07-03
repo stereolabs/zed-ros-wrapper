@@ -250,6 +250,7 @@ namespace zed_wrapper {
         //Tracking variables
         sl::Pose pose;
         tf2::Transform base_transform;
+        std::vector<float> initial_track_pose;
 
         // zed object
         sl::InitParameters param;

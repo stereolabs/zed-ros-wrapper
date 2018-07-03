@@ -435,11 +435,57 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::start_tracking() {
+        NODELET_INFO_STREAM("Starting Tracking");
+
+        std::vector<float> test(2);
+        test[0] = 0.5f;
+        test[1] = 0.6f;
+
+        nh_ns.setParam( "test", test );
+
         nh_ns.getParam("odometry_DB", odometry_DB);
         nh_ns.getParam("pose_smoothing", pose_smoothing);
+        NODELET_INFO_STREAM("Pose Smoothing : " << pose_smoothing);
         nh_ns.getParam("spatial_memory", spatial_memory);
+        NODELET_INFO_STREAM("Spatial Memory : " << spatial_memory);
 
-        // TODO load initial_world_transform
+        nh_ns.getParam("initial_tracking_pose", initial_track_pose );
+
+        sl::Transform initial_pose;
+
+        if( initial_track_pose.size()!=6 ) {
+            NODELET_WARN_STREAM("Invalid Initial Pose size (" << initial_track_pose.size() << "). Using Identity");
+            initial_pose.setIdentity();
+            base_transform.setIdentity();
+        } else {
+            NODELET_INFO_STREAM( "Initial pose: ["
+                                 << initial_track_pose[0] << ","
+                                 << initial_track_pose[1] << ","
+                                 << initial_track_pose[2] << ", "
+                                 << initial_track_pose[3] << ","
+                                 << initial_track_pose[4] << ","
+                                 << initial_track_pose[5] << "]");
+
+            initial_pose.setTranslation( sl::Translation( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2] ) );
+
+            // ROS initial pose
+            tf2::Quaternion q;
+            q.setRPY( initial_track_pose[3], initial_track_pose[4], initial_track_pose[5] );
+
+            tf2::Vector3 orig( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2] );
+            base_transform.setOrigin(orig);
+            base_transform.setRotation( q );
+
+            // SL Tracking initial pose
+            sl::float4 q_vec;
+            q_vec[0] = q.getX();
+            q_vec[1] = q.getY();
+            q_vec[2] = q.getZ();
+            q_vec[3] = q.getW();
+
+            sl::Orientation r(q_vec);
+            initial_pose.setOrientation( r );
+        }
 
         if (odometry_DB != "" && !sl_tools::file_exist(odometry_DB)) {
             odometry_DB = "";
@@ -452,7 +498,9 @@ namespace zed_wrapper {
         trackParams.enable_pose_smoothing = pose_smoothing;
         trackParams.enable_spatial_memory = spatial_memory;
 
-        // TODO add initial_world_transform
+        trackParams.initial_world_transform = initial_pose;
+
+
 
         zed.enableTracking(trackParams);
         tracking_activated = true;
@@ -479,7 +527,7 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::publishTrackedFrame(tf2::Transform base_transform, ros::Time t) {
         geometry_msgs::TransformStamped transformStamped;
-        transformStamped.header.stamp = ros::Time::now();
+        transformStamped.header.stamp = t;
         transformStamped.header.frame_id = odometry_frame_id;
         transformStamped.child_frame_id = base_frame_id;
         // conversion from Tranform to message
@@ -490,9 +538,9 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::publishImuFrame(tf2::Transform base_transform, ros::Time t) {
         geometry_msgs::TransformStamped transformStamped;
-        transformStamped.header.stamp = ros::Time::now();
-        transformStamped.header.frame_id = imu_frame_id;
-        transformStamped.child_frame_id = base_frame_id;
+        transformStamped.header.stamp = t;
+        transformStamped.header.frame_id = base_frame_id;
+        transformStamped.child_frame_id = imu_frame_id;
         // conversion from Tranform to message
         transformStamped.transform = tf2::toMsg(base_transform);
         // Publish transformation
@@ -854,7 +902,7 @@ namespace zed_wrapper {
                 runParams.enable_point_cloud = true;
             // Run the loop only if there is some subscribers
             if (runLoop) {
-                if ((depth_stabilization || odom_SubNumber > 0) && !tracking_activated) { //Start the tracking                    
+                if ((depth_stabilization || odom_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0) && !tracking_activated) { //Start the tracking
                     start_tracking();
                 } else if (!depth_stabilization && odom_SubNumber == 0 && tracking_activated) { //Stop the tracking
                     zed.disableTracking();
@@ -1030,11 +1078,11 @@ namespace zed_wrapper {
                     tf2::fromMsg(b2s.transform, base_to_sensor);
 
                 } catch (tf2::TransformException &ex) {
-                    ROS_WARN_THROTTLE(10.0, "The tf from '%s' to '%s' does not seem to be available, "
+                    NODELET_WARN_THROTTLE(10.0, "The tf from '%s' to '%s' does not seem to be available, "
                             "will assume it as identity!",
                             base_frame_id.c_str(),
                             depth_frame_id.c_str());
-                    ROS_DEBUG("Transform error: %s", ex.what());
+                    NODELET_DEBUG("Transform error: %s", ex.what());
                     base_to_sensor.setIdentity();
                 }
 
@@ -1050,6 +1098,8 @@ namespace zed_wrapper {
 
                     tf2::fromMsg(i2b, imu_transform);
 
+
+                    imu_transform.setIdentity(); // TODO remove!!!
 
                     //Note, the frame is published, but its values will only change if someone has subscribed to odom
                     publishImuFrame(imu_transform, t); //publish the tracked Frame
