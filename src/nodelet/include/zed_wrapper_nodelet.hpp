@@ -91,6 +91,12 @@ namespace zed_wrapper {
          */
         void publishTrackedFrame(tf2::Transform base_transform, ros::Time t);
 
+        /* \brief Publish the pose of the imu as a transformation
+         * \param base_transform : Transformation representing the imu pose from camera frame
+         * \param t : the ros::Time to stamp the image
+         */
+        void publishImuFrame(tf2::Transform base_transform, ros::Time t);
+
         /* \brief Publish a cv::Mat image with a ros Publisher
          * \param img : the image to publish
          * \param pub_img : the publisher object to use (different image publishers exist)
@@ -154,6 +160,10 @@ namespace zed_wrapper {
         bool reset_tracking(zed_wrapper::reset_tracking::Request  &req,
                             zed_wrapper::reset_tracking::Response &res);
 
+        /* \bried Start tracking loading the parameters from param server
+         */
+        void start_tracking();
+
     private:
         // SDK version
         int ver_major;
@@ -194,6 +204,7 @@ namespace zed_wrapper {
 
         // tf
         tf2_ros::TransformBroadcaster transform_odom_broadcaster;
+        tf2_ros::TransformBroadcaster transform_imu_broadcaster;
         std::string rgb_frame_id;
         std::string rgb_opt_frame_id;
         
@@ -232,6 +243,9 @@ namespace zed_wrapper {
         std::string odometry_DB;
         std::string svo_filepath;
         double imu_pub_rate;
+
+        bool pose_smoothing;
+        bool spatial_memory;
 
         //Tracking variables
         sl::Pose pose;

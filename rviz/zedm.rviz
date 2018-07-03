@@ -65,7 +65,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        zed_center:
+        zed_camera_center:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -101,7 +101,7 @@ Visualization Manager:
           Value: false
         map:
           Value: true
-        zed_center:
+        zed_camera_center:
           Value: true
         zed_left_camera_frame:
           Value: false
@@ -118,7 +118,7 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          zed_center:
+          zed_camera_center:
             zed_left_camera_frame:
               imu_link:
                 {}

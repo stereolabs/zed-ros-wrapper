@@ -59,7 +59,7 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        zed_center:
+        zed_camera_center:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -91,7 +91,7 @@ Visualization Manager:
         All Enabled: false
         map:
           Value: false
-        zed_center:
+        zed_camera_center:
           Value: true
         zed_depth_camera:
           Value: false
@@ -106,7 +106,7 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          zed_center:
+          zed_camera_center:
             zed_left_camera:
               zed_depth_camera:
                 {}

@@ -23,7 +23,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="serial_number"        default="0" /> 
 
     <group ns="zed">
-        <node pkg="nodelet" type="nodelet" name="nodelet_manager"  args="manager"/>
+        <node pkg="nodelet" type="nodelet" name="nodelet_manager"  args="manager" output="screen" />
         
         <include file="$(find zed_wrapper)/launch/zed_camera_nodelet.launch">
             <!-- compliant mode for rviz -->

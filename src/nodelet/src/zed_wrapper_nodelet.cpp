@@ -113,8 +113,7 @@ namespace zed_wrapper {
         nh_ns.getParam("resolution", resolution);
         nh_ns.getParam("quality", quality);
         nh_ns.getParam("sensing_mode", sensing_mode);
-        nh_ns.getParam("frame_rate", rate);
-        nh_ns.getParam("odometry_DB", odometry_DB);
+        nh_ns.getParam("frame_rate", rate);        
         nh_ns.getParam("openni_depth_mode", openniDepthMode);
         nh_ns.getParam("gpu_id", gpu_id);
         nh_ns.getParam("zed_id", zed_id);
@@ -425,17 +424,38 @@ namespace zed_wrapper {
             res.reset_done = false;
             return false;
         }
-        
-        sl::Rotation rot;
-        rot.setIdentity();
-        sl::Translation t(0.0,0.0,0.0);
 
-        sl::Transform transf(rot,t);
+        sl::Transform transf;
+        transf.setIdentity();
 
         zed.resetTracking( transf );
         res.reset_done = true;
 
         return true;
+    }
+
+    void ZEDWrapperNodelet::start_tracking() {
+        nh_ns.getParam("odometry_DB", odometry_DB);
+        nh_ns.getParam("pose_smoothing", pose_smoothing);
+        nh_ns.getParam("spatial_memory", spatial_memory);
+
+        // TODO load initial_world_transform
+
+        if (odometry_DB != "" && !sl_tools::file_exist(odometry_DB)) {
+            odometry_DB = "";
+            NODELET_WARN("odometry_DB path doesn't exist or is unreachable.");
+        }
+
+        // Tracking parameters
+        sl::TrackingParameters trackParams;
+        trackParams.area_file_path = odometry_DB.c_str();
+        trackParams.enable_pose_smoothing = pose_smoothing;
+        trackParams.enable_spatial_memory = spatial_memory;
+
+        // TODO add initial_world_transform
+
+        zed.enableTracking(trackParams);
+        tracking_activated = true;
     }
 
     void ZEDWrapperNodelet::publishOdom(tf2::Transform base_transform, ros::Time t) {
@@ -466,6 +486,17 @@ namespace zed_wrapper {
         transformStamped.transform = tf2::toMsg(base_transform);
         // Publish transformation
         transform_odom_broadcaster.sendTransform(transformStamped);
+    }
+
+    void ZEDWrapperNodelet::publishImuFrame(tf2::Transform base_transform, ros::Time t) {
+        geometry_msgs::TransformStamped transformStamped;
+        transformStamped.header.stamp = ros::Time::now();
+        transformStamped.header.frame_id = imu_frame_id;
+        transformStamped.child_frame_id = base_frame_id;
+        // conversion from Tranform to message
+        transformStamped.transform = tf2::toMsg(base_transform);
+        // Publish transformation
+        transform_imu_broadcaster.sendTransform(transformStamped);
     }
 
     void ZEDWrapperNodelet::publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_frame_id, ros::Time t) {
@@ -796,8 +827,7 @@ namespace zed_wrapper {
         sl::RuntimeParameters runParams;
         runParams.sensing_mode = static_cast<sl::SENSING_MODE> (sensing_mode);
 
-        sl::TrackingParameters trackParams;
-        trackParams.area_file_path = odometry_DB.c_str();
+
 
 
         sl::Mat leftZEDMat, rightZEDMat, depthZEDMat, disparityZEDMat, confImgZEDMat, confMapZEDMat;
@@ -824,13 +854,8 @@ namespace zed_wrapper {
                 runParams.enable_point_cloud = true;
             // Run the loop only if there is some subscribers
             if (runLoop) {
-                if ((depth_stabilization || odom_SubNumber > 0) && !tracking_activated) { //Start the tracking
-                    if (odometry_DB != "" && !sl_tools::file_exist(odometry_DB)) {
-                        odometry_DB = "";
-                        NODELET_WARN("odometry_DB path doesn't exist or is unreachable.");
-                    }
-                    zed.enableTracking(trackParams);
-                    tracking_activated = true;
+                if ((depth_stabilization || odom_SubNumber > 0) && !tracking_activated) { //Start the tracking                    
+                    start_tracking();
                 } else if (!depth_stabilization && odom_SubNumber == 0 && tracking_activated) { //Stop the tracking
                     zed.disableTracking();
                     tracking_activated = false;
@@ -883,12 +908,7 @@ namespace zed_wrapper {
                         }
                         tracking_activated = false;
                         if (depth_stabilization || odom_SubNumber > 0) { //Start the tracking
-                            if (odometry_DB != "" && !sl_tools::file_exist(odometry_DB)) {
-                                odometry_DB = "";
-                                NODELET_WARN("odometry_DB path doesn't exist or is unreachable.");
-                            }
-                            zed.enableTracking(trackParams);
-                            tracking_activated = true;
+                            start_tracking();
                         }
                     }
                     continue;
@@ -1016,6 +1036,23 @@ namespace zed_wrapper {
                             depth_frame_id.c_str());
                     ROS_DEBUG("Transform error: %s", ex.what());
                     base_to_sensor.setIdentity();
+                }
+
+                // Publish IMU tf only if enabled
+                if (publish_tf) {
+                    // TODO take R,t from SDK
+                    //zed.get..........
+
+                    geometry_msgs::Transform i2b;
+                    // TODO transform....
+
+                    tf2::Transform imu_transform;
+
+                    tf2::fromMsg(i2b, imu_transform);
+
+
+                    //Note, the frame is published, but its values will only change if someone has subscribed to odom
+                    publishImuFrame(imu_transform, t); //publish the tracked Frame
                 }
 
                 // Publish the odometry if someone has subscribed to
