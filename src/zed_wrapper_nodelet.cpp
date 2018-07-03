@@ -745,7 +745,7 @@ namespace zed_wrapper {
                     }
 
                     // Publish the odometry if someone has subscribed to
-                    if (odom_SubNumber > 0) {
+                    if (odom_SubNumber > 0 || cloud_SubNumber > 0) {
                         zed.getPosition(pose);
                         // Transform ZED pose in TF2 Transformation
                         tf2::Transform camera_transform;
