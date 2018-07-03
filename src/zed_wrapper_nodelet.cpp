@@ -124,6 +124,7 @@ namespace zed_wrapper {
         boost::shared_ptr<tf2_ros::Buffer> tfBuffer;
         boost::shared_ptr<tf2_ros::TransformListener> tf_listener;
         bool publish_tf;
+        bool camera_flip;
 
         // Launch file parameters
         int resolution;
@@ -809,6 +810,7 @@ namespace zed_wrapper {
 
             // Publish odometry tf
             nh_ns.param<bool>("publish_tf", publish_tf, true);
+            nh_ns.param<bool>("camera_flip", camera_flip, false);
 
             if (serial_number > 0)
                 ROS_INFO_STREAM("SN : " << serial_number);
@@ -820,6 +822,7 @@ namespace zed_wrapper {
             ROS_INFO_STREAM("depth_frame: " << depth_frame_id);
             // Status of odometry TF
             ROS_INFO_STREAM("Publish " << odometry_frame_id << " [" << (publish_tf ? "TRUE" : "FALSE") << "]");
+            ROS_INFO_STREAM("Camera Flip [" << (camera_flip ? "TRUE" : "FALSE") << "]");
 
             std::string img_topic = "image_rect_color";
             std::string img_raw_topic = "image_raw_color";
@@ -920,6 +923,7 @@ namespace zed_wrapper {
             param.sdk_verbose = true;
             param.sdk_gpu_id = gpu_id;
             param.depth_stabilization = depth_stabilization;
+            param.camera_image_flip = camera_flip;
 
             sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
             while (err != sl::SUCCESS) {
