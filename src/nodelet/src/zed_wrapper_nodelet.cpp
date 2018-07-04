@@ -221,7 +221,9 @@ void ZEDWrapperNodelet::onInit() {
     tf_listener.reset(new tf2_ros::TransformListener(*tfBuffer));
 
     // Initialize tf2 transformation
-    base_transform.setIdentity();
+    nh_ns.getParam("initial_tracking_pose", initial_track_pose );
+    set_pose( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2],
+              initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
 
     // Try to initialize the ZED
     if (!svo_filepath.empty())
@@ -379,7 +381,8 @@ void ZEDWrapperNodelet::onInit() {
     }
 
     // Service
-    srv_reset_tracking = nh.advertiseService( "reset_tracking", &ZEDWrapperNodelet::reset_tracking, this );
+    srv_reset_tracking = nh.advertiseService( "reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this );
+    srv_set_pose = nh.advertiseService( "set_pose", &ZEDWrapperNodelet::on_set_pose, this );
 
     // Start pool thread
     device_poll_thread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
@@ -416,9 +419,57 @@ sensor_msgs::ImagePtr ZEDWrapperNodelet::imageToROSmsg(cv::Mat img, const std::s
     return ptr;
 }
 
-bool ZEDWrapperNodelet::reset_tracking(zed_wrapper::reset_tracking::Request  &req,
-                                       zed_wrapper::reset_tracking::Response &res)
+void ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr, float pr, float yr)
 {
+    // ROS pose
+    tf2::Quaternion q;
+    q.setRPY( rr, pr, yr );
+
+    tf2::Vector3 orig( xt, yt, zt );
+
+    base_transform.setOrigin(orig);
+    base_transform.setRotation( q );
+
+    // SL pose
+    sl::float4 q_vec;
+    q_vec[0] = q.x();
+    q_vec[1] = q.y();
+    q_vec[2] = q.z();
+    q_vec[3] = q.w();
+
+    sl::Orientation r(q_vec);
+
+    initial_pose_sl.setTranslation( sl::Translation( xt, yt, zt ) );
+    initial_pose_sl.setOrientation( r );
+}
+
+bool ZEDWrapperNodelet::on_set_pose(zed_wrapper::set_pose::Request &req,
+                                    zed_wrapper::set_pose::Response &res) {
+    initial_track_pose.resize(6);
+
+    initial_track_pose[0] = req.x;
+    initial_track_pose[1] = req.y;
+    initial_track_pose[2] = req.z;
+    initial_track_pose[3] = req.R;
+    initial_track_pose[4] = req.P;
+    initial_track_pose[5] = req.Y;
+
+    set_pose( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2],
+              initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
+
+    if( tracking_activated )
+    {
+        zed.resetTracking( initial_pose_sl );
+    }
+
+    res.done = true;
+
+    return true;
+}
+
+
+bool ZEDWrapperNodelet::on_reset_tracking(zed_wrapper::reset_tracking::Request  &req,
+                                          zed_wrapper::reset_tracking::Response &res) {
     if( !tracking_activated )
     {
         res.reset_done = false;
@@ -427,35 +478,16 @@ bool ZEDWrapperNodelet::reset_tracking(zed_wrapper::reset_tracking::Request  &re
 
     nh_ns.getParam("initial_tracking_pose", initial_track_pose );
 
-    sl::Transform initial_pose;
-
     if( initial_track_pose.size()!=6 ) {
         NODELET_WARN_STREAM("Invalid Initial Pose size (" << initial_track_pose.size() << "). Using Identity");
-        initial_pose.setIdentity();
+        initial_pose_sl.setIdentity();
         base_transform.setIdentity();
     } else {
-        // ROS initial pose
-        initial_pose.setTranslation( sl::Translation( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2] ) );
-
-        tf2::Quaternion q;
-        q.setRPY( initial_track_pose[3], initial_track_pose[4], initial_track_pose[5] );
-
-        tf2::Vector3 orig( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2] );
-        base_transform.setOrigin(orig);
-        base_transform.setRotation( q );
-
-        // SL Tracking initial pose
-        sl::float4 q_vec;
-        q_vec[0] = q.getX();
-        q_vec[1] = q.getY();
-        q_vec[2] = q.getZ();
-        q_vec[3] = q.getW();
-
-        sl::Orientation r(q_vec);
-        initial_pose.setOrientation( r );
+        set_pose( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2],
+                  initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
     }
 
-    zed.resetTracking( initial_pose );
+    zed.resetTracking( initial_pose_sl );
 
     return true;
 }
@@ -469,42 +501,13 @@ void ZEDWrapperNodelet::start_tracking() {
     nh_ns.getParam("spatial_memory", spatial_memory);
     NODELET_INFO_STREAM("Spatial Memory : " << spatial_memory);
 
-    nh_ns.getParam("initial_tracking_pose", initial_track_pose );
-
-    sl::Transform initial_pose;
-
     if( initial_track_pose.size()!=6 ) {
         NODELET_WARN_STREAM("Invalid Initial Pose size (" << initial_track_pose.size() << "). Using Identity");
-        initial_pose.setIdentity();
+        initial_pose_sl.setIdentity();
         base_transform.setIdentity();
     } else {
-        NODELET_INFO_STREAM( "Initial pose: ["
-                             << initial_track_pose[0] << ","
-                                                      << initial_track_pose[1] << ","
-                                                      << initial_track_pose[2] << ", "
-                                                      << initial_track_pose[3] << ","
-                                                      << initial_track_pose[4] << ","
-                                                      << initial_track_pose[5] << "]");
-
-        initial_pose.setTranslation( sl::Translation( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2] ) );
-
-        // ROS initial pose
-        tf2::Quaternion q;
-        q.setRPY( initial_track_pose[3], initial_track_pose[4], initial_track_pose[5] );
-
-        tf2::Vector3 orig( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2] );
-        base_transform.setOrigin(orig);
-        base_transform.setRotation( q );
-
-        // SL Tracking initial pose
-        sl::float4 q_vec;
-        q_vec[0] = q.getX();
-        q_vec[1] = q.getY();
-        q_vec[2] = q.getZ();
-        q_vec[3] = q.getW();
-
-        sl::Orientation r(q_vec);
-        initial_pose.setOrientation( r );
+        set_pose( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2],
+                  initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
     }
 
     if (odometry_DB != "" && !sl_tools::file_exist(odometry_DB)) {
@@ -518,9 +521,7 @@ void ZEDWrapperNodelet::start_tracking() {
     trackParams.enable_pose_smoothing = pose_smoothing;
     trackParams.enable_spatial_memory = spatial_memory;
 
-    trackParams.initial_world_transform = initial_pose;
-
-
+    trackParams.initial_world_transform = initial_pose_sl;
 
     zed.enableTracking(trackParams);
     tracking_activated = true;

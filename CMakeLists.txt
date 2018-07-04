@@ -73,7 +73,8 @@ checkPackage("tf2_geometry_msgs" "")
 checkPackage("message_generation" "")
 
 add_service_files( FILES
-  reset_tracking.srv)
+  reset_tracking.srv
+  set_pose.srv)
 
 generate_messages()
 

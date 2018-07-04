@@ -38,6 +38,7 @@
 
 #include <zed_wrapper/ZedConfig.h>
 #include <zed_wrapper/reset_tracking.h>
+#include <zed_wrapper/set_pose.h>
 
 #include <boost/make_shared.hpp>
 
@@ -155,10 +156,21 @@ namespace zed_wrapper {
          */
         void imuPubCallback(const ros::TimerEvent & e);
 
-        /* \brief Service callback to reset tracking
+        /* \brief Service callback to reset_tracking service
+         * Tracking pose is reinitialized to the value available in the ROS Param server
          */
-        bool reset_tracking(zed_wrapper::reset_tracking::Request  &req,
-                            zed_wrapper::reset_tracking::Response &res);
+        bool on_reset_tracking(zed_wrapper::reset_tracking::Request  &req,
+                               zed_wrapper::reset_tracking::Response &res);
+
+        /* \brief Service callback to set_pose service
+         * Tracking pose is set to the new values
+         */
+        bool on_set_pose(zed_wrapper::set_pose::Request &req,
+                         zed_wrapper::set_pose::Response &res);
+
+        /* \brief Utility to initialize the pose variables
+         */
+        void set_pose( float xt, float yt, float zt, float rr, float pr, float yr);
 
         /* \bried Start tracking loading the parameters from param server
          */
@@ -201,6 +213,7 @@ namespace zed_wrapper {
         // Service
         bool tracking_activated;
         ros::ServiceServer srv_reset_tracking;
+        ros::ServiceServer srv_set_pose;
 
         // tf
         tf2_ros::TransformBroadcaster transform_odom_broadcaster;
@@ -249,8 +262,9 @@ namespace zed_wrapper {
 
         //Tracking variables
         sl::Pose pose;
-        tf2::Transform base_transform;
         std::vector<float> initial_track_pose;
+        tf2::Transform base_transform;
+        sl::Transform initial_pose_sl;
 
         // zed object
         sl::InitParameters param;
