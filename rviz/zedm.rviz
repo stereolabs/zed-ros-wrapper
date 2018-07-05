@@ -7,7 +7,7 @@ Panels:
         - /Global Options1
         - /RobotModel1/Links1
         - /TF1/Frames1
-        - /Pose1
+        - /DepthCloud1/Occlusion Compensation1
       Splitter Ratio: 0.5
     Tree Height: 451
   - Class: rviz/Selection
@@ -141,7 +141,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/DepthCloud
       Color: 255; 255; 255
-      Color Image Topic: /zed/rgb/image_rect_color
+      Color Image Topic: /zed/left/image_raw_color
       Color Transformer: RGB8
       Color Transport Hint: raw
       Decay Time: 0
@@ -233,11 +233,11 @@ Visualization Manager:
         y_scale: 1
         z_scale: 1
       Class: rviz_imu_plugin/Imu
-      Enabled: false
+      Enabled: true
       Name: Imu
       Topic: /zed/imu/data
       Unreliable: false
-      Value: false
+      Value: true
       fixed_frame_orientation: true
     - Alpha: 1
       Axes Length: 1
@@ -294,10 +294,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.0547964051
+      Pitch: 0.174796328
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.10728073
+      Yaw: 0.999097168
     Saved: ~
 Window Geometry:
   Camera:
