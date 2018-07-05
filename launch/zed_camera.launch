@@ -65,6 +65,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="serial_number"      value="$(arg serial_number)" />
 
         <param name="resolution"            value="$(arg resolution)" />
+        <param name="mat_resize_factor"     value="1.0" />
         <param name="quality"               value="1" />
         <param name="sensing_mode"          value="0" />
         <param name="frame_rate"            value="60" />

@@ -44,7 +44,7 @@
 
 #include <opencv2/core/core.hpp>
 
-
+#include <mutex>
 
 using namespace std;
 
@@ -215,6 +215,15 @@ namespace zed_wrapper {
         ros::ServiceServer srv_reset_tracking;
         ros::ServiceServer srv_set_pose;
 
+        // Camera info
+        sensor_msgs::CameraInfoPtr rgb_cam_info_msg;
+        sensor_msgs::CameraInfoPtr left_cam_info_msg;
+        sensor_msgs::CameraInfoPtr right_cam_info_msg;
+        sensor_msgs::CameraInfoPtr rgb_cam_info_raw_msg;
+        sensor_msgs::CameraInfoPtr left_cam_info_raw_msg;
+        sensor_msgs::CameraInfoPtr right_cam_info_raw_msg;
+        sensor_msgs::CameraInfoPtr depth_cam_info_msg;
+
         // tf
         tf2_ros::TransformBroadcaster transform_odom_broadcaster;
         tf2_ros::TransformBroadcaster transform_imu_broadcaster;
@@ -273,6 +282,7 @@ namespace zed_wrapper {
         int user_cam_model; // Camera model set by ROS Param 
 
         // flags
+        double mat_resize_factor;
         int confidence;
         int exposure;
         int gain;
@@ -281,6 +291,19 @@ namespace zed_wrapper {
         bool computeDepth;
         bool grabbing = false;
         int openniDepthMode = 0; // 16 bit UC data in mm else 32F in m, for more info http://www.ros.org/reps/rep-0118.html
+
+        // Frame and Mat
+        int cam_width;
+        int cam_height;
+        int mat_width;
+        int mat_height;
+        cv::Mat leftImRGB;
+        cv::Mat rightImRGB;
+        cv::Mat confImRGB;
+        cv::Mat confMapFloat;
+
+        // Mutex
+        std::mutex dataMutex;
 
         // Point cloud variables
         sl::Mat cloud;

@@ -79,6 +79,11 @@ void ZEDWrapperNodelet::onInit() {
     serial_number = 0;
     odometry_DB = "";
     imu_pub_rate = 100.0;
+    initial_track_pose.resize(6);
+    for(int i=0; i<6; i++) {
+        initial_track_pose[i]=0.0f;
+    }
+    mat_resize_factor=1.0;
 
     nh = getMTNodeHandle();
     nh_ns = getMTPrivateNodeHandle();
@@ -214,16 +219,36 @@ void ZEDWrapperNodelet::onInit() {
     nh_ns.getParam("imu_topic", imu_topic);
     nh_ns.getParam("imu_pub_rate", imu_pub_rate);
 
+    // Create camera info
+    sensor_msgs::CameraInfoPtr rgb_cam_info_ms_g(new sensor_msgs::CameraInfo());
+    sensor_msgs::CameraInfoPtr left_cam_info_msg_(new sensor_msgs::CameraInfo());
+    sensor_msgs::CameraInfoPtr right_cam_info_msg_(new sensor_msgs::CameraInfo());
+    sensor_msgs::CameraInfoPtr rgb_cam_info_raw_msg_(new sensor_msgs::CameraInfo());
+    sensor_msgs::CameraInfoPtr left_cam_info_raw_ms_g(new sensor_msgs::CameraInfo());
+    sensor_msgs::CameraInfoPtr right_cam_info_raw_msg_(new sensor_msgs::CameraInfo());
+    sensor_msgs::CameraInfoPtr depth_cam_info_msg_(new sensor_msgs::CameraInfo());
+
+    rgb_cam_info_msg = rgb_cam_info_ms_g;
+    left_cam_info_msg = left_cam_info_msg_;
+    right_cam_info_msg = right_cam_info_msg_;
+    rgb_cam_info_raw_msg = rgb_cam_info_raw_msg_;
+    left_cam_info_raw_msg = left_cam_info_raw_ms_g;
+    right_cam_info_raw_msg = right_cam_info_raw_msg_;
+    depth_cam_info_msg = depth_cam_info_msg_;
+
+    // SVO
     nh_ns.param<std::string>("svo_filepath", svo_filepath, std::string());
+
+    // Initialize tf2 transformation
+    nh_ns.getParam("initial_tracking_pose", initial_track_pose );
+    set_pose( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2],
+            initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
+
 
     // Initialization transformation listener
     tfBuffer.reset(new tf2_ros::Buffer);
     tf_listener.reset(new tf2_ros::TransformListener(*tfBuffer));
 
-    // Initialize tf2 transformation
-    nh_ns.getParam("initial_tracking_pose", initial_track_pose );
-    set_pose( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2],
-              initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
 
     // Try to initialize the ZED
     if (!svo_filepath.empty())
@@ -310,6 +335,7 @@ void ZEDWrapperNodelet::onInit() {
     f = boost::bind(&ZEDWrapperNodelet::dynamicReconfCallback, this, _1, _2);
     server->setCallback(f);
 
+    nh_ns.getParam("mat_resize_factor", mat_resize_factor);
     nh_ns.getParam("confidence", confidence);
     nh_ns.getParam("exposure", exposure);
     nh_ns.getParam("gain", gain);
@@ -455,7 +481,7 @@ bool ZEDWrapperNodelet::on_set_pose(zed_wrapper::set_pose::Request &req,
     initial_track_pose[5] = req.Y;
 
     set_pose( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2],
-              initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
+            initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
 
     if( tracking_activated )
     {
@@ -484,7 +510,7 @@ bool ZEDWrapperNodelet::on_reset_tracking(zed_wrapper::reset_tracking::Request  
         base_transform.setIdentity();
     } else {
         set_pose( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2],
-                  initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
+                initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
     }
 
     zed.resetTracking( initial_pose_sl );
@@ -507,7 +533,7 @@ void ZEDWrapperNodelet::start_tracking() {
         base_transform.setIdentity();
     } else {
         set_pose( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2],
-                  initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
+                initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
     }
 
     if (odometry_DB != "" && !sl_tools::file_exist(odometry_DB)) {
@@ -586,7 +612,7 @@ void ZEDWrapperNodelet::publishDepth(cv::Mat depth, ros::Time t) {
 }
 
 void ZEDWrapperNodelet::publishDisparity(cv::Mat disparity, ros::Time t) {
-    sl::CameraInformation zedParam = zed.getCameraInformation();
+    sl::CameraInformation zedParam = zed.getCameraInformation(sl::Resolution(mat_width, mat_height));
     sensor_msgs::ImagePtr disparity_image = imageToROSmsg(disparity,  sensor_msgs::image_encodings::TYPE_32FC1, disparity_frame_id, t);
 
     stereo_msgs::DisparityImage msg;
@@ -662,13 +688,13 @@ void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::CameraInfoPtr cam_info_msg, 
 void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sensor_msgs::CameraInfoPtr right_cam_info_msg,
                                     string left_frame_id, string right_frame_id, bool raw_param /*= false*/) {
 
-    int width = zed.getResolution().width;
-    int height = zed.getResolution().height;
+    //    int width = zed.getResolution().width;
+    //    int height = zed.getResolution().height;
 
     sl::CalibrationParameters zedParam;
 
-    if (raw_param) zedParam = zed.getCameraInformation().calibration_parameters_raw;
-    else zedParam = zed.getCameraInformation().calibration_parameters;
+    if (raw_param) zedParam = zed.getCameraInformation(sl::Resolution(mat_width, mat_height)).calibration_parameters_raw;
+    else zedParam = zed.getCameraInformation(sl::Resolution(mat_width, mat_height)).calibration_parameters;
 
     float baseline = zedParam.T[0];
 
@@ -730,8 +756,8 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
     right_cam_info_msg->P[5] = zedParam.right_cam.fy;
     right_cam_info_msg->P[6] = zedParam.right_cam.cy;
 
-    left_cam_info_msg->width = right_cam_info_msg->width = width;
-    left_cam_info_msg->height = right_cam_info_msg->height = height;
+    left_cam_info_msg->width = right_cam_info_msg->width = mat_width;
+    left_cam_info_msg->height = right_cam_info_msg->height = mat_height;
 
     left_cam_info_msg->header.frame_id = left_frame_id;
     right_cam_info_msg->header.frame_id = right_frame_id;
@@ -740,22 +766,40 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
 void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig &config, uint32_t level) {
     switch (level) {
     case 0:
-        NODELET_INFO("Reconfigure confidence : %d", config.confidence);
         confidence = config.confidence;
+        NODELET_INFO("Reconfigure confidence : %d", confidence);
         break;
     case 1:
-        NODELET_INFO("Reconfigure exposure : %d", config.exposure);
         exposure = config.exposure;
+        NODELET_INFO("Reconfigure exposure : %d", exposure);
         break;
     case 2:
-        NODELET_INFO("Reconfigure gain : %d", config.gain);
         gain = config.gain;
+        NODELET_INFO("Reconfigure gain : %d", gain);
         break;
     case 3:
-        NODELET_INFO("Reconfigure auto control of exposure and gain : %s", config.auto_exposure ? "Enable" : "Disable");
         autoExposure = config.auto_exposure;
         if (autoExposure)
             triggerAutoExposure = true;
+        NODELET_INFO("Reconfigure auto control of exposure and gain : %s", autoExposure ? "Enable" : "Disable");
+        break;
+    case 4:
+        mat_resize_factor = config.mat_resize_factor;
+        NODELET_INFO("Reconfigure mat_resize_factor: %g", mat_resize_factor );
+
+        dataMutex.lock();
+
+        mat_width = static_cast<int>(cam_width*mat_resize_factor);
+        mat_height = static_cast<int>(cam_height*mat_resize_factor);
+        NODELET_DEBUG_STREAM("Data Mat size : " << mat_width << "x" << mat_height);
+
+        fillCamInfo(zed, left_cam_info_msg, right_cam_info_msg, left_cam_opt_frame_id, right_cam_opt_frame_id);
+        fillCamInfo(zed, left_cam_info_raw_msg, right_cam_info_raw_msg, left_cam_opt_frame_id, right_cam_opt_frame_id, true);
+        rgb_cam_info_msg = depth_cam_info_msg = left_cam_info_msg; // the reference camera is the Left one (next to the ZED logo)
+        rgb_cam_info_raw_msg = left_cam_info_raw_msg;
+
+        dataMutex.unlock();
+
         break;
     }
 }
@@ -867,24 +911,21 @@ void ZEDWrapperNodelet::device_poll() {
     tracking_activated = false;
 
     // Get the parameters of the ZED images
-    int width = zed.getResolution().width;
-    int height = zed.getResolution().height;
-    NODELET_DEBUG_STREAM("Image size : " << width << "x" << height);
+    cam_width = zed.getResolution().width;
+    cam_height = zed.getResolution().height;
+    NODELET_DEBUG_STREAM("Camera Frame size : " << cam_width << "x" << cam_height);
 
-    cv::Size cvSize(width, height);
-    cv::Mat leftImRGB(cvSize, CV_8UC3);
-    cv::Mat rightImRGB(cvSize, CV_8UC3);
-    cv::Mat confImRGB(cvSize, CV_8UC3);
-    cv::Mat confMapFloat(cvSize, CV_32FC1);
+    mat_width = static_cast<int>(cam_width*mat_resize_factor);
+    mat_height = static_cast<int>(cam_height*mat_resize_factor);
+    NODELET_DEBUG_STREAM("Data Mat size : " << mat_width << "x" << mat_height);
+
+    cv::Size cvSize(mat_width, mat_width);
+    leftImRGB  = cv::Mat(cvSize, CV_8UC3);
+    rightImRGB = cv::Mat(cvSize, CV_8UC3);
+    confImRGB  = cv::Mat(cvSize, CV_8UC3);
+    confMapFloat = cv::Mat(cvSize, CV_32FC1);
 
     // Create and fill the camera information messages
-    sensor_msgs::CameraInfoPtr rgb_cam_info_msg(new sensor_msgs::CameraInfo());
-    sensor_msgs::CameraInfoPtr left_cam_info_msg(new sensor_msgs::CameraInfo());
-    sensor_msgs::CameraInfoPtr right_cam_info_msg(new sensor_msgs::CameraInfo());
-    sensor_msgs::CameraInfoPtr rgb_cam_info_raw_msg(new sensor_msgs::CameraInfo());
-    sensor_msgs::CameraInfoPtr left_cam_info_raw_msg(new sensor_msgs::CameraInfo());
-    sensor_msgs::CameraInfoPtr right_cam_info_raw_msg(new sensor_msgs::CameraInfo());
-    sensor_msgs::CameraInfoPtr depth_cam_info_msg(new sensor_msgs::CameraInfo());
     fillCamInfo(zed, left_cam_info_msg, right_cam_info_msg, left_cam_opt_frame_id, right_cam_opt_frame_id);
     fillCamInfo(zed, left_cam_info_raw_msg, right_cam_info_raw_msg, left_cam_opt_frame_id, right_cam_opt_frame_id, true);
     rgb_cam_info_msg = depth_cam_info_msg = left_cam_info_msg; // the reference camera is the Left one (next to the ZED logo)
@@ -1002,10 +1043,12 @@ void ZEDWrapperNodelet::device_poll() {
                     zed.setCameraSettings(sl::CAMERA_SETTINGS_GAIN, gain);
             }
 
+            dataMutex.lock();
+
             // Publish the left == rgb image if someone has subscribed to
             if (left_SubNumber > 0 || rgb_SubNumber > 0) {
                 // Retrieve RGBA Left image
-                zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT);
+                zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, mat_width, mat_height);
                 cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
                 if (left_SubNumber > 0) {
                     publishCamInfo(left_cam_info_msg, pub_left_cam_info, t);
@@ -1020,7 +1063,7 @@ void ZEDWrapperNodelet::device_poll() {
             // Publish the left_raw == rgb_raw image if someone has subscribed to
             if (left_raw_SubNumber > 0 || rgb_raw_SubNumber > 0) {
                 // Retrieve RGBA Left image
-                zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED);
+                zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU, mat_width, mat_height);
                 cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
                 if (left_raw_SubNumber > 0) {
                     publishCamInfo(left_cam_info_raw_msg, pub_left_cam_info_raw, t);
@@ -1035,7 +1078,7 @@ void ZEDWrapperNodelet::device_poll() {
             // Publish the right image if someone has subscribed to
             if (right_SubNumber > 0) {
                 // Retrieve RGBA Right image
-                zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT);
+                zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU, mat_width, mat_height);
                 cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
                 publishCamInfo(right_cam_info_msg, pub_right_cam_info, t);
                 publishImage(rightImRGB, pub_right, right_cam_opt_frame_id, t);
@@ -1044,7 +1087,7 @@ void ZEDWrapperNodelet::device_poll() {
             // Publish the right image if someone has subscribed to
             if (right_raw_SubNumber > 0) {
                 // Retrieve RGBA Right image
-                zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED);
+                zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU, mat_width, mat_height);
                 cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
                 publishCamInfo(right_cam_info_raw_msg, pub_right_cam_info_raw, t);
                 publishImage(rightImRGB, pub_raw_right, right_cam_opt_frame_id, t);
@@ -1052,14 +1095,14 @@ void ZEDWrapperNodelet::device_poll() {
 
             // Publish the depth image if someone has subscribed to
             if (depth_SubNumber > 0 || disparity_SubNumber > 0) {
-                zed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH);
+                zed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH, sl::MEM_CPU, mat_width, mat_height);
                 publishCamInfo(depth_cam_info_msg, pub_depth_cam_info, t);
                 publishDepth(sl_tools::toCVMat(depthZEDMat), t); // in meters
             }
 
             // Publish the disparity image if someone has subscribed to
             if (disparity_SubNumber > 0) {
-                zed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY);
+                zed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY, sl::MEM_CPU, mat_width, mat_height);
                 // Need to flip sign, but cause of this is not sure
                 cv::Mat disparity = sl_tools::toCVMat(disparityZEDMat) * -1.0;
                 publishDisparity(disparity, t);
@@ -1067,14 +1110,14 @@ void ZEDWrapperNodelet::device_poll() {
 
             // Publish the confidence image if someone has subscribed to
             if (conf_img_SubNumber > 0) {
-                zed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE);
+                zed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE, sl::MEM_CPU, mat_width, mat_height);
                 cv::cvtColor(sl_tools::toCVMat(confImgZEDMat), confImRGB, CV_RGBA2RGB);
                 publishImage(confImRGB, pub_conf_img, confidence_opt_frame_id, t);
             }
 
             // Publish the confidence map if someone has subscribed to
             if (conf_map_SubNumber > 0) {
-                zed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE);
+                zed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE, sl::MEM_CPU, mat_width, mat_height);
                 confMapFloat = sl_tools::toCVMat(confMapZEDMat);
                 pub_conf_map.publish(imageToROSmsg(confMapFloat, sensor_msgs::image_encodings::TYPE_32FC1, confidence_opt_frame_id, t));
             }
@@ -1083,11 +1126,13 @@ void ZEDWrapperNodelet::device_poll() {
             if (cloud_SubNumber > 0) {
                 // Run the point cloud conversion asynchronously to avoid slowing down all the program
                 // Retrieve raw pointCloud data
-                zed.retrieveMeasure(cloud, sl::MEASURE_XYZBGRA);
+                zed.retrieveMeasure(cloud, sl::MEASURE_XYZBGRA, sl::MEM_CPU, mat_width, mat_height);
                 point_cloud_frame_id = depth_frame_id;
                 point_cloud_time = t;
-                publishPointCloud(width, height );
+                publishPointCloud(mat_width, mat_height );
             }
+
+            dataMutex.unlock();
 
             // Transform from base to sensor
             tf2::Transform base_to_sensor;
