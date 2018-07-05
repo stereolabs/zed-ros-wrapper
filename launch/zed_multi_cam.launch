@@ -19,7 +19,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <launch>
 
     <!-- Odometry coordinate frame -->
-    <arg name="odometry_frame"        default="map" />
+    <arg name="pose_frame"           default="map" />
 
     <arg name="zed_id1"               default="0" />
     <arg name="zed_id2"               default="1" />
@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
             <arg name="zed_id"                value="$(arg zed_id1)" />
             <!-- compliant mode for rviz -->
-            <arg name="odometry_frame"        value="$(arg odometry_frame)" />
+            <arg name="pose_frame"        value="$(arg pose_frame)" />
         </include>
     </group>
 
@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
             <arg name="zed_id"                value="$(arg zed_id2)" />
             <!-- compliant mode for rviz -->
-            <arg name="odometry_frame"        value="$(arg odometry_frame)" />
+            <arg name="pose_frame"        value="$(arg pose_frame)" />
         </include>
     </group>
 

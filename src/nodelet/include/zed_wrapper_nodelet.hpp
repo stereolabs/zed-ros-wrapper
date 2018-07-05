@@ -38,7 +38,7 @@
 
 #include <zed_wrapper/ZedConfig.h>
 #include <zed_wrapper/reset_tracking.h>
-#include <zed_wrapper/set_pose.h>
+#include <zed_wrapper/set_initial_pose.h>
 
 #include <boost/make_shared.hpp>
 
@@ -78,19 +78,31 @@ namespace zed_wrapper {
          */
         void device_poll();        
 
-    protected:       
+    protected:
 
         /* \brief Publish the pose of the camera with a ros Publisher
-         * \param base_transform : Transformation representing the camera pose from base frame
+         * \param pose_base_transform : Transformation representing the camera pose from base frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdom(tf2::Transform base_transform, ros::Time t);
+        void publishPose(tf2::Transform pose_base_transform, ros::Time t);
+
+        /* \brief Publish the pose of the camera with a ros Publisher
+         * \param odom_base_transform : Transformation representing the camera pose from base frame
+         * \param t : the ros::Time to stamp the image
+         */
+        //void publishOdom(tf2::Transform odom_base_transform, ros::Time t);
 
         /* \brief Publish the pose of the camera as a transformation
          * \param base_transform : Transformation representing the camera pose from base frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishTrackedFrame(tf2::Transform base_transform, ros::Time t);
+        void publishPoseFrame(tf2::Transform base_transform, ros::Time t);
+
+        /* \brief Publish the odometry of the camera as a transformation
+         * \param base_transform : Transformation representing the camera pose from base frame
+         * \param t : the ros::Time to stamp the image
+         */
+        //void publishOdomFrame(tf2::Transform odom_base_transform, ros::Time t);
 
         /* \brief Publish the pose of the imu as a transformation
          * \param base_transform : Transformation representing the imu pose from camera frame
@@ -165,8 +177,8 @@ namespace zed_wrapper {
         /* \brief Service callback to set_pose service
          * Tracking pose is set to the new values
          */
-        bool on_set_pose(zed_wrapper::set_pose::Request &req,
-                         zed_wrapper::set_pose::Response &res);
+        bool on_set_pose(zed_wrapper::set_initial_pose::Request &req,
+                         zed_wrapper::set_initial_pose::Response &res);
 
         /* \brief Utility to initialize the pose variables
          */
@@ -206,14 +218,15 @@ namespace zed_wrapper {
         ros::Publisher pub_left_cam_info_raw;
         ros::Publisher pub_right_cam_info_raw;
         ros::Publisher pub_depth_cam_info;
-        ros::Publisher pub_odom;
+        ros::Publisher pub_pose;
+        //ros::Publisher pub_odom;
         ros::Publisher pub_imu;
-        ros::Timer  pub_imu_timer;
+        ros::Timer pub_imu_timer;
 
         // Service
         bool tracking_activated;
         ros::ServiceServer srv_reset_tracking;
-        ros::ServiceServer srv_set_pose;
+        ros::ServiceServer srv_set_init_pose;
 
         // Camera info
         sensor_msgs::CameraInfoPtr rgb_cam_info_msg;
@@ -225,7 +238,8 @@ namespace zed_wrapper {
         sensor_msgs::CameraInfoPtr depth_cam_info_msg;
 
         // tf
-        tf2_ros::TransformBroadcaster transform_odom_broadcaster;
+        tf2_ros::TransformBroadcaster transform_pose_broadcaster;
+        //tf2_ros::TransformBroadcaster transform_odom_broadcaster;
         tf2_ros::TransformBroadcaster transform_imu_broadcaster;
         std::string rgb_frame_id;
         std::string rgb_opt_frame_id;
@@ -241,7 +255,8 @@ namespace zed_wrapper {
 
         std::string cloud_frame_id;
 
-        std::string odometry_frame_id;
+        std::string pose_frame_id;
+        //std::string odometry_frame_id;
         std::string base_frame_id;
         std::string right_cam_frame_id;
         std::string right_cam_opt_frame_id;
@@ -270,9 +285,11 @@ namespace zed_wrapper {
         bool spatial_memory;
 
         //Tracking variables
-        sl::Pose pose;
+        sl::Pose zed_pose;
+        //sl::Pose odom_pose;
         std::vector<float> initial_track_pose;
-        tf2::Transform base_transform;
+        tf2::Transform pose_base_transform;
+        //tf2::Transform odom_base_transform;
         sl::Transform initial_pose_sl;
 
         // zed object

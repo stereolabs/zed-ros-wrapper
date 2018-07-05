@@ -74,7 +74,7 @@ checkPackage("message_generation" "")
 
 add_service_files( FILES
   reset_tracking.srv
-  set_pose.srv)
+  set_initial_pose.srv)
 
 generate_messages()
 

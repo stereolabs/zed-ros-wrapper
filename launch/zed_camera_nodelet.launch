@@ -21,21 +21,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
     <arg name="zed_id"                default="0" />
     <!-- If a ZED SN is given, zed_id is ignored and the wrapper will specifically look for the ZED with the corresponding serial number -->
-    <arg name="serial_number"         default="0" /> 
+    <arg name="serial_number"         default="0" />
     <arg name="resolution"            default="2" />
 
     <!-- GPU ID-->
     <arg name="gpu_id"                default="-1" />
 
     <!-- Definition coordinate frames -->
-    <arg name="publish_tf"            default="true" />
-    <arg name="odometry_frame"                default="odom" />
+    <arg name="publish_tf"                    default="true" />
+    <arg name="pose_frame"                     default="map" />
     <arg name="base_frame"                    default="zed_camera_center" />
     <arg name="left_camera_frame"             default="zed_left_camera_frame" />
     <arg name="left_camera_optical_frame"     default="zed_left_camera_optical_frame" />
     <arg name="right_camera_frame"            default="zed_right_camera_frame" />
     <arg name="right_camera_optical_frame"    default="zed_right_camera_optical_frame" />
     <arg name="imu_frame"                     default="imu_link" />
+
+    <arg name="initial_pose"                  default="[0.0,0.0,0.0, 0.0,0.0,0.0]" /> <!-- X, Y, Z, (meter) R, P, Y, (radians)-->
 
     <!-- Publish urdf zed -->
     <arg name="publish_urdf"          default="true" />
@@ -44,11 +46,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <param name="camera_model" value="$(arg camera_model)" />
 
-        <!-- publish odometry frame -->
+        <!-- publish pose frame -->
         <param name="publish_tf"            value="$(arg publish_tf)" />
 
         <!-- Configuration frame camera -->
-        <param name="odometry_frame"                value="$(arg odometry_frame)" />
+        <param name="pose_frame"                    value="$(arg pose_frame)" />
         <param name="base_frame"                    value="$(arg base_frame)" />
         <param name="left_camera_frame"             value="$(arg left_camera_frame)" />
         <param name="left_camera_optical_frame"     value="$(arg left_camera_optical_frame)" />
@@ -63,6 +65,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="serial_number"      value="$(arg serial_number)" />
 
         <param name="resolution"            value="$(arg resolution)" />
+        <param name="mat_resize_factor"     value="1.0" />
         <param name="quality"               value="1" />
         <param name="sensing_mode"          value="0" />
         <param name="frame_rate"            value="60" />
@@ -74,6 +77,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="exposure"              value="100" />
         <param name="auto_exposure"         value="true" />
         <param name="depth_stabilization"   value="1" />
+        <param name="pose_smoothing"        value="false" />
+        <param name="spatial_memory"        value="true" />
+
+        <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>
 
         <!-- ROS topic names -->
         <param name="rgb_topic"             value="rgb/image_rect_color" />
@@ -100,7 +107,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="confidence_img_topic"  value="confidence/confidence_image" />
         <param name="confidence_map_topic"  value="confidence/confidence_map" />
 
-        <param name="odometry_topic"        value="odom" />
+
+        <param name="pose_topic"             value="map" />
 
         <param name="imu_topic"             value="imu/data" />
 
