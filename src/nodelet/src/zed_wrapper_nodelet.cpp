@@ -961,7 +961,10 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e)
 
 void ZEDWrapperNodelet::device_poll() {
     ros::Rate loop_rate(rate);
-    ros::Time old_t = ros::Time::now();
+
+    //ros::Time old_t = ros::Time::now();
+    ros::Time old_t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+
     sl::ERROR_CODE grab_status;
     tracking_activated = false;
 
@@ -985,9 +988,6 @@ void ZEDWrapperNodelet::device_poll() {
     fillCamInfo(zed, left_cam_info_raw_msg, right_cam_info_raw_msg, left_cam_opt_frame_id, right_cam_opt_frame_id, true);
     rgb_cam_info_msg = depth_cam_info_msg = left_cam_info_msg; // the reference camera is the Left one (next to the ZED logo)
     rgb_cam_info_raw_msg = left_cam_info_raw_msg;
-
-    // Disable spatial mapping to improve performaces
-    zed.disableSpatialMapping();
 
     sl::RuntimeParameters runParams;
     runParams.sensing_mode = static_cast<sl::SENSING_MODE> (sensing_mode);
@@ -1027,7 +1027,10 @@ void ZEDWrapperNodelet::device_poll() {
                 tracking_activated = false;
             }
             computeDepth = (depth_SubNumber + disparity_SubNumber + cloud_SubNumber + pose_SubNumber + /*odom_SubNumber +*/ conf_img_SubNumber + conf_map_SubNumber) > 0; // Detect if one of the subscriber need to have the depth information
-            ros::Time t = ros::Time::now(); // Get current time
+            //ros::Time t = ros::Time::now(); // Get current time
+
+            // Timestamp
+            ros::Time t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
 
             grabbing = true;
             if (computeDepth) {
@@ -1050,6 +1053,7 @@ void ZEDWrapperNodelet::device_poll() {
                 } else NODELET_INFO_STREAM_ONCE(toString(grab_status));
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
 
                 if ((t - old_t).toSec() > 5) {
                     zed.close();
@@ -1080,7 +1084,8 @@ void ZEDWrapperNodelet::device_poll() {
                 continue;
             }
 
-            old_t = ros::Time::now();
+            // Time update
+            old_t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
 
             if (autoExposure) {
                 // getCameraSettings() can't check status of auto exposure
@@ -1280,59 +1285,59 @@ void ZEDWrapperNodelet::device_poll() {
             }
 
             // Publish the odometry if someone has subscribed to
-//            if (odom_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0) {
-//                sl::Pose deltaOdom;
-//                zed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
+            //            if (odom_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0) {
+            //                sl::Pose deltaOdom;
+            //                zed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
 
-//                odom_pose.pose_data = odom_pose.pose_data * deltaOdom.pose_data;
+            //                odom_pose.pose_data = odom_pose.pose_data * deltaOdom.pose_data;
 
-//                // Transform ZED pose in TF2 Transformation
-//                tf2::Transform camera_transform;
-//                geometry_msgs::Transform c2s;
+            //                // Transform ZED pose in TF2 Transformation
+            //                tf2::Transform camera_transform;
+            //                geometry_msgs::Transform c2s;
 
-//                sl::Translation translation = odom_pose.getTranslation();
-//                sl::Orientation quat = odom_pose.getOrientation();
+            //                sl::Translation translation = odom_pose.getTranslation();
+            //                sl::Orientation quat = odom_pose.getOrientation();
 
-//                if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
-//                    // COORDINATE_SYSTEM_IMAGE
-//                    c2s.translation.x =  translation(2);
-//                    c2s.translation.y = -translation(0);
-//                    c2s.translation.z = -translation(1);
+            //                if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
+            //                    // COORDINATE_SYSTEM_IMAGE
+            //                    c2s.translation.x =  translation(2);
+            //                    c2s.translation.y = -translation(0);
+            //                    c2s.translation.z = -translation(1);
 
-//                    c2s.rotation.x =  quat(2);
-//                    c2s.rotation.y = -quat(0);
-//                    c2s.rotation.z = -quat(1);
-//                    c2s.rotation.w =  quat(3);
-//                } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
-//                    // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
-//                    c2s.translation.x =  translation(1);
-//                    c2s.translation.y = -translation(0);
-//                    c2s.translation.z =  translation(2);
+            //                    c2s.rotation.x =  quat(2);
+            //                    c2s.rotation.y = -quat(0);
+            //                    c2s.rotation.z = -quat(1);
+            //                    c2s.rotation.w =  quat(3);
+            //                } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
+            //                    // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
+            //                    c2s.translation.x =  translation(1);
+            //                    c2s.translation.y = -translation(0);
+            //                    c2s.translation.z =  translation(2);
 
-//                    c2s.rotation.x =  quat(1);
-//                    c2s.rotation.y = -quat(0);
-//                    c2s.rotation.z =  quat(2);
-//                    c2s.rotation.w =  quat(3);
-//                } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
-//                    // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
-//                    c2s.translation.x = translation(0);
-//                    c2s.translation.y = translation(1);
-//                    c2s.translation.z = translation(2);
+            //                    c2s.rotation.x =  quat(1);
+            //                    c2s.rotation.y = -quat(0);
+            //                    c2s.rotation.z =  quat(2);
+            //                    c2s.rotation.w =  quat(3);
+            //                } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
+            //                    // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
+            //                    c2s.translation.x = translation(0);
+            //                    c2s.translation.y = translation(1);
+            //                    c2s.translation.z = translation(2);
 
-//                    c2s.rotation.x = quat(0);
-//                    c2s.rotation.y = quat(1);
-//                    c2s.rotation.z = quat(2);
-//                    c2s.rotation.w = quat(3);
-//                } else {
-//                    NODELET_ERROR_STREAM("Camera coordinate system not supported");
-//                }
+            //                    c2s.rotation.x = quat(0);
+            //                    c2s.rotation.y = quat(1);
+            //                    c2s.rotation.z = quat(2);
+            //                    c2s.rotation.w = quat(3);
+            //                } else {
+            //                    NODELET_ERROR_STREAM("Camera coordinate system not supported");
+            //                }
 
-//                tf2::fromMsg(c2s, camera_transform);
-//                // Transformation from camera sensor to base frame
-//                odom_base_transform = base_to_sensor * camera_transform * base_to_sensor.inverse();
-//                // Publish odometry message
-//                publishOdom(odom_base_transform, t);
-//            }
+            //                tf2::fromMsg(c2s, camera_transform);
+            //                // Transformation from camera sensor to base frame
+            //                odom_base_transform = base_to_sensor * camera_transform * base_to_sensor.inverse();
+            //                // Publish odometry message
+            //                publishOdom(odom_base_transform, t);
+            //            }
 
             // Publish odometry tf only if enabled
             if (publish_tf) {
@@ -1346,7 +1351,7 @@ void ZEDWrapperNodelet::device_poll() {
         } else {
             // Publish odometry tf only if enabled
             if (publish_tf) {
-                publishPoseFrame(pose_base_transform, ros::Time::now());
+                publishPoseFrame(pose_base_transform, sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT)));
                 //publishOdomFrame(odom_base_transform, ros::Time::now()); //publish the tracked Frame before the sleep
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait

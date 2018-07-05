@@ -158,4 +158,10 @@ namespace sl_tools {
         return ver;
     }
 
+    ros::Time slTime2Ros(sl::timeStamp t) {
+        uint32_t sec  = static_cast<uint32_t>(t/1000000000);
+        uint32_t nsec = static_cast<uint32_t>(t%1000000000);
+        return ros::Time(sec, nsec);
+    }
+
 } // namespace

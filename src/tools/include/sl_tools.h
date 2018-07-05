@@ -24,6 +24,7 @@
 #include <string>
 #include <sl/Camera.hpp>
 #include <opencv2/core/core.hpp>
+#include <ros/time.h>
 
 namespace sl_tools {
 
@@ -55,6 +56,11 @@ namespace sl_tools {
      * \param sub_minor _ sub_minor value for version
      */ 
     std::string getSDKVersion( int& major, int& minor, int& sub_minor);
+
+    /* \brief Convert StereoLabs timestamp to ROS timestamp
+     *  \param t : Stereolabs timestamp to be converted
+     */
+    ros::Time slTime2Ros(sl::timeStamp t);
     
 } // namespace
 
