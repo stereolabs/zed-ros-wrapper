@@ -258,7 +258,6 @@ void ZEDWrapperNodelet::onInit() {
     tfBuffer.reset(new tf2_ros::Buffer);
     tf_listener.reset(new tf2_ros::TransformListener(*tfBuffer));
 
-
     // Try to initialize the ZED
     if (!svo_filepath.empty())
         param.svo_input_filename = svo_filepath.c_str();
@@ -973,22 +972,68 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e)
     }
 
     // Publish IMU tf only if enabled
+
     if (publish_tf) {
-        // TODO take R,t from SDK
-        //zed.get..........
+        // IMU pose
+        tf2::Transform imu;
+        imu.setIdentity();
+        tf2::Quaternion imu_q;
+        imu_q.setX(x_sign * imu_data.getOrientation()[x_idx]);
+        imu_q.setY(y_sign * imu_data.getOrientation()[y_idx]);
+        imu_q.setZ(z_sign * imu_data.getOrientation()[z_idx]);
+        imu_q.setW(imu_data.getOrientation()[3]);
 
-        geometry_msgs::Transform i2b;
-        // TODO transform....
+        imu.setRotation( imu_q );
 
+        // IMU to Left_camera Transform
+        sl::Transform P(imu_data.imu_camera_transform);
+
+        geometry_msgs::Transform i2s;
+
+        sl::Translation tr = P.getTranslation();
+        i2s.translation.x = x_sign * tr(x_idx);
+        i2s.translation.y = y_sign * tr(y_idx);
+        i2s.translation.z = z_sign * tr(z_idx);
+
+        sl::Orientation q = P.getOrientation();
+        i2s.rotation.x = x_sign * q(x_idx);
+        i2s.rotation.y = y_sign * q(y_idx);
+        i2s.rotation.z = z_sign * q(z_idx);
+        i2s.rotation.w = q(3);
+
+        tf2::Transform imu_to_sensor;
+        tf2::fromMsg(i2s,imu_to_sensor);
+
+        tf2::Transform imu_sensor = imu_to_sensor * imu * imu_to_sensor.inverse();
+
+        // Left_camera to center Transform
+        tf2::Transform base_to_sensor;
+        // Look up the transformation from base frame to camera link
+        try {
+            // Save the transformation from base to frame
+            geometry_msgs::TransformStamped b2s = tfBuffer->lookupTransform(base_frame_id, left_cam_frame_id, t);
+            // Get the TF2 transformation
+            tf2::fromMsg(b2s.transform, base_to_sensor);
+
+        } catch (tf2::TransformException &ex) {
+            NODELET_WARN_THROTTLE(10.0, "The tf from '%s' to '%s' does not seem to be available, "
+                                        "will assume it as identity!",
+                                  base_frame_id.c_str(),
+                                  depth_frame_id.c_str());
+            NODELET_DEBUG("Transform error: %s", ex.what());
+            base_to_sensor.setIdentity();
+        }
+
+        // IMU to base
         tf2::Transform imu_transform;
 
-        tf2::fromMsg(i2b, imu_transform);
+        imu_transform = base_to_sensor * imu_sensor * imu_sensor.inverse();
 
-
-        imu_transform.setIdentity(); // TODO remove!!!
 
         //Note, the frame is published, but its values will only change if someone has subscribed to odom
         publishImuFrame(imu_transform, t); //publish the tracked Frame
+
+
     }
 }
 
@@ -1262,40 +1307,6 @@ void ZEDWrapperNodelet::device_poll() {
                 c2s.rotation.y = y_sign * quat(y_idx);
                 c2s.rotation.z = z_sign * quat(z_idx);
                 c2s.rotation.w =  quat(3);
-
-                //                if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
-                //                    // COORDINATE_SYSTEM_IMAGE
-                //                    c2s.translation.x =  translation(2);
-                //                    c2s.translation.y = -translation(0);
-                //                    c2s.translation.z = -translation(1);
-
-                //                    c2s.rotation.x =  quat(2);
-                //                    c2s.rotation.y = -quat(0);
-                //                    c2s.rotation.z = -quat(1);
-                //                    c2s.rotation.w =  quat(3);
-                //                } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
-                //                    // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
-                //                    c2s.translation.x =  translation(1);
-                //                    c2s.translation.y = -translation(0);
-                //                    c2s.translation.z =  translation(2);
-
-                //                    c2s.rotation.x =  quat(1);
-                //                    c2s.rotation.y = -quat(0);
-                //                    c2s.rotation.z =  quat(2);
-                //                    c2s.rotation.w =  quat(3);
-                //                } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
-                //                    // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
-                //                    c2s.translation.x = translation(0);
-                //                    c2s.translation.y = translation(1);
-                //                    c2s.translation.z = translation(2);
-
-                //                    c2s.rotation.x = quat(0);
-                //                    c2s.rotation.y = quat(1);
-                //                    c2s.rotation.z = quat(2);
-                //                    c2s.rotation.w = quat(3);
-                //                } else {
-                //                    NODELET_ERROR_STREAM("Camera coordinate system not supported");
-                //                }
 
                 tf2::fromMsg(c2s, camera_transform);
                 // Transformation from camera sensor to base frame
