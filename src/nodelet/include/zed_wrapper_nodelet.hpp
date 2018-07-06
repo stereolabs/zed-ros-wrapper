@@ -330,6 +330,10 @@ namespace zed_wrapper {
         // Dynamic reconfigure
         boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> server;
 
+        // Coordinate Changing indices and signs
+        unsigned int x_idx, y_idx, z_idx;
+        int x_sign, y_sign, z_sign;
+
     }; // class ZEDROSWrapperNodelet
 } // namespace
 

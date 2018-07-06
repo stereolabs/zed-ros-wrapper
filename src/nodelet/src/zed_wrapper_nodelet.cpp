@@ -287,14 +287,32 @@ void ZEDWrapperNodelet::onInit() {
     if( ver_major<2 ) {
         NODELET_WARN_STREAM( "Please consider to upgrade to latest SDK version to get better performances");
         param.coordinate_system = COORDINATE_SYSTEM_IMAGE;
-        NODELET_INFO_STREAM("Camera coordinate system set to COORDINATE_SYSTEM_IMAGE");
+        NODELET_INFO_STREAM("Camera coordinate system : COORDINATE_SYSTEM_IMAGE");
+        x_idx  = 2;
+        y_idx  = 0;
+        z_idx  = 1;
+        x_sign =  1;
+        y_sign = -1;
+        z_sign = -1;
     } else if( ver_major==2 && ver_minor<5) {
         NODELET_WARN_STREAM( "Please consider to upgrade to latest SDK version to get latest features");
         param.coordinate_system = COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP;
-        NODELET_INFO_STREAM("Camera coordinate system set to COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP");
+        NODELET_INFO_STREAM("Camera coordinate system : COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP");
+        x_idx = 1;
+        y_idx = 0;
+        z_idx = 2;
+        x_sign =  1;
+        y_sign = -1;
+        z_sign =  1;
     } else {
         param.coordinate_system = COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD;
-        NODELET_INFO_STREAM("Camera coordinate system set to COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD");
+        NODELET_INFO_STREAM("Camera coordinate system : COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD");
+        x_idx = 0;
+        y_idx = 1;
+        z_idx = 2;
+        x_sign = 1;
+        y_sign = 1;
+        z_sign = 1;
     }
 
     param.coordinate_units = sl::UNIT_METER;
@@ -688,37 +706,46 @@ void ZEDWrapperNodelet::publishPointCloud(int width, int height) {
 
     sl::Vector4<float>* cpu_cloud = cloud.getPtr<sl::float4>();
 
-    if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
 #pragma omp parallel for
-        for (int i = 0; i < size; i++) {
-            // COORDINATE_SYSTEM_IMAGE
-            point_cloud.points[i].x =  cpu_cloud[i][2];
-            point_cloud.points[i].y = -cpu_cloud[i][0];
-            point_cloud.points[i].z = -cpu_cloud[i][1];
-            point_cloud.points[i].rgb = cpu_cloud[i][3];
-        }
-    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
-#pragma omp parallel for
-        for (int i = 0; i < size; i++) {
-            // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
-            point_cloud.points[i].x =  cpu_cloud[i][1];
-            point_cloud.points[i].y = -cpu_cloud[i][0];
-            point_cloud.points[i].z =  cpu_cloud[i][2];
-            point_cloud.points[i].rgb = cpu_cloud[i][3];
-        }
-    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
-#pragma omp parallel for
-        for (int i = 0; i < size; i++) {
-            // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
-            point_cloud.points[i].x = cpu_cloud[i][0];
-            point_cloud.points[i].y = cpu_cloud[i][1];
-            point_cloud.points[i].z = cpu_cloud[i][2];
-            point_cloud.points[i].rgb = cpu_cloud[i][3];
-        }
-        //memcpy( (float*)(&(point_cloud.points[0])), (float*)(&(cpu_cloud[0])), 4*size*sizeof(float)  );
-    } else {
-        NODELET_ERROR_STREAM("Camera coordinate system not supported");
+    for (int i = 0; i < size; i++) {
+        // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
+        point_cloud.points[i].x = x_sign * cpu_cloud[i][x_idx];
+        point_cloud.points[i].y = y_sign * cpu_cloud[i][y_idx];
+        point_cloud.points[i].z = z_sign * cpu_cloud[i][z_idx];
+        point_cloud.points[i].rgb = cpu_cloud[i][3];
     }
+
+//    if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
+//#pragma omp parallel for
+//        for (int i = 0; i < size; i++) {
+//            // COORDINATE_SYSTEM_IMAGE
+//            point_cloud.points[i].x =  cpu_cloud[i][2];
+//            point_cloud.points[i].y = -cpu_cloud[i][0];
+//            point_cloud.points[i].z = -cpu_cloud[i][1];
+//            point_cloud.points[i].rgb = cpu_cloud[i][3];
+//        }
+//    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
+//#pragma omp parallel for
+//        for (int i = 0; i < size; i++) {
+//            // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
+//            point_cloud.points[i].x =  cpu_cloud[i][1];
+//            point_cloud.points[i].y = -cpu_cloud[i][0];
+//            point_cloud.points[i].z =  cpu_cloud[i][2];
+//            point_cloud.points[i].rgb = cpu_cloud[i][3];
+//        }
+//    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
+//#pragma omp parallel for
+//        for (int i = 0; i < size; i++) {
+//            // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
+//            point_cloud.points[i].x = cpu_cloud[i][0];
+//            point_cloud.points[i].y = cpu_cloud[i][1];
+//            point_cloud.points[i].z = cpu_cloud[i][2];
+//            point_cloud.points[i].rgb = cpu_cloud[i][3];
+//        }
+//        //memcpy( (float*)(&(point_cloud.points[0])), (float*)(&(cpu_cloud[0])), 4*size*sizeof(float)  );
+//    } else {
+//        NODELET_ERROR_STREAM("Camera coordinate system not supported");
+//    }
 
     sensor_msgs::PointCloud2 output;
     pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
@@ -870,91 +897,119 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e)
     zed.getIMUData(imu_data, sl::TIME_REFERENCE_CURRENT);
 
     sensor_msgs::Imu imu_msg;
-    imu_msg.header.stamp = ros::Time().fromNSec(imu_data.timestamp);
+    imu_msg.header.stamp = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
     imu_msg.header.frame_id = imu_frame_id;
 
-    if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
-        // COORDINATE_SYSTEM_IMAGE
-        imu_msg.orientation.x =  imu_data.getOrientation()[2];
-        imu_msg.orientation.y = -imu_data.getOrientation()[0];
-        imu_msg.orientation.z = -imu_data.getOrientation()[1];
-        imu_msg.orientation.w =  imu_data.getOrientation()[3];
+    imu_msg.orientation.x = x_sign * imu_data.getOrientation()[x_idx];
+    imu_msg.orientation.y = y_sign * imu_data.getOrientation()[y_idx];
+    imu_msg.orientation.z = z_sign * imu_data.getOrientation()[z_idx];
+    imu_msg.orientation.w = imu_data.getOrientation()[3];
 
-        imu_msg.angular_velocity.x =  imu_data.angular_velocity[2];
-        imu_msg.angular_velocity.y = -imu_data.angular_velocity[0];
-        imu_msg.angular_velocity.z = -imu_data.angular_velocity[1];
+    imu_msg.angular_velocity.x = x_sign * imu_data.angular_velocity[x_idx];
+    imu_msg.angular_velocity.y = y_sign * imu_data.angular_velocity[y_idx];
+    imu_msg.angular_velocity.z = z_sign * imu_data.angular_velocity[z_idx];
 
-        imu_msg.linear_acceleration.x =  imu_data.linear_acceleration[2];
-        imu_msg.linear_acceleration.y = -imu_data.linear_acceleration[0];
-        imu_msg.linear_acceleration.z = -imu_data.linear_acceleration[1];
+    imu_msg.linear_acceleration.x = x_sign * imu_data.linear_acceleration[x_idx];
+    imu_msg.linear_acceleration.y = y_sign * imu_data.linear_acceleration[y_idx];
+    imu_msg.linear_acceleration.z = z_sign * imu_data.linear_acceleration[z_idx];
 
-        for(int i = 0; i < 3; i+=3 )
-        {
-            imu_msg.orientation_covariance[i*3+0] = imu_data.orientation_covariance.r[i*3+2];
-            imu_msg.orientation_covariance[i*3+1] = imu_data.orientation_covariance.r[i*3+0];
-            imu_msg.orientation_covariance[i*3+2] = imu_data.orientation_covariance.r[i*3+1];
+    for(int i = 0; i < 3; i+=3 )
+    {
+        imu_msg.orientation_covariance[i*3+0] = imu_data.orientation_covariance.r[i*3+x_idx];
+        imu_msg.orientation_covariance[i*3+1] = imu_data.orientation_covariance.r[i*3+y_idx];
+        imu_msg.orientation_covariance[i*3+2] = imu_data.orientation_covariance.r[i*3+z_idx];
 
-            imu_msg.linear_acceleration_covariance[i*3+0] = imu_data.linear_acceleration_convariance.r[i*3+2];
-            imu_msg.linear_acceleration_covariance[i*3+1] = imu_data.linear_acceleration_convariance.r[i*3+0];
-            imu_msg.linear_acceleration_covariance[i*3+2] = imu_data.linear_acceleration_convariance.r[i*3+1];
+        imu_msg.linear_acceleration_covariance[i*3+0] = imu_data.linear_acceleration_convariance.r[i*3+x_idx];
+        imu_msg.linear_acceleration_covariance[i*3+1] = imu_data.linear_acceleration_convariance.r[i*3+y_idx];
+        imu_msg.linear_acceleration_covariance[i*3+2] = imu_data.linear_acceleration_convariance.r[i*3+z_idx];
 
-            imu_msg.angular_velocity_covariance[i*3+0] = imu_data.angular_velocity_convariance.r[i*3+2];
-            imu_msg.angular_velocity_covariance[i*3+1] = imu_data.angular_velocity_convariance.r[i*3+0];
-            imu_msg.angular_velocity_covariance[i*3+2] = imu_data.angular_velocity_convariance.r[i*3+1];
-        }
-    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
-        // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
-        imu_msg.orientation.x =  imu_data.getOrientation()[1];
-        imu_msg.orientation.y = -imu_data.getOrientation()[0];
-        imu_msg.orientation.z =  imu_data.getOrientation()[2];
-        imu_msg.orientation.w =  imu_data.getOrientation()[3];
-
-        imu_msg.angular_velocity.x =  imu_data.angular_velocity[1];
-        imu_msg.angular_velocity.y = -imu_data.angular_velocity[0];
-        imu_msg.angular_velocity.z =  imu_data.angular_velocity[2];
-
-        imu_msg.linear_acceleration.x =  imu_data.linear_acceleration[1];
-        imu_msg.linear_acceleration.y = -imu_data.linear_acceleration[0];
-        imu_msg.linear_acceleration.z =  imu_data.linear_acceleration[2];
-
-        for(int i = 0; i < 3; i+=3 )
-        {
-            imu_msg.orientation_covariance[i*3+0] = imu_data.orientation_covariance.r[i*3+1];
-            imu_msg.orientation_covariance[i*3+1] = imu_data.orientation_covariance.r[i*3+0];
-            imu_msg.orientation_covariance[i*3+2] = imu_data.orientation_covariance.r[i*3+2];
-
-            imu_msg.linear_acceleration_covariance[i*3+0] = imu_data.linear_acceleration_convariance.r[i*3+1];
-            imu_msg.linear_acceleration_covariance[i*3+1] = imu_data.linear_acceleration_convariance.r[i*3+0];
-            imu_msg.linear_acceleration_covariance[i*3+2] = imu_data.linear_acceleration_convariance.r[i*3+2];
-
-            imu_msg.angular_velocity_covariance[i*3+0] = imu_data.angular_velocity_convariance.r[i*3+1];
-            imu_msg.angular_velocity_covariance[i*3+1] = imu_data.angular_velocity_convariance.r[i*3+0];
-            imu_msg.angular_velocity_covariance[i*3+2] = imu_data.angular_velocity_convariance.r[i*3+2];
-        }
-    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
-        // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
-        imu_msg.orientation.x = imu_data.getOrientation()[0];
-        imu_msg.orientation.y = imu_data.getOrientation()[1];
-        imu_msg.orientation.z = imu_data.getOrientation()[2];
-        imu_msg.orientation.w = imu_data.getOrientation()[3];
-
-        imu_msg.angular_velocity.x = imu_data.angular_velocity[0];
-        imu_msg.angular_velocity.y = imu_data.angular_velocity[1];
-        imu_msg.angular_velocity.z = imu_data.angular_velocity[2];
-
-        imu_msg.linear_acceleration.x = imu_data.linear_acceleration[0];
-        imu_msg.linear_acceleration.y = imu_data.linear_acceleration[1];
-        imu_msg.linear_acceleration.z = imu_data.linear_acceleration[2];
-
-        for(int i = 0; i < 9; i++ )
-        {
-            imu_msg.orientation_covariance[i] = imu_data.orientation_covariance.r[i];
-            imu_msg.linear_acceleration_covariance[i] = imu_data.linear_acceleration_convariance.r[i];
-            imu_msg.angular_velocity_covariance[i] = imu_data.angular_velocity_convariance.r[i];
-        }
-    } else {
-        NODELET_ERROR_STREAM("Camera coordinate system not supported");
+        imu_msg.angular_velocity_covariance[i*3+0] = imu_data.angular_velocity_convariance.r[i*3+x_idx];
+        imu_msg.angular_velocity_covariance[i*3+1] = imu_data.angular_velocity_convariance.r[i*3+y_idx];
+        imu_msg.angular_velocity_covariance[i*3+2] = imu_data.angular_velocity_convariance.r[i*3+z_idx];
     }
+
+//    if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
+//        // COORDINATE_SYSTEM_IMAGE
+//        imu_msg.orientation.x =  imu_data.getOrientation()[2];
+//        imu_msg.orientation.y = -imu_data.getOrientation()[0];
+//        imu_msg.orientation.z = -imu_data.getOrientation()[1];
+//        imu_msg.orientation.w =  imu_data.getOrientation()[3];
+
+//        imu_msg.angular_velocity.x =  imu_data.angular_velocity[2];
+//        imu_msg.angular_velocity.y = -imu_data.angular_velocity[0];
+//        imu_msg.angular_velocity.z = -imu_data.angular_velocity[1];
+
+//        imu_msg.linear_acceleration.x =  imu_data.linear_acceleration[2];
+//        imu_msg.linear_acceleration.y = -imu_data.linear_acceleration[0];
+//        imu_msg.linear_acceleration.z = -imu_data.linear_acceleration[1];
+
+//        for(int i = 0; i < 3; i+=3 )
+//        {
+//            imu_msg.orientation_covariance[i*3+0] = imu_data.orientation_covariance.r[i*3+2];
+//            imu_msg.orientation_covariance[i*3+1] = imu_data.orientation_covariance.r[i*3+0];
+//            imu_msg.orientation_covariance[i*3+2] = imu_data.orientation_covariance.r[i*3+1];
+
+//            imu_msg.linear_acceleration_covariance[i*3+0] = imu_data.linear_acceleration_convariance.r[i*3+2];
+//            imu_msg.linear_acceleration_covariance[i*3+1] = imu_data.linear_acceleration_convariance.r[i*3+0];
+//            imu_msg.linear_acceleration_covariance[i*3+2] = imu_data.linear_acceleration_convariance.r[i*3+1];
+
+//            imu_msg.angular_velocity_covariance[i*3+0] = imu_data.angular_velocity_convariance.r[i*3+2];
+//            imu_msg.angular_velocity_covariance[i*3+1] = imu_data.angular_velocity_convariance.r[i*3+0];
+//            imu_msg.angular_velocity_covariance[i*3+2] = imu_data.angular_velocity_convariance.r[i*3+1];
+//        }
+//    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
+//        // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
+//        imu_msg.orientation.x =  imu_data.getOrientation()[1];
+//        imu_msg.orientation.y = -imu_data.getOrientation()[0];
+//        imu_msg.orientation.z =  imu_data.getOrientation()[2];
+//        imu_msg.orientation.w =  imu_data.getOrientation()[3];
+
+//        imu_msg.angular_velocity.x =  imu_data.angular_velocity[1];
+//        imu_msg.angular_velocity.y = -imu_data.angular_velocity[0];
+//        imu_msg.angular_velocity.z =  imu_data.angular_velocity[2];
+
+//        imu_msg.linear_acceleration.x =  imu_data.linear_acceleration[1];
+//        imu_msg.linear_acceleration.y = -imu_data.linear_acceleration[0];
+//        imu_msg.linear_acceleration.z =  imu_data.linear_acceleration[2];
+
+//        for(int i = 0; i < 3; i+=3 )
+//        {
+//            imu_msg.orientation_covariance[i*3+0] = imu_data.orientation_covariance.r[i*3+1];
+//            imu_msg.orientation_covariance[i*3+1] = imu_data.orientation_covariance.r[i*3+0];
+//            imu_msg.orientation_covariance[i*3+2] = imu_data.orientation_covariance.r[i*3+2];
+
+//            imu_msg.linear_acceleration_covariance[i*3+0] = imu_data.linear_acceleration_convariance.r[i*3+1];
+//            imu_msg.linear_acceleration_covariance[i*3+1] = imu_data.linear_acceleration_convariance.r[i*3+0];
+//            imu_msg.linear_acceleration_covariance[i*3+2] = imu_data.linear_acceleration_convariance.r[i*3+2];
+
+//            imu_msg.angular_velocity_covariance[i*3+0] = imu_data.angular_velocity_convariance.r[i*3+1];
+//            imu_msg.angular_velocity_covariance[i*3+1] = imu_data.angular_velocity_convariance.r[i*3+0];
+//            imu_msg.angular_velocity_covariance[i*3+2] = imu_data.angular_velocity_convariance.r[i*3+2];
+//        }
+//    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
+//        // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
+//        imu_msg.orientation.x = imu_data.getOrientation()[0];
+//        imu_msg.orientation.y = imu_data.getOrientation()[1];
+//        imu_msg.orientation.z = imu_data.getOrientation()[2];
+//        imu_msg.orientation.w = imu_data.getOrientation()[3];
+
+//        imu_msg.angular_velocity.x = imu_data.angular_velocity[0];
+//        imu_msg.angular_velocity.y = imu_data.angular_velocity[1];
+//        imu_msg.angular_velocity.z = imu_data.angular_velocity[2];
+
+//        imu_msg.linear_acceleration.x = imu_data.linear_acceleration[0];
+//        imu_msg.linear_acceleration.y = imu_data.linear_acceleration[1];
+//        imu_msg.linear_acceleration.z = imu_data.linear_acceleration[2];
+
+//        for(int i = 0; i < 9; i++ )
+//        {
+//            imu_msg.orientation_covariance[i] = imu_data.orientation_covariance.r[i];
+//            imu_msg.linear_acceleration_covariance[i] = imu_data.linear_acceleration_convariance.r[i];
+//            imu_msg.angular_velocity_covariance[i] = imu_data.angular_velocity_convariance.r[i];
+//        }
+//    } else {
+//        NODELET_ERROR_STREAM("Camera coordinate system not supported");
+//    }
 
     pub_imu.publish(imu_msg);
 }
@@ -1243,39 +1298,48 @@ void ZEDWrapperNodelet::device_poll() {
                 sl::Translation translation = zed_pose.getTranslation();
                 sl::Orientation quat = zed_pose.getOrientation();
 
-                if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
-                    // COORDINATE_SYSTEM_IMAGE
-                    c2s.translation.x =  translation(2);
-                    c2s.translation.y = -translation(0);
-                    c2s.translation.z = -translation(1);
+                c2s.translation.x = x_sign * translation(x_idx);
+                c2s.translation.y = y_sign * translation(y_idx);
+                c2s.translation.z = z_sign * translation(z_idx);
 
-                    c2s.rotation.x =  quat(2);
-                    c2s.rotation.y = -quat(0);
-                    c2s.rotation.z = -quat(1);
-                    c2s.rotation.w =  quat(3);
-                } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
-                    // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
-                    c2s.translation.x =  translation(1);
-                    c2s.translation.y = -translation(0);
-                    c2s.translation.z =  translation(2);
+                c2s.rotation.x = x_sign * quat(x_idx);
+                c2s.rotation.y = y_sign * quat(y_idx);
+                c2s.rotation.z = z_sign * quat(z_idx);
+                c2s.rotation.w =  quat(3);
 
-                    c2s.rotation.x =  quat(1);
-                    c2s.rotation.y = -quat(0);
-                    c2s.rotation.z =  quat(2);
-                    c2s.rotation.w =  quat(3);
-                } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
-                    // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
-                    c2s.translation.x = translation(0);
-                    c2s.translation.y = translation(1);
-                    c2s.translation.z = translation(2);
+//                if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
+//                    // COORDINATE_SYSTEM_IMAGE
+//                    c2s.translation.x =  translation(2);
+//                    c2s.translation.y = -translation(0);
+//                    c2s.translation.z = -translation(1);
 
-                    c2s.rotation.x = quat(0);
-                    c2s.rotation.y = quat(1);
-                    c2s.rotation.z = quat(2);
-                    c2s.rotation.w = quat(3);
-                } else {
-                    NODELET_ERROR_STREAM("Camera coordinate system not supported");
-                }
+//                    c2s.rotation.x =  quat(2);
+//                    c2s.rotation.y = -quat(0);
+//                    c2s.rotation.z = -quat(1);
+//                    c2s.rotation.w =  quat(3);
+//                } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
+//                    // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
+//                    c2s.translation.x =  translation(1);
+//                    c2s.translation.y = -translation(0);
+//                    c2s.translation.z =  translation(2);
+
+//                    c2s.rotation.x =  quat(1);
+//                    c2s.rotation.y = -quat(0);
+//                    c2s.rotation.z =  quat(2);
+//                    c2s.rotation.w =  quat(3);
+//                } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
+//                    // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
+//                    c2s.translation.x = translation(0);
+//                    c2s.translation.y = translation(1);
+//                    c2s.translation.z = translation(2);
+
+//                    c2s.rotation.x = quat(0);
+//                    c2s.rotation.y = quat(1);
+//                    c2s.rotation.z = quat(2);
+//                    c2s.rotation.w = quat(3);
+//                } else {
+//                    NODELET_ERROR_STREAM("Camera coordinate system not supported");
+//                }
 
                 tf2::fromMsg(c2s, camera_transform);
                 // Transformation from camera sensor to base frame

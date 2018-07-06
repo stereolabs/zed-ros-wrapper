@@ -7,7 +7,9 @@ Panels:
         - /Global Options1
         - /RobotModel1/Links1
         - /TF1/Frames1
+        - /DepthCloud1
         - /DepthCloud1/Occlusion Compensation1
+        - /Camera1
       Splitter Ratio: 0.5
     Tree Height: 451
   - Class: rviz/Selection
@@ -141,7 +143,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/DepthCloud
       Color: 255; 255; 255
-      Color Image Topic: /zed/left/image_raw_color
+      Color Image Topic: /zed/rgb/image_rect_color
       Color Transformer: RGB8
       Color Transport Hint: raw
       Decay Time: 0
