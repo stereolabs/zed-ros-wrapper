@@ -111,6 +111,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="pose_topic"             value="map" />
 
         <param name="imu_topic"             value="imu/data" />
+        <param name="imu_topic_raw"         value="imu/data_raw" />
 
         <param name="imu_pub_rate"          value="100.0" />
 

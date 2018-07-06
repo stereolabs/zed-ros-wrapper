@@ -221,6 +221,7 @@ namespace zed_wrapper {
         ros::Publisher pub_pose;
         //ros::Publisher pub_odom;
         ros::Publisher pub_imu;
+        ros::Publisher pub_imu_raw;
         ros::Timer pub_imu_timer;
 
         // Service
