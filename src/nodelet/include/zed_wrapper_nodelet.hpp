@@ -108,7 +108,7 @@ namespace zed_wrapper {
          * \param base_transform : Transformation representing the imu pose from camera frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishImuFrame(tf2::Transform base_transform, ros::Time t);
+        void publishImuFrame(tf2::Transform base_transform);
 
         /* \brief Publish a cv::Mat image with a ros Publisher
          * \param img : the image to publish
@@ -282,6 +282,9 @@ namespace zed_wrapper {
         std::string svo_filepath;
         double imu_pub_rate;
 
+        // IMU time
+        ros::Time imu_time;
+
         bool pose_smoothing;
         bool spatial_memory;
 
@@ -291,6 +294,7 @@ namespace zed_wrapper {
         std::vector<float> initial_track_pose;
         tf2::Transform pose_base_transform;
         //tf2::Transform odom_base_transform;
+        tf2::Transform imu_base_transform;
         sl::Transform initial_pose_sl;
 
         // zed object

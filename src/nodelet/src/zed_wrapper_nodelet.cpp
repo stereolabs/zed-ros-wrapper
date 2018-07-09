@@ -253,7 +253,6 @@ void ZEDWrapperNodelet::onInit() {
     set_pose( initial_track_pose[0], initial_track_pose[1], initial_track_pose[2],
             initial_track_pose[3], initial_track_pose[4], initial_track_pose[5]);
 
-
     // Initialization transformation listener
     tfBuffer.reset(new tf2_ros::Buffer);
     tf_listener.reset(new tf2_ros::TransformListener(*tfBuffer));
@@ -438,12 +437,13 @@ void ZEDWrapperNodelet::onInit() {
 
     // Imu publisher
     if(imu_pub_rate > 0 && realCamModel == sl::MODEL_ZED_M) {
-        pub_imu = nh.advertise<sensor_msgs::Imu>(imu_topic, 1);
+        pub_imu = nh.advertise<sensor_msgs::Imu>(imu_topic, 500);
         NODELET_INFO_STREAM("Advertized on topic " << imu_topic << " @ " << imu_pub_rate << " Hz");
 
-        pub_imu_raw = nh.advertise<sensor_msgs::Imu>(imu_topic_raw, 1);
+        pub_imu_raw = nh.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
         NODELET_INFO_STREAM("Advertized on topic " << imu_topic_raw << " @ " << imu_pub_rate << " Hz");
 
+        imu_time = ros::Time::now();
         pub_imu_timer = nh_ns.createTimer(ros::Duration(1.0 / imu_pub_rate), &ZEDWrapperNodelet::imuPubCallback,this);
     } else if(imu_pub_rate > 0 && realCamModel == sl::MODEL_ZED) {
         NODELET_WARN_STREAM( "'imu_pub_rate' set to " << imu_pub_rate << " Hz" << " but ZED camera model does not support IMU data publishing.");
@@ -660,9 +660,9 @@ void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform base_transform, ros::Tim
 //    transform_odom_broadcaster.sendTransform(transformStamped);
 //}
 
-void ZEDWrapperNodelet::publishImuFrame(tf2::Transform base_transform, ros::Time t) {
+void ZEDWrapperNodelet::publishImuFrame(tf2::Transform base_transform) {
     geometry_msgs::TransformStamped transformStamped;
-    transformStamped.header.stamp = t;
+    transformStamped.header.stamp = imu_time;
     transformStamped.header.frame_id = base_frame_id;
     transformStamped.child_frame_id = imu_frame_id;
     // conversion from Tranform to message
@@ -891,8 +891,7 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig &config, ui
     }
 }
 
-void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e)
-{
+void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e) {
     int imu_SubNumber = pub_imu.getNumSubscribers();
     int imu_RawSubNumber = pub_imu_raw.getNumSubscribers();
 
@@ -901,14 +900,14 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e)
         return;
     }
 
-    ros::Time t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+    ros::Time t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
 
     sl::IMUData imu_data;
     zed.getIMUData(imu_data, sl::TIME_REFERENCE_CURRENT);
 
     if (imu_SubNumber > 0) {
         sensor_msgs::Imu imu_msg;
-        imu_msg.header.stamp = t;
+        imu_msg.header.stamp = imu_time; //t;
         imu_msg.header.frame_id = imu_frame_id;
 
         imu_msg.orientation.x = x_sign * imu_data.getOrientation()[x_idx];
@@ -944,7 +943,7 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e)
 
     if (imu_RawSubNumber > 0) {
         sensor_msgs::Imu imu_raw_msg;
-        imu_raw_msg.header.stamp = t;
+        imu_raw_msg.header.stamp = imu_time; //t;
         imu_raw_msg.header.frame_id = imu_frame_id;
 
         imu_raw_msg.angular_velocity.x = x_sign * imu_data.angular_velocity[x_idx];
@@ -1024,24 +1023,18 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e)
             base_to_sensor.setIdentity();
         }
 
-        // IMU to base
-        tf2::Transform imu_transform;
+        imu_base_transform = base_to_sensor * imu_sensor * imu_sensor.inverse();
 
-        imu_transform = base_to_sensor * imu_sensor * imu_sensor.inverse();
-
-
-        //Note, the frame is published, but its values will only change if someone has subscribed to odom
-        publishImuFrame(imu_transform, t); //publish the tracked Frame
-
-
+        //Note, the frame is published, but its values will only change if someone has subscribed to IMU
+        publishImuFrame(imu_base_transform); //publish the imu Frame
     }
 }
 
 void ZEDWrapperNodelet::device_poll() {
     ros::Rate loop_rate(rate);
 
-    //ros::Time old_t = ros::Time::now();
     ros::Time old_t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+    imu_time = old_t;
 
     sl::ERROR_CODE grab_status;
     tracking_activated = false;
@@ -1105,7 +1098,7 @@ void ZEDWrapperNodelet::device_poll() {
             //ros::Time t = ros::Time::now(); // Get current time
 
             // Timestamp
-            ros::Time t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
+            ros::Time t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_IMAGE));            
 
             grabbing = true;
             if (computeDepth) {
@@ -1160,7 +1153,7 @@ void ZEDWrapperNodelet::device_poll() {
             }
 
             // Time update
-            old_t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+            old_t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));            
 
             if (autoExposure) {
                 // getCameraSettings() can't check status of auto exposure
@@ -1370,20 +1363,24 @@ void ZEDWrapperNodelet::device_poll() {
             //                publishOdom(odom_base_transform, t);
             //            }
 
-            // Publish odometry tf only if enabled
+            // Publish pose tf only if enabled
             if (publish_tf) {
                 //Note, the frame is published, but its values will only change if someone has subscribed to map
                 publishPoseFrame(pose_base_transform, t);
                 //Note, the frame is published, but its values will only change if someone has subscribed to odom
                 //publishOdomFrame(odom_base_transform, t); //publish the tracked Frame
+                //publishImuFrame(imu_base_transform, t); //publish the imu Frame
+                imu_time = t;
             }
 
             loop_rate.sleep();
         } else {
             // Publish odometry tf only if enabled
             if (publish_tf) {
-                publishPoseFrame(pose_base_transform, sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT)));
-                //publishOdomFrame(odom_base_transform, ros::Time::now()); //publish the tracked Frame before the sleep
+                ros::Time t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+                publishPoseFrame(pose_base_transform, t);
+                //publishOdomFrame(odom_base_transform, t); //publish the tracked Frame before the sleep
+                //publishImuFrame(imu_base_transform, t); //publish the imu Frame
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
         }

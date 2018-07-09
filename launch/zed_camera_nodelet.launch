@@ -41,8 +41,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <!-- Publish urdf zed -->
     <arg name="publish_urdf"          default="true" />
-    
-    <node pkg="nodelet" type="nodelet" name="ZED_nodelet" args="load zed_wrapper/ZEDWrapperNodelet nodelet_manager" output="screen"> 
+
+    <arg name="rgb_topic"           default="rgb/image_rect_color" />
+    <arg name="rgb_info_topic"      default="rgb/camera_info" />
+    <arg name="depth_topic"         default="depth/depth_registered" />
+
+    <node pkg="nodelet" type="nodelet" name="ZED_nodelet" args="load zed_wrapper/ZEDWrapperNodelet nodelet_manager" output="screen">
 
         <param name="camera_model" value="$(arg camera_model)" />
 
@@ -83,37 +87,37 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>
 
         <!-- ROS topic names -->
-        <param name="rgb_topic"             value="rgb/image_rect_color" />
-        <param name="rgb_raw_topic"         value="rgb/image_raw_color" />
-        <param name="rgb_cam_info_topic"    value="rgb/camera_info" />
+        <param name="rgb_topic"                 value="$(arg rgb_topic)" />
+        <param name="rgb_raw_topic"             value="rgb/image_raw_color" />
+        <param name="rgb_cam_info_topic"        value="$(arg rgb_info_topic)" />
         <param name="rgb_cam_info_raw_topic"    value="rgb/camera_info_raw" />
 
-        <param name="left_topic"            value="left/image_rect_color" />
-        <param name="left_raw_topic"        value="left/image_raw_color" />
-        <param name="left_cam_info_topic"   value="left/camera_info" />
+        <param name="left_topic"                value="left/image_rect_color" />
+        <param name="left_raw_topic"            value="left/image_raw_color" />
+        <param name="left_cam_info_topic"       value="left/camera_info" />
         <param name="left_cam_info_raw_topic"   value="left/camera_info_raw" />
 
-        <param name="right_topic"           value="right/image_rect_color" />
-        <param name="right_raw_topic"       value="right/image_raw_color" />
-        <param name="right_cam_info_topic"  value="right/camera_info" />
+        <param name="right_topic"               value="right/image_rect_color" />
+        <param name="right_raw_topic"           value="right/image_raw_color" />
+        <param name="right_cam_info_topic"      value="right/camera_info" />
         <param name="right_cam_info_raw_topic"  value="right/camera_info_raw" />
 
-        <param name="depth_topic"           value="depth/depth_registered" />
-        <param name="depth_cam_info_topic"  value="depth/camera_info" />
+        <param name="depth_topic"               value="$(arg depth_topic)" />
+        <param name="depth_cam_info_topic"      value="depth/camera_info" />
 
-        <param name="point_cloud_topic"     value="point_cloud/cloud_registered" />
+        <param name="point_cloud_topic"         value="point_cloud/cloud_registered" />
 
-        <param name="disparity_topic"       value="disparity/disparity_image" />
-        <param name="confidence_img_topic"  value="confidence/confidence_image" />
-        <param name="confidence_map_topic"  value="confidence/confidence_map" />
+        <param name="disparity_topic"           value="disparity/disparity_image" />
+        <param name="confidence_img_topic"      value="confidence/confidence_image" />
+        <param name="confidence_map_topic"      value="confidence/confidence_map" />
 
 
-        <param name="pose_topic"             value="map" />
+        <param name="pose_topic"                value="map" />
 
-        <param name="imu_topic"             value="imu/data" />
-        <param name="imu_topic_raw"         value="imu/data_raw" />
+        <param name="imu_topic"                 value="imu/data" />
+        <param name="imu_topic_raw"             value="imu/data_raw" />
 
-        <param name="imu_pub_rate"          value="100.0" />
+        <param name="imu_pub_rate"              value="500.0" />
 
     </node>
 

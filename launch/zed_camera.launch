@@ -41,8 +41,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <!-- Publish urdf zed -->
     <arg name="publish_urdf"          default="true" />
+
+    <arg name="rgb_topic"           default="rgb/image_rect_color" />
+    <arg name="rgb_info_topic"      default="rgb/camera_info" />
+    <arg name="depth_topic"         default="depth/depth_registered" />
     
-    <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" --> 
+    <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
 
         <param name="camera_model"          value="$(arg camera_model)" />
 
@@ -83,9 +87,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>
 
         <!-- ROS topic names -->
-        <param name="rgb_topic"                 value="rgb/image_rect_color" />
+        <param name="rgb_topic"                 value="$(arg rgb_topic)" />
         <param name="rgb_raw_topic"             value="rgb/image_raw_color" />
-        <param name="rgb_cam_info_topic"        value="rgb/camera_info" />
+        <param name="rgb_cam_info_topic"        value="$(arg rgb_info_topic)" />
         <param name="rgb_cam_info_raw_topic"    value="rgb/camera_info_raw" />
 
         <param name="left_topic"                value="left/image_rect_color" />
@@ -98,7 +102,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="right_cam_info_topic"      value="right/camera_info" />
         <param name="right_cam_info_raw_topic"  value="right/camera_info_raw" />
 
-        <param name="depth_topic"               value="depth/depth_registered" />
+        <param name="depth_topic"               value="$(arg depth_topic)" />
         <param name="depth_cam_info_topic"      value="depth/camera_info" />
 
         <param name="point_cloud_topic"         value="point_cloud/cloud_registered" />
