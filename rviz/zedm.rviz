@@ -6,10 +6,10 @@ Panels:
       Expanded:
         - /Global Options1
         - /RobotModel1/Links1
-        - /TF1/Frames1
-        - /DepthCloud1
         - /DepthCloud1/Occlusion Compensation1
-        - /Camera1
+        - /Imu1
+        - /Odometry1/Shape1
+        - /Odometry1/Covariance1/Position1
       Splitter Ratio: 0.5
     Tree Height: 451
   - Class: rviz/Selection
@@ -102,6 +102,8 @@ Visualization Manager:
           Value: false
         map:
           Value: true
+        odom:
+          Value: true
         zed_camera_center:
           Value: true
         zed_left_camera_frame:
@@ -119,15 +121,16 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          zed_camera_center:
-            imu_link:
-              {}
-            zed_left_camera_frame:
-              zed_left_camera_optical_frame:
+          odom:
+            zed_camera_center:
+              imu_link:
                 {}
-            zed_right_camera_frame:
-              zed_right_camera_optical_frame:
-                {}
+              zed_left_camera_frame:
+                zed_left_camera_optical_frame:
+                  {}
+              zed_right_camera_frame:
+                zed_right_camera_optical_frame:
+                  {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -182,6 +185,7 @@ Visualization Manager:
         DepthCloud: true
         Grid: true
         Imu: true
+        Odometry: true
         PointCloud2: true
         Pose: true
         RobotModel: true
@@ -214,7 +218,7 @@ Visualization Manager:
       Size (m): 0.00999999978
       Style: Points
       Topic: /zed/point_cloud/cloud_registered
-      Unreliable: true
+      Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
@@ -240,7 +244,7 @@ Visualization Manager:
       Topic: /zed/imu/data
       Unreliable: false
       Value: true
-      fixed_frame_orientation: true
+      fixed_frame_orientation: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.100000001
@@ -254,6 +258,40 @@ Visualization Manager:
       Shaft Radius: 0.0199999996
       Shape: Arrow
       Topic: /zed/map
+      Unreliable: false
+      Value: true
+    - Angle Tolerance: 0.100000001
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.300000012
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: true
+      Keep: 0
+      Name: Odometry
+      Position Tolerance: 0.100000001
+      Shape:
+        Alpha: 1
+        Axes Length: 0.100000001
+        Axes Radius: 0.00999999978
+        Color: 255; 25; 0
+        Head Length: 0.300000012
+        Head Radius: 0.100000001
+        Shaft Length: 1
+        Shaft Radius: 0.0500000007
+        Value: Axes
+      Topic: ""
       Unreliable: false
       Value: true
   Enabled: true
@@ -281,25 +319,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.59502316
+      Distance: 3.55838561
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.43964839
-        Y: -0.266723037
-        Z: 0.94536221
+        X: 0.0342643671
+        Y: 0.298864007
+        Z: 0.638629913
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.174796328
+      Pitch: 0.119796388
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.999097168
+      Yaw: 2.39409924
     Saved: ~
 Window Geometry:
   Camera:

@@ -30,6 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Definition coordinate frames -->
     <arg name="publish_tf"                    default="true" />
     <arg name="pose_frame"                    default="map" />
+    <arg name="odometry_frame"                default="odom" />
     <arg name="base_frame"                    default="zed_camera_center" />
     <arg name="left_camera_frame"             default="zed_left_camera_frame" />
     <arg name="left_camera_optical_frame"     default="zed_left_camera_optical_frame" />
@@ -55,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- Configuration frame camera -->    
         <param name="pose_frame"                    value="$(arg pose_frame)" />
+        <param name="odometry_frame"                value="$(arg odometry_frame)" />
         <param name="base_frame"                    value="$(arg base_frame)" />
         <param name="left_camera_frame"             value="$(arg left_camera_frame)" />
         <param name="left_camera_optical_frame"     value="$(arg left_camera_optical_frame)" />
@@ -106,6 +108,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="depth_cam_info_topic"      value="depth/camera_info" />
 
         <param name="point_cloud_topic"         value="point_cloud/cloud_registered" />
+
+        <param name="odometry_topic"            value="odom" />
 
         <param name="disparity_topic"           value="disparity/disparity_image" />
         <param name="confidence_img_topic"      value="confidence/confidence_image" />
