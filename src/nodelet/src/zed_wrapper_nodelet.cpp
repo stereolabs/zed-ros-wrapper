@@ -642,7 +642,7 @@ void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform base_transform, ros::Tim
     geometry_msgs::TransformStamped transformStamped;
     transformStamped.header.stamp = t;
     transformStamped.header.frame_id = pose_frame_id;
-    transformStamped.child_frame_id = odometry_frame_id; // base_frame_id;
+    transformStamped.child_frame_id = odometry_frame_id;
     // conversion from Tranform to message
     transformStamped.transform = tf2::toMsg(base_transform);
     // Publish transformation
@@ -985,7 +985,7 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e) {
         imu.setRotation( imu_q );
 
         // IMU to Left_camera Transform
-        sl::Transform P(imu_data.imu_camera_transform);
+        sl::Transform P = zed.getCameraInformation().camera_imu_transform;
 
         geometry_msgs::Transform i2s;
 
@@ -1023,8 +1023,7 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e) {
             base_to_sensor.setIdentity();
         }
 
-        imu_base_transform = base_to_sensor * imu_sensor.inverse() * base_to_sensor.inverse();
-        imu_base_transform.setRotation( imu_q.inverse() );
+        imu_base_transform = pose_odom_transform * (base_to_sensor.inverse() * imu_sensor * base_to_sensor) * pose_odom_transform.inverse();
 
         //Note, the frame is published, but its values will only change if someone has subscribed to IMU
         publishImuFrame(imu_base_transform); //publish the imu Frame
