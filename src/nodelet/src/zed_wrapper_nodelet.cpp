@@ -1285,28 +1285,27 @@ void ZEDWrapperNodelet::device_poll() {
                 sl::Pose deltaOdom;
                 zed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
 
-                // Propagate Odom transform
-                odom_pose.pose_data = odom_pose.pose_data * deltaOdom.pose_data;
-
-                // Transform ZED odom pose in TF2 Transformation
-                tf2::Transform camera_transform;
-                geometry_msgs::Transform c2s;
+                // Transform ZED delta odom pose in TF2 Transformation
+                geometry_msgs::Transform deltaTransf;
 
                 sl::Translation translation = odom_pose.getTranslation();
                 sl::Orientation quat = odom_pose.getOrientation();
 
-                c2s.translation.x = x_sign * translation(x_idx);
-                c2s.translation.y = y_sign * translation(y_idx);
-                c2s.translation.z = z_sign * translation(z_idx);
+                deltaTransf.translation.x = x_sign * translation(x_idx);
+                deltaTransf.translation.y = y_sign * translation(y_idx);
+                deltaTransf.translation.z = z_sign * translation(z_idx);
 
-                c2s.rotation.x = x_sign * quat(x_idx);
-                c2s.rotation.y = y_sign * quat(y_idx);
-                c2s.rotation.z = z_sign * quat(z_idx);
-                c2s.rotation.w =  quat(3);
+                deltaTransf.rotation.x = x_sign * quat(x_idx);
+                deltaTransf.rotation.y = y_sign * quat(y_idx);
+                deltaTransf.rotation.z = z_sign * quat(z_idx);
+                deltaTransf.rotation.w =  quat(3);
 
-                tf2::fromMsg(c2s, camera_transform);
-                // Transformation from camera sensor to base frame
-                odom_base_transform = base_to_sensor * camera_transform * base_to_sensor.inverse();
+                tf2::Transform deltaOdomTf;
+                tf2::fromMsg(deltaTransf, deltaOdomTf);
+
+                // Propagate Odom transform in time
+                odom_base_transform = odom_base_transform * deltaOdomTf;
+
                 // Publish odometry message
                 publishOdom(odom_base_transform, t);
             }
