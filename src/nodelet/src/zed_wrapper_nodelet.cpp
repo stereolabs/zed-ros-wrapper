@@ -85,6 +85,8 @@ void ZEDWrapperNodelet::onInit() {
     }
     mat_resize_factor=1.0;
 
+    verbose = true;
+
     nh = getMTNodeHandle();
     nh_ns = getMTPrivateNodeHandle();
 
@@ -117,6 +119,7 @@ void ZEDWrapperNodelet::onInit() {
 
     // Get parameters from launch file
     nh_ns.getParam("resolution", resolution);
+    nh_ns.getParam("verbose", verbose);
     nh_ns.getParam("quality", quality);
     nh_ns.getParam("sensing_mode", sensing_mode);
     nh_ns.getParam("frame_rate", rate);
@@ -318,7 +321,7 @@ void ZEDWrapperNodelet::onInit() {
     param.coordinate_units = sl::UNIT_METER;
 
     param.depth_mode = static_cast<sl::DEPTH_MODE> (quality);
-    param.sdk_verbose = true;
+    param.sdk_verbose = verbose;
     param.sdk_gpu_id = gpu_id;
     param.depth_stabilization = depth_stabilization;
 

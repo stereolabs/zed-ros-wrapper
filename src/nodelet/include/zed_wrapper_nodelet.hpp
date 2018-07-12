@@ -281,6 +281,7 @@ private:
     std::string odometry_DB;
     std::string svo_filepath;
     double imu_pub_rate;
+    bool verbose;
 
     // IMU time
     ros::Time imu_time;

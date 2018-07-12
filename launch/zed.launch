@@ -22,6 +22,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="camera_model"         default="0" /> <!-- 0=ZED, 1=ZEDM-->
     <arg name="serial_number"        default="0" /> 
     <arg name="resolution"           default="2" />
+    <arg name="verbose"              default="true" />
 
     <group ns="zed">
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
@@ -30,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <arg name="camera_model"        value="$(arg camera_model)" />
             <arg name="serial_number"       default="$(arg serial_number)" /> 
             <arg name="resolution"          default="$(arg resolution)" />
+            <arg name="verbose"             default="$(arg verbose)" />
         </include>
     </group>
 </launch>
