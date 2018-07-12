@@ -90,7 +90,7 @@ protected:
          * \param odom_base_transform : Transformation representing the camera pose from base frame
          * \param t : the ros::Time to stamp the image
          */
-    void publishOdom(tf2::Transform odom_base_transform, ros::Time t);
+    void publishOdom(tf2::Transform base_to_odom_transform, ros::Time t);
 
     /* \brief Publish the pose of the camera as a transformation
          * \param base_transform : Transformation representing the camera pose from base frame
@@ -102,7 +102,7 @@ protected:
          * \param base_transform : Transformation representing the camera pose from base frame
          * \param t : the ros::Time to stamp the image
          */
-    void publishOdomFrame(tf2::Transform odom_base_transform, ros::Time t);
+    void publishOdomFrame(tf2::Transform base_to_odom_transform, ros::Time t);
 
     /* \brief Publish the pose of the imu as a transformation
          * \param base_transform : Transformation representing the imu pose from camera frame
@@ -289,13 +289,12 @@ private:
     bool spatial_memory;
 
     //Tracking variables
-    sl::Pose zed_pose;
-    sl::Pose odom_pose;
-    std::vector<float> initial_track_pose;
-    tf2::Transform pose_odom_transform;
-    tf2::Transform odom_base_transform;
-    tf2::Transform imu_base_transform;
     sl::Transform initial_pose_sl;
+    std::vector<float> initial_track_pose;
+
+    tf2::Transform odom_to_map_transform;
+    tf2::Transform base_to_odom_transform;
+
 
     // zed object
     sl::InitParameters param;
