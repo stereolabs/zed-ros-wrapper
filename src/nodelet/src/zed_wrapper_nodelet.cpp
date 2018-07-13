@@ -20,35 +20,15 @@
 #include "zed_wrapper_nodelet.hpp"
 #include "sl_tools.h"
 
-#include <csignal>
-#include <cstdio>
-#include <math.h>
-#include <limits>
-#include <thread>
-#include <chrono>
-#include <memory>
-
-#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
 
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/distortion_models.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Imu.h>
 #include <stereo_msgs/DisparityImage.h>
-#include <sensor_msgs/PointCloud2.h>
 #include <nav_msgs/Odometry.h>
-#include <tf2_ros/buffer.h>
-#include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <geometry_msgs/TransformStamped.h>
 #include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
 
 // >>>>> Backward compatibility
 #define COORDINATE_SYSTEM_IMAGE                     static_cast<sl::COORDINATE_SYSTEM>(0)
