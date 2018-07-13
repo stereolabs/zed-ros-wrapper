@@ -297,7 +297,6 @@ private:
     tf2::Transform odomToMapTransform;
     tf2::Transform baseToOdomTransform;
 
-
     // zed object
     sl::InitParameters param;
     sl::Camera zed;

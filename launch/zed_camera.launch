@@ -21,9 +21,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
     <arg name="zed_id"                default="0" />
     <!-- If a ZED SN is given, zed_id is ignored and the wrapper will specifically look for the ZED with the corresponding serial number -->
-    <arg name="serial_number"         default="0" /> 
-    <arg name="resolution"            default="2" />
+    <arg name="serial_number"         default="0" />     
     <arg name="verbose"               default="true" />
+
+    <arg name="resolution"            default="2" /> <!--0=RESOLUTION_HD2K, 1=RESOLUTION_HD1080, 2=RESOLUTION_HD720, 3=RESOLUTION_VGA -->
+    <arg name="frame_rate"            default="60" />
+    <!-- RESOLUTION_HD2K   -> 2208*1242, available framerates: 15 fps.
+         RESOLUTION_HD1080 -> 1920*1080, available framerates: 15, 30 fps.
+         RESOLUTION_HD720  -> 1280*720,  available framerates: 15, 30, 60 fps.
+         RESOLUTION_VGA    -> 672*376,   available framerates: 15, 30, 60, 100 fps. -->
 
     <!-- GPU ID-->
     <arg name="gpu_id"                default="-1" />
@@ -76,7 +82,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="mat_resize_factor"     value="1.0" />
         <param name="quality"               value="1" />
         <param name="sensing_mode"          value="0" />
-        <param name="frame_rate"            value="60" />
+        <param name="frame_rate"            value="$(arg frame_rate)" />
         <param name="odometry_db"           value="" />
         <param name="openni_depth_mode"     value="0" />
         <param name="gpu_id"                value="$(arg gpu_id)" />

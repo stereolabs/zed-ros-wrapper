@@ -613,6 +613,17 @@ void ZEDWrapperNodelet::publishOdom(tf2::Transform odom_base_transform, ros::Tim
     pubOdom.publish(odom);
 }
 
+void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform baseTransform, ros::Time t) {
+    geometry_msgs::TransformStamped transformStamped;
+    transformStamped.header.stamp = t;
+    transformStamped.header.frame_id = odometryFrameId;
+    transformStamped.child_frame_id = baseFrameId;
+    // conversion from Tranform to message
+    transformStamped.transform = tf2::toMsg(baseTransform);
+    // Publish transformation
+    transformOdomBroadcaster.sendTransform(transformStamped);
+}
+
 void ZEDWrapperNodelet::publishPose(tf2::Transform poseBaseTransform, ros::Time t) {
     geometry_msgs::PoseStamped pose;
     pose.header.stamp = t;
@@ -640,17 +651,6 @@ void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time
     transformStamped.transform = tf2::toMsg(baseTransform);
     // Publish transformation
     transformPoseBroadcaster.sendTransform(transformStamped);
-}
-
-void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform baseTransform, ros::Time t) {
-    geometry_msgs::TransformStamped transformStamped;
-    transformStamped.header.stamp = t;
-    transformStamped.header.frame_id = odometryFrameId;
-    transformStamped.child_frame_id = baseFrameId;
-    // conversion from Tranform to message
-    transformStamped.transform = tf2::toMsg(baseTransform);
-    // Publish transformation
-    transformOdomBroadcaster.sendTransform(transformStamped);
 }
 
 void ZEDWrapperNodelet::publishImuFrame(tf2::Transform baseTransform) {
@@ -713,38 +713,6 @@ void ZEDWrapperNodelet::publishPointCloud(int width, int height) {
         point_cloud.points[i].rgb = cpu_cloud[i][3];
     }
 
-    //    if( param.coordinate_system == COORDINATE_SYSTEM_IMAGE ) {
-    //#pragma omp parallel for
-    //        for (int i = 0; i < size; i++) {
-    //            // COORDINATE_SYSTEM_IMAGE
-    //            point_cloud.points[i].x =  cpu_cloud[i][2];
-    //            point_cloud.points[i].y = -cpu_cloud[i][0];
-    //            point_cloud.points[i].z = -cpu_cloud[i][1];
-    //            point_cloud.points[i].rgb = cpu_cloud[i][3];
-    //        }
-    //    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP ) {
-    //#pragma omp parallel for
-    //        for (int i = 0; i < size; i++) {
-    //            // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP
-    //            point_cloud.points[i].x =  cpu_cloud[i][1];
-    //            point_cloud.points[i].y = -cpu_cloud[i][0];
-    //            point_cloud.points[i].z =  cpu_cloud[i][2];
-    //            point_cloud.points[i].rgb = cpu_cloud[i][3];
-    //        }
-    //    } else if( param.coordinate_system == COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD ) {
-    //#pragma omp parallel for
-    //        for (int i = 0; i < size; i++) {
-    //            // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
-    //            point_cloud.points[i].x = cpu_cloud[i][0];
-    //            point_cloud.points[i].y = cpu_cloud[i][1];
-    //            point_cloud.points[i].z = cpu_cloud[i][2];
-    //            point_cloud.points[i].rgb = cpu_cloud[i][3];
-    //        }
-    //        //memcpy( (float*)(&(point_cloud.points[0])), (float*)(&(cpu_cloud[0])), 4*size*sizeof(float)  );
-    //    } else {
-    //        NODELET_ERROR_STREAM("Camera coordinate system not supported");
-    //    }
-
     sensor_msgs::PointCloud2 output;
     pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
     output.header.frame_id = pointCloudFrameId; // Set the header values of the ROS message
@@ -795,11 +763,12 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
     left_cam_info_msg->K[2] = zedParam.left_cam.cx;
     left_cam_info_msg->K[4] = zedParam.left_cam.fy;
     left_cam_info_msg->K[5] = zedParam.left_cam.cy;
-    left_cam_info_msg->K[8] = right_cam_info_msg->K[8] = 1.0;
+    left_cam_info_msg->K[8] = 1.0;
     right_cam_info_msg->K[0] = zedParam.right_cam.fx;
     right_cam_info_msg->K[2] = zedParam.right_cam.cx;
     right_cam_info_msg->K[4] = zedParam.right_cam.fy;
     right_cam_info_msg->K[5] = zedParam.right_cam.cy;
+    right_cam_info_msg->K[8] = 1.0;
 
     left_cam_info_msg->R.fill(0.0);
     right_cam_info_msg->R.fill(0.0);
@@ -822,7 +791,7 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
     left_cam_info_msg->P[2] = zedParam.left_cam.cx;
     left_cam_info_msg->P[5] = zedParam.left_cam.fy;
     left_cam_info_msg->P[6] = zedParam.left_cam.cy;
-    left_cam_info_msg->P[10] = right_cam_info_msg->P[10] = 1.0;
+    left_cam_info_msg->P[10] = 1.0;
     //http://docs.ros.org/api/sensor_msgs/html/msg/CameraInfo.html
     right_cam_info_msg->P[3] = (-1 * zedParam.left_cam.fx * baseline);
 
@@ -830,6 +799,7 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
     right_cam_info_msg->P[2] = zedParam.right_cam.cx;
     right_cam_info_msg->P[5] = zedParam.right_cam.fy;
     right_cam_info_msg->P[6] = zedParam.right_cam.cy;
+    right_cam_info_msg->P[10] = 1.0;
 
     left_cam_info_msg->width = right_cam_info_msg->width = matWidth;
     left_cam_info_msg->height = right_cam_info_msg->height = matHeight;
@@ -868,7 +838,7 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig &config, ui
         matHeight = static_cast<int>(camHeight*matResizeFactor);
         NODELET_DEBUG_STREAM("Data Mat size : " << matWidth << "x" << matHeight);
 
-        // Modify Camera Info
+        // Update Camera Info
         fillCamInfo(zed, leftCamInfoMsg, rightCamInfoMsg, leftCamOptFrameId, rightCamOptFrameId);
         fillCamInfo(zed, leftCamInfoRawMsg, rightCamInfoRawMsg, leftCamOptFrameId, rightCamOptFrameId, true);
         rgbCamInfoMsg = depthCamInfoMsg = leftCamInfoMsg; // the reference camera is the Left one (next to the ZED logo)
@@ -960,7 +930,6 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e) {
     }
 
     // Publish IMU tf only if enabled
-
     if (publishTf) {
         // Camera to map transform from TF buffer
         tf2::Transform base_to_map;
@@ -1329,9 +1298,9 @@ void ZEDWrapperNodelet::device_poll() {
 
             if( !loop_rate.sleep() )
             {
-
-                NODELET_DEBUG_THROTTLE(1.0, "Working thread is not synchronized with the ZED frame rate");
+                NODELET_DEBUG_THROTTLE(1.0, "Working thread is not synchronized with the Camera frame rate");
                 NODELET_DEBUG_STREAM_THROTTLE(1.0, "Expected cycle time: " << loop_rate.expectedCycleTime() << " - Real cycle time: " << loop_rate.cycleTime());
+                NODELET_WARN_THROTTLE(10.0, "Elaboration takes longer than requested by the FPS rate. Please consider to lower the 'frame_rate' setting.");
             }
         } else {
             NODELET_DEBUG_THROTTLE(1.0, "No topics subscribed by users");
