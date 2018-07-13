@@ -22,6 +22,10 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 
+#ifndef NDEBUG
+#include <ros/console.h>
+#endif
+
 #include <sensor_msgs/distortion_models.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Imu.h>
@@ -49,6 +53,13 @@ ZEDWrapperNodelet::~ZEDWrapperNodelet() {
 }
 
 void ZEDWrapperNodelet::onInit() {
+
+#ifndef NDEBUG
+    if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) ) {
+        ros::console::notifyLoggerLevelsChanged();
+    }
+#endif
+
     // Launch file parameters
     resolution = sl::RESOLUTION_HD720;
     quality = sl::DEPTH_MODE_PERFORMANCE;
@@ -70,7 +81,7 @@ void ZEDWrapperNodelet::onInit() {
     nh = getMTNodeHandle();
     nhNs = getMTPrivateNodeHandle();
 
-    // Set  default coordinate frames    
+    // Set  default coordinate frames
     nhNs.param<std::string>("pose_frame", mapFrameId, "pose_frame");
     nhNs.param<std::string>("odometry_frame", odometryFrameId, "odometry_frame");
     nhNs.param<std::string>("base_frame", baseFrameId, "base_frame");
@@ -960,12 +971,12 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e) {
             // Get the TF2 transformation
             tf2::fromMsg(b2m.transform, base_to_map);
         } catch (tf2::TransformException &ex) {
-            NODELET_WARN_THROTTLE(10.0, "The tf from '%s' to '%s' does not seem to be available, "
-                                        "will assume it as identity!",
+            NODELET_WARN_THROTTLE(10.0, "The tf from '%s' to '%s' does not seem to be available. "
+                                        "IMU TF not published!",
                                   baseFrameId.c_str(),
                                   mapFrameId.c_str());
-            NODELET_DEBUG("Transform error: %s", ex.what());
-            base_to_map.setIdentity();
+            NODELET_DEBUG_THROTTLE(1.0,"Transform error: %s", ex.what());
+            return;
         }
 
         // IMU Quaternion in Map frame
@@ -1040,8 +1051,11 @@ void ZEDWrapperNodelet::device_poll() {
         int odom_SubNumber = pubOdom.getNumSubscribers();
         int conf_img_SubNumber = pubConfImg.getNumSubscribers();
         int conf_map_SubNumber = pubConfMap.getNumSubscribers();
+        int imu_SubNumber = pubImu.getNumSubscribers();
+        int imu_RawSubNumber = pubImuRaw.getNumSubscribers();
         bool runLoop = (rgb_SubNumber + rgb_raw_SubNumber + left_SubNumber + left_raw_SubNumber + right_SubNumber +
-                        right_raw_SubNumber + depth_SubNumber + disparity_SubNumber + cloud_SubNumber + pose_SubNumber + odom_SubNumber + conf_img_SubNumber + conf_map_SubNumber) > 0;
+                        right_raw_SubNumber + depth_SubNumber + disparity_SubNumber + cloud_SubNumber + pose_SubNumber +
+                        odom_SubNumber + conf_img_SubNumber + conf_map_SubNumber + imu_SubNumber + imu_RawSubNumber) > 0;
 
         runParams.enable_point_cloud = false;
         if (cloud_SubNumber > 0)
@@ -1076,11 +1090,10 @@ void ZEDWrapperNodelet::device_poll() {
             if (grab_status != sl::ERROR_CODE::SUCCESS) { // Detect if a error occurred (for example: the zed have been disconnected) and re-initialize the ZED
 
                 if (grab_status == sl::ERROR_CODE_NOT_A_NEW_FRAME) {
-                    NODELET_DEBUG("Wait for a new image to proceed");
+                    NODELET_DEBUG_THROTTLE(1.0,"Wait for a new image to proceed");
                 } else NODELET_INFO_STREAM_ONCE(toString(grab_status));
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
-
 
                 if ((t - old_t).toSec() > 5) {
                     zed.close();
@@ -1088,9 +1101,7 @@ void ZEDWrapperNodelet::device_poll() {
                     NODELET_INFO("Re-opening the ZED");
                     sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
                     while (err != sl::SUCCESS) {
-
-                        if( !nhNs.ok() )
-                        {
+                        if( !nhNs.ok() ) {
                             zed.close();
                             return;
                         }
@@ -1241,7 +1252,7 @@ void ZEDWrapperNodelet::device_poll() {
             }
 
             //Publish the odometry if someone has subscribed to
-            if (pose_SubNumber > 0 ||odom_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0) {
+            if (pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
                 sl::Pose deltaOdom;
                 zed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
 
@@ -1274,7 +1285,7 @@ void ZEDWrapperNodelet::device_poll() {
             }
 
             // Publish the zed camera pose if someone has subscribed to
-            if (pose_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0) {
+            if (pose_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
                 sl::Pose zed_pose; // Sensor to Map transform
                 zed.getPosition(zed_pose, sl::REFERENCE_FRAME_WORLD);
 
@@ -1318,6 +1329,8 @@ void ZEDWrapperNodelet::device_poll() {
 
             loop_rate.sleep();
         } else {
+            NODELET_DEBUG_THROTTLE(1.0, "No topics subscribed by users");
+
             // Publish odometry tf only if enabled
             if (publishTf) {
                 ros::Time t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
