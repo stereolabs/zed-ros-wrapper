@@ -80,35 +80,35 @@ private:
 
 protected:
 
-    /* \brief Publish the pose of the camera with a ros Publisher
-         * \param pose_base_transform : Transformation representing the camera pose from base frame
+    /* \brief Publish the pose of the camera in "Map" frame with a ros Publisher
+         * \param poseBaseTransform : Transformation representing the camera pose from odom frame to map frame
          * \param t : the ros::Time to stamp the image
          */
-    void publishPose(tf2::Transform pose_base_transform, ros::Time t);
+    void publishPose(tf2::Transform poseBaseTransform, ros::Time t);
 
-    /* \brief Publish the pose of the camera with a ros Publisher
-         * \param odom_base_transform : Transformation representing the camera pose from base frame
+    /* \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
+         * \param odom_base_transform : Transformation representing the camera pose from base frame to odom frame
          * \param t : the ros::Time to stamp the image
          */
-    void publishOdom(tf2::Transform base_to_odom_transform, ros::Time t);
+    void publishOdom(tf2::Transform baseToOdomTransform, ros::Time t);
 
-    /* \brief Publish the pose of the camera as a transformation
-         * \param base_transform : Transformation representing the camera pose from base frame
+    /* \brief Publish the pose of the camera in "Map" frame as a transformation
+         * \param base_transform : Transformation representing the camera pose from odom frame to map frame
          * \param t : the ros::Time to stamp the image
          */
-    void publishPoseFrame(tf2::Transform base_transform, ros::Time t);
+    void publishPoseFrame(tf2::Transform baseTransform, ros::Time t);
 
-    /* \brief Publish the odometry of the camera as a transformation
-         * \param base_transform : Transformation representing the camera pose from base frame
+    /* \brief Publish the odometry of the camera in "Odom" frame as a transformation
+         * \param base_transform : Transformation representing the camera pose from base frame to odom frame
          * \param t : the ros::Time to stamp the image
          */
-    void publishOdomFrame(tf2::Transform base_to_odom_transform, ros::Time t);
+    void publishOdomFrame(tf2::Transform baseToOdomTransform, ros::Time t);
 
-    /* \brief Publish the pose of the imu as a transformation
-         * \param base_transform : Transformation representing the imu pose from camera frame
+    /* \brief Publish the pose of the imu in "Odom" frame as a transformation
+         * \param base_transform : Transformation representing the imu pose from base frame to odom frame
          * \param t : the ros::Time to stamp the image
          */
-    void publishImuFrame(tf2::Transform base_transform);
+    void publishImuFrame(tf2::Transform baseTransform);
 
     /* \brief Publish a cv::Mat image with a ros Publisher
          * \param img : the image to publish
@@ -116,7 +116,7 @@ protected:
          * \param img_frame_id : the id of the reference frame of the image (different image frames exist)
          * \param t : the ros::Time to stamp the image
          */
-    void publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_frame_id, ros::Time t);
+    void publishImage(cv::Mat img, image_transport::Publisher &pubImg, string imgFrameId, ros::Time t);
 
     /* \brief Publish a cv::Mat depth image with a ros Publisher
          * \param depth : the depth image to publish
@@ -141,7 +141,7 @@ protected:
          * \param pub_cam_info : the publisher object to use
          * \param t : the ros::Time to stamp the message
          */
-    void publishCamInfo(sensor_msgs::CameraInfoPtr cam_info_msg, ros::Publisher pub_cam_info, ros::Time t);
+    void publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg, ros::Publisher pubCamInfo, ros::Time t);
 
     /* \brief Publish a cv::Mat disparity image with a ros Publisher
          * \param disparity : the disparity image to publish
@@ -156,8 +156,8 @@ protected:
          * \param left_frame_id : the id of the reference frame of the left camera
          * \param right_frame_id : the id of the reference frame of the right camera
          */
-    void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr left_cam_info_msg, sensor_msgs::CameraInfoPtr right_cam_info_msg,
-                     string left_frame_id, string right_frame_id, bool raw_param = false);
+    void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg, sensor_msgs::CameraInfoPtr rightCamInfoMsg,
+                     string leftFrameId, string rightFrameId, bool rawParam = false);
 
     /* \brief Callback to handle dynamic reconfigure events in ROS
          */
@@ -190,121 +190,122 @@ protected:
 
 private:
     // SDK version
-    int ver_major;
-    int ver_minor;
-    int ver_sub_minor;
+    int verMajor;
+    int verMinor;
+    int verSubMinor;
 
     // ROS
     ros::NodeHandle nh;
-    ros::NodeHandle nh_ns;
-    boost::shared_ptr<boost::thread> device_poll_thread;
+    ros::NodeHandle nhNs;
+    boost::shared_ptr<boost::thread> devicePollThread;
 
     // Publishers
-    image_transport::Publisher pub_rgb;
-    image_transport::Publisher pub_raw_rgb;
-    image_transport::Publisher pub_left;
-    image_transport::Publisher pub_raw_left;
-    image_transport::Publisher pub_right;
-    image_transport::Publisher pub_raw_right;
-    image_transport::Publisher pub_depth;
-    image_transport::Publisher pub_conf_img;
-    ros::Publisher pub_conf_map;
-    ros::Publisher pub_disparity;
-    ros::Publisher pub_cloud;
-    ros::Publisher pub_rgb_cam_info;
-    ros::Publisher pub_left_cam_info;
-    ros::Publisher pub_right_cam_info;
-    ros::Publisher pub_rgb_cam_info_raw;
-    ros::Publisher pub_left_cam_info_raw;
-    ros::Publisher pub_right_cam_info_raw;
-    ros::Publisher pub_depth_cam_info;
-    ros::Publisher pub_pose;
-    ros::Publisher pub_odom;
-    ros::Publisher pub_imu;
-    ros::Publisher pub_imu_raw;
-    ros::Timer pub_imu_timer;
+    image_transport::Publisher pubRgb;
+    image_transport::Publisher pubRawRgb;
+    image_transport::Publisher pubLeft;
+    image_transport::Publisher pubRawLeft;
+    image_transport::Publisher pubRight;
+    image_transport::Publisher pubRawRight;
+    image_transport::Publisher pubDepth;
+    image_transport::Publisher pubConfImg;
+    ros::Publisher pubConfMap;
+    ros::Publisher pubDisparity;
+    ros::Publisher pubCloud;
+    ros::Publisher pubRgbCamInfo;
+    ros::Publisher pubLeftCamInfo;
+    ros::Publisher pubRightCamInfo;
+    ros::Publisher pubRgbCamInfoRaw;
+    ros::Publisher pubLeftCamInfoRaw;
+    ros::Publisher pubRightCamInfoRaw;
+    ros::Publisher pubDepthCamInfo;
+    ros::Publisher pubPose;
+    ros::Publisher pubOdom;
+    ros::Publisher pubImu;
+    ros::Publisher pubImuRaw;
+    ros::Timer pubImuTimer;
 
     // Service
-    bool tracking_activated;
-    ros::ServiceServer srv_reset_tracking;
-    ros::ServiceServer srv_set_init_pose;
+    bool trackingActivated;
+    ros::ServiceServer srvResetTracking;
+    ros::ServiceServer srvSetInitPose;
 
     // Camera info
-    sensor_msgs::CameraInfoPtr rgb_cam_info_msg;
-    sensor_msgs::CameraInfoPtr left_cam_info_msg;
-    sensor_msgs::CameraInfoPtr right_cam_info_msg;
-    sensor_msgs::CameraInfoPtr rgb_cam_info_raw_msg;
-    sensor_msgs::CameraInfoPtr left_cam_info_raw_msg;
-    sensor_msgs::CameraInfoPtr right_cam_info_raw_msg;
-    sensor_msgs::CameraInfoPtr depth_cam_info_msg;
+    sensor_msgs::CameraInfoPtr rgbCamInfoMsg;
+    sensor_msgs::CameraInfoPtr leftCamInfoMsg;
+    sensor_msgs::CameraInfoPtr rightCamInfoMsg;
+    sensor_msgs::CameraInfoPtr rgbCamInfoRawMsg;
+    sensor_msgs::CameraInfoPtr leftCamInfoRawMsg;
+    sensor_msgs::CameraInfoPtr rightCamInfoRawMsg;
+    sensor_msgs::CameraInfoPtr depthCamInfoMsg;
 
     // tf
-    tf2_ros::TransformBroadcaster transform_pose_broadcaster;
-    tf2_ros::TransformBroadcaster transform_odom_broadcaster;
-    tf2_ros::TransformBroadcaster transform_imu_broadcaster;
-    std::string rgb_frame_id;
-    std::string rgb_opt_frame_id;
+    tf2_ros::TransformBroadcaster transformPoseBroadcaster;
+    tf2_ros::TransformBroadcaster transformOdomBroadcaster;
+    tf2_ros::TransformBroadcaster transformImuBroadcaster;
 
-    std::string depth_frame_id;
-    std::string depth_opt_frame_id;
+    std::string rgbFrameId;
+    std::string rgbOptFrameId;
 
-    std::string disparity_frame_id;
-    std::string disparity_opt_frame_id;
+    std::string depthFrameId;
+    std::string depthOptFrameId;
 
-    std::string confidence_frame_id;
-    std::string confidence_opt_frame_id;
+    std::string disparityFrameId;
+    std::string disparityOptFrameId;
 
-    std::string cloud_frame_id;
+    std::string confidenceFrameId;
+    std::string confidenceOptFrameId;
 
-    std::string pose_frame_id;
-    std::string odometry_frame_id;
-    std::string base_frame_id;
-    std::string right_cam_frame_id;
-    std::string right_cam_opt_frame_id;
-    std::string left_cam_frame_id;
-    std::string left_cam_opt_frame_id;
-    std::string imu_frame_id;
+    std::string cloudFrameId;
+
+    std::string mapFrameId;
+    std::string odometryFrameId;
+    std::string baseFrameId;
+    std::string rightCamFrameId;
+    std::string rightCamOptFrameId;
+    std::string leftCamFrameId;
+    std::string leftCamOptFrameId;
+    std::string imuFrameId;
 
     // initialization Transform listener
     boost::shared_ptr<tf2_ros::Buffer> tfBuffer;
-    boost::shared_ptr<tf2_ros::TransformListener> tf_listener;
-    bool publish_tf;
+    boost::shared_ptr<tf2_ros::TransformListener> tfListener;
+    bool publishTf;
 
     // Launch file parameters
     int resolution;
     int quality;
-    int sensing_mode;
+    int sensingMode;
     int rate;
-    int gpu_id;
-    int zed_id;
-    int depth_stabilization;
-    std::string odometry_DB;
-    std::string svo_filepath;
-    double imu_pub_rate;
+    int gpuId;
+    int zedId;
+    int depthStabilization;
+    std::string odometryDb;
+    std::string svoFilepath;
+    double imuPubRate;
     bool verbose;
 
     // IMU time
-    ros::Time imu_time;
+    ros::Time imuTime;
 
-    bool pose_smoothing;
-    bool spatial_memory;
+    bool poseSmoothing;
+    bool spatialMemory;
 
     //Tracking variables
-    sl::Transform initial_pose_sl;
-    std::vector<float> initial_track_pose;
+    sl::Transform initialPoseSl;
+    std::vector<float> initialTrackPose;
 
-    tf2::Transform odom_to_map_transform;
-    tf2::Transform base_to_odom_transform;
+    tf2::Transform odomToMapTransform;
+    tf2::Transform baseToOdomTransform;
 
 
     // zed object
     sl::InitParameters param;
     sl::Camera zed;
     unsigned int serial_number;
-    int user_cam_model; // Camera model set by ROS Param
+    int userCamModel; // Camera model set by ROS Param
 
     // flags
-    double mat_resize_factor;
+    double matResizeFactor;
     int confidence;
     int exposure;
     int gain;
@@ -315,10 +316,10 @@ private:
     int openniDepthMode = 0; // 16 bit UC data in mm else 32F in m, for more info http://www.ros.org/reps/rep-0118.html
 
     // Frame and Mat
-    int cam_width;
-    int cam_height;
-    int mat_width;
-    int mat_height;
+    int camWidth;
+    int camHeight;
+    int matWidth;
+    int matHeight;
     cv::Mat leftImRGB;
     cv::Mat rightImRGB;
     cv::Mat confImRGB;
@@ -329,15 +330,15 @@ private:
 
     // Point cloud variables
     sl::Mat cloud;
-    string point_cloud_frame_id = "";
-    ros::Time point_cloud_time;
+    string pointCloudFrameId = "";
+    ros::Time pointCloudTime;
 
     // Dynamic reconfigure
     boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> server;
 
     // Coordinate Changing indices and signs
-    unsigned int x_idx, y_idx, z_idx;
-    int x_sign, y_sign, z_sign;
+    unsigned int xIdx, yIdx, zIdx;
+    int xSign, ySign, zSign;
 
 }; // class ZEDROSWrapperNodelet
 } // namespace
