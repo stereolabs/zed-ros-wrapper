@@ -1320,24 +1320,31 @@ void ZEDWrapperNodelet::device_poll() {
             // Publish pose tf only if enabled
             if (publishTf) {
                 //Note, the frame is published, but its values will only change if someone has subscribed to odom
-                publishOdomFrame(baseToOdomTransform, t); //publish the tracked Frame
+                publishOdomFrame(baseToOdomTransform, t); //publish the base Frame in odometry frame
                 //Note, the frame is published, but its values will only change if someone has subscribed to map
-                publishPoseFrame(odomToMapTransform, t);
+                publishPoseFrame(odomToMapTransform, t); //publish the odometry Frame in map frame
 
                 imuTime = t;
             }
 
-            loop_rate.sleep();
+            if( !loop_rate.sleep() )
+            {
+
+                NODELET_DEBUG_THROTTLE(1.0, "Working thread is not synchronized with the ZED frame rate");
+                NODELET_DEBUG_STREAM_THROTTLE(1.0, "Expected cycle time: " << loop_rate.expectedCycleTime() << " - Real cycle time: " << loop_rate.cycleTime());
+            }
         } else {
             NODELET_DEBUG_THROTTLE(1.0, "No topics subscribed by users");
 
             // Publish odometry tf only if enabled
             if (publishTf) {
                 ros::Time t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
-                publishOdomFrame(baseToOdomTransform, t); //publish the tracked Frame before the sleep
-                publishPoseFrame(odomToMapTransform, t);
+                publishOdomFrame(baseToOdomTransform, t);  //publish the base Frame in odometry frame
+                publishPoseFrame(odomToMapTransform, t);   //publish the odometry Frame in map frame
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10)); // No subscribers, we just wait
+
+            loop_rate.reset();
         }
     } // while loop
 
