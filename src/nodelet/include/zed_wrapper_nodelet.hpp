@@ -289,6 +289,7 @@ private:
 
     bool poseSmoothing;
     bool spatialMemory;
+    bool initOdomWithPose;
 
     //Tracking variables
     sl::Transform initialPoseSl;
@@ -302,6 +303,7 @@ private:
     sl::Camera zed;
     unsigned int serial_number;
     int userCamModel; // Camera model set by ROS Param
+    sl::MODEL realCamModel; // Camera model requested to SDK
 
     // flags
     double matResizeFactor;

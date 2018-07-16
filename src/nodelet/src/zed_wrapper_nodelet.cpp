@@ -328,7 +328,7 @@ void ZEDWrapperNodelet::onInit() {
         }
     }
 
-    sl::MODEL realCamModel = zed.getCameraInformation().camera_model;
+    realCamModel = zed.getCameraInformation().camera_model;
 
     std::string camModelStr = "LAST";
     if( realCamModel == sl::MODEL_ZED  ){
@@ -492,8 +492,7 @@ void ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr, float p
     baseToOdomTransform.setOrigin(orig);
     baseToOdomTransform.setRotation( q );
 
-    odomToMapTransform.setOrigin(orig);
-    odomToMapTransform.setRotation( q );
+    odomToMapTransform.setIdentity();
 
     // SL pose
     sl::float4 q_vec;
@@ -566,6 +565,14 @@ void ZEDWrapperNodelet::start_tracking() {
     NODELET_INFO_STREAM("Pose Smoothing : " << poseSmoothing);
     nhNs.getParam("spatial_memory", spatialMemory);
     NODELET_INFO_STREAM("Spatial Memory : " << spatialMemory);
+    if( realCamModel == sl::MODEL_ZED_M  ){
+        nhNs.getParam("init_odom_with_imu", initOdomWithPose);
+        NODELET_INFO_STREAM("Init Odometry with first IMU data : " << initOdomWithPose);
+    }
+    else {
+        initOdomWithPose=false;
+    }
+
 
     if( initialTrackPose.size()!=6 ) {
         NODELET_WARN_STREAM("Invalid Initial Pose size (" << initialTrackPose.size() << "). Using Identity");
@@ -1222,35 +1229,37 @@ void ZEDWrapperNodelet::device_poll() {
 
             //Publish the odometry if someone has subscribed to
             if (pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
-                sl::Pose deltaOdom;
-                zed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
+                if(!initOdomWithPose) {
+                    sl::Pose deltaOdom;
+                    zed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
 
-                // Transform ZED delta odom pose in TF2 Transformation
-                geometry_msgs::Transform deltaTransf;
+                    // Transform ZED delta odom pose in TF2 Transformation
+                    geometry_msgs::Transform deltaTransf;
 
-                sl::Translation translation = deltaOdom.getTranslation();
-                sl::Orientation quat = deltaOdom.getOrientation();
+                    sl::Translation translation = deltaOdom.getTranslation();
+                    sl::Orientation quat = deltaOdom.getOrientation();
 
-                deltaTransf.translation.x = xSign * translation(xIdx);
-                deltaTransf.translation.y = ySign * translation(yIdx);
-                deltaTransf.translation.z = zSign * translation(zIdx);
+                    deltaTransf.translation.x = xSign * translation(xIdx);
+                    deltaTransf.translation.y = ySign * translation(yIdx);
+                    deltaTransf.translation.z = zSign * translation(zIdx);
 
-                deltaTransf.rotation.x = xSign * quat(xIdx);
-                deltaTransf.rotation.y = ySign * quat(yIdx);
-                deltaTransf.rotation.z = zSign * quat(zIdx);
-                deltaTransf.rotation.w =  quat(3);
+                    deltaTransf.rotation.x = xSign * quat(xIdx);
+                    deltaTransf.rotation.y = ySign * quat(yIdx);
+                    deltaTransf.rotation.z = zSign * quat(zIdx);
+                    deltaTransf.rotation.w =  quat(3);
 
-                tf2::Transform deltaOdomTf;
-                tf2::fromMsg(deltaTransf, deltaOdomTf);
+                    tf2::Transform deltaOdomTf;
+                    tf2::fromMsg(deltaTransf, deltaOdomTf);
 
-                // delta odom from sensor to base frame
-                tf2::Transform deltaOdomTf_base =  sensor_to_base_transf * deltaOdomTf * sensor_to_base_transf.inverse();
+                    // delta odom from sensor to base frame
+                    tf2::Transform deltaOdomTf_base =  sensor_to_base_transf * deltaOdomTf * sensor_to_base_transf.inverse();
 
-                // Propagate Odom transform in time
-                baseToOdomTransform = baseToOdomTransform * deltaOdomTf_base;
+                    // Propagate Odom transform in time
+                    baseToOdomTransform = baseToOdomTransform * deltaOdomTf_base;
 
-                // Publish odometry message
-                publishOdom(baseToOdomTransform, t);
+                    // Publish odometry message
+                    publishOdom(baseToOdomTransform, t);
+                }
             }
 
             // Publish the zed camera pose if someone has subscribed to
@@ -1279,8 +1288,20 @@ void ZEDWrapperNodelet::device_poll() {
                 // Transformation from camera sensor to base frame
                 tf2::Transform base_to_map_transform = sensor_to_base_transf * sens_to_map_transf * sensor_to_base_transf.inverse();
 
-                // Transformation from map to odometry frame
-                odomToMapTransform = base_to_map_transform * baseToOdomTransform.inverse();
+                if( initOdomWithPose ) {
+                    // Propagate Odom transform in time
+                    baseToOdomTransform = base_to_map_transform;
+                    base_to_map_transform.setIdentity();
+
+                    // Publish odometry message
+                    publishOdom(baseToOdomTransform, t);
+
+                    initOdomWithPose = false;
+                }
+                else{
+                    // Transformation from map to odometry frame
+                    odomToMapTransform = base_to_map_transform * baseToOdomTransform.inverse();
+                }
 
                 // Publish Pose message
                 publishPose(odomToMapTransform, t);

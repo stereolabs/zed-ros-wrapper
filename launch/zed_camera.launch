@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="left_camera_optical_frame"     default="zed_left_camera_optical_frame" />
     <arg name="right_camera_frame"            default="zed_right_camera_frame" />
     <arg name="right_camera_optical_frame"    default="zed_right_camera_optical_frame" />
-    <arg name="imu_frame"                     default="imu_link" />
+    <arg name="imu_frame"                     default="imu_link" /> <!-- only used with ZED M -->
 
     <arg name="initial_pose"                  default="[0.0,0.0,0.0, 0.0,0.0,0.0]" /> <!-- X, Y, Z, (meter) R, P, Y, (radians)-->
 
@@ -115,21 +115,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="depth_topic"               value="$(arg depth_topic)" />
         <param name="depth_cam_info_topic"      value="depth/camera_info" />
 
-        <param name="point_cloud_topic"         value="point_cloud/cloud_registered" />
-
-        <param name="odometry_topic"            value="odom" />
+        <param name="point_cloud_topic"         value="point_cloud/cloud_registered" />        
 
         <param name="disparity_topic"           value="disparity/disparity_image" />
         <param name="confidence_img_topic"      value="confidence/confidence_image" />
         <param name="confidence_map_topic"      value="confidence/confidence_map" />
 
-
         <param name="pose_topic"                value="map" />
+        <param name="odometry_topic"            value="odom" />
 
-        <param name="imu_topic"                 value="imu/data" />
-        <param name="imu_topic_raw"             value="imu/data_raw" />
+        <param name="init_odom_with_imu"        value="true" /> <!-- only used with ZED mini -->
 
-        <param name="imu_pub_rate"              value="500.0" />
+        <param name="imu_topic"                 value="imu/data" /> <!-- only used with ZED M -->
+        <param name="imu_topic_raw"             value="imu/data_raw" /> <!-- only used with ZED M -->
+
+        <param name="imu_pub_rate"              value="500.0" /> <!-- only used with ZED M -->
 
     </node>
 
