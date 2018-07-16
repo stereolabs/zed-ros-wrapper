@@ -432,10 +432,10 @@ void ZEDWrapperNodelet::onInit() {
 
     // Imu publisher
     if(imuPubRate > 0 && realCamModel == sl::MODEL_ZED_M) {
-        pubImu = nh.advertise<sensor_msgs::Imu>(imu_topic, 500);
+        pubImu = nh.advertise<sensor_msgs::Imu>(imu_topic, 10);
         NODELET_INFO_STREAM("Advertized on topic " << imu_topic << " @ " << imuPubRate << " Hz");
 
-        pubImuRaw = nh.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
+        pubImuRaw = nh.advertise<sensor_msgs::Imu>(imu_topic_raw, 10);
         NODELET_INFO_STREAM("Advertized on topic " << imu_topic_raw << " @ " << imuPubRate << " Hz");
 
         imuTime = ros::Time::now();
@@ -451,7 +451,6 @@ void ZEDWrapperNodelet::onInit() {
 
     // Start pool thread
     devicePollThread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
-
 }
 
 void ZEDWrapperNodelet::checkResolFps()
