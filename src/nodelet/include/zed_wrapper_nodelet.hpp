@@ -39,6 +39,7 @@
 #include <zed_wrapper/ZedConfig.h>
 #include <zed_wrapper/reset_tracking.h>
 #include <zed_wrapper/set_initial_pose.h>
+#include <zed_wrapper/reset_odometry.h>
 
 #include <boost/make_shared.hpp>
 
@@ -174,6 +175,13 @@ protected:
     bool on_reset_tracking(zed_wrapper::reset_tracking::Request  &req,
                            zed_wrapper::reset_tracking::Response &res);
 
+    /* \brief Service callback to reset_odometry service
+     *        Odometry is reset to clear drift and odometry frame gets the latest pose
+     *        from ZED tracking.
+     */
+    bool on_reset_odometry(zed_wrapper::reset_odometry::Request  &req,
+                           zed_wrapper::reset_odometry::Response &res);
+
     /* \brief Service callback to set_pose service
      *        Tracking pose is set to the new values
      */
@@ -231,8 +239,9 @@ private:
 
     // Service
     bool trackingActivated;
-    ros::ServiceServer srvResetTracking;
     ros::ServiceServer srvSetInitPose;
+    ros::ServiceServer srvResetOdometry;
+    ros::ServiceServer srvResetTracking;    
 
     // Camera info
     sensor_msgs::CameraInfoPtr rgbCamInfoMsg;

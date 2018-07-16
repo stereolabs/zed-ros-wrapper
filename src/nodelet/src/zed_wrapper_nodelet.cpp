@@ -445,8 +445,9 @@ void ZEDWrapperNodelet::onInit() {
     }
 
     // Service
-    srvResetTracking = nh.advertiseService( "reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this );
     srvSetInitPose = nh.advertiseService( "set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this );
+    srvResetOdometry = nh.advertiseService( "reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this );
+    srvResetTracking = nh.advertiseService( "reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this );    
 
     // Start pool thread
     devicePollThread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
@@ -633,6 +634,15 @@ bool ZEDWrapperNodelet::on_reset_tracking(zed_wrapper::reset_tracking::Request  
     }
 
     zed.resetTracking( initialPoseSl );
+
+    return true;
+}
+
+bool ZEDWrapperNodelet::on_reset_odometry(zed_wrapper::reset_odometry::Request  &req,
+                       zed_wrapper::reset_odometry::Response &res) {
+    initOdomWithPose = true;
+
+    res.reset_done = true;
 
     return true;
 }
