@@ -8,8 +8,6 @@ Panels:
         - /RobotModel1/Links1
         - /TF1/Frames1
         - /DepthCloud1/Occlusion Compensation1
-        - /Imu1
-        - /Odometry1
         - /Odometry1/Covariance1/Position1
       Splitter Ratio: 0.5
     Tree Height: 773
@@ -31,7 +29,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Camera
+    SyncSource: DepthCloud
 Visualization Manager:
   Class: ""
   Displays:
@@ -327,9 +325,9 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.731076837
-        Y: 1.32646406
-        Z: 0.494817436
+        X: 0.560655951
+        Y: 0.883369207
+        Z: 0.539267361
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false

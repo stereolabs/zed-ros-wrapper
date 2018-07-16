@@ -1,4 +1,5 @@
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
+
 //
 // Copyright (c) 2018, STEREOLABS.
 //
@@ -16,23 +17,22 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 
-#include <ros/ros.h>
 #include <nodelet/loader.h>
+#include <ros/ros.h>
 
-int main(int argc, char** argv) {
-    ros::init(argc, argv, "zed_wrapper_node");
+int main(int argc, char **argv) {
+  ros::init(argc, argv, "zed_wrapper_node");
 
-    // ZED Nodelet
-    nodelet::Loader nodelet;
-    nodelet::M_string remap(ros::names::getRemappings());
-    nodelet::V_string nargv;
-    nodelet.load(ros::this_node::getName(),
-                 "zed_wrapper/ZEDWrapperNodelet",
-                 remap, nargv);
+  // ZED Nodelet
+  nodelet::Loader nodelet;
+  nodelet::M_string remap(ros::names::getRemappings());
+  nodelet::V_string nargv;
+  nodelet.load(ros::this_node::getName(), "zed_wrapper/ZEDWrapperNodelet",
+               remap, nargv);
 
-    ros::spin();
+  ros::spin();
 
-    return 0;
+  return 0;
 }
