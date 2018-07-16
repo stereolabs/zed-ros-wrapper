@@ -18,8 +18,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
 
-    <!-- Odometry coordinate frame -->
     <arg name="pose_frame"           default="map" />
+    <arg name="camera_model"         default="1" /> <!-- 0=ZED, 1=ZEDM-->
+    <arg name="serial_number"        default="0" />
+    <arg name="verbose"              default="true" />
+
+    <arg name="resolution"           default="2" /> <!--0=RESOLUTION_HD2K, 1=RESOLUTION_HD1080, 2=RESOLUTION_HD720, 3=RESOLUTION_VGA -->
+    <arg name="frame_rate"           default="30" />
+    <!-- RESOLUTION_HD2K   -> 2208*1242, available framerates: 15 fps.
+         RESOLUTION_HD1080 -> 1920*1080, available framerates: 15, 30 fps.
+         RESOLUTION_HD720  -> 1280*720,  available framerates: 15, 30, 60 fps.
+         RESOLUTION_VGA    -> 672*376,   available framerates: 15, 30, 60, 100 fps. -->
+
 
     <arg name="zed_id1"               default="0" />
     <arg name="zed_id2"               default="1" />
@@ -29,9 +39,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
             <arg name="zed_id"                value="$(arg zed_id1)" />
             <!-- Set GPU -->
-            <arg name="gpu_id"                value="0" />
-            <!-- compliant mode for rviz -->
-            <arg name="pose_frame"        value="$(arg pose_frame)" />
+            <arg name="gpu_id"                value="0" />            
+
+            <arg name="pose_frame"          value="$(arg pose_frame)" />
+            <arg name="camera_model"        value="$(arg camera_model)" />
+            <arg name="serial_number"       default="$(arg serial_number)" />
+            <arg name="resolution"          default="$(arg resolution)" />
+            <arg name="frame_rate"          default="$(arg frame_rate)" />
+            <arg name="verbose"             default="$(arg verbose)" />
         </include>
     </group>
 
@@ -41,8 +56,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <arg name="zed_id"                value="$(arg zed_id2)" />
             <!-- Set GPU -->
             <arg name="gpu_id"                value="1" />
-            <!-- compliant mode for rviz -->
-            <arg name="pose_frame"        value="$(arg pose_frame)" />
+
+            <arg name="pose_frame"          value="$(arg pose_frame)" />
+            <arg name="camera_model"        value="$(arg camera_model)" />
+            <arg name="serial_number"       default="$(arg serial_number)" />
+            <arg name="resolution"          default="$(arg resolution)" />
+            <arg name="frame_rate"          default="$(arg frame_rate)" />
+            <arg name="verbose"             default="$(arg verbose)" />
         </include>
     </group>
 

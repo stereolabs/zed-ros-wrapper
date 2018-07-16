@@ -32,7 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <group ns="zed">
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
-            <!-- compliant mode for rviz -->
             <arg name="pose_frame"          value="$(arg pose_frame)" />
             <arg name="camera_model"        value="$(arg camera_model)" />
             <arg name="serial_number"       default="$(arg serial_number)" /> 
