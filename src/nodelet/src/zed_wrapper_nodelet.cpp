@@ -265,8 +265,7 @@ void ZEDWrapperNodelet::onInit() {
             bool waiting_for_camera = true;
             while (waiting_for_camera) {
 
-                if( !nhNs.ok() )
-                {
+                if( !nhNs.ok() ) {
                     zed.close();
                     return;
                 }
@@ -331,8 +330,7 @@ void ZEDWrapperNodelet::onInit() {
         NODELET_INFO_STREAM(toString(err));
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-        if( !nhNs.ok() )
-        {
+        if( !nhNs.ok() ) {
             zed.close();
             return;
         }
@@ -460,10 +458,8 @@ void ZEDWrapperNodelet::onInit() {
     devicePollThread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
 }
 
-void ZEDWrapperNodelet::checkResolFps()
-{
-    switch(resolution)
-    {
+void ZEDWrapperNodelet::checkResolFps() {
+    switch(resolution) {
     case sl::RESOLUTION_HD2K:
         if(frameRate != 15){
             NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution HD2K. Set to 15 FPS." );
@@ -568,8 +564,7 @@ sensor_msgs::ImagePtr ZEDWrapperNodelet::imageToROSmsg(cv::Mat img, const std::s
     return ptr;
 }
 
-void ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr, float pr, float yr)
-{
+void ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr, float pr, float yr) {
     // ROS pose
     tf2::Quaternion q;
     q.setRPY( rr, pr, yr );
@@ -608,8 +603,7 @@ bool ZEDWrapperNodelet::on_set_pose(zed_wrapper::set_initial_pose::Request &req,
     set_pose( initialTrackPose[0], initialTrackPose[1], initialTrackPose[2],
             initialTrackPose[3], initialTrackPose[4], initialTrackPose[5]);
 
-    if( trackingActivated )
-    {
+    if( trackingActivated ) {
         zed.resetTracking( initialPoseSl );
     }
 
@@ -621,8 +615,7 @@ bool ZEDWrapperNodelet::on_set_pose(zed_wrapper::set_initial_pose::Request &req,
 
 bool ZEDWrapperNodelet::on_reset_tracking(zed_wrapper::reset_tracking::Request  &req,
                                           zed_wrapper::reset_tracking::Response &res) {
-    if( !trackingActivated )
-    {
+    if( !trackingActivated ) {
         res.reset_done = false;
         return false;
     }
@@ -957,8 +950,7 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e) {
     int imu_SubNumber = pubImu.getNumSubscribers();
     int imu_RawSubNumber = pubImuRaw.getNumSubscribers();
 
-    if( imu_SubNumber < 1 && imu_RawSubNumber < 1 )
-    {
+    if( imu_SubNumber < 1 && imu_RawSubNumber < 1 ) {
         return;
     }
 
@@ -985,8 +977,7 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e) {
         imu_msg.linear_acceleration.y = ySign * imu_data.linear_acceleration[yIdx];
         imu_msg.linear_acceleration.z = zSign * imu_data.linear_acceleration[zIdx];
 
-        for(int i = 0; i < 3; i+=3 )
-        {
+        for(int i = 0; i < 3; i+=3 ) {
             imu_msg.orientation_covariance[i*3+0] = imu_data.orientation_covariance.r[i*3+xIdx];
             imu_msg.orientation_covariance[i*3+1] = imu_data.orientation_covariance.r[i*3+yIdx];
             imu_msg.orientation_covariance[i*3+2] = imu_data.orientation_covariance.r[i*3+zIdx];
@@ -1016,8 +1007,7 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e) {
         imu_raw_msg.linear_acceleration.y = ySign * imu_data.linear_acceleration[yIdx];
         imu_raw_msg.linear_acceleration.z = zSign * imu_data.linear_acceleration[zIdx];
 
-        for(int i = 0; i < 3; i+=3 )
-        {
+        for(int i = 0; i < 3; i+=3 ) {
             imu_raw_msg.linear_acceleration_covariance[i*3+0] = imu_data.linear_acceleration_convariance.r[i*3+xIdx];
             imu_raw_msg.linear_acceleration_covariance[i*3+1] = imu_data.linear_acceleration_convariance.r[i*3+yIdx];
             imu_raw_msg.linear_acceleration_covariance[i*3+2] = imu_data.linear_acceleration_convariance.r[i*3+zIdx];
@@ -1416,12 +1406,10 @@ void ZEDWrapperNodelet::device_poll() {
             }
 
             static int rateWarnCount=0;
-            if( !loop_rate.sleep() )
-            {
+            if( !loop_rate.sleep() ) {
                 rateWarnCount++;
 
-                if( rateWarnCount==10)
-                {
+                if( rateWarnCount==10) {
                     NODELET_DEBUG_THROTTLE(1.0, "Working thread is not synchronized with the Camera frame rate");
                     NODELET_DEBUG_STREAM_THROTTLE(1.0, "Expected cycle time: " << loop_rate.expectedCycleTime() << " - Real cycle time: " << loop_rate.cycleTime());
                     NODELET_WARN_THROTTLE(10.0, "Elaboration takes longer than requested by the FPS rate. Please consider to lower the 'frame_rate' setting.");
