@@ -465,6 +465,10 @@ void ZEDWrapperNodelet::checkResolFps()
         break;
 
     case sl::RESOLUTION_HD1080:
+        if(frameRate==15 || frameRate==30) {
+            break;
+        }
+
         if(frameRate > 15 && frameRate < 30) {
             NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution HD1080. Set to 15 FPS." );
             frameRate = 15;
@@ -478,6 +482,10 @@ void ZEDWrapperNodelet::checkResolFps()
         break;
 
     case sl::RESOLUTION_HD720:
+        if(frameRate==15 || frameRate==30 || frameRate==60) {
+            break;
+        }
+
         if(frameRate > 15 && frameRate < 30) {
             NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution HD720. Set to 15 FPS." );
             frameRate = 15;
@@ -494,6 +502,10 @@ void ZEDWrapperNodelet::checkResolFps()
         break;
 
     case sl::RESOLUTION_VGA:
+        if(frameRate==15 || frameRate==30 || frameRate==60 || frameRate==100) {
+            break;
+        }
+
         if(frameRate > 15 && frameRate < 30) {
             NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution VGA. Set to 15 FPS." );
             frameRate = 15;
