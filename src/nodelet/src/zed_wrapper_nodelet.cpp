@@ -264,6 +264,13 @@ void ZEDWrapperNodelet::onInit() {
         else {
             bool waiting_for_camera = true;
             while (waiting_for_camera) {
+
+                if( !nhNs.ok() )
+                {
+                    zed.close();
+                    return;
+                }
+
                 sl::DeviceProperties prop = sl_tools::getZEDFromSN(serial_number);
                 if (prop.id < -1 || prop.camera_state == sl::CAMERA_STATE::CAMERA_STATE_NOT_AVAILABLE) {
                     std::string msg = "ZED SN" + to_string(serial_number) + " not detected ! Please connect this ZED";
