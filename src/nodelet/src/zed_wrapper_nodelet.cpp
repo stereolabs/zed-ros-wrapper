@@ -447,7 +447,7 @@ void ZEDWrapperNodelet::onInit() {
     // Service
     srvSetInitPose = nh.advertiseService( "set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this );
     srvResetOdometry = nh.advertiseService( "reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this );
-    srvResetTracking = nh.advertiseService( "reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this );    
+    srvResetTracking = nh.advertiseService( "reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this );
 
     // Start pool thread
     devicePollThread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
@@ -638,7 +638,7 @@ bool ZEDWrapperNodelet::on_reset_tracking(zed_wrapper::reset_tracking::Request  
 }
 
 bool ZEDWrapperNodelet::on_reset_odometry(zed_wrapper::reset_odometry::Request  &req,
-                       zed_wrapper::reset_odometry::Response &res) {
+                                          zed_wrapper::reset_odometry::Response &res) {
     initOdomWithPose = true;
 
     res.reset_done = true;
@@ -1408,11 +1408,19 @@ void ZEDWrapperNodelet::device_poll() {
                 imuTime = t;
             }
 
+            static int rateWarnCount=0;
             if( !loop_rate.sleep() )
             {
-                NODELET_DEBUG_THROTTLE(1.0, "Working thread is not synchronized with the Camera frame rate");
-                NODELET_DEBUG_STREAM_THROTTLE(1.0, "Expected cycle time: " << loop_rate.expectedCycleTime() << " - Real cycle time: " << loop_rate.cycleTime());
-                NODELET_WARN_THROTTLE(10.0, "Elaboration takes longer than requested by the FPS rate. Please consider to lower the 'frame_rate' setting.");
+                rateWarnCount++;
+
+                if( rateWarnCount==10)
+                {
+                    NODELET_DEBUG_THROTTLE(1.0, "Working thread is not synchronized with the Camera frame rate");
+                    NODELET_DEBUG_STREAM_THROTTLE(1.0, "Expected cycle time: " << loop_rate.expectedCycleTime() << " - Real cycle time: " << loop_rate.cycleTime());
+                    NODELET_WARN_THROTTLE(10.0, "Elaboration takes longer than requested by the FPS rate. Please consider to lower the 'frame_rate' setting.");
+                }
+            } else {
+                rateWarnCount=0;
             }
         } else {
             NODELET_DEBUG_THROTTLE(1.0, "No topics subscribed by users");
