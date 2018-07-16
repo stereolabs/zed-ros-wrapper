@@ -64,7 +64,7 @@ void ZEDWrapperNodelet::onInit() {
     resolution = sl::RESOLUTION_HD720;
     quality = sl::DEPTH_MODE_PERFORMANCE;
     sensingMode = sl::SENSING_MODE_STANDARD;
-    rate = 30;
+    frameRate = 30;
     gpuId = -1;
     zedId = 0;
     serial_number = 0;
@@ -109,10 +109,13 @@ void ZEDWrapperNodelet::onInit() {
 
     // Get parameters from launch file
     nhNs.getParam("resolution", resolution);
+    nhNs.getParam("frame_rate", frameRate);
+
+    checkResolFps();
+
     nhNs.getParam("verbose", verbose);
     nhNs.getParam("quality", quality);
     nhNs.getParam("sensing_mode", sensingMode);
-    nhNs.getParam("frame_rate", rate);
     nhNs.getParam("openni_depth_mode", openniDepthMode);
     nhNs.getParam("gpu_id", gpuId);
     nhNs.getParam("zed_id", zedId);
@@ -254,7 +257,7 @@ void ZEDWrapperNodelet::onInit() {
     if (!svoFilepath.empty())
         param.svo_input_filename = svoFilepath.c_str();
     else {
-        param.camera_fps = rate;
+        param.camera_fps = frameRate;
         param.camera_resolution = static_cast<sl::RESOLUTION> (resolution);
         if (serial_number == 0)
             param.camera_linux_id = zedId;
@@ -364,7 +367,6 @@ void ZEDWrapperNodelet::onInit() {
         NODELET_WARN_STREAM( "Maximum allowed values for 'mat_resize_factor' is 1.0");
     }
 
-
     nhNs.getParam("confidence", confidence);
     nhNs.getParam("exposure", exposure);
     nhNs.getParam("gain", gain);
@@ -449,6 +451,72 @@ void ZEDWrapperNodelet::onInit() {
     // Start pool thread
     devicePollThread = boost::shared_ptr<boost::thread> (new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
 
+}
+
+void ZEDWrapperNodelet::checkResolFps()
+{
+    switch(resolution)
+    {
+    case sl::RESOLUTION_HD2K:
+        if(frameRate != 15){
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution HD2K. Set to 15 FPS." );
+            frameRate = 15;
+        }
+        break;
+
+    case sl::RESOLUTION_HD1080:
+        if(frameRate > 15 && frameRate < 30) {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution HD1080. Set to 15 FPS." );
+            frameRate = 15;
+        } else if(frameRate > 30) {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution HD1080. Set to 30 FPS." );
+            frameRate = 30;
+        } else {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution HD1080. Set to 15 FPS." );
+            frameRate = 15;
+        }
+        break;
+
+    case sl::RESOLUTION_HD720:
+        if(frameRate > 15 && frameRate < 30) {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution HD720. Set to 15 FPS." );
+            frameRate = 15;
+        } else if(frameRate > 30 && frameRate < 60) {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution HD720. Set to 30 FPS." );
+            frameRate = 30;
+        } else if(frameRate > 60) {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution HD720. Set to 60 FPS." );
+            frameRate = 60;
+        } else {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution HD720. Set to 15 FPS." );
+            frameRate = 15;
+        }
+        break;
+
+    case sl::RESOLUTION_VGA:
+        if(frameRate > 15 && frameRate < 30) {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution VGA. Set to 15 FPS." );
+            frameRate = 15;
+        } else if(frameRate > 30 && frameRate < 60) {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution VGA. Set to 30 FPS." );
+            frameRate = 30;
+        } else if(frameRate > 60 && frameRate < 100) {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution VGA. Set to 60 FPS." );
+            frameRate = 60;
+        } else if(frameRate > 100) {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution VGA. Set to 100 FPS." );
+            frameRate = 100;
+        } else {
+            NODELET_WARN_STREAM( "Wrong FrameRate (" << frameRate << ") for the resolution VGA. Set to 15 FPS." );
+            frameRate = 15;
+        }
+        break;
+
+    default:
+        NODELET_WARN_STREAM( "Invalid resolution. Set to HD720 @ 30 FPS" );
+        resolution = 2;
+        frameRate = 30;
+    }
 }
 
 sensor_msgs::ImagePtr ZEDWrapperNodelet::imageToROSmsg(cv::Mat img, const std::string encodingType, std::string frameId, ros::Time t) {
@@ -978,7 +1046,7 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent & e) {
 }
 
 void ZEDWrapperNodelet::device_poll() {
-    ros::Rate loop_rate(rate);
+    ros::Rate loop_rate(frameRate);
 
     ros::Time old_t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
     imuTime = old_t;
@@ -1263,7 +1331,7 @@ void ZEDWrapperNodelet::device_poll() {
             }
 
             // Publish the zed camera pose if someone has subscribed to
-            if (pose_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
+            if (pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
                 sl::Pose zed_pose; // Sensor to Map transform
                 zed.getPosition(zed_pose, sl::REFERENCE_FRAME_WORLD);
 
@@ -1293,8 +1361,10 @@ void ZEDWrapperNodelet::device_poll() {
                     baseToOdomTransform = base_to_map_transform;
                     base_to_map_transform.setIdentity();
 
-                    // Publish odometry message
-                    publishOdom(baseToOdomTransform, t);
+                    if(odom_SubNumber > 0) {
+                        // Publish odometry message
+                        publishOdom(baseToOdomTransform, t);
+                    }
 
                     initOdomWithPose = false;
                 }

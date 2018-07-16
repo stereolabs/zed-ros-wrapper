@@ -54,139 +54,144 @@ class ZEDWrapperNodelet : public nodelet::Nodelet {
 
 public:
     /* \brief Default constructor
-         */
+     */
     ZEDWrapperNodelet();
 
     /* \brief \ref ZEDWrapperNodelet destructor
-         */
+     */
     virtual ~ZEDWrapperNodelet();
 
     /* \brief Image to ros message conversion
-         * \param img : the image to publish
-         * \param encodingType : the sensor_msgs::image_encodings encoding type
-         * \param frameId : the id of the reference frame of the image
-         * \param t : the ros::Time to stamp the image
-         */
+     * \param img : the image to publish
+     * \param encodingType : the sensor_msgs::image_encodings encoding type
+     * \param frameId : the id of the reference frame of the image
+     * \param t : the ros::Time to stamp the image
+     */
     static sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img, const std::string encodingType, std::string frameId, ros::Time t);
 
 private:
     /* \brief Initialization function called by the Nodelet base class
-         */
+     */
     virtual void onInit();
 
     /* \brief ZED camera polling thread function
-         */
+     */
     void device_poll();
 
 protected:
 
     /* \brief Publish the pose of the camera in "Map" frame with a ros Publisher
-         * \param poseBaseTransform : Transformation representing the camera pose from odom frame to map frame
-         * \param t : the ros::Time to stamp the image
-         */
+     * \param poseBaseTransform : Transformation representing the camera pose from odom frame to map frame
+     * \param t : the ros::Time to stamp the image
+     */
     void publishPose(tf2::Transform poseBaseTransform, ros::Time t);
 
     /* \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
-         * \param odom_base_transform : Transformation representing the camera pose from base frame to odom frame
-         * \param t : the ros::Time to stamp the image
-         */
+     * \param odom_base_transform : Transformation representing the camera pose from base frame to odom frame
+     * \param t : the ros::Time to stamp the image
+     */
     void publishOdom(tf2::Transform baseToOdomTransform, ros::Time t);
 
     /* \brief Publish the pose of the camera in "Map" frame as a transformation
-         * \param base_transform : Transformation representing the camera pose from odom frame to map frame
-         * \param t : the ros::Time to stamp the image
-         */
+     * \param base_transform : Transformation representing the camera pose from odom frame to map frame
+     * \param t : the ros::Time to stamp the image
+     */
     void publishPoseFrame(tf2::Transform baseTransform, ros::Time t);
 
     /* \brief Publish the odometry of the camera in "Odom" frame as a transformation
-         * \param base_transform : Transformation representing the camera pose from base frame to odom frame
-         * \param t : the ros::Time to stamp the image
-         */
+     * \param base_transform : Transformation representing the camera pose from base frame to odom frame
+     * \param t : the ros::Time to stamp the image
+     */
     void publishOdomFrame(tf2::Transform baseToOdomTransform, ros::Time t);
 
     /* \brief Publish the pose of the imu in "Odom" frame as a transformation
-         * \param base_transform : Transformation representing the imu pose from base frame to odom frame
-         * \param t : the ros::Time to stamp the image
-         */
+     * \param base_transform : Transformation representing the imu pose from base frame to odom frame
+     * \param t : the ros::Time to stamp the image
+     */
     void publishImuFrame(tf2::Transform baseTransform);
 
     /* \brief Publish a cv::Mat image with a ros Publisher
-         * \param img : the image to publish
-         * \param pub_img : the publisher object to use (different image publishers exist)
-         * \param img_frame_id : the id of the reference frame of the image (different image frames exist)
-         * \param t : the ros::Time to stamp the image
-         */
+     * \param img : the image to publish
+     * \param pub_img : the publisher object to use (different image publishers exist)
+     * \param img_frame_id : the id of the reference frame of the image (different image frames exist)
+     * \param t : the ros::Time to stamp the image
+     */
     void publishImage(cv::Mat img, image_transport::Publisher &pubImg, string imgFrameId, ros::Time t);
 
     /* \brief Publish a cv::Mat depth image with a ros Publisher
-         * \param depth : the depth image to publish
-         * \param t : the ros::Time to stamp the depth image
-         */
+     * \param depth : the depth image to publish
+     * \param t : the ros::Time to stamp the depth image
+     */
     void publishDepth(cv::Mat depth, ros::Time t);
 
     /* \brief Publish a cv::Mat confidence image with a ros Publisher
-         * \param conf : the confidence image to publish
-         * \param t : the ros::Time to stamp the depth image
-         */
+     * \param conf : the confidence image to publish
+     * \param t : the ros::Time to stamp the depth image
+     */
     void publishConf(cv::Mat conf, ros::Time t);
 
     /* \brief Publish a pointCloud with a ros Publisher
-         * \param width : the width of the point cloud
-         * \param height : the height of the point cloud
-         */
+     * \param width : the width of the point cloud
+     * \param height : the height of the point cloud
+     */
     void publishPointCloud(int width, int height);
 
     /* \brief Publish the informations of a camera with a ros Publisher
-         * \param cam_info_msg : the information message to publish
-         * \param pub_cam_info : the publisher object to use
-         * \param t : the ros::Time to stamp the message
-         */
+     * \param cam_info_msg : the information message to publish
+     * \param pub_cam_info : the publisher object to use
+     * \param t : the ros::Time to stamp the message
+     */
     void publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg, ros::Publisher pubCamInfo, ros::Time t);
 
     /* \brief Publish a cv::Mat disparity image with a ros Publisher
-         * \param disparity : the disparity image to publish
-         * \param t : the ros::Time to stamp the depth image
-         */
+     * \param disparity : the disparity image to publish
+     * \param t : the ros::Time to stamp the depth image
+     */
     void publishDisparity(cv::Mat disparity, ros::Time t);
 
     /* \brief Get the information of the ZED cameras and store them in an information message
-         * \param zed : the sl::zed::Camera* pointer to an instance
-         * \param left_cam_info_msg : the information message to fill with the left camera informations
-         * \param right_cam_info_msg : the information message to fill with the right camera informations
-         * \param left_frame_id : the id of the reference frame of the left camera
-         * \param right_frame_id : the id of the reference frame of the right camera
-         */
+     * \param zed : the sl::zed::Camera* pointer to an instance
+     * \param left_cam_info_msg : the information message to fill with the left camera informations
+     * \param right_cam_info_msg : the information message to fill with the right camera informations
+     * \param left_frame_id : the id of the reference frame of the left camera
+     * \param right_frame_id : the id of the reference frame of the right camera
+     */
     void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg, sensor_msgs::CameraInfoPtr rightCamInfoMsg,
                      string leftFrameId, string rightFrameId, bool rawParam = false);
 
     /* \brief Callback to handle dynamic reconfigure events in ROS
-         */
+     */
     void dynamicReconfCallback(zed_wrapper::ZedConfig &config, uint32_t level);
 
     /* \brief Callback to publish IMU raw data with a ROS publisher.
-         * \param e : the ros::TimerEvent binded to the callback
-         */
+     * \param e : the ros::TimerEvent binded to the callback
+     */
     void imuPubCallback(const ros::TimerEvent & e);
 
     /* \brief Service callback to reset_tracking service
-         * Tracking pose is reinitialized to the value available in the ROS Param server
-         */
+     * Tracking pose is reinitialized to the value available in the ROS Param server
+     */
     bool on_reset_tracking(zed_wrapper::reset_tracking::Request  &req,
                            zed_wrapper::reset_tracking::Response &res);
 
     /* \brief Service callback to set_pose service
-         * Tracking pose is set to the new values
-         */
+     *        Tracking pose is set to the new values
+     */
     bool on_set_pose(zed_wrapper::set_initial_pose::Request &req,
                      zed_wrapper::set_initial_pose::Response &res);
 
     /* \brief Utility to initialize the pose variables
-         */
+     */
     void set_pose( float xt, float yt, float zt, float rr, float pr, float yr);
 
     /* \bried Start tracking loading the parameters from param server
-         */
+     */
     void start_tracking();
+
+    /* \bried Check if FPS and Resolution chosen by user are correct.
+     *        Modifies FPS to match correct value.
+     */
+    void checkResolFps();
 
 private:
     // SDK version
@@ -273,9 +278,9 @@ private:
 
     // Launch file parameters
     int resolution;
+    int frameRate;
     int quality;
     int sensingMode;
-    int rate;
     int gpuId;
     int zedId;
     int depthStabilization;
