@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-Copyright (c) 2017, STEREOLABS.
+Copyright (c) 2018, STEREOLABS.
 
 All rights reserved.
 
@@ -18,40 +18,62 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <robot name="zedm_camera">
 
-    <link name="zed_left_camera">
-
-    </link>
-    <link name="zed_center">
+    <!-- Camera Center -->
+    <link name="zed_camera_center">
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-                <mesh filename="package://zed_wrapper/urdf/ZEDM.stl" />
+                <mesh filename="package://zed_wrapper/urdf/ZED.stl" />
             </geometry>
             <material name="light_grey">
                 <color rgba="0 0 0 0.9"/>
             </material>
         </visual>
     </link>
-    <link name="zed_right_camera">
 
-    </link>
-    <link name="zed_depth_camera" />
-    
+<!-- Left Camera -->
+
     <joint name="zed_left_camera_joint" type="fixed">
-        <parent link="zed_center"/>
-        <child link="zed_left_camera"/>
+        <parent link="zed_camera_center"/>
+        <child link="zed_left_camera_frame"/>
         <origin xyz="0 0.03 0" rpy="0 0 0" />
     </joint>
-    <joint name="zed_depth_camera_joint" type="fixed">
-        <parent link="zed_left_camera"/>
-        <child link="zed_depth_camera"/>
-        <origin xyz="0 0 0" rpy="-1.5707963267948966 0 -1.5707963267948966" />
+
+    <link name="zed_left_camera_frame" />
+
+    <joint name="zed_left_camera_optical_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="-1.57079632679 0.0 -1.57079632679"/>
+        <parent link="zed_left_camera_frame"/>
+        <child link="zed_left_camera_optical_frame"/>
     </joint>
 
+    <link name="zed_left_camera_optical_frame"/>
+
+<!-- Right Camera -->
+
     <joint name="zed_right_camera_joint" type="fixed">
-        <parent link="zed_center"/>
-        <child link="zed_right_camera"/>
+        <parent link="zed_camera_center"/>
+        <child link="zed_right_camera_frame"/>
         <origin xyz="0 -0.03 0" rpy="0 0 0" />
     </joint>
+
+    <link name="zed_right_camera_frame" />
+
+    <joint name="zed_right_camera_optical_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="-1.57079632679 0.0 -1.57079632679"/>
+        <parent link="zed_right_camera_frame"/>
+        <child link="zed_right_camera_optical_frame"/>
+    </joint>
+
+    <link name="zed_right_camera_optical_frame"/>
+
+<!-- IMU -->    
+
+    <joint name="imu_link_joint" type="floating">
+        <parent link="zed_camera_center"/>
+        <child link="imu_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <link name="imu_link" />
  
 </robot>

@@ -1,6 +1,6 @@
 # Stereolabs ZED Camera - ROS Integration
 
-This package lets you use the ZED stereo camera with ROS. It outputs the camera left and right images, depth map, point cloud, odometry information and supports the use of multiple ZED cameras.
+This package lets you use the ZED stereo camera with ROS. It outputs the camera left and right images, depth map, point cloud, pose information and supports the use of multiple ZED cameras.
 
 ## Getting started
 
@@ -25,7 +25,8 @@ The zed_ros_wrapper is a catkin package. It depends on the following ROS package
    - roscpp
    - rosconsole
    - sensor_msgs
-   - opencv
+   - stereo_msgs
+   - opencv3
    - image_transport
    - dynamic_reconfigure
    - urdf
