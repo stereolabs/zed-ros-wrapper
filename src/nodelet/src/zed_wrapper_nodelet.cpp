@@ -1510,29 +1510,34 @@ namespace zed_wrapper {
                     depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
                     if (!initOdomWithPose) {
                         sl::Pose deltaOdom;
-                        zed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
-                        // Transform ZED delta odom pose in TF2 Transformation
-                        geometry_msgs::Transform deltaTransf;
-                        sl::Translation translation = deltaOdom.getTranslation();
-                        sl::Orientation quat = deltaOdom.getOrientation();
-                        deltaTransf.translation.x = xSign * translation(xIdx);
-                        deltaTransf.translation.y = ySign * translation(yIdx);
-                        deltaTransf.translation.z = zSign * translation(zIdx);
-                        deltaTransf.rotation.x = xSign * quat(xIdx);
-                        deltaTransf.rotation.y = ySign * quat(yIdx);
-                        deltaTransf.rotation.z = zSign * quat(zIdx);
-                        deltaTransf.rotation.w = quat(3);
-                        tf2::Transform deltaOdomTf;
-                        tf2::fromMsg(deltaTransf, deltaOdomTf);
-                        // delta odom from sensor to base frame
-                        tf2::Transform deltaOdomTf_base = sensor_to_base_transf *
-                                                          deltaOdomTf *
-                                                          sensor_to_base_transf.inverse();
-                        // Propagate Odom transform in time
-                        baseToOdomTransform = baseToOdomTransform * deltaOdomTf_base;
-                        // Publish odometry message
-                        publishOdom(baseToOdomTransform, t);
-                        mTrackingReady = true;
+                        sl::TRACKING_STATE status = zed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
+
+                        if (status == sl::TRACKING_STATE_OK) {
+                            // Transform ZED delta odom pose in TF2 Transformation
+                            geometry_msgs::Transform deltaTransf;
+                            sl::Translation translation = deltaOdom.getTranslation();
+                            sl::Orientation quat = deltaOdom.getOrientation();
+                            deltaTransf.translation.x = xSign * translation(xIdx);
+                            deltaTransf.translation.y = ySign * translation(yIdx);
+                            deltaTransf.translation.z = zSign * translation(zIdx);
+                            deltaTransf.rotation.x = xSign * quat(xIdx);
+                            deltaTransf.rotation.y = ySign * quat(yIdx);
+                            deltaTransf.rotation.z = zSign * quat(zIdx);
+                            deltaTransf.rotation.w = quat(3);
+                            tf2::Transform deltaOdomTf;
+                            tf2::fromMsg(deltaTransf, deltaOdomTf);
+                            // delta odom from sensor to base frame
+                            tf2::Transform deltaOdomTf_base = sensor_to_base_transf *
+                                                              deltaOdomTf *
+                                                              sensor_to_base_transf.inverse();
+                            // Propagate Odom transform in time
+                            baseToOdomTransform = baseToOdomTransform * deltaOdomTf_base;
+                            // Publish odometry message
+                            publishOdom(baseToOdomTransform, t);
+                            mTrackingReady = true;
+                        } else {
+                            NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << static_cast<int>(status));
+                        }
                     }
                 }
 
@@ -1540,45 +1545,50 @@ namespace zed_wrapper {
                 if (mTerrainMap || pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 ||
                     depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
                     sl::Pose zed_pose; // Sensor to Map transform
-                    zed.getPosition(zed_pose, sl::REFERENCE_FRAME_WORLD);
-                    // Transform ZED pose in TF2 Transformation
-                    geometry_msgs::Transform sens2mapTransf;
-                    sl::Translation translation = zed_pose.getTranslation();
-                    sl::Orientation quat = zed_pose.getOrientation();
-                    sens2mapTransf.translation.x = xSign * translation(xIdx);
-                    sens2mapTransf.translation.y = ySign * translation(yIdx);
-                    sens2mapTransf.translation.z = zSign * translation(zIdx);
-                    sens2mapTransf.rotation.x = xSign * quat(xIdx);
-                    sens2mapTransf.rotation.y = ySign * quat(yIdx);
-                    sens2mapTransf.rotation.z = zSign * quat(zIdx);
-                    sens2mapTransf.rotation.w = quat(3);
-                    tf2::Transform sens_to_map_transf;
-                    tf2::fromMsg(sens2mapTransf, sens_to_map_transf);
-                    // Transformation from camera sensor to base frame
-                    tf2::Transform base_to_map_transform = sensor_to_base_transf *
-                                                           sens_to_map_transf *
-                                                           sensor_to_base_transf.inverse();
+                    sl::TRACKING_STATE status = zed.getPosition(zed_pose, sl::REFERENCE_FRAME_WORLD);
 
-                    if (initOdomWithPose) {
-                        // Propagate Odom transform in time
-                        baseToOdomTransform = base_to_map_transform;
-                        base_to_map_transform.setIdentity();
+                    if (status == sl::TRACKING_STATE_OK) {
+                        // Transform ZED pose in TF2 Transformation
+                        geometry_msgs::Transform sens2mapTransf;
+                        sl::Translation translation = zed_pose.getTranslation();
+                        sl::Orientation quat = zed_pose.getOrientation();
+                        sens2mapTransf.translation.x = xSign * translation(xIdx);
+                        sens2mapTransf.translation.y = ySign * translation(yIdx);
+                        sens2mapTransf.translation.z = zSign * translation(zIdx);
+                        sens2mapTransf.rotation.x = xSign * quat(xIdx);
+                        sens2mapTransf.rotation.y = ySign * quat(yIdx);
+                        sens2mapTransf.rotation.z = zSign * quat(zIdx);
+                        sens2mapTransf.rotation.w = quat(3);
+                        tf2::Transform sens_to_map_transf;
+                        tf2::fromMsg(sens2mapTransf, sens_to_map_transf);
+                        // Transformation from camera sensor to base frame
+                        tf2::Transform base_to_map_transform = sensor_to_base_transf *
+                                                               sens_to_map_transf *
+                                                               sensor_to_base_transf.inverse();
 
-                        if (odom_SubNumber > 0) {
-                            // Publish odometry message
-                            publishOdom(baseToOdomTransform, t);
+                        if (initOdomWithPose) {
+                            // Propagate Odom transform in time
+                            baseToOdomTransform = base_to_map_transform;
+                            base_to_map_transform.setIdentity();
+
+                            if (odom_SubNumber > 0) {
+                                // Publish odometry message
+                                publishOdom(baseToOdomTransform, t);
+                            }
+
+                            initOdomWithPose = false;
+                        } else {
+                            // Transformation from map to odometry frame
+                            odomToMapTransform =
+                                base_to_map_transform * baseToOdomTransform.inverse();
                         }
 
-                        initOdomWithPose = false;
+                        // Publish Pose message
+                        publishPose(odomToMapTransform, t);
+                        mTrackingReady = true;
                     } else {
-                        // Transformation from map to odometry frame
-                        odomToMapTransform =
-                            base_to_map_transform * baseToOdomTransform.inverse();
+                        NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << static_cast<int>(status));
                     }
-
-                    // Publish Pose message
-                    publishPose(odomToMapTransform, t);
-                    mTrackingReady = true;
                 }
 
                 // Publish pose tf only if enabled
