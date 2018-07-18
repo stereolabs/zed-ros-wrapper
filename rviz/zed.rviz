@@ -5,7 +5,9 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /RobotModel1/Links1
+        - /TF1
         - /TF1/Frames1
+        - /Odometry1
         - /Odometry1/Shape1
       Splitter Ratio: 0.5
     Tree Height: 452
@@ -64,20 +66,22 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        zed_depth_camera:
+        zed_left_camera_frame:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        zed_left_camera:
+        zed_left_camera_optical_frame:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        zed_right_camera:
+        zed_right_camera_frame:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+        zed_right_camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
       Name: RobotModel
       Robot Description: zed/zed_description
       TF Prefix: ""
@@ -90,14 +94,18 @@ Visualization Manager:
       Frames:
         All Enabled: false
         map:
-          Value: false
+          Value: true
+        odom:
+          Value: true
         zed_camera_center:
           Value: true
-        zed_depth_camera:
+        zed_left_camera_frame:
           Value: false
-        zed_left_camera:
+        zed_left_camera_optical_frame:
           Value: false
-        zed_right_camera:
+        zed_right_camera_frame:
+          Value: false
+        zed_right_camera_optical_frame:
           Value: false
       Marker Scale: 1
       Name: TF
@@ -106,12 +114,14 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          zed_camera_center:
-            zed_left_camera:
-              zed_depth_camera:
-                {}
-            zed_right_camera:
-              {}
+          odom:
+            zed_camera_center:
+              zed_left_camera_frame:
+                zed_left_camera_optical_frame:
+                  {}
+              zed_right_camera_frame:
+                zed_right_camera_optical_frame:
+                  {}
       Update Interval: 0
       Value: true
     - Angle Tolerance: 0
@@ -260,7 +270,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.82048225
+      Distance: 6.19356251
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -275,10 +285,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.345398098
+      Pitch: 0.185398176
       Target Frame: zed_left_camera
       Value: Orbit (rviz)
-      Yaw: 5.74224329
+      Yaw: 1.60223889
     Saved: ~
 Window Geometry:
   Camera:
