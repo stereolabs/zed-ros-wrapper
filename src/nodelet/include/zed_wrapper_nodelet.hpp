@@ -186,6 +186,11 @@ namespace zed_wrapper {
          */
         void imuPubCallback(const ros::TimerEvent& e);
 
+        /* \brief Callback to handle async terrain MAPPING.
+         * \param e : the ros::TimerEvent binded to the callback
+         */
+        void terrainCallback(const ros::TimerEvent& e);
+
         /* \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
          * server
@@ -214,6 +219,14 @@ namespace zed_wrapper {
         /* \bried Start tracking loading the parameters from param server
          */
         void start_tracking();
+
+        /* \bried Start mapping loading the parameters from param server
+         */
+        void start_mapping(); // TODO Check SDK version
+
+        /* \bried Start mapping timer
+         */
+        void start_mapping_timer(); // TODO Check SDK version
 
         /* \bried Check if FPS and Resolution chosen by user are correct.
          *        Modifies FPS to match correct value.
@@ -255,9 +268,9 @@ namespace zed_wrapper {
         ros::Publisher pubImu;
         ros::Publisher pubImuRaw;
         ros::Timer pubImuTimer;
+        ros::Timer mTerrainTimer;
 
-        // Service
-        bool trackingActivated;
+        // Services
         ros::ServiceServer srvSetInitPose;
         ros::ServiceServer srvResetOdometry;
         ros::ServiceServer srvResetTracking;
@@ -317,11 +330,21 @@ namespace zed_wrapper {
         double imuPubRate;
         bool verbose;
 
+        bool trackingActivated;
+        bool mTrackingReady;
+
+
+        // Terrain Mapping
+        bool mMappingReady;
+        bool mTerrainMap;
+        double mTerrainPubRate;
+
         // IMU time
         ros::Time imuTime;
 
         bool poseSmoothing;
         bool spatialMemory;
+        bool mFloorAlignment;
         bool initOdomWithPose;
 
         // Tracking variables

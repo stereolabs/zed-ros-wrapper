@@ -72,6 +72,10 @@ namespace zed_wrapper {
         odometryDb = "";
         imuPubRate = 100.0;
         initialTrackPose.resize(6);
+        mTerrainMap = true; // TODO set to false
+        mTrackingReady = false;
+        mMappingReady = false;
+        mTerrainPubRate = 2.0;
 
         for (int i = 0; i < 6; i++) {
             initialTrackPose[i] = 0.0f;
@@ -115,6 +119,7 @@ namespace zed_wrapper {
         nhNs.getParam("gpu_id", gpuId);
         nhNs.getParam("zed_id", zedId);
         nhNs.getParam("depth_stabilization", depthStabilization);
+        nhNs.getParam("terrain_mapping", mTerrainMap); // TODO Check SDK version
         int tmp_sn = 0;
         nhNs.getParam("serial_number", tmp_sn);
 
@@ -449,7 +454,7 @@ namespace zed_wrapper {
                 << " but ZED camera model does not support IMU data publishing.");
         }
 
-        // Service
+        // Services
         srvSetInitPose = nh.advertiseService("set_initial_pose",
                                              &ZEDWrapperNodelet::on_set_pose, this);
         srvResetOdometry = nh.advertiseService(
@@ -679,9 +684,13 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Starting Tracking");
         nhNs.getParam("odometry_DB", odometryDb);
         nhNs.getParam("pose_smoothing", poseSmoothing);
-        NODELET_INFO_STREAM("Pose Smoothing : " << poseSmoothing);
         nhNs.getParam("spatial_memory", spatialMemory);
-        NODELET_INFO_STREAM("Spatial Memory : " << spatialMemory);
+        nhNs.getParam("floor_alignment", mFloorAlignment);
+
+        if (mTerrainMap && !mFloorAlignment) {
+            NODELET_INFO_STREAM("Floor Alignment required by Terrain Mapping algorithm");
+            mFloorAlignment = true;
+        }
 
         if (realCamModel == sl::MODEL_ZED_M) {
             nhNs.getParam("init_odom_with_imu", initOdomWithPose);
@@ -711,10 +720,60 @@ namespace zed_wrapper {
         sl::TrackingParameters trackParams;
         trackParams.area_file_path = odometryDb.c_str();
         trackParams.enable_pose_smoothing = poseSmoothing;
+        NODELET_INFO_STREAM("Pose Smoothing : " << trackParams.enable_pose_smoothing);
         trackParams.enable_spatial_memory = spatialMemory;
+        NODELET_INFO_STREAM("Spatial Memory : " << trackParams.enable_spatial_memory);
+        trackParams.enable_floor_alignment = mFloorAlignment;
+        NODELET_INFO_STREAM("Floor Alignment : " << trackParams.enable_floor_alignment);
         trackParams.initial_world_transform = initialPoseSl;
         zed.enableTracking(trackParams);
         trackingActivated = true;
+        NODELET_INFO("Tracking ENABLED");
+
+        if (mTerrainMap) { // TODO Check SDK version
+            start_mapping_timer();
+        }
+    }
+
+    void ZEDWrapperNodelet::start_mapping_timer() {
+        // Start Terrain Mapping Timer
+        mTerrainTimer = nhNs.createTimer(ros::Duration(1.0 / mTerrainPubRate),
+                                         &ZEDWrapperNodelet::terrainCallback, this);
+    }
+
+    void ZEDWrapperNodelet::start_mapping() {
+        if (!mTerrainMap) {
+            return;
+        }
+
+        nhNs.getParam("terrain_pub_rate", mTerrainPubRate);
+        sl::TerrainMappingParameters terrainParams;
+        float agent_step = 0.05; // TODO Expose parameter to launch file
+        float agent_slope = 20/*degrees*/; // TODO Expose parameter to launch file
+        float agent_radius = 0.18; // TODO Expose parameter to launch file
+        float agent_height = 0.8; // TODO Expose parameter to launch file
+        float agent_roughness = 0.05; // TODO Expose parameter to launch file
+        terrainParams.setAgentParameters(sl::UNIT_METER, agent_step, agent_slope, agent_radius,
+                                         agent_height, agent_roughness);
+        float max_depth = 3.5f; // TODO Expose parameter to launch file
+        float height_thresh = .5f; // TODO Expose parameter to launch file
+        float height_resol = .025f; // TODO Expose parameter to launch file
+        sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution = sl::TerrainMappingParameters::GRID_RESOLUTION::MEDIUM; // TODO Expose parameter to launch file
+        NODELET_INFO_STREAM("Grid Resolution " << terrainParams.setGridResolution(grid_resolution) << "M");
+        NODELET_INFO_STREAM("Cutting height " << terrainParams.setHeightThreshold(sl::UNIT_METER, height_thresh) << "m");
+        NODELET_INFO_STREAM("Range " << terrainParams.setRange(sl::UNIT_METER, max_depth) << "m");
+        NODELET_INFO_STREAM("Z Resolution " << terrainParams.setZResolution(sl::UNIT_METER, height_resol) << "m");
+        terrainParams.enable_traversability_cost_computation = true; // TODO Expose parameter to launch file
+        terrainParams.enable_dynamic_extraction = true; // TODO Expose parameter to launch file
+        terrainParams.enable_color_extraction = true; // TODO Expose parameter to launch file
+
+        if (zed.enableTerrainMapping(terrainParams) == sl::SUCCESS) {
+            zed.setDepthMaxRangeValue(max_depth);
+            NODELET_INFO_STREAM("Terrain Mapping: ENABLED @ " << mTerrainPubRate << "Hz");
+            mMappingReady = true;
+        } else {
+            NODELET_WARN_STREAM("Terrain Mapping: NOT ENABLED");
+        }
     }
 
     void ZEDWrapperNodelet::publishOdom(tf2::Transform odom_base_transform,
@@ -996,6 +1055,30 @@ namespace zed_wrapper {
         }
     }
 
+    void ZEDWrapperNodelet::terrainCallback(const ros::TimerEvent& e) {
+        if (!trackingActivated || !mTrackingReady) {
+            NODELET_DEBUG("Tracking not yet active");
+            return;
+        }
+
+        if (!mMappingReady) {
+            start_mapping();
+        }
+
+        // Request Terrain calculation
+        {
+            zed.requestTerrainAsync();
+        }
+
+        if (zed.getTerrainRequestStatusAsync() == sl::SUCCESS) {
+            sl::Terrain terrain;
+
+            if (zed.retrieveTerrainAsync(terrain) == sl::SUCCESS) {
+                NODELET_DEBUG("Terrain available");
+            }
+        }
+    }
+
     void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
         int imu_SubNumber = pubImu.getNumSubscribers();
         int imu_RawSubNumber = pubImuRaw.getNumSubscribers();
@@ -1174,11 +1257,11 @@ namespace zed_wrapper {
             int conf_map_SubNumber = pubConfMap.getNumSubscribers();
             int imu_SubNumber = pubImu.getNumSubscribers();
             int imu_RawSubNumber = pubImuRaw.getNumSubscribers();
-            bool runLoop = (rgb_SubNumber + rgb_raw_SubNumber + left_SubNumber +
-                            left_raw_SubNumber + right_SubNumber + right_raw_SubNumber +
-                            depth_SubNumber + disparity_SubNumber + cloud_SubNumber +
-                            pose_SubNumber + odom_SubNumber + conf_img_SubNumber +
-                            conf_map_SubNumber + imu_SubNumber + imu_RawSubNumber) > 0;
+            bool runLoop = mTerrainMap || ((rgb_SubNumber + rgb_raw_SubNumber + left_SubNumber +
+                                            left_raw_SubNumber + right_SubNumber + right_raw_SubNumber +
+                                            depth_SubNumber + disparity_SubNumber + cloud_SubNumber +
+                                            pose_SubNumber + odom_SubNumber + conf_img_SubNumber +
+                                            conf_map_SubNumber + imu_SubNumber + imu_RawSubNumber) > 0);
             runParams.enable_point_cloud = false;
 
             if (cloud_SubNumber > 0) {
@@ -1187,22 +1270,21 @@ namespace zed_wrapper {
 
             // Run the loop only if there is some subscribers
             if (runLoop) {
-                if ((depthStabilization || pose_SubNumber > 0 || odom_SubNumber > 0 ||
+                if ((mTerrainMap || depthStabilization || pose_SubNumber > 0 || odom_SubNumber > 0 ||
                      cloud_SubNumber > 0 || depth_SubNumber > 0) &&
                     !trackingActivated) { // Start the tracking
                     start_tracking();
-                } else if (!depthStabilization && pose_SubNumber == 0 &&
+                } else if (!mTerrainMap && !depthStabilization && pose_SubNumber == 0 &&
                            odom_SubNumber == 0 &&
                            trackingActivated) { // Stop the tracking
                     zed.disableTracking();
                     trackingActivated = false;
                 }
 
+                // Detect if one of the subscriber need to have the depth information
                 computeDepth = (depth_SubNumber + disparity_SubNumber + cloud_SubNumber +
                                 pose_SubNumber + odom_SubNumber + conf_img_SubNumber +
-                                conf_map_SubNumber) > 0; // Detect if one of the
-                // subscriber need to have the
-                // depth information
+                                conf_map_SubNumber) > 0;
                 // Timestamp
                 ros::Time t =
                     sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
@@ -1262,7 +1344,7 @@ namespace zed_wrapper {
 
                         trackingActivated = false;
 
-                        if (depthStabilization || pose_SubNumber > 0 ||
+                        if (mTerrainMap || depthStabilization || pose_SubNumber > 0 ||
                             odom_SubNumber > 0) { // Start the tracking
                             start_tracking();
                         }
@@ -1424,7 +1506,7 @@ namespace zed_wrapper {
                 }
 
                 // Publish the odometry if someone has subscribed to
-                if (pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 ||
+                if (mTerrainMap || pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 ||
                     depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
                     if (!initOdomWithPose) {
                         sl::Pose deltaOdom;
@@ -1450,11 +1532,12 @@ namespace zed_wrapper {
                         baseToOdomTransform = baseToOdomTransform * deltaOdomTf_base;
                         // Publish odometry message
                         publishOdom(baseToOdomTransform, t);
+                        mTrackingReady = true;
                     }
                 }
 
                 // Publish the zed camera pose if someone has subscribed to
-                if (pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 ||
+                if (mTerrainMap || pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 ||
                     depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
                     sl::Pose zed_pose; // Sensor to Map transform
                     zed.getPosition(zed_pose, sl::REFERENCE_FRAME_WORLD);
@@ -1495,6 +1578,7 @@ namespace zed_wrapper {
 
                     // Publish Pose message
                     publishPose(odomToMapTransform, t);
+                    mTrackingReady = true;
                 }
 
                 // Publish pose tf only if enabled

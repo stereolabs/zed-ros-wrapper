@@ -93,6 +93,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="depth_stabilization"   value="1" />
         <param name="pose_smoothing"        value="false" />
         <param name="spatial_memory"        value="true" />
+        <param name="floor_alignment"       value="true" />
+        <param name="terrain_mapping"       value="true" />
+        <param name="terrain_pub_rate"      value="2.0" />
 
         <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>
 
