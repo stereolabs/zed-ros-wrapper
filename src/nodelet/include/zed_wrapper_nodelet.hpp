@@ -172,8 +172,8 @@ namespace zed_wrapper {
          * \param left_frame_id : the id of the reference frame of the left camera
          * \param right_frame_id : the id of the reference frame of the right camera
          */
-        void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg,
-                         sensor_msgs::CameraInfoPtr rightCamInfoMsg,
+        void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr mLeftCamInfoMsg,
+                         sensor_msgs::CameraInfoPtr mRightCamInfoMsg,
                          string leftFrameId, string rightFrameId,
                          bool rawParam = false);
 
@@ -267,18 +267,18 @@ namespace zed_wrapper {
         ros::Timer mTerrainTimer;
 
         // Services
-        ros::ServiceServer srvSetInitPose;
-        ros::ServiceServer srvResetOdometry;
-        ros::ServiceServer srvResetTracking;
+        ros::ServiceServer mSrvSetInitPose;
+        ros::ServiceServer mSrvResetOdometry;
+        ros::ServiceServer mSrvResetTracking;
 
         // Camera info
-        sensor_msgs::CameraInfoPtr rgbCamInfoMsg;
-        sensor_msgs::CameraInfoPtr leftCamInfoMsg;
-        sensor_msgs::CameraInfoPtr rightCamInfoMsg;
-        sensor_msgs::CameraInfoPtr rgbCamInfoRawMsg;
-        sensor_msgs::CameraInfoPtr leftCamInfoRawMsg;
-        sensor_msgs::CameraInfoPtr rightCamInfoRawMsg;
-        sensor_msgs::CameraInfoPtr depthCamInfoMsg;
+        sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
+        sensor_msgs::CameraInfoPtr mLeftCamInfoMsg;
+        sensor_msgs::CameraInfoPtr mRightCamInfoMsg;
+        sensor_msgs::CameraInfoPtr mRgbCamInfoRawMsg;
+        sensor_msgs::CameraInfoPtr mLeftCamInfoRawMsg;
+        sensor_msgs::CameraInfoPtr mRightCamInfoRawMsg;
+        sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;
 
         // tf
         tf2_ros::TransformBroadcaster transformPoseBroadcaster;
@@ -357,17 +357,19 @@ namespace zed_wrapper {
         int userCamModel;       // Camera model set by ROS Param
         sl::MODEL realCamModel; // Camera model requested to SDK
 
-        // flags
-        double matResizeFactor;
+        // Dynamic Parameters
+        double mMatResizeFactor;
         int mConfidence;
         float mMaxDepth;
-        int exposure;
-        int gain;
-        bool autoExposure;
-        bool triggerAutoExposure;
-        bool computeDepth;
-        bool grabbing = false;
-        int openniDepthMode = 0; // 16 bit UC data in mm else 32F in m, for more info
+        int mExposure;
+        int mGain;
+        bool mAutoExposure;
+
+        // flags
+        bool mTriggerAutoExposure;
+        bool mComputeDepth;
+        bool mGrabbing = false;
+        int mOpenniDepthMode = 0; // 16 bit UC data in mm else 32F in m, for more info
         // http://www.ros.org/reps/rep-0118.html
 
         // Frame and Mat
@@ -381,19 +383,19 @@ namespace zed_wrapper {
         cv::Mat confMapFloat;
 
         // Mutex
-        std::mutex dataMutex;
+        std::mutex mDataMutex;
 
         // Point cloud variables
-        sl::Mat cloud;
-        string pointCloudFrameId = "";
-        ros::Time pointCloudTime;
+        sl::Mat mCloud;
+        string mPointCloudFrameId = "";
+        ros::Time mPointCloudTime;
 
         // Dynamic reconfigure
-        boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> server;
+        boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> mDynRecServer;
 
         // Coordinate Changing indices and signs
-        unsigned int xIdx, yIdx, zIdx;
-        int xSign, ySign, zSign;
+        unsigned int mIdxX, mIdxY, mIdxZ;
+        int mSignX, mSignY, mSignZ;
 
     }; // class ZEDROSWrapperNodelet
 } // namespace
