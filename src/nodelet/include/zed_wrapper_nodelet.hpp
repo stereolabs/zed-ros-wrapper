@@ -224,10 +224,6 @@ namespace zed_wrapper {
          */
         void start_mapping(); // TODO Check SDK version
 
-        /* \bried Start mapping timer
-         */
-        void start_mapping_timer(); // TODO Check SDK version
-
         /* \bried Check if FPS and Resolution chosen by user are correct.
          *        Modifies FPS to match correct value.
          */
@@ -324,13 +320,13 @@ namespace zed_wrapper {
         int sensingMode;
         int gpuId;
         int zedId;
-        int depthStabilization;
+        int mDepthStabilization;
         std::string odometryDb;
         std::string svoFilepath;
         double imuPubRate;
         bool verbose;
 
-        bool trackingActivated;
+        bool mTrackingActivated;
         bool mTrackingReady;
 
 
@@ -357,13 +353,14 @@ namespace zed_wrapper {
         // zed object
         sl::InitParameters param;
         sl::Camera zed;
-        unsigned int serial_number;
+        unsigned int mSerialNumber;
         int userCamModel;       // Camera model set by ROS Param
         sl::MODEL realCamModel; // Camera model requested to SDK
 
         // flags
         double matResizeFactor;
-        int confidence;
+        int mConfidence;
+        float mMaxDepth;
         int exposure;
         int gain;
         bool autoExposure;

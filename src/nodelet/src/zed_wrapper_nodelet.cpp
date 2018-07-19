@@ -68,7 +68,7 @@ namespace zed_wrapper {
         frameRate = 30;
         gpuId = -1;
         zedId = 0;
-        serial_number = 0;
+        mSerialNumber = 0;
         odometryDb = "";
         imuPubRate = 100.0;
         initialTrackPose.resize(6);
@@ -118,21 +118,21 @@ namespace zed_wrapper {
         nhNs.getParam("openni_depth_mode", openniDepthMode);
         nhNs.getParam("gpu_id", gpuId);
         nhNs.getParam("zed_id", zedId);
-        nhNs.getParam("depth_stabilization", depthStabilization);
+        nhNs.getParam("depth_stabilization", mDepthStabilization);
         nhNs.getParam("terrain_mapping", mTerrainMap); // TODO Check SDK version
         int tmp_sn = 0;
         nhNs.getParam("serial_number", tmp_sn);
 
         if (tmp_sn > 0) {
-            serial_number = tmp_sn;
+            mSerialNumber = tmp_sn;
         }
 
         nhNs.getParam("camera_model", userCamModel);
         // Publish odometry tf
         nhNs.param<bool>("publish_tf", publishTf, true);
 
-        if (serial_number > 0) {
-            NODELET_INFO_STREAM("SN : " << serial_number);
+        if (mSerialNumber > 0) {
+            NODELET_INFO_STREAM("SN : " << mSerialNumber);
         }
 
         // Print order frames
@@ -245,22 +245,23 @@ namespace zed_wrapper {
             param.camera_fps = frameRate;
             param.camera_resolution = static_cast<sl::RESOLUTION>(resolution);
 
-            if (serial_number == 0) {
+            if (mSerialNumber == 0) {
                 param.camera_linux_id = zedId;
             } else {
                 bool waiting_for_camera = true;
 
                 while (waiting_for_camera) {
+                    // Ctrl+C check
                     if (!nhNs.ok()) {
                         zed.close();
                         return;
                     }
 
-                    sl::DeviceProperties prop = sl_tools::getZEDFromSN(serial_number);
+                    sl::DeviceProperties prop = sl_tools::getZEDFromSN(mSerialNumber);
 
                     if (prop.id < -1 ||
                         prop.camera_state == sl::CAMERA_STATE::CAMERA_STATE_NOT_AVAILABLE) {
-                        std::string msg = "ZED SN" + to_string(serial_number) +
+                        std::string msg = "ZED SN" + to_string(mSerialNumber) +
                                           " not detected ! Please connect this ZED";
                         NODELET_INFO_STREAM(msg.c_str());
                         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -314,7 +315,7 @@ namespace zed_wrapper {
         param.depth_mode = static_cast<sl::DEPTH_MODE>(quality);
         param.sdk_verbose = verbose;
         param.sdk_gpu_id = gpuId;
-        param.depth_stabilization = depthStabilization;
+        param.depth_stabilization = mDepthStabilization;
         sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
 
         while (err != sl::SUCCESS) {
@@ -322,6 +323,7 @@ namespace zed_wrapper {
             NODELET_INFO_STREAM(toString(err));
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
+            // Ctrl+C check
             if (!nhNs.ok()) {
                 zed.close();
                 return;
@@ -348,7 +350,7 @@ namespace zed_wrapper {
         }
 
         NODELET_INFO_STREAM("CAMERA MODEL : " << realCamModel);
-        serial_number = zed.getCameraInformation().serial_number;
+        mSerialNumber = zed.getCameraInformation().serial_number;
         // Dynamic Reconfigure parameters
         server =
             boost::make_shared<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>>();
@@ -369,7 +371,8 @@ namespace zed_wrapper {
                 "Maximum allowed values for 'mat_resize_factor' is 1.0");
         }
 
-        nhNs.getParam("confidence", confidence);
+        nhNs.getParam("confidence", mConfidence);
+        nhNs.getParam("max_depth", mMaxDepth);
         nhNs.getParam("exposure", exposure);
         nhNs.getParam("gain", gain);
         nhNs.getParam("auto_exposure", autoExposure);
@@ -639,7 +642,7 @@ namespace zed_wrapper {
         set_pose(initialTrackPose[0], initialTrackPose[1], initialTrackPose[2],
                  initialTrackPose[3], initialTrackPose[4], initialTrackPose[5]);
 
-        if (trackingActivated) {
+        if (mTrackingActivated) {
             zed.resetTracking(initialPoseSl);
         }
 
@@ -650,7 +653,7 @@ namespace zed_wrapper {
     bool ZEDWrapperNodelet::on_reset_tracking(
         zed_wrapper::reset_tracking::Request& req,
         zed_wrapper::reset_tracking::Response& res) {
-        if (!trackingActivated) {
+        if (!mTrackingActivated) {
             res.reset_done = false;
             return false;
         }
@@ -727,18 +730,12 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Floor Alignment : " << trackParams.enable_floor_alignment);
         trackParams.initial_world_transform = initialPoseSl;
         zed.enableTracking(trackParams);
-        trackingActivated = true;
+        mTrackingActivated = true;
         NODELET_INFO("Tracking ENABLED");
 
         if (mTerrainMap) { // TODO Check SDK version
-            start_mapping_timer();
+            start_mapping();
         }
-    }
-
-    void ZEDWrapperNodelet::start_mapping_timer() {
-        // Start Terrain Mapping Timer
-        mTerrainTimer = nhNs.createTimer(ros::Duration(1.0 / mTerrainPubRate),
-                                         &ZEDWrapperNodelet::terrainCallback, this);
     }
 
     void ZEDWrapperNodelet::start_mapping() {
@@ -755,20 +752,20 @@ namespace zed_wrapper {
         float agent_roughness = 0.05; // TODO Expose parameter to launch file
         terrainParams.setAgentParameters(sl::UNIT_METER, agent_step, agent_slope, agent_radius,
                                          agent_height, agent_roughness);
-        float max_depth = 3.5f; // TODO Expose parameter to launch file
         float height_thresh = .5f; // TODO Expose parameter to launch file
         float height_resol = .025f; // TODO Expose parameter to launch file
         sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution = sl::TerrainMappingParameters::GRID_RESOLUTION::MEDIUM; // TODO Expose parameter to launch file
         NODELET_INFO_STREAM("Grid Resolution " << terrainParams.setGridResolution(grid_resolution) << "M");
         NODELET_INFO_STREAM("Cutting height " << terrainParams.setHeightThreshold(sl::UNIT_METER, height_thresh) << "m");
-        NODELET_INFO_STREAM("Range " << terrainParams.setRange(sl::UNIT_METER, max_depth) << "m");
         NODELET_INFO_STREAM("Z Resolution " << terrainParams.setZResolution(sl::UNIT_METER, height_resol) << "m");
         terrainParams.enable_traversability_cost_computation = true; // TODO Expose parameter to launch file
         terrainParams.enable_dynamic_extraction = true; // TODO Expose parameter to launch file
         terrainParams.enable_color_extraction = true; // TODO Expose parameter to launch file
 
         if (zed.enableTerrainMapping(terrainParams) == sl::SUCCESS) {
-            zed.setDepthMaxRangeValue(max_depth);
+            // Start Terrain Mapping Timer
+            mTerrainTimer = nhNs.createTimer(ros::Duration(1.0 / mTerrainPubRate),
+                                             &ZEDWrapperNodelet::terrainCallback, this);
             NODELET_INFO_STREAM("Terrain Mapping: ENABLED @ " << mTerrainPubRate << "Hz");
             mMappingReady = true;
         } else {
@@ -1009,8 +1006,8 @@ namespace zed_wrapper {
             uint32_t level) {
         switch (level) {
         case 0:
-            confidence = config.confidence;
-            NODELET_INFO("Reconfigure confidence : %d", confidence);
+            mConfidence = config.confidence;
+            NODELET_INFO("Reconfigure confidence : %d", mConfidence);
             break;
 
         case 1:
@@ -1052,11 +1049,16 @@ namespace zed_wrapper {
             rgbCamInfoRawMsg = leftCamInfoRawMsg;
             dataMutex.unlock();
             break;
+
+        case 5:
+            mMaxDepth = config.max_depth;
+            NODELET_INFO("Reconfigure max depth : %g", mMaxDepth);
+            break;
         }
     }
 
     void ZEDWrapperNodelet::terrainCallback(const ros::TimerEvent& e) {
-        if (!trackingActivated || !mTrackingReady) {
+        if (!mTrackingActivated /*|| !mTrackingReady*/) {
             NODELET_DEBUG("Tracking not yet active");
             return;
         }
@@ -1066,9 +1068,7 @@ namespace zed_wrapper {
         }
 
         // Request Terrain calculation
-        {
-            zed.requestTerrainAsync();
-        }
+        zed.requestTerrainAsync();
 
         if (zed.getTerrainRequestStatusAsync() == sl::SUCCESS) {
             sl::Terrain terrain;
@@ -1212,7 +1212,7 @@ namespace zed_wrapper {
             sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
         imuTime = old_t;
         sl::ERROR_CODE grab_status;
-        trackingActivated = false;
+        mTrackingActivated = false;
         // Get the parameters of the ZED images
         camWidth = zed.getResolution().width;
         camHeight = zed.getResolution().height;
@@ -1242,49 +1242,51 @@ namespace zed_wrapper {
         // Main loop
         while (nhNs.ok()) {
             // Check for subscribers
-            int rgb_SubNumber = pubRgb.getNumSubscribers();
-            int rgb_raw_SubNumber = pubRawRgb.getNumSubscribers();
-            int left_SubNumber = pubLeft.getNumSubscribers();
-            int left_raw_SubNumber = pubRawLeft.getNumSubscribers();
-            int right_SubNumber = pubRight.getNumSubscribers();
-            int right_raw_SubNumber = pubRawRight.getNumSubscribers();
-            int depth_SubNumber = pubDepth.getNumSubscribers();
-            int disparity_SubNumber = pubDisparity.getNumSubscribers();
-            int cloud_SubNumber = pubCloud.getNumSubscribers();
-            int pose_SubNumber = pubPose.getNumSubscribers();
-            int odom_SubNumber = pubOdom.getNumSubscribers();
-            int conf_img_SubNumber = pubConfImg.getNumSubscribers();
-            int conf_map_SubNumber = pubConfMap.getNumSubscribers();
-            int imu_SubNumber = pubImu.getNumSubscribers();
-            int imu_RawSubNumber = pubImuRaw.getNumSubscribers();
-            bool runLoop = mTerrainMap || ((rgb_SubNumber + rgb_raw_SubNumber + left_SubNumber +
-                                            left_raw_SubNumber + right_SubNumber + right_raw_SubNumber +
-                                            depth_SubNumber + disparity_SubNumber + cloud_SubNumber +
-                                            pose_SubNumber + odom_SubNumber + conf_img_SubNumber +
-                                            conf_map_SubNumber + imu_SubNumber + imu_RawSubNumber) > 0);
+            int rgbSubnumber = pubRgb.getNumSubscribers();
+            int rgbRawSubnumber = pubRawRgb.getNumSubscribers();
+            int leftSubnumber = pubLeft.getNumSubscribers();
+            int leftRawSubnumber = pubRawLeft.getNumSubscribers();
+            int rightSubnumber = pubRight.getNumSubscribers();
+            int rightRawSubnumber = pubRawRight.getNumSubscribers();
+            int depthSubnumber = pubDepth.getNumSubscribers();
+            int disparitySubnumber = pubDisparity.getNumSubscribers();
+            int cloudSubnumber = pubCloud.getNumSubscribers();
+            int poseSubnumber = pubPose.getNumSubscribers();
+            int odomSubnumber = pubOdom.getNumSubscribers();
+            int confImgSubnumber = pubConfImg.getNumSubscribers();
+            int confMapSubnumber = pubConfMap.getNumSubscribers();
+            int imuSubnumber = pubImu.getNumSubscribers();
+            int imuRawsubnumber = pubImuRaw.getNumSubscribers();
+            bool runLoop = mTerrainMap ||
+                           ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
+                             leftRawSubnumber + rightSubnumber + rightRawSubnumber +
+                             depthSubnumber + disparitySubnumber + cloudSubnumber +
+                             poseSubnumber + odomSubnumber + confImgSubnumber +
+                             confMapSubnumber + imuSubnumber + imuRawsubnumber) > 0);
             runParams.enable_point_cloud = false;
 
-            if (cloud_SubNumber > 0) {
+            if (cloudSubnumber > 0) {
                 runParams.enable_point_cloud = true;
             }
 
             // Run the loop only if there is some subscribers
             if (runLoop) {
-                if ((mTerrainMap || depthStabilization || pose_SubNumber > 0 || odom_SubNumber > 0 ||
-                     cloud_SubNumber > 0 || depth_SubNumber > 0) &&
-                    !trackingActivated) { // Start the tracking
+                if ((mTerrainMap || mDepthStabilization || poseSubnumber > 0 || odomSubnumber > 0 ||
+                     cloudSubnumber > 0 || depthSubnumber > 0) &&
+                    !mTrackingActivated) { // Start the tracking
                     start_tracking();
-                } else if (!mTerrainMap && !depthStabilization && pose_SubNumber == 0 &&
-                           odom_SubNumber == 0 &&
-                           trackingActivated) { // Stop the tracking
+                } else if (!mTerrainMap && !mDepthStabilization && poseSubnumber == 0 &&
+                           odomSubnumber == 0 &&
+                           mTrackingActivated) { // Stop the tracking
                     zed.disableTracking();
-                    trackingActivated = false;
+                    mTrackingActivated = false;
                 }
 
                 // Detect if one of the subscriber need to have the depth information
-                computeDepth = (depth_SubNumber + disparity_SubNumber + cloud_SubNumber +
-                                pose_SubNumber + odom_SubNumber + conf_img_SubNumber +
-                                conf_map_SubNumber) > 0;
+                computeDepth = mTerrainMap ||
+                               ((depthSubnumber + disparitySubnumber + cloudSubnumber +
+                                 poseSubnumber + odomSubnumber + confImgSubnumber +
+                                 confMapSubnumber) > 0);
                 // Timestamp
                 ros::Time t =
                     sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
@@ -1293,8 +1295,14 @@ namespace zed_wrapper {
                 if (computeDepth) {
                     int actual_confidence = zed.getConfidenceThreshold();
 
-                    if (actual_confidence != confidence) {
-                        zed.setConfidenceThreshold(confidence);
+                    if (actual_confidence != mConfidence) {
+                        zed.setConfidenceThreshold(mConfidence);
+                    }
+
+                    float actual_max_depth = zed.getDepthMaxRangeValue();
+
+                    if (actual_max_depth != mMaxDepth) {
+                        zed.setDepthMaxRangeValue(mMaxDepth);
                     }
 
                     runParams.enable_depth = true; // Ask to compute the depth
@@ -1306,13 +1314,11 @@ namespace zed_wrapper {
                 grabbing = false;
 
                 // cout << toString(grab_status) << endl;
-                if (grab_status !=
-                    sl::ERROR_CODE::SUCCESS) { // Detect if a error occurred (for example:
+                if (grab_status != sl::ERROR_CODE::SUCCESS) {
+                    // Detect if a error occurred (for example:
                     // the zed have been disconnected) and
                     // re-initialize the ZED
-                    if (grab_status == sl::ERROR_CODE_NOT_A_NEW_FRAME) {
-                        NODELET_DEBUG_THROTTLE(1.0, "Wait for a new image to proceed");
-                    } else {
+                    if (grab_status != sl::ERROR_CODE_NOT_A_NEW_FRAME) {
                         NODELET_INFO_STREAM_ONCE(toString(grab_status));
                     }
 
@@ -1324,28 +1330,29 @@ namespace zed_wrapper {
                         sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
 
                         while (err != sl::SUCCESS) {
+                            // Ctrl+C check
                             if (!nhNs.ok()) {
                                 zed.close();
                                 return;
                             }
 
-                            int id = sl_tools::checkCameraReady(serial_number);
+                            int id = sl_tools::checkCameraReady(mSerialNumber);
 
                             if (id > 0) {
                                 param.camera_linux_id = id;
                                 err = zed.open(param); // Try to initialize the ZED
                                 NODELET_INFO_STREAM(toString(err));
                             } else {
-                                NODELET_INFO("Waiting for the ZED to be re-connected");
+                                NODELET_INFO_STREAM("Waiting for the ZED (S/N " << mSerialNumber << ") to be re-connected");
                             }
 
                             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
                         }
 
-                        trackingActivated = false;
+                        mTrackingActivated = false;
 
-                        if (mTerrainMap || depthStabilization || pose_SubNumber > 0 ||
-                            odom_SubNumber > 0) { // Start the tracking
+                        if (mTerrainMap || mDepthStabilization ||
+                            poseSubnumber > 0 || odomSubnumber > 0) { // Start the tracking
                             start_tracking();
                         }
                     }
@@ -1354,8 +1361,7 @@ namespace zed_wrapper {
                 }
 
                 // Time update
-                old_t =
-                    sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+                old_t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
 
                 if (autoExposure) {
                     // getCameraSettings() can't check status of auto exposure
@@ -1382,18 +1388,18 @@ namespace zed_wrapper {
                 dataMutex.lock();
 
                 // Publish the left == rgb image if someone has subscribed to
-                if (left_SubNumber > 0 || rgb_SubNumber > 0) {
+                if (leftSubnumber > 0 || rgbSubnumber > 0) {
                     // Retrieve RGBA Left image
                     zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, matWidth,
                                       matHeight);
                     cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
 
-                    if (left_SubNumber > 0) {
+                    if (leftSubnumber > 0) {
                         publishCamInfo(leftCamInfoMsg, pubLeftCamInfo, t);
                         publishImage(leftImRGB, pubLeft, leftCamOptFrameId, t);
                     }
 
-                    if (rgb_SubNumber > 0) {
+                    if (rgbSubnumber > 0) {
                         publishCamInfo(rgbCamInfoMsg, pubRgbCamInfo, t);
                         publishImage(leftImRGB, pubRgb, depthOptFrameId,
                                      t); // rgb is the left image
@@ -1401,25 +1407,25 @@ namespace zed_wrapper {
                 }
 
                 // Publish the left_raw == rgb_raw image if someone has subscribed to
-                if (left_raw_SubNumber > 0 || rgb_raw_SubNumber > 0) {
+                if (leftRawSubnumber > 0 || rgbRawSubnumber > 0) {
                     // Retrieve RGBA Left image
                     zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU,
                                       matWidth, matHeight);
                     cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
 
-                    if (left_raw_SubNumber > 0) {
+                    if (leftRawSubnumber > 0) {
                         publishCamInfo(leftCamInfoRawMsg, pubLeftCamInfoRaw, t);
                         publishImage(leftImRGB, pubRawLeft, leftCamOptFrameId, t);
                     }
 
-                    if (rgb_raw_SubNumber > 0) {
+                    if (rgbRawSubnumber > 0) {
                         publishCamInfo(rgbCamInfoRawMsg, pubRgbCamInfoRaw, t);
                         publishImage(leftImRGB, pubRawRgb, depthOptFrameId, t);
                     }
                 }
 
                 // Publish the right image if someone has subscribed to
-                if (right_SubNumber > 0) {
+                if (rightSubnumber > 0) {
                     // Retrieve RGBA Right image
                     zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU, matWidth,
                                       matHeight);
@@ -1429,7 +1435,7 @@ namespace zed_wrapper {
                 }
 
                 // Publish the right image if someone has subscribed to
-                if (right_raw_SubNumber > 0) {
+                if (rightRawSubnumber > 0) {
                     // Retrieve RGBA Right image
                     zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU,
                                       matWidth, matHeight);
@@ -1439,7 +1445,7 @@ namespace zed_wrapper {
                 }
 
                 // Publish the depth image if someone has subscribed to
-                if (depth_SubNumber > 0 || disparity_SubNumber > 0) {
+                if (depthSubnumber > 0 || disparitySubnumber > 0) {
                     zed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH, sl::MEM_CPU,
                                         matWidth, matHeight);
                     publishCamInfo(depthCamInfoMsg, pubDepthCamInfo, t);
@@ -1447,7 +1453,7 @@ namespace zed_wrapper {
                 }
 
                 // Publish the disparity image if someone has subscribed to
-                if (disparity_SubNumber > 0) {
+                if (disparitySubnumber > 0) {
                     zed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY, sl::MEM_CPU,
                                         matWidth, matHeight);
                     // Need to flip sign, but cause of this is not sure
@@ -1456,7 +1462,7 @@ namespace zed_wrapper {
                 }
 
                 // Publish the confidence image if someone has subscribed to
-                if (conf_img_SubNumber > 0) {
+                if (confImgSubnumber > 0) {
                     zed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE, sl::MEM_CPU,
                                       matWidth, matHeight);
                     cv::cvtColor(sl_tools::toCVMat(confImgZEDMat), confImRGB, CV_RGBA2RGB);
@@ -1464,7 +1470,7 @@ namespace zed_wrapper {
                 }
 
                 // Publish the confidence map if someone has subscribed to
-                if (conf_map_SubNumber > 0) {
+                if (confMapSubnumber > 0) {
                     zed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE, sl::MEM_CPU,
                                         matWidth, matHeight);
                     confMapFloat = sl_tools::toCVMat(confMapZEDMat);
@@ -1474,7 +1480,7 @@ namespace zed_wrapper {
                 }
 
                 // Publish the point cloud if someone has subscribed to
-                if (cloud_SubNumber > 0) {
+                if (cloudSubnumber > 0) {
                     // Run the point cloud conversion asynchronously to avoid slowing down
                     // all the program
                     // Retrieve raw pointCloud data
@@ -1506,13 +1512,13 @@ namespace zed_wrapper {
                 }
 
                 // Publish the odometry if someone has subscribed to
-                if (mTerrainMap || pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 ||
-                    depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
+                if (mTerrainMap || poseSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
+                    depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0) {
                     if (!initOdomWithPose) {
                         sl::Pose deltaOdom;
                         sl::TRACKING_STATE status = zed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
 
-                        if (status == sl::TRACKING_STATE_OK) {
+                        if (status == sl::TRACKING_STATE_OK || status == sl::TRACKING_STATE_SEARCHING || status == sl::TRACKING_STATE_FPS_TOO_LOW) {
                             // Transform ZED delta odom pose in TF2 Transformation
                             geometry_msgs::Transform deltaTransf;
                             sl::Translation translation = deltaOdom.getTranslation();
@@ -1542,8 +1548,8 @@ namespace zed_wrapper {
                 }
 
                 // Publish the zed camera pose if someone has subscribed to
-                if (mTerrainMap || pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 ||
-                    depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
+                if (mTerrainMap || poseSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
+                    depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0) {
                     sl::Pose zed_pose; // Sensor to Map transform
                     sl::TRACKING_STATE status = zed.getPosition(zed_pose, sl::REFERENCE_FRAME_WORLD);
 
@@ -1571,7 +1577,7 @@ namespace zed_wrapper {
                             baseToOdomTransform = base_to_map_transform;
                             base_to_map_transform.setIdentity();
 
-                            if (odom_SubNumber > 0) {
+                            if (odomSubnumber > 0) {
                                 // Publish odometry message
                                 publishOdom(baseToOdomTransform, t);
                             }
@@ -1625,7 +1631,7 @@ namespace zed_wrapper {
                     rateWarnCount = 0;
                 }
             } else {
-                NODELET_DEBUG_THROTTLE(1.0, "No topics subscribed by users");
+                NODELET_DEBUG_THROTTLE(5.0, "No topics subscribed by users");
 
                 // Publish odometry tf only if enabled
                 if (publishTf) {
