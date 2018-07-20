@@ -34,12 +34,16 @@
 #include <stereo_msgs/DisparityImage.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#include <nav_msgs/MapMetaData.h>
+#include <nav_msgs/OccupancyGrid.h>
+
+#include <grid_map_ros/grid_map_ros.hpp>
+#include <grid_map_cv/GridMapCvConverter.hpp>
+
 // >>>>> Backward compatibility
-#define COORDINATE_SYSTEM_IMAGE static_cast<sl::COORDINATE_SYSTEM>(0)
-#define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP                                    \
-    static_cast<sl::COORDINATE_SYSTEM>(3)
-#define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD                              \
-    static_cast<sl::COORDINATE_SYSTEM>(5)
+#define COORDINATE_SYSTEM_IMAGE                     static_cast<sl::COORDINATE_SYSTEM>(0)
+#define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP         static_cast<sl::COORDINATE_SYSTEM>(3)
+#define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD   static_cast<sl::COORDINATE_SYSTEM>(5)
 // <<<<< Backward compatibility
 
 using namespace std;
@@ -49,7 +53,7 @@ namespace zed_wrapper {
     ZEDWrapperNodelet::ZEDWrapperNodelet() : Nodelet() {}
 
     ZEDWrapperNodelet::~ZEDWrapperNodelet() {
-        devicePollThread.get()->join();
+        mDevicePollThread.get()->join();
     }
 
     void ZEDWrapperNodelet::onInit() {
@@ -83,21 +87,21 @@ namespace zed_wrapper {
 
         mMatResizeFactor = 1.0;
         verbose = true;
-        nh = getMTNodeHandle();
-        nhNs = getMTPrivateNodeHandle();
+        mNh = getMTNodeHandle();
+        mNhNs = getMTPrivateNodeHandle();
         // Set  default coordinate frames
-        nhNs.param<std::string>("pose_frame", mapFrameId, "pose_frame");
-        nhNs.param<std::string>("odometry_frame", odometryFrameId, "odometry_frame");
-        nhNs.param<std::string>("base_frame", baseFrameId, "base_frame");
-        nhNs.param<std::string>("imu_frame", imuFrameId, "imu_link");
-        nhNs.param<std::string>("left_camera_frame", leftCamFrameId,
-                                "left_camera_frame");
-        nhNs.param<std::string>("left_camera_optical_frame", leftCamOptFrameId,
-                                "left_camera_optical_frame");
-        nhNs.param<std::string>("right_camera_frame", rightCamFrameId,
-                                "right_camera_frame");
-        nhNs.param<std::string>("right_camera_optical_frame", rightCamOptFrameId,
-                                "right_camera_optical_frame");
+        mNhNs.param<std::string>("pose_frame", mapFrameId, "pose_frame");
+        mNhNs.param<std::string>("odometry_frame", odometryFrameId, "odometry_frame");
+        mNhNs.param<std::string>("base_frame", baseFrameId, "base_frame");
+        mNhNs.param<std::string>("imu_frame", imuFrameId, "imu_link");
+        mNhNs.param<std::string>("left_camera_frame", leftCamFrameId,
+                                 "left_camera_frame");
+        mNhNs.param<std::string>("left_camera_optical_frame", leftCamOptFrameId,
+                                 "left_camera_optical_frame");
+        mNhNs.param<std::string>("right_camera_frame", rightCamFrameId,
+                                 "right_camera_frame");
+        mNhNs.param<std::string>("right_camera_optical_frame", rightCamOptFrameId,
+                                 "right_camera_optical_frame");
         depthFrameId = leftCamFrameId;
         depthOptFrameId = leftCamOptFrameId;
         // Note: Depth image frame id must match color image frame id
@@ -109,27 +113,27 @@ namespace zed_wrapper {
         confidenceFrameId = depthFrameId;
         confidenceOptFrameId = depthOptFrameId;
         // Get parameters from launch file
-        nhNs.getParam("resolution", resolution);
-        nhNs.getParam("frame_rate", frameRate);
+        mNhNs.getParam("resolution", resolution);
+        mNhNs.getParam("frame_rate", frameRate);
         checkResolFps();
-        nhNs.getParam("verbose", verbose);
-        nhNs.getParam("quality", quality);
-        nhNs.getParam("sensing_mode", sensingMode);
-        nhNs.getParam("openni_depth_mode", mOpenniDepthMode);
-        nhNs.getParam("gpu_id", gpuId);
-        nhNs.getParam("zed_id", zedId);
-        nhNs.getParam("depth_stabilization", mDepthStabilization);
-        nhNs.getParam("terrain_mapping", mTerrainMap); // TODO Check SDK version
+        mNhNs.getParam("verbose", verbose);
+        mNhNs.getParam("quality", quality);
+        mNhNs.getParam("sensing_mode", sensingMode);
+        mNhNs.getParam("openni_depth_mode", mOpenniDepthMode);
+        mNhNs.getParam("gpu_id", gpuId);
+        mNhNs.getParam("zed_id", zedId);
+        mNhNs.getParam("depth_stabilization", mDepthStabilization);
+        mNhNs.getParam("terrain_mapping", mTerrainMap); // TODO Check SDK version
         int tmp_sn = 0;
-        nhNs.getParam("serial_number", tmp_sn);
+        mNhNs.getParam("serial_number", tmp_sn);
 
         if (tmp_sn > 0) {
             mSerialNumber = tmp_sn;
         }
 
-        nhNs.getParam("camera_model", userCamModel);
+        mNhNs.getParam("camera_model", userCamModel);
         // Publish odometry tf
-        nhNs.param<bool>("publish_tf", publishTf, true);
+        mNhNs.param<bool>("publish_tf", publishTf, true);
 
         if (mSerialNumber > 0) {
             NODELET_INFO_STREAM("SN : " << mSerialNumber);
@@ -187,29 +191,35 @@ namespace zed_wrapper {
         string odometry_topic = "odom";
         string imu_topic = "imu/data";
         string imu_topic_raw = "imu/data_raw";
-        nhNs.getParam("rgb_topic", rgb_topic);
-        nhNs.getParam("rgb_raw_topic", rgb_raw_topic);
-        nhNs.getParam("rgb_cam_info_topic", rgb_cam_info_topic);
-        nhNs.getParam("rgb_cam_info_raw_topic", rgb_cam_info_raw_topic);
-        nhNs.getParam("left_topic", left_topic);
-        nhNs.getParam("left_raw_topic", left_raw_topic);
-        nhNs.getParam("left_cam_info_topic", left_cam_info_topic);
-        nhNs.getParam("left_cam_info_raw_topic", left_cam_info_raw_topic);
-        nhNs.getParam("right_topic", right_topic);
-        nhNs.getParam("right_raw_topic", right_raw_topic);
-        nhNs.getParam("right_cam_info_topic", right_cam_info_topic);
-        nhNs.getParam("right_cam_info_raw_topic", right_cam_info_raw_topic);
-        nhNs.getParam("depth_topic", depth_topic);
-        nhNs.getParam("depth_cam_info_topic", depth_cam_info_topic);
-        nhNs.getParam("disparity_topic", disparity_topic);
-        nhNs.getParam("confidence_img_topic", conf_img_topic);
-        nhNs.getParam("confidence_map_topic", conf_map_topic);
-        nhNs.getParam("point_cloud_topic", point_cloud_topic);
-        nhNs.getParam("pose_topic", pose_topic);
-        nhNs.getParam("odometry_topic", odometry_topic);
-        nhNs.getParam("imu_topic", imu_topic);
-        nhNs.getParam("imu_topic_raw", imu_topic_raw);
-        nhNs.getParam("imu_pub_rate", imuPubRate);
+        //        string map_metadata_topic = "map/map_metadata";
+        //        string cost_map_topic = "map/map_costmap";
+        string gridmap_topic = "map/gridmap";
+        string height_map_image_topic = "map/height_map_image";
+        string color_map_image_topic = "map/color_map_image";
+        string travers_map_image_topic = "map/travers_map_image";
+        mNhNs.getParam("rgb_topic", rgb_topic);
+        mNhNs.getParam("rgb_raw_topic", rgb_raw_topic);
+        mNhNs.getParam("rgb_cam_info_topic", rgb_cam_info_topic);
+        mNhNs.getParam("rgb_cam_info_raw_topic", rgb_cam_info_raw_topic);
+        mNhNs.getParam("left_topic", left_topic);
+        mNhNs.getParam("left_raw_topic", left_raw_topic);
+        mNhNs.getParam("left_cam_info_topic", left_cam_info_topic);
+        mNhNs.getParam("left_cam_info_raw_topic", left_cam_info_raw_topic);
+        mNhNs.getParam("right_topic", right_topic);
+        mNhNs.getParam("right_raw_topic", right_raw_topic);
+        mNhNs.getParam("right_cam_info_topic", right_cam_info_topic);
+        mNhNs.getParam("right_cam_info_raw_topic", right_cam_info_raw_topic);
+        mNhNs.getParam("depth_topic", depth_topic);
+        mNhNs.getParam("depth_cam_info_topic", depth_cam_info_topic);
+        mNhNs.getParam("disparity_topic", disparity_topic);
+        mNhNs.getParam("confidence_img_topic", conf_img_topic);
+        mNhNs.getParam("confidence_map_topic", conf_map_topic);
+        mNhNs.getParam("point_cloud_topic", point_cloud_topic);
+        mNhNs.getParam("pose_topic", pose_topic);
+        mNhNs.getParam("odometry_topic", odometry_topic);
+        mNhNs.getParam("imu_topic", imu_topic);
+        mNhNs.getParam("imu_topic_raw", imu_topic_raw);
+        mNhNs.getParam("imu_pub_rate", imuPubRate);
         // Create camera info
         sensor_msgs::CameraInfoPtr rgb_cam_info_ms_g(new sensor_msgs::CameraInfo());
         sensor_msgs::CameraInfoPtr left_cam_info_msg_(new sensor_msgs::CameraInfo());
@@ -229,9 +239,9 @@ namespace zed_wrapper {
         mRightCamInfoRawMsg = right_cam_info_raw_msg_;
         mDepthCamInfoMsg = depth_cam_info_msg_;
         // SVO
-        nhNs.param<std::string>("svo_filepath", svoFilepath, std::string());
+        mNhNs.param<std::string>("svo_filepath", svoFilepath, std::string());
         // Initialize tf2 transformation
-        nhNs.getParam("initial_tracking_pose", initialTrackPose);
+        mNhNs.getParam("initial_tracking_pose", initialTrackPose);
         set_pose(initialTrackPose[0], initialTrackPose[1], initialTrackPose[2],
                  initialTrackPose[3], initialTrackPose[4], initialTrackPose[5]);
         // Initialization transformation listener
@@ -252,7 +262,7 @@ namespace zed_wrapper {
 
                 while (waiting_for_camera) {
                     // Ctrl+C check
-                    if (!nhNs.ok()) {
+                    if (!mNhNs.ok()) {
                         zed.close();
                         return;
                     }
@@ -324,7 +334,7 @@ namespace zed_wrapper {
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
             // Ctrl+C check
-            if (!nhNs.ok()) {
+            if (!mNhNs.ok()) {
                 zed.close();
                 return;
             }
@@ -357,7 +367,7 @@ namespace zed_wrapper {
         dynamic_reconfigure::Server<zed_wrapper::ZedConfig>::CallbackType f;
         f = boost::bind(&ZEDWrapperNodelet::dynamicReconfCallback, this, _1, _2);
         mDynRecServer->setCallback(f);
-        nhNs.getParam("mat_resize_factor", mMatResizeFactor);
+        mNhNs.getParam("mat_resize_factor", mMatResizeFactor);
 
         if (mMatResizeFactor < 0.1) {
             mMatResizeFactor = 0.1;
@@ -371,11 +381,11 @@ namespace zed_wrapper {
                 "Maximum allowed values for 'mat_resize_factor' is 1.0");
         }
 
-        nhNs.getParam("confidence", mConfidence);
-        nhNs.getParam("max_depth", mMaxDepth);
-        nhNs.getParam("exposure", mExposure);
-        nhNs.getParam("gain", mGain);
-        nhNs.getParam("auto_exposure", mAutoExposure);
+        mNhNs.getParam("confidence", mConfidence);
+        mNhNs.getParam("max_depth", mMaxDepth);
+        mNhNs.getParam("exposure", mExposure);
+        mNhNs.getParam("gain", mGain);
+        mNhNs.getParam("auto_exposure", mAutoExposure);
 
         if (mAutoExposure) {
             mTriggerAutoExposure = true;
@@ -383,73 +393,78 @@ namespace zed_wrapper {
 
         // Create all the publishers
         // Image publishers
-        image_transport::ImageTransport it_zed(nh);
+        image_transport::ImageTransport it_zed(mNh);
         pubRgb = it_zed.advertise(rgb_topic, 1); // rgb
-        NODELET_INFO_STREAM("Advertized on topic " << rgb_topic);
+        NODELET_INFO_STREAM("Advertised on topic " << rgb_topic);
         pubRawRgb = it_zed.advertise(rgb_raw_topic, 1); // rgb raw
-        NODELET_INFO_STREAM("Advertized on topic " << rgb_raw_topic);
+        NODELET_INFO_STREAM("Advertised on topic " << rgb_raw_topic);
         pubLeft = it_zed.advertise(left_topic, 1); // left
-        NODELET_INFO_STREAM("Advertized on topic " << left_topic);
+        NODELET_INFO_STREAM("Advertised on topic " << left_topic);
         pubRawLeft = it_zed.advertise(left_raw_topic, 1); // left raw
-        NODELET_INFO_STREAM("Advertized on topic " << left_raw_topic);
+        NODELET_INFO_STREAM("Advertised on topic " << left_raw_topic);
         pubRight = it_zed.advertise(right_topic, 1); // right
-        NODELET_INFO_STREAM("Advertized on topic " << right_topic);
+        NODELET_INFO_STREAM("Advertised on topic " << right_topic);
         pubRawRight = it_zed.advertise(right_raw_topic, 1); // right raw
-        NODELET_INFO_STREAM("Advertized on topic " << right_raw_topic);
+        NODELET_INFO_STREAM("Advertised on topic " << right_raw_topic);
         pubDepth = it_zed.advertise(depth_topic, 1); // depth
-        NODELET_INFO_STREAM("Advertized on topic " << depth_topic);
+        NODELET_INFO_STREAM("Advertised on topic " << depth_topic);
         pubConfImg = it_zed.advertise(conf_img_topic, 1); // confidence image
-        NODELET_INFO_STREAM("Advertized on topic " << conf_img_topic);
+        NODELET_INFO_STREAM("Advertised on topic " << conf_img_topic);
         // Confidence Map publisher
-        pubConfMap =
-            nh.advertise<sensor_msgs::Image>(conf_map_topic, 1); // confidence map
-        NODELET_INFO_STREAM("Advertized on topic " << conf_map_topic);
+        pubConfMap = mNh.advertise<sensor_msgs::Image>(conf_map_topic, 1); // confidence map
+        NODELET_INFO_STREAM("Advertised on topic " << conf_map_topic);
         // Disparity publisher
-        pubDisparity = nh.advertise<stereo_msgs::DisparityImage>(disparity_topic, 1);
-        NODELET_INFO_STREAM("Advertized on topic " << disparity_topic);
+        pubDisparity = mNh.advertise<stereo_msgs::DisparityImage>(disparity_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << disparity_topic);
         // PointCloud publisher
-        pubCloud = nh.advertise<sensor_msgs::PointCloud2>(point_cloud_topic, 1);
-        NODELET_INFO_STREAM("Advertized on topic " << point_cloud_topic);
+        pubCloud = mNh.advertise<sensor_msgs::PointCloud2>(point_cloud_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << point_cloud_topic);
         // Camera info publishers
-        pubRgbCamInfo =
-            nh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_topic, 1); // rgb
-        NODELET_INFO_STREAM("Advertized on topic " << rgb_cam_info_topic);
-        pubLeftCamInfo =
-            nh.advertise<sensor_msgs::CameraInfo>(left_cam_info_topic, 1); // left
-        NODELET_INFO_STREAM("Advertized on topic " << left_cam_info_topic);
-        pubRightCamInfo =
-            nh.advertise<sensor_msgs::CameraInfo>(right_cam_info_topic, 1); // right
-        NODELET_INFO_STREAM("Advertized on topic " << right_cam_info_topic);
-        pubDepthCamInfo =
-            nh.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); // depth
-        NODELET_INFO_STREAM("Advertized on topic " << depth_cam_info_topic);
+        pubRgbCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_topic, 1); // rgb
+        NODELET_INFO_STREAM("Advertised on topic " << rgb_cam_info_topic);
+        pubLeftCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(left_cam_info_topic, 1); // left
+        NODELET_INFO_STREAM("Advertised on topic " << left_cam_info_topic);
+        pubRightCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(right_cam_info_topic, 1); // right
+        NODELET_INFO_STREAM("Advertised on topic " << right_cam_info_topic);
+        pubDepthCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); // depth
+        NODELET_INFO_STREAM("Advertised on topic " << depth_cam_info_topic);
         // Raw
-        pubRgbCamInfoRaw = nh.advertise<sensor_msgs::CameraInfo>(
-                               rgb_cam_info_raw_topic, 1); // raw rgb
-        NODELET_INFO_STREAM("Advertized on topic " << rgb_cam_info_raw_topic);
-        pubLeftCamInfoRaw = nh.advertise<sensor_msgs::CameraInfo>(
-                                left_cam_info_raw_topic, 1); // raw left
-        NODELET_INFO_STREAM("Advertized on topic " << left_cam_info_raw_topic);
-        pubRightCamInfoRaw = nh.advertise<sensor_msgs::CameraInfo>(
-                                 right_cam_info_raw_topic, 1); // raw right
-        NODELET_INFO_STREAM("Advertized on topic " << right_cam_info_raw_topic);
+        pubRgbCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_raw_topic, 1); // raw rgb
+        NODELET_INFO_STREAM("Advertised on topic " << rgb_cam_info_raw_topic);
+        pubLeftCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(left_cam_info_raw_topic, 1); // raw left
+        NODELET_INFO_STREAM("Advertised on topic " << left_cam_info_raw_topic);
+        pubRightCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(right_cam_info_raw_topic, 1); // raw right
+        NODELET_INFO_STREAM("Advertised on topic " << right_cam_info_raw_topic);
         // Odometry and Map publisher
-        pubPose = nh.advertise<geometry_msgs::PoseStamped>(pose_topic, 1);
-        NODELET_INFO_STREAM("Advertized on topic " << pose_topic);
-        pubOdom = nh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
-        NODELET_INFO_STREAM("Advertized on topic " << odometry_topic);
+        pubPose = mNh.advertise<geometry_msgs::PoseStamped>(pose_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << pose_topic);
+        pubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
+        // Terrain Mapping
+        //        mPubMapMetadata = mNh.advertise<nav_msgs::MapMetaData>(map_metadata_topic, 1); // map metadata
+        //        NODELET_INFO_STREAM("Advertised on topic " << map_metadata_topic);
+        //        mPubCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(cost_map_topic, 1); // cost map
+        //        NODELET_INFO_STREAM("Advertised on topic " << cost_map_topic);
+        mPubGridMap = mNh.advertise<grid_map_msgs::GridMap>(gridmap_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << gridmap_topic);
+        mPubHeightMapImg = mNh.advertise<sensor_msgs::Image>(height_map_image_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << gridmap_topic);
+        mPubColorMapImg = mNh.advertise<sensor_msgs::Image>(color_map_image_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << color_map_image_topic);
+        mPubTravMapImg = mNh.advertise<sensor_msgs::Image>(travers_map_image_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << travers_map_image_topic);
 
         // Imu publisher
         if (imuPubRate > 0 && realCamModel == sl::MODEL_ZED_M) {
-            pubImu = nh.advertise<sensor_msgs::Imu>(imu_topic, 500);
-            NODELET_INFO_STREAM("Advertized on topic " << imu_topic << " @ "
+            pubImu = mNh.advertise<sensor_msgs::Imu>(imu_topic, 500);
+            NODELET_INFO_STREAM("Advertised on topic " << imu_topic << " @ "
                                 << imuPubRate << " Hz");
-            pubImuRaw = nh.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
-            NODELET_INFO_STREAM("Advertized on topic " << imu_topic_raw << " @ "
+            pubImuRaw = mNh.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
+            NODELET_INFO_STREAM("Advertised on topic " << imu_topic_raw << " @ "
                                 << imuPubRate << " Hz");
             imuTime = ros::Time::now();
-            pubImuTimer = nhNs.createTimer(ros::Duration(1.0 / imuPubRate),
-                                           &ZEDWrapperNodelet::imuPubCallback, this);
+            pubImuTimer = mNhNs.createTimer(ros::Duration(1.0 / imuPubRate),
+                                            &ZEDWrapperNodelet::imuPubCallback, this);
         } else if (imuPubRate > 0 && realCamModel == sl::MODEL_ZED) {
             NODELET_WARN_STREAM(
                 "'imu_pub_rate' set to "
@@ -458,15 +473,15 @@ namespace zed_wrapper {
         }
 
         // Services
-        mSrvSetInitPose = nh.advertiseService("set_initial_pose",
-                                              &ZEDWrapperNodelet::on_set_pose, this);
-        mSrvResetOdometry = nh.advertiseService(
+        mSrvSetInitPose = mNh.advertiseService("set_initial_pose",
+                                               &ZEDWrapperNodelet::on_set_pose, this);
+        mSrvResetOdometry = mNh.advertiseService(
                                 "reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
-        mSrvResetTracking = nh.advertiseService(
+        mSrvResetTracking = mNh.advertiseService(
                                 "reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
         // Start pool thread
-        devicePollThread = boost::shared_ptr<boost::thread>(
-                               new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
+        mDevicePollThread = boost::shared_ptr<boost::thread>(
+                                new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
     }
 
     void ZEDWrapperNodelet::checkResolFps() {
@@ -588,7 +603,7 @@ namespace zed_wrapper {
         imgMessage.encoding = encodingType;
         int num = 1; // for endianness detection
         imgMessage.is_bigendian = !(*(char*)&num == 1);
-        imgMessage.step = img.cols * img.elemSize();
+        imgMessage.step = img.step;
         size_t size = imgMessage.step * img.rows;
         imgMessage.data.resize(size);
 
@@ -658,7 +673,7 @@ namespace zed_wrapper {
             return false;
         }
 
-        nhNs.getParam("initial_tracking_pose", initialTrackPose);
+        mNhNs.getParam("initial_tracking_pose", initialTrackPose);
 
         if (initialTrackPose.size() != 6) {
             NODELET_WARN_STREAM("Invalid Initial Pose size (" << initialTrackPose.size()
@@ -685,10 +700,10 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::start_tracking() {
         NODELET_INFO_STREAM("Starting Tracking");
-        nhNs.getParam("odometry_DB", odometryDb);
-        nhNs.getParam("pose_smoothing", poseSmoothing);
-        nhNs.getParam("spatial_memory", spatialMemory);
-        nhNs.getParam("floor_alignment", mFloorAlignment);
+        mNhNs.getParam("odometry_DB", odometryDb);
+        mNhNs.getParam("pose_smoothing", poseSmoothing);
+        mNhNs.getParam("spatial_memory", spatialMemory);
+        mNhNs.getParam("floor_alignment", mFloorAlignment);
 
         if (mTerrainMap && !mFloorAlignment) {
             NODELET_INFO_STREAM("Floor Alignment required by Terrain Mapping algorithm");
@@ -696,7 +711,7 @@ namespace zed_wrapper {
         }
 
         if (realCamModel == sl::MODEL_ZED_M) {
-            nhNs.getParam("init_odom_with_imu", initOdomWithPose);
+            mNhNs.getParam("init_odom_with_imu", initOdomWithPose);
             NODELET_INFO_STREAM(
                 "Init Odometry with first IMU data : " << initOdomWithPose);
         } else {
@@ -743,7 +758,7 @@ namespace zed_wrapper {
             return;
         }
 
-        nhNs.getParam("terrain_pub_rate", mTerrainPubRate);
+        mNhNs.getParam("terrain_pub_rate", mTerrainPubRate);
         sl::TerrainMappingParameters terrainParams;
         float agent_step = 0.05; // TODO Expose parameter to launch file
         float agent_slope = 20/*degrees*/; // TODO Expose parameter to launch file
@@ -755,7 +770,8 @@ namespace zed_wrapper {
         float height_thresh = .5f; // TODO Expose parameter to launch file
         float height_resol = .025f; // TODO Expose parameter to launch file
         sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution = sl::TerrainMappingParameters::GRID_RESOLUTION::MEDIUM; // TODO Expose parameter to launch file
-        NODELET_INFO_STREAM("Grid Resolution " << terrainParams.setGridResolution(grid_resolution) << "M");
+        mTerrainMapRes = terrainParams.setGridResolution(grid_resolution);
+        NODELET_INFO_STREAM("Grid Resolution " << mTerrainMapRes << "M");
         NODELET_INFO_STREAM("Cutting height " << terrainParams.setHeightThreshold(sl::UNIT_METER, height_thresh) << "m");
         NODELET_INFO_STREAM("Z Resolution " << terrainParams.setZResolution(sl::UNIT_METER, height_resol) << "m");
         terrainParams.enable_traversability_cost_computation = true; // TODO Expose parameter to launch file
@@ -764,8 +780,8 @@ namespace zed_wrapper {
 
         if (zed.enableTerrainMapping(terrainParams) == sl::SUCCESS) {
             // Start Terrain Mapping Timer
-            mTerrainTimer = nhNs.createTimer(ros::Duration(1.0 / mTerrainPubRate),
-                                             &ZEDWrapperNodelet::terrainCallback, this);
+            mTerrainTimer = mNhNs.createTimer(ros::Duration(1.0 / mTerrainPubRate),
+                                              &ZEDWrapperNodelet::terrainCallback, this);
             NODELET_INFO_STREAM("Terrain Mapping: ENABLED @ " << mTerrainPubRate << "Hz");
             mMappingReady = true;
         } else {
@@ -1071,10 +1087,68 @@ namespace zed_wrapper {
         zed.requestTerrainAsync();
 
         if (zed.getTerrainRequestStatusAsync() == sl::SUCCESS) {
-            sl::Terrain terrain;
+            grid_map::Time t = zed.getTimestamp(sl::TIME_REFERENCE_IMAGE);
+            int gridSub = mPubGridMap.getNumSubscribers();
+            int heightSub = mPubHeightMapImg.getNumSubscribers();
+            int colorSub = mPubColorMapImg.getNumSubscribers();
+            int travSub = mPubTravMapImg.getNumSubscribers();
+            int run = gridSub + heightSub + colorSub + travSub;
 
-            if (zed.retrieveTerrainAsync(terrain) == sl::SUCCESS) {
-                NODELET_DEBUG("Terrain available");
+            if (run > 0) {
+                sl::Terrain terrain;
+                sl::Mat sl_heightMap, sl_colorMap, sl_traversMap;
+                cv::Mat cv_heightMap, cv_colorMap, cv_traversMap;
+
+                if (zed.retrieveTerrainAsync(terrain) == sl::SUCCESS) {
+                    NODELET_DEBUG("Terrain available");
+                    terrain.generateTerrainMap(sl_heightMap, sl::MAT_TYPE_32F_C1, sl::LayerName::ELEVATION);
+                    terrain.generateTerrainMap(sl_colorMap, sl::MAT_TYPE_8U_C4, sl::LayerName::COLOR);
+                    terrain.generateTerrainMap(sl_traversMap, sl::MAT_TYPE_16U_C1, sl::LayerName::TRAVERSABILITY_COST);
+
+                    if (sl_heightMap.getResolution().area() > 0 &&
+                        sl_colorMap.getResolution().area() > 0 &&
+                        sl_traversMap.getResolution().area() > 0) {
+                        // Conversion to OpenCV format to be directly imported to GridMap
+                        cv_heightMap = sl_tools::toCVMat(sl_heightMap);
+                        cv_colorMap = sl_tools::toCVMat(sl_colorMap);
+                        cv_traversMap = sl_tools::toCVMat(sl_traversMap);
+
+                        if (gridSub > 0) {
+                            // GridMap creation
+                            grid_map::GridMap gridMap;
+                            grid_map::Position pos(0, 0); // TODO: initialize with the initial position of the tracking
+                            grid_map::GridMapCvConverter::initializeFromImage(cv_heightMap, mTerrainMapRes, gridMap, pos);
+                            grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(cv_heightMap, "height_map", gridMap);
+                            grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(cv_traversMap, "traversability_map", gridMap);
+                            grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 4>(cv_colorMap, "color_map", gridMap);
+                            // GridMap to ROS message
+                            grid_map_msgs::GridMap gridMapMsg;
+                            gridMap.setTimestamp(t);
+                            gridMap.setFrameId(mapFrameId);
+                            grid_map::GridMapRosConverter::toMessage(gridMap, gridMapMsg);
+                            // Publishing
+                            mPubGridMap.publish(gridMapMsg);
+                        }
+
+                        if (heightSub > 0) {
+                            mPubHeightMapImg.publish(imageToROSmsg(
+                                                         cv_heightMap, sensor_msgs::image_encodings::TYPE_32FC1,
+                                                         mapFrameId, sl_tools::slTime2Ros(t)));
+                        }
+
+                        if (colorSub > 0) {
+                            mPubColorMapImg.publish(imageToROSmsg(
+                                                        cv_colorMap, sensor_msgs::image_encodings::TYPE_8UC4,
+                                                        mapFrameId, sl_tools::slTime2Ros(t)));
+                        }
+
+                        if (travSub > 0) {
+                            mPubTravMapImg.publish(imageToROSmsg(
+                                                       cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,
+                                                       mapFrameId, sl_tools::slTime2Ros(t)));
+                        }
+                    }
+                }
             }
         }
     }
@@ -1087,8 +1161,7 @@ namespace zed_wrapper {
             return;
         }
 
-        ros::Time t =
-            sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
+        ros::Time t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
         sl::IMUData imu_data;
         zed.getIMUData(imu_data, sl::TIME_REFERENCE_CURRENT);
 
@@ -1240,7 +1313,7 @@ namespace zed_wrapper {
         confMapZEDMat;
 
         // Main loop
-        while (nhNs.ok()) {
+        while (mNhNs.ok()) {
             // Check for subscribers
             int rgbSubnumber = pubRgb.getNumSubscribers();
             int rgbRawSubnumber = pubRawRgb.getNumSubscribers();
@@ -1331,7 +1404,7 @@ namespace zed_wrapper {
 
                         while (err != sl::SUCCESS) {
                             // Ctrl+C check
-                            if (!nhNs.ok()) {
+                            if (!mNhNs.ok()) {
                                 zed.close();
                                 return;
                             }

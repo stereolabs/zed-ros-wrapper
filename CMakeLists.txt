@@ -58,6 +58,10 @@ find_package(catkin COMPONENTS
   nodelet
   tf2_geometry_msgs
   message_generation
+  grid_map_core
+  grid_map_msgs
+  grid_map_cv
+  grid_map_ros
 )
 
 checkPackage("image_transport" "")
@@ -97,6 +101,10 @@ catkin_package(
     tf2_geometry_msgs
     pcl_conversions    
     message_runtime
+    grid_map_core
+    grid_map_msgs
+    grid_map_cv
+    grid_map_ros
 )
 
 ###############################################################################

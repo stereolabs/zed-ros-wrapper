@@ -236,9 +236,9 @@ namespace zed_wrapper {
         int verSubMinor;
 
         // ROS
-        ros::NodeHandle nh;
-        ros::NodeHandle nhNs;
-        boost::shared_ptr<boost::thread> devicePollThread;
+        ros::NodeHandle mNh;
+        ros::NodeHandle mNhNs;
+        boost::shared_ptr<boost::thread> mDevicePollThread;
 
         // Publishers
         image_transport::Publisher pubRgb;
@@ -263,6 +263,14 @@ namespace zed_wrapper {
         ros::Publisher pubOdom;
         ros::Publisher pubImu;
         ros::Publisher pubImuRaw;
+        //        ros::Publisher mPubMapMetadata;
+        //        ros::Publisher mPubCostMap;
+        ros::Publisher mPubGridMap;
+        ros::Publisher mPubHeightMapImg;
+        ros::Publisher mPubColorMapImg;
+        ros::Publisher mPubTravMapImg;
+
+        // Timers
         ros::Timer pubImuTimer;
         ros::Timer mTerrainTimer;
 
@@ -334,6 +342,7 @@ namespace zed_wrapper {
         bool mMappingReady;
         bool mTerrainMap;
         double mTerrainPubRate;
+        float mTerrainMapRes;
 
         // IMU time
         ros::Time imuTime;
