@@ -39,6 +39,7 @@
 
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_cv/GridMapCvConverter.hpp>
+#include <cv_bridge/cv_bridge.h>
 
 // >>>>> Backward compatibility
 #define COORDINATE_SYSTEM_IMAGE                     static_cast<sl::COORDINATE_SYSTEM>(0)
@@ -1083,9 +1084,6 @@ namespace zed_wrapper {
             start_mapping();
         }
 
-        // Request Terrain calculation
-        zed.requestTerrainAsync();
-
         if (zed.getTerrainRequestStatusAsync() == sl::SUCCESS) {
             int gridSub = mPubGridMap.getNumSubscribers();
             int heightSub = mPubHeightMapImg.getNumSubscribers();
@@ -1099,6 +1097,9 @@ namespace zed_wrapper {
                 cv::Mat cv_heightMap, cv_colorMap, cv_traversMap;
 
                 if (zed.retrieveTerrainAsync(terrain) == sl::SUCCESS) {
+                    // Request New Terrain calculation while elaborating data
+                    zed.requestTerrainAsync();
+                    // Start Data Conversion
                     grid_map::Time t = zed.getTimestamp(sl::TIME_REFERENCE_IMAGE); // TODO use terrain.getReferenceTS() ???
                     NODELET_DEBUG("Terrain available");
                     terrain.generateTerrainMap(sl_heightMap, sl::MAT_TYPE_32F_C1, sl::LayerName::ELEVATION);
@@ -1145,12 +1146,15 @@ namespace zed_wrapper {
 
                         if (travSub > 0) {
                             mPubTravMapImg.publish(imageToROSmsg(
-                                                       cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,/*sensor_msgs::image_encodings::TYPE_8UC1,*/
+                                                       cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,
                                                        mapFrameId, sl_tools::slTime2Ros(t)));
                         }
                     }
                 }
             }
+        } else {
+            // Request Terrain calculation
+            zed.requestTerrainAsync(); // if an elaboration is in progress the request is ignored
         }
     }
 

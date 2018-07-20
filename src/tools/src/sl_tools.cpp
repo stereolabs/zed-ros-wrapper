@@ -77,6 +77,22 @@ namespace sl_tools {
             cvType = CV_32FC4;
             break;
 
+        case sl::MAT_TYPE_16U_C1:
+            cvType = CV_16UC1;
+            break;
+
+        case sl::MAT_TYPE_16U_C2:
+            cvType = CV_16UC2;
+            break;
+
+        case sl::MAT_TYPE_16U_C3:
+            cvType = CV_16UC3;
+            break;
+
+        case sl::MAT_TYPE_16U_C4:
+            cvType = CV_16UC4;
+            break;
+
         case sl::MAT_TYPE_8U_C1:
             cvType = CV_8UC1;
             break;
