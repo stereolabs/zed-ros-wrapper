@@ -59,7 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Virtual laser scan as nodelet -->
     <!-- "$ sudo apt install ros-kinetic-depthimage-to-laserscan" -->
     <group if="$(arg virtual_laser_scan)">
-        <node pkg="nodelet" type="nodelet" name="depthimage_to_laserscan" args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet nodelet_manager">
+        <node pkg="nodelet" type="nodelet" name="depthimage_to_laserscan" args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet zed_nodelet_manager">
             <param name="scan_height" value="10"/>
             <param name="output_frame_id" value="$(arg left_camera_frame)"/>
             <param name="range_min" value="0.45"/>
@@ -68,7 +68,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </group>
 
     <!-- ZED Nodelet -->
-    <node pkg="nodelet" type="nodelet" name="ZED_nodelet" args="load zed_wrapper/ZEDWrapperNodelet nodelet_manager" output="screen">
+    <node pkg="nodelet" type="nodelet" name="ZED_nodelet" args="load zed_wrapper/ZEDWrapperNodelet zed_nodelet_manager" output="screen">
 
         <param name="camera_model"          value="$(arg camera_model)" />
 

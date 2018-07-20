@@ -1087,7 +1087,6 @@ namespace zed_wrapper {
         zed.requestTerrainAsync();
 
         if (zed.getTerrainRequestStatusAsync() == sl::SUCCESS) {
-            grid_map::Time t = zed.getTimestamp(sl::TIME_REFERENCE_IMAGE);
             int gridSub = mPubGridMap.getNumSubscribers();
             int heightSub = mPubHeightMapImg.getNumSubscribers();
             int colorSub = mPubColorMapImg.getNumSubscribers();
@@ -1100,10 +1099,12 @@ namespace zed_wrapper {
                 cv::Mat cv_heightMap, cv_colorMap, cv_traversMap;
 
                 if (zed.retrieveTerrainAsync(terrain) == sl::SUCCESS) {
+                    grid_map::Time t = zed.getTimestamp(sl::TIME_REFERENCE_IMAGE); // TODO use terrain.getReferenceTS() ???
                     NODELET_DEBUG("Terrain available");
                     terrain.generateTerrainMap(sl_heightMap, sl::MAT_TYPE_32F_C1, sl::LayerName::ELEVATION);
                     terrain.generateTerrainMap(sl_colorMap, sl::MAT_TYPE_8U_C4, sl::LayerName::COLOR);
                     terrain.generateTerrainMap(sl_traversMap, sl::MAT_TYPE_16U_C1, sl::LayerName::TRAVERSABILITY_COST);
+                    //terrain.generateTerrainMap(sl_traversMap, sl::MAT_TYPE_8U_C1, sl::LayerName::TRAVERSABILITY_COST);
 
                     if (sl_heightMap.getResolution().area() > 0 &&
                         sl_colorMap.getResolution().area() > 0 &&
@@ -1144,7 +1145,7 @@ namespace zed_wrapper {
 
                         if (travSub > 0) {
                             mPubTravMapImg.publish(imageToROSmsg(
-                                                       cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,
+                                                       cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,/*sensor_msgs::image_encodings::TYPE_8UC1,*/
                                                        mapFrameId, sl_tools::slTime2Ros(t)));
                         }
                     }
@@ -1626,7 +1627,7 @@ namespace zed_wrapper {
                     sl::Pose zed_pose; // Sensor to Map transform
                     sl::TRACKING_STATE status = zed.getPosition(zed_pose, sl::REFERENCE_FRAME_WORLD);
 
-                    if (status == sl::TRACKING_STATE_OK) { // TODO Verify if we should add also TRACKING_STATE_SEARCHING
+                    if (status == sl::TRACKING_STATE_OK || status == sl::TRACKING_STATE_SEARCHING) {
                         // Transform ZED pose in TF2 Transformation
                         geometry_msgs::Transform sens2mapTransf;
                         sl::Translation translation = zed_pose.getTranslation();

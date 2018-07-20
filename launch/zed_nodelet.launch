@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      RESOLUTION_VGA    -> 672*376,   available framerates: 15, 30, 60, 100 fps. -->
 
     <group ns="zed">
-        <node pkg="nodelet" type="nodelet" name="nodelet_manager"  args="manager" output="screen" />
+        <node pkg="nodelet" type="nodelet" name="zed_nodelet_manager"  args="manager" output="screen" />
         
         <include file="$(find zed_wrapper)/launch/zed_camera_nodelet.launch">
             <arg name="pose_frame"          value="$(arg pose_frame)" />
