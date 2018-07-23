@@ -29,13 +29,16 @@
 
 #include <sl/Camera.hpp>
 
+#include <ros/ros.h>
+#include <nodelet/nodelet.h>
 #include <dynamic_reconfigure/server.h>
 #include <image_transport/image_transport.h>
-#include <nodelet/nodelet.h>
-#include <ros/ros.h>
+
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
+
+#include <nav_msgs/OccupancyGrid.h>
 
 #include <zed_wrapper/ZedConfig.h>
 #include <zed_wrapper/reset_odometry.h>
@@ -146,7 +149,7 @@ namespace zed_wrapper {
          * \param width : the width of the point cloud
          * \param height : the height of the point cloud
          */
-        void publishPointCloud(int width, int height);
+        void publishPointCloud(uint32_t width, uint32_t height);
 
         /* \brief Publish the informations of a camera with a ros Publisher
          * \param cam_info_msg : the information message to publish
@@ -190,6 +193,16 @@ namespace zed_wrapper {
          * \param e : the ros::TimerEvent binded to the callback
          */
         void terrainCallback(const ros::TimerEvent& e);
+
+        /* \brief Initialize the ROS Map messages
+         * \param map_size : size of the map in meters
+         */
+        void initMapMsgs(double map_size_m);
+
+        /* \brief Process a terrain chunk and updates the relative
+         *        Height and Traversability maps
+         */
+        void chunk2maps(sl::TerrainChunk& chunk);
 
         /* \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
@@ -263,8 +276,8 @@ namespace zed_wrapper {
         ros::Publisher pubOdom;
         ros::Publisher pubImu;
         ros::Publisher pubImuRaw;
-        //        ros::Publisher mPubMapMetadata;
-        //        ros::Publisher mPubCostMap;
+        ros::Publisher mPubHeightMap;
+        ros::Publisher mPubCostMap;
         ros::Publisher mPubGridMap;
         ros::Publisher mPubHeightMapImg;
         ros::Publisher mPubColorMapImg;
@@ -307,8 +320,8 @@ namespace zed_wrapper {
 
         std::string cloudFrameId;
 
-        std::string mapFrameId;
-        std::string odometryFrameId;
+        std::string mMapFrameId;
+        std::string mOdometryFrameId;
         std::string baseFrameId;
         std::string rightCamFrameId;
         std::string rightCamOptFrameId;
@@ -337,12 +350,15 @@ namespace zed_wrapper {
         bool mTrackingActivated;
         bool mTrackingReady;
 
-
         // Terrain Mapping
         bool mMappingReady;
         bool mTerrainMap;
+        bool mMapsValid;
         double mTerrainPubRate;
-        float mTerrainMapRes;
+        double mTerrainMapRes;
+        double mMapMaxHeight;
+        nav_msgs::OccupancyGrid mHeightMapMsg;
+        nav_msgs::OccupancyGrid mCostMapMsg;
 
         // IMU time
         ros::Time imuTime;
@@ -367,11 +383,11 @@ namespace zed_wrapper {
         sl::MODEL realCamModel; // Camera model requested to SDK
 
         // Dynamic Parameters
-        double mMatResizeFactor;
         int mConfidence;
-        float mMaxDepth;
         int mExposure;
         int mGain;
+        double mMatResizeFactor;
+        double mMaxDepth;
         bool mAutoExposure;
 
         // flags
@@ -382,10 +398,10 @@ namespace zed_wrapper {
         // http://www.ros.org/reps/rep-0118.html
 
         // Frame and Mat
-        int camWidth;
-        int camHeight;
-        int matWidth;
-        int matHeight;
+        int mCamWidth;
+        int mCamHeight;
+        int mMatWidth;
+        int mMatHeight;
         cv::Mat leftImRGB;
         cv::Mat rightImRGB;
         cv::Mat confImRGB;
@@ -403,7 +419,7 @@ namespace zed_wrapper {
         boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> mDynRecServer;
 
         // Coordinate Changing indices and signs
-        unsigned int mIdxX, mIdxY, mIdxZ;
+        int mIdxX, mIdxY, mIdxZ;
         int mSignX, mSignY, mSignZ;
 
     }; // class ZEDROSWrapperNodelet

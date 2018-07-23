@@ -34,9 +34,6 @@
 #include <stereo_msgs/DisparityImage.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
-#include <nav_msgs/MapMetaData.h>
-#include <nav_msgs/OccupancyGrid.h>
-
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_cv/GridMapCvConverter.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -77,12 +74,12 @@ namespace zed_wrapper {
         odometryDb = "";
         imuPubRate = 100.0;
         initialTrackPose.resize(6);
-        mTerrainMap = true; // TODO set to false
+        mTerrainMap = false;
         mTrackingReady = false;
         mMappingReady = false;
         mTerrainPubRate = 2.0;
 
-        for (int i = 0; i < 6; i++) {
+        for (size_t i = 0; i < 6; i++) {
             initialTrackPose[i] = 0.0f;
         }
 
@@ -91,8 +88,8 @@ namespace zed_wrapper {
         mNh = getMTNodeHandle();
         mNhNs = getMTPrivateNodeHandle();
         // Set  default coordinate frames
-        mNhNs.param<std::string>("pose_frame", mapFrameId, "pose_frame");
-        mNhNs.param<std::string>("odometry_frame", odometryFrameId, "odometry_frame");
+        mNhNs.param<std::string>("pose_frame", mMapFrameId, "pose_frame");
+        mNhNs.param<std::string>("odometry_frame", mOdometryFrameId, "odometry_frame");
         mNhNs.param<std::string>("base_frame", baseFrameId, "base_frame");
         mNhNs.param<std::string>("imu_frame", imuFrameId, "imu_link");
         mNhNs.param<std::string>("left_camera_frame", leftCamFrameId,
@@ -105,6 +102,7 @@ namespace zed_wrapper {
                                  "right_camera_optical_frame");
         depthFrameId = leftCamFrameId;
         depthOptFrameId = leftCamOptFrameId;
+
         // Note: Depth image frame id must match color image frame id
         cloudFrameId = depthOptFrameId;
         rgbFrameId = depthFrameId;
@@ -113,6 +111,7 @@ namespace zed_wrapper {
         disparityOptFrameId = depthOptFrameId;
         confidenceFrameId = depthFrameId;
         confidenceOptFrameId = depthOptFrameId;
+
         // Get parameters from launch file
         mNhNs.getParam("resolution", resolution);
         mNhNs.getParam("frame_rate", frameRate);
@@ -129,7 +128,7 @@ namespace zed_wrapper {
         mNhNs.getParam("serial_number", tmp_sn);
 
         if (tmp_sn > 0) {
-            mSerialNumber = tmp_sn;
+            mSerialNumber = static_cast<int>(tmp_sn);
         }
 
         mNhNs.getParam("camera_model", userCamModel);
@@ -141,8 +140,8 @@ namespace zed_wrapper {
         }
 
         // Print order frames
-        NODELET_INFO_STREAM("pose_frame \t\t   -> " << mapFrameId);
-        NODELET_INFO_STREAM("odometry_frame \t\t   -> " << odometryFrameId);
+        NODELET_INFO_STREAM("pose_frame \t\t   -> " << mMapFrameId);
+        NODELET_INFO_STREAM("odometry_frame \t\t   -> " << mOdometryFrameId);
         NODELET_INFO_STREAM("base_frame \t\t   -> " << baseFrameId);
         NODELET_INFO_STREAM("imu_link \t\t   -> " << imuFrameId);
         NODELET_INFO_STREAM("left_camera_frame \t   -> " << leftCamFrameId);
@@ -154,7 +153,7 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("disparity_frame \t   -> " << disparityFrameId);
         NODELET_INFO_STREAM("disparity_optical_frame    -> " << disparityOptFrameId);
         // Status of map TF
-        NODELET_INFO_STREAM("Publish " << mapFrameId << " ["
+        NODELET_INFO_STREAM("Publish " << mMapFrameId << " ["
                             << (publishTf ? "TRUE" : "FALSE") << "]");
         // Status of odometry TF
         // NODELET_INFO_STREAM("Publish " << odometry_frame_id << " [" << (publish_tf
@@ -192,8 +191,8 @@ namespace zed_wrapper {
         string odometry_topic = "odom";
         string imu_topic = "imu/data";
         string imu_topic_raw = "imu/data_raw";
-        //        string map_metadata_topic = "map/map_metadata";
-        //        string cost_map_topic = "map/map_costmap";
+        string height_map_topic = "map/map_heightmap";
+        string cost_map_topic = "map/map_costmap";
         string gridmap_topic = "map/gridmap";
         string height_map_image_topic = "map/height_map_image";
         string color_map_image_topic = "map/color_map_image";
@@ -222,21 +221,18 @@ namespace zed_wrapper {
         mNhNs.getParam("imu_topic_raw", imu_topic_raw);
         mNhNs.getParam("imu_pub_rate", imuPubRate);
         // Create camera info
-        sensor_msgs::CameraInfoPtr rgb_cam_info_ms_g(new sensor_msgs::CameraInfo());
+        sensor_msgs::CameraInfoPtr rgb_cam_info_msg_(new sensor_msgs::CameraInfo());
         sensor_msgs::CameraInfoPtr left_cam_info_msg_(new sensor_msgs::CameraInfo());
         sensor_msgs::CameraInfoPtr right_cam_info_msg_(new sensor_msgs::CameraInfo());
-        sensor_msgs::CameraInfoPtr rgb_cam_info_raw_msg_(
-            new sensor_msgs::CameraInfo());
-        sensor_msgs::CameraInfoPtr left_cam_info_raw_ms_g(
-            new sensor_msgs::CameraInfo());
-        sensor_msgs::CameraInfoPtr right_cam_info_raw_msg_(
-            new sensor_msgs::CameraInfo());
+        sensor_msgs::CameraInfoPtr rgb_cam_info_raw_msg_(new sensor_msgs::CameraInfo());
+        sensor_msgs::CameraInfoPtr left_cam_info_raw_msg_(new sensor_msgs::CameraInfo());
+        sensor_msgs::CameraInfoPtr right_cam_info_raw_msg_(new sensor_msgs::CameraInfo());
         sensor_msgs::CameraInfoPtr depth_cam_info_msg_(new sensor_msgs::CameraInfo());
-        mRgbCamInfoMsg = rgb_cam_info_ms_g;
+        mRgbCamInfoMsg = rgb_cam_info_msg_;
         mLeftCamInfoMsg = left_cam_info_msg_;
         mRightCamInfoMsg = right_cam_info_msg_;
         mRgbCamInfoRawMsg = rgb_cam_info_raw_msg_;
-        mLeftCamInfoRawMsg = left_cam_info_raw_ms_g;
+        mLeftCamInfoRawMsg = left_cam_info_raw_msg_;
         mRightCamInfoRawMsg = right_cam_info_raw_msg_;
         mDepthCamInfoMsg = depth_cam_info_msg_;
         // SVO
@@ -442,10 +438,10 @@ namespace zed_wrapper {
         pubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
         // Terrain Mapping
-        //        mPubMapMetadata = mNh.advertise<nav_msgs::MapMetaData>(map_metadata_topic, 1); // map metadata
-        //        NODELET_INFO_STREAM("Advertised on topic " << map_metadata_topic);
-        //        mPubCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(cost_map_topic, 1); // cost map
-        //        NODELET_INFO_STREAM("Advertised on topic " << cost_map_topic);
+        mPubHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(height_map_topic, 1); // map metadata
+        NODELET_INFO_STREAM("Advertised on topic " << height_map_topic);
+        mPubCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(cost_map_topic, 1); // cost map
+        NODELET_INFO_STREAM("Advertised on topic " << cost_map_topic);
         mPubGridMap = mNh.advertise<grid_map_msgs::GridMap>(gridmap_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << gridmap_topic);
         mPubHeightMapImg = mNh.advertise<sensor_msgs::Image>(height_map_image_topic, 1);
@@ -599,12 +595,12 @@ namespace zed_wrapper {
         sensor_msgs::Image& imgMessage = *ptr;
         imgMessage.header.stamp = t;
         imgMessage.header.frame_id = frameId;
-        imgMessage.height = img.rows;
-        imgMessage.width = img.cols;
+        imgMessage.height = static_cast<unsigned int>(img.rows);
+        imgMessage.width = static_cast<unsigned int>(img.cols);
         imgMessage.encoding = encodingType;
         int num = 1; // for endianness detection
         imgMessage.is_bigendian = !(*(char*)&num == 1);
-        imgMessage.step = img.step;
+        imgMessage.step = static_cast<unsigned int>(img.step);
         size_t size = imgMessage.step * img.rows;
         imgMessage.data.resize(size);
 
@@ -613,8 +609,8 @@ namespace zed_wrapper {
         } else {
             uchar* opencvData = img.data;
             uchar* rosData = (uchar*)(&imgMessage.data[0]);
-            #pragma omp parallel for
 
+            #pragma omp parallel for
             for (unsigned int i = 0; i < img.rows; i++) {
                 memcpy(rosData, opencvData, imgMessage.step);
                 rosData += imgMessage.step;
@@ -760,41 +756,48 @@ namespace zed_wrapper {
         }
 
         mNhNs.getParam("terrain_pub_rate", mTerrainPubRate);
+
         sl::TerrainMappingParameters terrainParams;
-        float agent_step = 0.05; // TODO Expose parameter to launch file
-        float agent_slope = 20/*degrees*/; // TODO Expose parameter to launch file
-        float agent_radius = 0.18; // TODO Expose parameter to launch file
-        float agent_height = 0.8; // TODO Expose parameter to launch file
-        float agent_roughness = 0.05; // TODO Expose parameter to launch file
+        float agent_step = 0.05f; // TODO Expose parameter to launch file
+        float agent_slope = 20.f/*degrees*/; // TODO Expose parameter to launch file
+        float agent_radius = 0.18f; // TODO Expose parameter to launch file
+        float agent_height = 0.8f; // TODO Expose parameter to launch file
+        float agent_roughness = 0.05f; // TODO Expose parameter to launch file
         terrainParams.setAgentParameters(sl::UNIT_METER, agent_step, agent_slope, agent_radius,
                                          agent_height, agent_roughness);
-        float height_thresh = .5f; // TODO Expose parameter to launch file
+        mMapMaxHeight = .5f; // TODO Expose parameter to launch file
         float height_resol = .025f; // TODO Expose parameter to launch file
+
         sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution = sl::TerrainMappingParameters::GRID_RESOLUTION::MEDIUM; // TODO Expose parameter to launch file
         mTerrainMapRes = terrainParams.setGridResolution(grid_resolution);
-        NODELET_INFO_STREAM("Grid Resolution " << mTerrainMapRes << "M");
-        NODELET_INFO_STREAM("Cutting height " << terrainParams.setHeightThreshold(sl::UNIT_METER, height_thresh) << "m");
+
+        NODELET_INFO_STREAM("Grid Resolution " << mTerrainMapRes << "m");
+        NODELET_INFO_STREAM("Cutting height " << terrainParams.setHeightThreshold(sl::UNIT_METER, mMapMaxHeight) << "m");
         NODELET_INFO_STREAM("Z Resolution " << terrainParams.setZResolution(sl::UNIT_METER, height_resol) << "m");
+
         terrainParams.enable_traversability_cost_computation = true; // TODO Expose parameter to launch file
         terrainParams.enable_dynamic_extraction = true; // TODO Expose parameter to launch file
         terrainParams.enable_color_extraction = true; // TODO Expose parameter to launch file
 
-        if (zed.enableTerrainMapping(terrainParams) == sl::SUCCESS) {
-            // Start Terrain Mapping Timer
-            mTerrainTimer = mNhNs.createTimer(ros::Duration(1.0 / mTerrainPubRate),
-                                              &ZEDWrapperNodelet::terrainCallback, this);
-            NODELET_INFO_STREAM("Terrain Mapping: ENABLED @ " << mTerrainPubRate << "Hz");
-            mMappingReady = true;
-        } else {
+        if (zed.enableTerrainMapping(terrainParams) != sl::SUCCESS) {
             NODELET_WARN_STREAM("Terrain Mapping: NOT ENABLED");
+            mMappingReady = false;
+            return;
         }
+
+        initMapMsgs(200);
+        // Start Terrain Mapping Timer
+        mMappingReady = true;
+        mTerrainTimer = mNhNs.createTimer(ros::Duration(1.0 / mTerrainPubRate),
+                                          &ZEDWrapperNodelet::terrainCallback, this);
+        NODELET_INFO_STREAM("Terrain Mapping: ENABLED @ " << mTerrainPubRate << "Hz");
     }
 
     void ZEDWrapperNodelet::publishOdom(tf2::Transform odom_base_transform,
                                         ros::Time t) {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
-        odom.header.frame_id = odometryFrameId; // odom_frame
+        odom.header.frame_id = mOdometryFrameId; // odom_frame
         odom.child_frame_id = baseFrameId;      // base_frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2 = tf2::toMsg(odom_base_transform);
@@ -814,7 +817,7 @@ namespace zed_wrapper {
             ros::Time t) {
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = t;
-        transformStamped.header.frame_id = odometryFrameId;
+        transformStamped.header.frame_id = mOdometryFrameId;
         transformStamped.child_frame_id = baseFrameId;
         // conversion from Tranform to message
         transformStamped.transform = tf2::toMsg(baseTransform);
@@ -826,7 +829,7 @@ namespace zed_wrapper {
                                         ros::Time t) {
         geometry_msgs::PoseStamped pose;
         pose.header.stamp = t;
-        pose.header.frame_id = mapFrameId; // map_frame
+        pose.header.frame_id = mMapFrameId; // map_frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2 = tf2::toMsg(poseBaseTransform);
         // Add all value in Pose message
@@ -845,8 +848,8 @@ namespace zed_wrapper {
             ros::Time t) {
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = t;
-        transformStamped.header.frame_id = mapFrameId;
-        transformStamped.child_frame_id = odometryFrameId;
+        transformStamped.header.frame_id = mMapFrameId;
+        transformStamped.child_frame_id = mOdometryFrameId;
         // conversion from Tranform to message
         transformStamped.transform = tf2::toMsg(baseTransform);
         // Publish transformation
@@ -887,7 +890,7 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::publishDisparity(cv::Mat disparity, ros::Time t) {
         sl::CameraInformation zedParam =
-            zed.getCameraInformation(sl::Resolution(matWidth, matHeight));
+            zed.getCameraInformation(sl::Resolution(mMatWidth, mMatHeight));
         sensor_msgs::ImagePtr disparity_image = imageToROSmsg(
                 disparity, sensor_msgs::image_encodings::TYPE_32FC1, disparityFrameId, t);
         stereo_msgs::DisparityImage msg;
@@ -900,16 +903,16 @@ namespace zed_wrapper {
         pubDisparity.publish(msg);
     }
 
-    void ZEDWrapperNodelet::publishPointCloud(int width, int height) {
+    void ZEDWrapperNodelet::publishPointCloud(uint32_t width, uint32_t height) {
         pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
         point_cloud.width = width;
         point_cloud.height = height;
-        int size = width * height;
+        uint32_t size = width * height;
         point_cloud.points.resize(size);
         sl::Vector4<float>* cpu_cloud = mCloud.getPtr<sl::float4>();
-        #pragma omp parallel for
 
-        for (int i = 0; i < size; i++) {
+        #pragma omp parallel for
+        for (size_t i = 0; i < size; i++) {
             // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
             point_cloud.points[i].x = mSignX * cpu_cloud[i][mIdxX];
             point_cloud.points[i].y = mSignY * cpu_cloud[i][mIdxY];
@@ -932,7 +935,7 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg,
                                            ros::Publisher pubCamInfo, ros::Time t) {
-        static int seq = 0;
+        static unsigned int seq = 0;
         camInfoMsg->header.stamp = t;
         camInfoMsg->header.seq = seq;
         pubCamInfo.publish(camInfoMsg);
@@ -946,10 +949,10 @@ namespace zed_wrapper {
         sl::CalibrationParameters zedParam;
 
         if (rawParam)
-            zedParam = zed.getCameraInformation(sl::Resolution(matWidth, matHeight))
+            zedParam = zed.getCameraInformation(sl::Resolution(mMatWidth, mMatHeight))
                        .calibration_parameters_raw;
         else
-            zedParam = zed.getCameraInformation(sl::Resolution(matWidth, matHeight))
+            zedParam = zed.getCameraInformation(sl::Resolution(mMatWidth, mMatHeight))
                        .calibration_parameters;
 
         float baseline = zedParam.T[0];
@@ -971,20 +974,20 @@ namespace zed_wrapper {
         right_cam_info_msg->D[4] = zedParam.right_cam.disto[3]; // p2
         left_cam_info_msg->K.fill(0.0);
         right_cam_info_msg->K.fill(0.0);
-        left_cam_info_msg->K[0] = zedParam.left_cam.fx;
-        left_cam_info_msg->K[2] = zedParam.left_cam.cx;
-        left_cam_info_msg->K[4] = zedParam.left_cam.fy;
-        left_cam_info_msg->K[5] = zedParam.left_cam.cy;
+        left_cam_info_msg->K[0] = static_cast<double>(zedParam.left_cam.fx);
+        left_cam_info_msg->K[2] = static_cast<double>(zedParam.left_cam.cx);
+        left_cam_info_msg->K[4] = static_cast<double>(zedParam.left_cam.fy);
+        left_cam_info_msg->K[5] = static_cast<double>(zedParam.left_cam.cy);
         left_cam_info_msg->K[8] = 1.0;
-        right_cam_info_msg->K[0] = zedParam.right_cam.fx;
-        right_cam_info_msg->K[2] = zedParam.right_cam.cx;
-        right_cam_info_msg->K[4] = zedParam.right_cam.fy;
-        right_cam_info_msg->K[5] = zedParam.right_cam.cy;
+        right_cam_info_msg->K[0] = static_cast<double>(zedParam.right_cam.fx);
+        right_cam_info_msg->K[2] = static_cast<double>(zedParam.right_cam.cx);
+        right_cam_info_msg->K[4] = static_cast<double>(zedParam.right_cam.fy);
+        right_cam_info_msg->K[5] = static_cast<double>(zedParam.right_cam.cy);
         right_cam_info_msg->K[8] = 1.0;
         left_cam_info_msg->R.fill(0.0);
         right_cam_info_msg->R.fill(0.0);
 
-        for (int i = 0; i < 3; i++) {
+        for (size_t i = 0; i < 3; i++) {
             // identity
             right_cam_info_msg->R[i + i * 3] = 1;
             left_cam_info_msg->R[i + i * 3] = 1;
@@ -992,29 +995,29 @@ namespace zed_wrapper {
 
         if (rawParam) {
             cv::Mat R_ = sl_tools::convertRodrigues(zedParam.R);
-            float* p = (float*)R_.data;
+            float* p = (float*)(R_.data);
 
-            for (int i = 0; i < 9; i++) {
-                right_cam_info_msg->R[i] = p[i];
+            for (size_t i = 0; i < 9; i++) {
+                right_cam_info_msg->R[i] = static_cast<double>(p[i]);
             }
         }
 
         left_cam_info_msg->P.fill(0.0);
         right_cam_info_msg->P.fill(0.0);
-        left_cam_info_msg->P[0] = zedParam.left_cam.fx;
-        left_cam_info_msg->P[2] = zedParam.left_cam.cx;
-        left_cam_info_msg->P[5] = zedParam.left_cam.fy;
-        left_cam_info_msg->P[6] = zedParam.left_cam.cy;
+        left_cam_info_msg->P[0] = static_cast<double>(zedParam.left_cam.fx);
+        left_cam_info_msg->P[2] = static_cast<double>(zedParam.left_cam.cx);
+        left_cam_info_msg->P[5] = static_cast<double>(zedParam.left_cam.fy);
+        left_cam_info_msg->P[6] = static_cast<double>(zedParam.left_cam.cy);
         left_cam_info_msg->P[10] = 1.0;
         // http://docs.ros.org/api/sensor_msgs/html/msg/CameraInfo.html
-        right_cam_info_msg->P[3] = (-1 * zedParam.left_cam.fx * baseline);
-        right_cam_info_msg->P[0] = zedParam.right_cam.fx;
-        right_cam_info_msg->P[2] = zedParam.right_cam.cx;
-        right_cam_info_msg->P[5] = zedParam.right_cam.fy;
-        right_cam_info_msg->P[6] = zedParam.right_cam.cy;
+        right_cam_info_msg->P[3] = static_cast<double>(-1 * zedParam.left_cam.fx * baseline);
+        right_cam_info_msg->P[0] = static_cast<double>(zedParam.right_cam.fx);
+        right_cam_info_msg->P[2] = static_cast<double>(zedParam.right_cam.cx);
+        right_cam_info_msg->P[5] = static_cast<double>(zedParam.right_cam.fy);
+        right_cam_info_msg->P[6] = static_cast<double>(zedParam.right_cam.cy);
         right_cam_info_msg->P[10] = 1.0;
-        left_cam_info_msg->width = right_cam_info_msg->width = matWidth;
-        left_cam_info_msg->height = right_cam_info_msg->height = matHeight;
+        left_cam_info_msg->width = right_cam_info_msg->width = static_cast<uint32_t>(mMatWidth);
+        left_cam_info_msg->height = right_cam_info_msg->height = static_cast<uint32_t>(mMatHeight);
         left_cam_info_msg->header.frame_id = leftFrameId;
         right_cam_info_msg->header.frame_id = rightFrameId;
     }
@@ -1052,9 +1055,9 @@ namespace zed_wrapper {
             mMatResizeFactor = config.mat_resize_factor;
             NODELET_INFO("Reconfigure mat_resize_factor: %g", mMatResizeFactor);
             mDataMutex.lock();
-            matWidth = static_cast<int>(camWidth * mMatResizeFactor);
-            matHeight = static_cast<int>(camHeight * mMatResizeFactor);
-            NODELET_DEBUG_STREAM("Data Mat size : " << matWidth << "x" << matHeight);
+            mMatWidth = static_cast<size_t>(mCamWidth * mMatResizeFactor);
+            mMatHeight = static_cast<size_t>(mCamHeight * mMatResizeFactor);
+            NODELET_DEBUG_STREAM("Data Mat size : " << mMatWidth << "x" << mMatHeight);
             // Update Camera Info
             fillCamInfo(zed, mLeftCamInfoMsg, mRightCamInfoMsg, leftCamOptFrameId,
                         rightCamOptFrameId);
@@ -1085,11 +1088,11 @@ namespace zed_wrapper {
         }
 
         if (zed.getTerrainRequestStatusAsync() == sl::SUCCESS) {
-            int gridSub = mPubGridMap.getNumSubscribers();
-            int heightSub = mPubHeightMapImg.getNumSubscribers();
-            int colorSub = mPubColorMapImg.getNumSubscribers();
-            int travSub = mPubTravMapImg.getNumSubscribers();
-            int run = gridSub + heightSub + colorSub + travSub;
+            uint32_t gridSub = mPubGridMap.getNumSubscribers();
+            uint32_t heightSub = mPubHeightMapImg.getNumSubscribers();
+            uint32_t colorSub = mPubColorMapImg.getNumSubscribers();
+            uint32_t travSub = mPubTravMapImg.getNumSubscribers();
+            uint32_t run = gridSub + heightSub + colorSub + travSub;
 
             if (run > 0) {
                 sl::Terrain terrain;
@@ -1097,58 +1100,87 @@ namespace zed_wrapper {
                 cv::Mat cv_heightMap, cv_colorMap, cv_traversMap;
 
                 if (zed.retrieveTerrainAsync(terrain) == sl::SUCCESS) {
+                    NODELET_DEBUG("Terrain available");
+                    sl::timeStamp t = terrain.getReferenceTS();
                     // Request New Terrain calculation while elaborating data
                     zed.requestTerrainAsync();
-                    // Start Data Conversion
-                    grid_map::Time t = zed.getTimestamp(sl::TIME_REFERENCE_IMAGE); // TODO use terrain.getReferenceTS() ???
-                    NODELET_DEBUG("Terrain available");
-                    terrain.generateTerrainMap(sl_heightMap, sl::MAT_TYPE_32F_C1, sl::LayerName::ELEVATION);
-                    terrain.generateTerrainMap(sl_colorMap, sl::MAT_TYPE_8U_C4, sl::LayerName::COLOR);
-                    terrain.generateTerrainMap(sl_traversMap, sl::MAT_TYPE_16U_C1, sl::LayerName::TRAVERSABILITY_COST);
-                    //terrain.generateTerrainMap(sl_traversMap, sl::MAT_TYPE_8U_C1, sl::LayerName::TRAVERSABILITY_COST);
 
-                    if (sl_heightMap.getResolution().area() > 0 &&
-                        sl_colorMap.getResolution().area() > 0 &&
-                        sl_traversMap.getResolution().area() > 0) {
-                        // Conversion to OpenCV format to be directly imported to GridMap
-                        cv_heightMap = sl_tools::toCVMat(sl_heightMap);
-                        cv_colorMap = sl_tools::toCVMat(sl_colorMap);
-                        cv_traversMap = sl_tools::toCVMat(sl_traversMap);
+                    // Check if actual maps are large enough for the new terrain
 
-                        if (gridSub > 0) {
-                            // GridMap creation
-                            grid_map::GridMap gridMap;
-                            grid_map::Position pos(0, 0); // TODO: initialize with the initial position of the tracking
-                            grid_map::GridMapCvConverter::initializeFromImage(cv_heightMap, mTerrainMapRes, gridMap, pos);
-                            grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(cv_heightMap, "height_map", gridMap);
-                            grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(cv_traversMap, "traversability_map", gridMap);
-                            grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 4>(cv_colorMap, "color_map", gridMap);
-                            // GridMap to ROS message
-                            grid_map_msgs::GridMap gridMapMsg;
-                            gridMap.setTimestamp(t);
-                            gridMap.setFrameId(mapFrameId);
-                            grid_map::GridMapRosConverter::toMessage(gridMap, gridMapMsg);
-                            // Publishing
-                            mPubGridMap.publish(gridMapMsg);
+
+                    // Process Updated Terrain Chuncks
+                    std::vector<sl::HashKey> chunks;
+                    if (mMapsValid) {
+                        chunks = terrain.getUpdatedChunks();
+                    } else {
+                        chunks = terrain.getSurroundingValidChunks(0.0f, 0.0f, 10000000.f);  // TODO replace with the function to retrieve all chunks
+                    }
+
+                    std::vector<sl::HashKey>::iterator it;
+
+                    #pragma omp parallel
+                    {
+                        for (it = chunks.begin(); it != chunks.end(); it++) {
+                            sl::TerrainChunk chunk = terrain.getChunk(*it);
+                            chunk2maps(chunk);
                         }
+                    }
 
-                        if (heightSub > 0) {
+                    mMapsValid = true;
+
+                    // Height Map Image
+                    if (heightSub > 0 || gridSub > 0) {
+                        terrain.generateTerrainMap(sl_heightMap, sl::MAT_TYPE_32F_C1, sl::LayerName::ELEVATION);
+
+                        if (sl_heightMap.getResolution().area() > 0) {
+                            cv_heightMap = sl_tools::toCVMat(sl_heightMap);
                             mPubHeightMapImg.publish(imageToROSmsg(
                                                          cv_heightMap, sensor_msgs::image_encodings::TYPE_32FC1,
-                                                         mapFrameId, sl_tools::slTime2Ros(t)));
+                                                         mMapFrameId, sl_tools::slTime2Ros(t)));
                         }
+                    }
 
-                        if (colorSub > 0) {
+                    // Color Map Image
+                    if (colorSub > 0 || gridSub > 0) {
+                        terrain.generateTerrainMap(sl_colorMap, sl::MAT_TYPE_8U_C4, sl::LayerName::COLOR);
+
+                        if (sl_colorMap.getResolution().area() > 0) {
+                            cv_colorMap = sl_tools::toCVMat(sl_colorMap);
                             mPubColorMapImg.publish(imageToROSmsg(
                                                         cv_colorMap, sensor_msgs::image_encodings::TYPE_8UC4,
-                                                        mapFrameId, sl_tools::slTime2Ros(t)));
+                                                        mMapFrameId, sl_tools::slTime2Ros(t)));
                         }
+                    }
 
-                        if (travSub > 0) {
+                    // Traversability Map Image
+                    if (travSub > 0 || gridSub > 0) {
+                        terrain.generateTerrainMap(sl_traversMap, sl::MAT_TYPE_16U_C1, sl::LayerName::TRAVERSABILITY_COST);
+
+                        if (sl_traversMap.getResolution().area() > 0) {
+                            cv_traversMap = sl_tools::toCVMat(sl_traversMap);
                             mPubTravMapImg.publish(imageToROSmsg(
                                                        cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,
-                                                       mapFrameId, sl_tools::slTime2Ros(t)));
+                                                       mMapFrameId, sl_tools::slTime2Ros(t)));
                         }
+                    }
+
+                    // Multilayer GridMap {https://github.com/ethz-asl/grid_map}
+                    if (gridSub > 0) {
+                        // TODO USE CHUNK TO UPDATE SUBMAPS
+                        // GridMap creation
+                        grid_map::GridMap gridMap;
+                        grid_map::Position pos(0, 0); // TODO: initialize with the initial position of the tracking
+                        grid_map::GridMapCvConverter::initializeFromImage(cv_heightMap, mTerrainMapRes, gridMap, pos);
+                        grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(cv_heightMap, "height_map", gridMap);
+                        grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(cv_traversMap, "traversability_map", gridMap);
+                        grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 4>(cv_colorMap, "color_map", gridMap);
+                        // GridMap to ROS message
+                        grid_map_msgs::GridMap gridMapMsg;
+                        gridMap.setTimestamp(t);
+                        gridMap.setFrameId(mMapFrameId);
+                        grid_map::GridMapRosConverter::toMessage(gridMap, gridMapMsg);
+                        // Publishing
+                        mPubGridMap.publish(gridMapMsg);
                     }
                 }
             }
@@ -1158,9 +1190,51 @@ namespace zed_wrapper {
         }
     }
 
+    void ZEDWrapperNodelet::initMapMsgs(double map_size_m) {
+        mMapsValid = false;
+
+        // MetaData
+        nav_msgs::MapMetaData mapInfo;
+        mapInfo.resolution = mTerrainMapRes;
+
+        uint32_t mapCellSize = static_cast<uint32_t>(map_size_m / mTerrainMapRes);
+
+        mapInfo.height = mapCellSize;
+        mapInfo.width = mapCellSize;
+        mapInfo.origin.position.x = -(mapInfo.width / 2) * mapInfo.resolution; // TODO this is valid only if the map is centered in (0,0)
+        mapInfo.origin.position.y = -(mapInfo.height / 2) * mapInfo.resolution;
+        mapInfo.origin.position.z = 0.0;
+        mapInfo.origin.orientation.x = 0.0;
+        mapInfo.origin.orientation.y = 0.0;
+        mapInfo.origin.orientation.z = 0.0;
+        mapInfo.origin.orientation.w = 1.0;
+
+        // Maps
+        mHeightMapMsg.header.frame_id = mMapFrameId;
+        mCostMapMsg.header.frame_id = mMapFrameId;
+        mHeightMapMsg.info = mapInfo;
+        mCostMapMsg.info = mapInfo;
+        mHeightMapMsg.data = std::vector<signed char>(mapInfo.height * mapInfo.width, -1);
+        mCostMapMsg.data = std::vector<signed char>(mapInfo.height * mapInfo.width, -1);
+    }
+
+    void ZEDWrapperNodelet::chunk2maps(sl::TerrainChunk& chunk) {
+        // TODO update maps using chunk info
+        sl::Dimension chunkDim = chunk.getDimension();
+        // use "mMapMaxHeight" to normalize |value| in range [0,100]
+
+        double mapWm = mHeightMapMsg.info.width * mHeightMapMsg.info.resolution;
+        double mapMinX = mHeightMapMsg.info.origin.position.x;
+        double mapMaxX = mapMinX + mapWm;
+
+        double mapHm = mHeightMapMsg.info.height * mHeightMapMsg.info.resolution;
+        double mapMinY = mHeightMapMsg.info.origin.position.y;
+        double mapMaxY = mapMinY + mapHm;
+    }
+
     void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
-        int imu_SubNumber = pubImu.getNumSubscribers();
-        int imu_RawSubNumber = pubImuRaw.getNumSubscribers();
+        uint32_t imu_SubNumber = pubImu.getNumSubscribers();
+        uint32_t imu_RawSubNumber = pubImuRaw.getNumSubscribers();
 
         if (imu_SubNumber < 1 && imu_RawSubNumber < 1) {
             return;
@@ -1253,14 +1327,14 @@ namespace zed_wrapper {
             try {
                 // Save the transformation from base to frame
                 geometry_msgs::TransformStamped b2m =
-                    tfBuffer->lookupTransform(mapFrameId, baseFrameId, ros::Time(0));
+                    tfBuffer->lookupTransform(mMapFrameId, baseFrameId, ros::Time(0));
                 // Get the TF2 transformation
                 tf2::fromMsg(b2m.transform, base_to_map);
             } catch (tf2::TransformException& ex) {
                 NODELET_WARN_THROTTLE(
                     10.0, "The tf from '%s' to '%s' does not seem to be available. "
                     "IMU TF not published!",
-                    baseFrameId.c_str(), mapFrameId.c_str());
+                    baseFrameId.c_str(), mMapFrameId.c_str());
                 NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
                 return;
             }
@@ -1292,13 +1366,13 @@ namespace zed_wrapper {
         sl::ERROR_CODE grab_status;
         mTrackingActivated = false;
         // Get the parameters of the ZED images
-        camWidth = zed.getResolution().width;
-        camHeight = zed.getResolution().height;
-        NODELET_DEBUG_STREAM("Camera Frame size : " << camWidth << "x" << camHeight);
-        matWidth = static_cast<int>(camWidth * mMatResizeFactor);
-        matHeight = static_cast<int>(camHeight * mMatResizeFactor);
-        NODELET_DEBUG_STREAM("Data Mat size : " << matWidth << "x" << matHeight);
-        cv::Size cvSize(matWidth, matWidth);
+        mCamWidth = zed.getResolution().width;
+        mCamHeight = zed.getResolution().height;
+        NODELET_DEBUG_STREAM("Camera Frame size : " << mCamWidth << "x" << mCamHeight);
+        mMatWidth = static_cast<int>(mCamWidth * mMatResizeFactor);
+        mMatHeight = static_cast<int>(mCamHeight * mMatResizeFactor);
+        NODELET_DEBUG_STREAM("Data Mat size : " << mMatWidth << "x" << mMatHeight);
+        cv::Size cvSize(mMatWidth, mMatWidth);
         leftImRGB = cv::Mat(cvSize, CV_8UC3);
         rightImRGB = cv::Mat(cvSize, CV_8UC3);
         confImRGB = cv::Mat(cvSize, CV_8UC3);
@@ -1320,21 +1394,21 @@ namespace zed_wrapper {
         // Main loop
         while (mNhNs.ok()) {
             // Check for subscribers
-            int rgbSubnumber = pubRgb.getNumSubscribers();
-            int rgbRawSubnumber = pubRawRgb.getNumSubscribers();
-            int leftSubnumber = pubLeft.getNumSubscribers();
-            int leftRawSubnumber = pubRawLeft.getNumSubscribers();
-            int rightSubnumber = pubRight.getNumSubscribers();
-            int rightRawSubnumber = pubRawRight.getNumSubscribers();
-            int depthSubnumber = pubDepth.getNumSubscribers();
-            int disparitySubnumber = pubDisparity.getNumSubscribers();
-            int cloudSubnumber = pubCloud.getNumSubscribers();
-            int poseSubnumber = pubPose.getNumSubscribers();
-            int odomSubnumber = pubOdom.getNumSubscribers();
-            int confImgSubnumber = pubConfImg.getNumSubscribers();
-            int confMapSubnumber = pubConfMap.getNumSubscribers();
-            int imuSubnumber = pubImu.getNumSubscribers();
-            int imuRawsubnumber = pubImuRaw.getNumSubscribers();
+            uint32_t rgbSubnumber = pubRgb.getNumSubscribers();
+            uint32_t rgbRawSubnumber = pubRawRgb.getNumSubscribers();
+            uint32_t leftSubnumber = pubLeft.getNumSubscribers();
+            uint32_t leftRawSubnumber = pubRawLeft.getNumSubscribers();
+            uint32_t rightSubnumber = pubRight.getNumSubscribers();
+            uint32_t rightRawSubnumber = pubRawRight.getNumSubscribers();
+            uint32_t depthSubnumber = pubDepth.getNumSubscribers();
+            uint32_t disparitySubnumber = pubDisparity.getNumSubscribers();
+            uint32_t cloudSubnumber = pubCloud.getNumSubscribers();
+            uint32_t poseSubnumber = pubPose.getNumSubscribers();
+            uint32_t odomSubnumber = pubOdom.getNumSubscribers();
+            uint32_t confImgSubnumber = pubConfImg.getNumSubscribers();
+            uint32_t confMapSubnumber = pubConfMap.getNumSubscribers();
+            uint32_t imuSubnumber = pubImu.getNumSubscribers();
+            uint32_t imuRawsubnumber = pubImuRaw.getNumSubscribers();
             bool runLoop = mTerrainMap ||
                            ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
                              leftRawSubnumber + rightSubnumber + rightRawSubnumber +
@@ -1377,10 +1451,10 @@ namespace zed_wrapper {
                         zed.setConfidenceThreshold(mConfidence);
                     }
 
-                    float actual_max_depth = zed.getDepthMaxRangeValue();
+                    double actual_max_depth = static_cast<double>(zed.getDepthMaxRangeValue());
 
                     if (actual_max_depth != mMaxDepth) {
-                        zed.setDepthMaxRangeValue(mMaxDepth);
+                        zed.setDepthMaxRangeValue(static_cast<double>(mMaxDepth));
                     }
 
                     runParams.enable_depth = true; // Ask to compute the depth
@@ -1438,7 +1512,7 @@ namespace zed_wrapper {
                     continue;
                 }
 
-                // Time update
+                // Time updatestatic_cast<double>(
                 old_t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
 
                 if (mAutoExposure) {
@@ -1468,8 +1542,8 @@ namespace zed_wrapper {
                 // Publish the left == rgb image if someone has subscribed to
                 if (leftSubnumber > 0 || rgbSubnumber > 0) {
                     // Retrieve RGBA Left image
-                    zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, matWidth,
-                                      matHeight);
+                    zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, mMatWidth,
+                                      mMatHeight);
                     cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
 
                     if (leftSubnumber > 0) {
@@ -1488,7 +1562,7 @@ namespace zed_wrapper {
                 if (leftRawSubnumber > 0 || rgbRawSubnumber > 0) {
                     // Retrieve RGBA Left image
                     zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU,
-                                      matWidth, matHeight);
+                                      mMatWidth, mMatHeight);
                     cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
 
                     if (leftRawSubnumber > 0) {
@@ -1505,8 +1579,8 @@ namespace zed_wrapper {
                 // Publish the right image if someone has subscribed to
                 if (rightSubnumber > 0) {
                     // Retrieve RGBA Right image
-                    zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU, matWidth,
-                                      matHeight);
+                    zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU,
+                                      mMatWidth, mMatHeight);
                     cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
                     publishCamInfo(mRightCamInfoMsg, pubRightCamInfo, t);
                     publishImage(rightImRGB, pubRight, rightCamOptFrameId, t);
@@ -1516,7 +1590,7 @@ namespace zed_wrapper {
                 if (rightRawSubnumber > 0) {
                     // Retrieve RGBA Right image
                     zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU,
-                                      matWidth, matHeight);
+                                      mMatWidth, mMatHeight);
                     cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
                     publishCamInfo(mRightCamInfoRawMsg, pubRightCamInfoRaw, t);
                     publishImage(rightImRGB, pubRawRight, rightCamOptFrameId, t);
@@ -1525,7 +1599,7 @@ namespace zed_wrapper {
                 // Publish the depth image if someone has subscribed to
                 if (depthSubnumber > 0 || disparitySubnumber > 0) {
                     zed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH, sl::MEM_CPU,
-                                        matWidth, matHeight);
+                                        mMatWidth, mMatHeight);
                     publishCamInfo(mDepthCamInfoMsg, pubDepthCamInfo, t);
                     publishDepth(sl_tools::toCVMat(depthZEDMat), t); // in meters
                 }
@@ -1533,7 +1607,7 @@ namespace zed_wrapper {
                 // Publish the disparity image if someone has subscribed to
                 if (disparitySubnumber > 0) {
                     zed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY, sl::MEM_CPU,
-                                        matWidth, matHeight);
+                                        mMatWidth, mMatHeight);
                     // Need to flip sign, but cause of this is not sure
                     cv::Mat disparity = sl_tools::toCVMat(disparityZEDMat) * -1.0;
                     publishDisparity(disparity, t);
@@ -1542,7 +1616,7 @@ namespace zed_wrapper {
                 // Publish the confidence image if someone has subscribed to
                 if (confImgSubnumber > 0) {
                     zed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE, sl::MEM_CPU,
-                                      matWidth, matHeight);
+                                      mMatWidth, mMatHeight);
                     cv::cvtColor(sl_tools::toCVMat(confImgZEDMat), confImRGB, CV_RGBA2RGB);
                     publishImage(confImRGB, pubConfImg, confidenceOptFrameId, t);
                 }
@@ -1550,7 +1624,7 @@ namespace zed_wrapper {
                 // Publish the confidence map if someone has subscribed to
                 if (confMapSubnumber > 0) {
                     zed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE, sl::MEM_CPU,
-                                        matWidth, matHeight);
+                                        mMatWidth, mMatHeight);
                     confMapFloat = sl_tools::toCVMat(confMapZEDMat);
                     pubConfMap.publish(imageToROSmsg(
                                            confMapFloat, sensor_msgs::image_encodings::TYPE_32FC1,
@@ -1562,11 +1636,11 @@ namespace zed_wrapper {
                     // Run the point cloud conversion asynchronously to avoid slowing down
                     // all the program
                     // Retrieve raw pointCloud data
-                    zed.retrieveMeasure(mCloud, sl::MEASURE_XYZBGRA, sl::MEM_CPU, matWidth,
-                                        matHeight);
+                    zed.retrieveMeasure(mCloud, sl::MEASURE_XYZBGRA, sl::MEM_CPU, mMatWidth,
+                                        mMatHeight);
                     mPointCloudFrameId = depthFrameId;
                     mPointCloudTime = t;
-                    publishPointCloud(matWidth, matHeight);
+                    publishPointCloud(mMatWidth, mMatHeight);
                 }
 
                 mDataMutex.unlock();
