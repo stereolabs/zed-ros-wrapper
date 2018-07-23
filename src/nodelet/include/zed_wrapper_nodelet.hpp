@@ -199,6 +199,11 @@ namespace zed_wrapper {
          */
         void initMapMsgs(double map_size_m);
 
+        /* \brief Double the current dimensions of the maps to make space
+         *        for new incoming data
+         */
+        void doubleMapsDims();
+
         /* \brief Process a terrain chunk and updates the relative
          *        Height and Traversability maps
          */
