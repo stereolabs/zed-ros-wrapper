@@ -77,7 +77,8 @@ namespace zed_wrapper {
         mTerrainMap = false;
         mTrackingReady = false;
         mMappingReady = false;
-        mTerrainPubRate = 2.0;
+        mLocalTerrainPubRate = 5.0;
+        mGlobalTerrainPubRate = 1.0;
 
         for (size_t i = 0; i < 6; i++) {
             mInitialTrackPose[i] = 0.0f;
@@ -191,9 +192,11 @@ namespace zed_wrapper {
         string odometry_topic = "odom";
         string imu_topic = "imu/data";
         string imu_topic_raw = "imu/data_raw";
-        string height_map_topic = "map/map_heightmap";
-        string cost_map_topic = "map/map_costmap";
-        string gridmap_topic = "map/gridmap";
+        string loc_height_map_topic = "map/loc_map_heightmap";
+        string loc_cost_map_topic = "map/loc_map_costmap";
+        string glob_height_map_topic = "map/loc_map_heightmap";
+        string glob_cost_map_topic = "map/loc_map_costmap";
+        //string gridmap_topic = "map/gridmap";
         string height_map_image_topic = "map/height_map_image";
         string color_map_image_topic = "map/color_map_image";
         string travers_map_image_topic = "map/travers_map_image";
@@ -358,12 +361,13 @@ namespace zed_wrapper {
 
         NODELET_INFO_STREAM("CAMERA MODEL : " << mZedRealCamModel);
         mZedSerialNumber = mZed.getCameraInformation().serial_number;
+
         // Dynamic Reconfigure parameters
-        mDynRecServer =
-            boost::make_shared<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>>();
+        mDynRecServer = boost::make_shared<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>>();
         dynamic_reconfigure::Server<zed_wrapper::ZedConfig>::CallbackType f;
         f = boost::bind(&ZEDWrapperNodelet::dynamicReconfCallback, this, _1, _2);
         mDynRecServer->setCallback(f);
+
         mNhNs.getParam("mat_resize_factor", mCamMatResizeFactor);
 
         if (mCamMatResizeFactor < 0.1) {
@@ -444,18 +448,22 @@ namespace zed_wrapper {
         mPubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
 
-        // Terrain Mapping
-        mPubHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(height_map_topic, 1); // map metadata
-        NODELET_INFO_STREAM("Advertised on topic " << height_map_topic);
-        mPubCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(cost_map_topic, 1); // cost map
-        NODELET_INFO_STREAM("Advertised on topic " << cost_map_topic);
-        mPubGridMap = mNh.advertise<grid_map_msgs::GridMap>(gridmap_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << gridmap_topic);
-        mPubHeightMapImg = mNh.advertise<sensor_msgs::Image>(height_map_image_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << gridmap_topic);
-        mPubColorMapImg = mNh.advertise<sensor_msgs::Image>(color_map_image_topic, 1);
+        // Terrain Mapping publishers
+        mPubLocalHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_height_map_topic, 1); // local height map
+        NODELET_INFO_STREAM("Advertised on topic " << loc_height_map_topic);
+        mPubLocalCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_cost_map_topic, 1); // local cost map
+        NODELET_INFO_STREAM("Advertised on topic " << loc_cost_map_topic);
+        mPubGlobalHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(glob_height_map_topic, 1, true); // global height map latched
+        NODELET_INFO_STREAM("Advertised on topic " << glob_height_map_topic);
+        mPubGlobalCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(glob_cost_map_topic, 1, true); // global cost map latched
+        NODELET_INFO_STREAM("Advertised on topic " << glob_cost_map_topic);
+        //mPubGridMap = mNh.advertise<grid_map_msgs::GridMap>(gridmap_topic, 1);
+        //NODELET_INFO_STREAM("Advertised on topic " << gridmap_topic);
+        mPubGlobalHeightMapImg = mNh.advertise<sensor_msgs::Image>(height_map_image_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << height_map_image_topic);
+        mPubGlobalColorMapImg = mNh.advertise<sensor_msgs::Image>(color_map_image_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << color_map_image_topic);
-        mPubTravMapImg = mNh.advertise<sensor_msgs::Image>(travers_map_image_topic, 1);
+        mPubGlobalTravMapImg = mNh.advertise<sensor_msgs::Image>(travers_map_image_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << travers_map_image_topic);
 
         // Imu publisher
@@ -477,12 +485,10 @@ namespace zed_wrapper {
         }
 
         // Services
-        mSrvSetInitPose = mNh.advertiseService("set_initial_pose",
-                                               &ZEDWrapperNodelet::on_set_pose, this);
-        mSrvResetOdometry = mNh.advertiseService(
-                                "reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
-        mSrvResetTracking = mNh.advertiseService(
-                                "reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
+        mSrvSetInitPose = mNh.advertiseService("set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this);
+        mSrvResetOdometry = mNh.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
+        mSrvResetTracking = mNh.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
+
         // Start pool thread
         mDevicePollThread = boost::shared_ptr<boost::thread>(
                                 new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
@@ -762,7 +768,7 @@ namespace zed_wrapper {
             return;
         }
 
-        mNhNs.getParam("terrain_pub_rate", mTerrainPubRate);
+        mNhNs.getParam("terrain_pub_rate", mLocalTerrainPubRate);
 
         sl::TerrainMappingParameters terrainParams;
         float agent_step = 0.05f; // TODO Expose parameter to launch file
@@ -772,15 +778,17 @@ namespace zed_wrapper {
         float agent_roughness = 0.05f; // TODO Expose parameter to launch file
         terrainParams.setAgentParameters(sl::UNIT_METER, agent_step, agent_slope, agent_radius,
                                          agent_height, agent_roughness);
+        float max_depth = 3.5f; // TODO Expose parameter to launch file
         mMapMaxHeight = .5f; // TODO Expose parameter to launch file
         float height_resol = .025f; // TODO Expose parameter to launch file
 
         sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution = sl::TerrainMappingParameters::GRID_RESOLUTION::LOW; // TODO Expose parameter to launch file
         mTerrainMapRes = terrainParams.setGridResolution(grid_resolution); // TODO: Check this value when bug is fixed in SDK
 
-        NODELET_INFO_STREAM("Grid Resolution " << mTerrainMapRes << "m");
-        NODELET_INFO_STREAM("Cutting height " << terrainParams.setHeightThreshold(sl::UNIT_METER, mMapMaxHeight) << "m");
-        NODELET_INFO_STREAM("Z Resolution " << terrainParams.setZResolution(sl::UNIT_METER, height_resol) << "m");
+        NODELET_INFO_STREAM("Terrain Grid Resolution " << mTerrainMapRes << "m");
+        NODELET_INFO_STREAM("Terrain Cutting height " << terrainParams.setHeightThreshold(sl::UNIT_METER, mMapMaxHeight) << "m");
+        NODELET_INFO_STREAM("Terrain Z Resolution " << terrainParams.setZResolution(sl::UNIT_METER, height_resol) << "m");
+        NODELET_INFO_STREAM("Terrain Max range " << terrainParams.setRange(sl::UNIT_METER, max_depth) << "m");
 
         terrainParams.enable_traversability_cost_computation = true; // TODO Expose parameter to launch file
         terrainParams.enable_dynamic_extraction = true; // TODO Expose parameter to launch file
@@ -793,11 +801,17 @@ namespace zed_wrapper {
         }
 
         initMapMsgs(200);
-        // Start Terrain Mapping Timer
         mMappingReady = true;
-        mTerrainTimer = mNhNs.createTimer(ros::Duration(1.0 / mTerrainPubRate),
-                                          &ZEDWrapperNodelet::terrainCallback, this);
-        NODELET_INFO_STREAM("Terrain Mapping: ENABLED @ " << mTerrainPubRate << "Hz");
+        mGlobalMapsUpdateReq = false;
+
+        // Start Terrain Mapping Timer
+        mLocalTerrainTimer = mNhNs.createTimer(ros::Duration(1.0 / mLocalTerrainPubRate),
+                                               &ZEDWrapperNodelet::localTerrainCallback, this);
+        NODELET_INFO_STREAM("Local Terrain Mapping: ENABLED @ " << mLocalTerrainPubRate << "Hz");
+
+        mGlobalTerrainTimer = mNhNs.createTimer(ros::Duration(1.0 / mGlobalTerrainPubRate),
+                                                &ZEDWrapperNodelet::globalTerrainCallback, this);
+        NODELET_INFO_STREAM("Global Terrain Mapping: ENABLED @ " << mGlobalTerrainPubRate << "Hz");
     }
 
     void ZEDWrapperNodelet::publishOdom(tf2::Transform odom_base_transform,
@@ -1061,7 +1075,7 @@ namespace zed_wrapper {
         case 4:
             mCamMatResizeFactor = config.mat_resize_factor;
             NODELET_INFO("Reconfigure mat_resize_factor: %g", mCamMatResizeFactor);
-            mDataMutex.lock();
+            mCamDataMutex.lock();
             mMatWidth = static_cast<size_t>(mCamWidth * mCamMatResizeFactor);
             mMatHeight = static_cast<size_t>(mCamHeight * mCamMatResizeFactor);
             NODELET_DEBUG_STREAM("Data Mat size : " << mMatWidth << "x" << mMatHeight);
@@ -1074,7 +1088,7 @@ namespace zed_wrapper {
             // the Left one (next to
             // the ZED logo)
             mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
-            mDataMutex.unlock();
+            mCamDataMutex.unlock();
             break;
 
         case 5:
@@ -1084,7 +1098,7 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::terrainCallback(const ros::TimerEvent& e) {
+    void ZEDWrapperNodelet::localTerrainCallback(const ros::TimerEvent& e) {
         if (!mTrackingActivated) {
             NODELET_DEBUG("Tracking not yet active");
             return;
@@ -1094,12 +1108,115 @@ namespace zed_wrapper {
             start_mapping();
         }
 
+        if (mGlobalMapsUpdateReq) {
+            return;
+        }
+
+        mMappingReady = true;
+
+        mTerrainMutex.lock();
         if (mZed.getTerrainRequestStatusAsync() == sl::SUCCESS) {
-            uint32_t gridSub = mPubGridMap.getNumSubscribers();
-            uint32_t heightSub = mPubHeightMapImg.getNumSubscribers();
-            uint32_t colorSub = mPubColorMapImg.getNumSubscribers();
-            uint32_t travSub = mPubTravMapImg.getNumSubscribers();
-            uint32_t run = gridSub + heightSub + colorSub + travSub;
+            uint32_t heightSub = mPubLocalHeightMap.getNumSubscribers();
+            uint32_t costSub = mPubLocalCostMap.getNumSubscribers();
+            uint32_t run = heightSub + costSub;
+
+            if (run > 0) {
+                if (mZed.retrieveTerrainAsync(mTerrain) == sl::SUCCESS) {
+                    mTerrainMutex.unlock();
+                    NODELET_DEBUG("Local Terrain available");
+                    sl::timeStamp t = mTerrain.getReferenceTS();
+
+                    // Request New Terrain calculation while elaborating data
+                    mZed.requestTerrainAsync();
+
+
+                    // Process Updated Terrain Chuncks
+                    std::vector<sl::HashKey> chunks;
+                    chunks = mTerrain.getUpdatedChunks();
+
+                    NODELET_DEBUG_STREAM("Terrain chunks updated (local map): " << chunks.size());
+
+                    if (chunks.size() > 0) {
+
+                        std::vector<sl::HashKey>::iterator it;
+
+                        float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX;
+
+                        // Local map limits
+                        for (it = chunks.begin(); it != chunks.end(); it++) {
+                            sl::HashKey key = *it;
+                            sl::TerrainChunk& chunk = mTerrain.getChunk(key);
+                            sl::Dimension dim = chunk.getDimension();
+
+                            if (dim.getXmin() < minX) {
+                                minX = dim.getXmin();
+                            }
+
+                            if (dim.getYmin() < minY) {
+                                minY = dim.getYmin();
+                            }
+
+                            if (dim.getXmax() > maxX) {
+                                maxX = dim.getXmax();
+                            }
+
+                            if (dim.getYmax() > maxY) {
+                                maxY = dim.getYmax();
+                            }
+                        }
+
+                        float mapW = maxX - minX;
+                        float mapH = maxY - minY;
+
+                        NODELET_DEBUG_STREAM("Local map size: " << mapW << "x" << mapH << " m");
+
+                        //#pragma omp parallel
+                        {
+                            for (it = chunks.begin(); it != chunks.end(); it++) {
+                                sl::HashKey key = *it;
+                                sl::TerrainChunk chunk = mTerrain.getChunk(key);
+                                chunk2maps(chunk);
+                            }
+                        }
+
+                        mMapsValid = true;
+                    }
+                } else {
+                    mTerrainMutex.unlock();
+                    NODELET_DEBUG_STREAM("Local terrain not available");
+                }
+
+            } else {
+                mTerrainMutex.unlock();
+            }
+        } else {
+            NODELET_DEBUG("Local Terrain NOT available");
+            // Request Terrain calculation
+            mZed.requestTerrainAsync(); // if an elaboration is in progress the request is ignored
+            mTerrainMutex.unlock();
+        }
+    }
+
+    void ZEDWrapperNodelet::globalTerrainCallback(const ros::TimerEvent& e) {
+        if (!mTrackingActivated) {
+            NODELET_DEBUG("Tracking not yet active");
+            return;
+        }
+
+        if (!mMappingReady) {
+            start_mapping();
+        }
+
+        mMappingReady = true;
+        mGlobalMapsUpdateReq = true;
+
+        mTerrainMutex.lock();
+        if (mZed.getTerrainRequestStatusAsync() == sl::SUCCESS) {
+            //uint32_t gridSub = mPubGridMap.getNumSubscribers();
+            uint32_t heightSub = mPubGlobalHeightMapImg.getNumSubscribers();
+            uint32_t colorSub = mPubGlobalColorMapImg.getNumSubscribers();
+            uint32_t travSub = mPubGlobalTravMapImg.getNumSubscribers();
+            uint32_t run = /*gridSub + */heightSub + colorSub + travSub;
 
             if (run > 0) {
                 sl::Terrain terrain;
@@ -1107,110 +1224,96 @@ namespace zed_wrapper {
                 cv::Mat cv_heightMap, cv_colorMap, cv_traversMap;
 
                 if (mZed.retrieveTerrainAsync(terrain) == sl::SUCCESS) {
-                    NODELET_DEBUG("Terrain available");
+                    mGlobalMapsUpdateReq = false;
+                    mTerrainMutex.unlock();
+                    NODELET_DEBUG("Global Terrain available");
                     sl::timeStamp t = terrain.getReferenceTS();
                     // Request New Terrain calculation while elaborating data
                     mZed.requestTerrainAsync();
 
-                    // Check if actual maps are large enough for the new terrain
-
-
-                    // Process Updated Terrain Chuncks
-                    std::vector<sl::HashKey> chunks;
-                    //                    if (mMapsValid) {
-                    chunks = terrain.getUpdatedChunks();
-                    //                    } else {
-                    //                        chunks = terrain.getSurroundingValidChunks(0.0f, 0.0f, 10000000.f);  // TODO replace with the function to retrieve all chunks
-                    //                    }
-
-                    std::vector<sl::HashKey>::iterator it;
-
-                    #pragma omp parallel
-                    {
-                        for (it = chunks.begin(); it != chunks.end(); it++) {
-                            sl::HashKey key = *it;
-                            sl::TerrainChunk chunk = terrain.getChunk(key);
-                            chunk2maps(chunk);
-                        }
-                    }
-
-                    mMapsValid = true;
 
                     // Height Map Image
-                    if (heightSub > 0 || gridSub > 0) {
+                    if (heightSub > 0 /*|| gridSub > 0*/) {
                         terrain.generateTerrainMap(sl_heightMap, sl::MAT_TYPE_32F_C1, sl::LayerName::ELEVATION);
 
                         if (sl_heightMap.getResolution().area() > 0) {
                             cv_heightMap = sl_tools::toCVMat(sl_heightMap);
-                            mPubHeightMapImg.publish(imageToROSmsg(
-
-                                                         cv_heightMap, sensor_msgs::image_encodings::TYPE_32FC1,
-                                                         mMapFrameId, sl_tools::slTime2Ros(t)));
+                            mPubGlobalHeightMapImg.publish(
+                                imageToROSmsg(cv_heightMap, sensor_msgs::image_encodings::TYPE_32FC1,
+                                              mMapFrameId, sl_tools::slTime2Ros(t)));
                         }
                     }
 
                     // Color Map Image
-                    if (colorSub > 0 || gridSub > 0) {
+                    if (colorSub > 0 /*|| gridSub > 0*/) {
                         terrain.generateTerrainMap(sl_colorMap, sl::MAT_TYPE_8U_C4, sl::LayerName::COLOR);
 
                         if (sl_colorMap.getResolution().area() > 0) {
                             cv_colorMap = sl_tools::toCVMat(sl_colorMap);
-                            mPubColorMapImg.publish(imageToROSmsg(
-                                                        cv_colorMap, sensor_msgs::image_encodings::TYPE_8UC4,
-                                                        mMapFrameId, sl_tools::slTime2Ros(t)));
+                            mPubGlobalColorMapImg.publish(imageToROSmsg(
+                                                              cv_colorMap, sensor_msgs::image_encodings::TYPE_8UC4,
+                                                              mMapFrameId, sl_tools::slTime2Ros(t)));
                         }
                     }
 
                     // Traversability Map Image
-                    if (travSub > 0 || gridSub > 0) {
+                    if (travSub > 0 /*|| gridSub > 0*/) {
                         terrain.generateTerrainMap(sl_traversMap, sl::MAT_TYPE_16U_C1, sl::LayerName::TRAVERSABILITY_COST);
 
                         if (sl_traversMap.getResolution().area() > 0) {
                             cv_traversMap = sl_tools::toCVMat(sl_traversMap);
-                            mPubTravMapImg.publish(imageToROSmsg(
-                                                       cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,
-                                                       mMapFrameId, sl_tools::slTime2Ros(t)));
+                            mPubGlobalTravMapImg.publish(imageToROSmsg(
+                                                             cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,
+                                                             mMapFrameId, sl_tools::slTime2Ros(t)));
                         }
                     }
 
                     // Multilayer GridMap {https://github.com/ethz-asl/grid_map}
-                    if (gridSub > 0) {
+                    //                    if (gridSub > 0) {
 
-                        if (!cv_traversMap.empty() &&
-                            !cv_colorMap.empty() &&
-                            !cv_heightMap.empty())
+                    //                        if (!cv_traversMap.empty() &&
+                    //                            !cv_colorMap.empty() &&
+                    //                            !cv_heightMap.empty())
 
-                        {
-                            // TODO USE CHUNK TO UPDATE SUBMAPS
-                            // GridMap creation
-                            grid_map::GridMap gridMap;
-                            grid_map::Position pos(0, 0); // TODO: initialize with the initial position of the tracking
-                            grid_map::GridMapCvConverter::initializeFromImage(cv_heightMap, mTerrainMapRes, gridMap, pos);
-                            grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(cv_heightMap, "height_map", gridMap);
-                            grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(cv_traversMap, "traversability_map", gridMap);
-                            grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 4>(cv_colorMap, "color_map", gridMap);
-                            // GridMap to ROS message
-                            grid_map_msgs::GridMap gridMapMsg;
-                            gridMap.setTimestamp(t);
-                            gridMap.setFrameId(mMapFrameId);
-                            grid_map::GridMapRosConverter::toMessage(gridMap, gridMapMsg);
-                            // Publishing
-                            mPubGridMap.publish(gridMapMsg);
+                    //                        {
+                    //                            // TODO USE CHUNK TO UPDATE SUBMAPS
+                    //                            // GridMap creation
+                    //                            grid_map::GridMap gridMap;
+                    //                            grid_map::Position pos(0, 0); // TODO: initialize with the initial position of the tracking
+                    //                            grid_map::GridMapCvConverter::initializeFromImage(cv_heightMap, mTerrainMapRes, gridMap, pos);
+                    //                            grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(cv_heightMap, "height_map", gridMap);
+                    //                            grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(cv_traversMap, "traversability_map", gridMap);
+                    //                            grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 4>(cv_colorMap, "color_map", gridMap);
+                    //                            // GridMap to ROS message
+                    //                            grid_map_msgs::GridMap gridMapMsg;
+                    //                            gridMap.setTimestamp(t);
+                    //                            gridMap.setFrameId(mMapFrameId);
+                    //                            grid_map::GridMapRosConverter::toMessage(gridMap, gridMapMsg);
+                    //                            // Publishing
+                    //                            mPubGridMap.publish(gridMapMsg);
 
-                            /*sl::Mesh mesh;
-                            terrain.toMesh(mesh);
-                            mesh.save("./mesh.obj");*/
-                        }
-                    }
+                    //                            /*sl::Mesh mesh;
+                    //                            terrain.toMesh(mesh);
+                    //                            mesh.save("./mesh.obj");*/
+                    //                        }
+                    //                    }
+                } else {
+                    mTerrainMutex.unlock();
+                    NODELET_DEBUG_STREAM("Local terrain not available");
                 }
+            } else {
+                mTerrainMutex.unlock();
             }
         } else {
+            mTerrainMutex.unlock();
+            NODELET_DEBUG("Global Terrain NOT available");
+
             // Request Terrain calculation
             mZed.requestTerrainAsync(); // if an elaboration is in progress the request is ignored
         }
     }
 
-    void ZEDWrapperNodelet::initMapMsgs(double map_size_m) {
+    void ZEDWrapperNodelet::initMapMsgs(double map_size_m, bool initCvMat) {
         mMapsValid = false;
 
         // MetaData
@@ -1236,36 +1339,75 @@ namespace zed_wrapper {
         mCostMapMsg.header.frame_id = mMapFrameId;
         mHeightMapMsg.info = mapInfo;
         mCostMapMsg.info = mapInfo;
-        mHeightMapMsg.data = std::vector<signed char>(mapInfo.height * mapInfo.width, -1);
-        mCostMapMsg.data = std::vector<signed char>(mapInfo.height * mapInfo.width, -1);
+
+        // CV Maps
+        if (initCvMat) {
+            mCvHeightMat = cv::Mat(mapCellSize, mapCellSize, CV_8SC1, cv::Scalar::all(-1));
+            mCvCostMat = cv::Mat(mapCellSize, mapCellSize, CV_8SC1, cv::Scalar::all(-1));
+        }
     }
 
     void ZEDWrapperNodelet::doubleMapsDims() {
         NODELET_DEBUG("Map resize required");
         uint32_t currMapCellSize = static_cast<uint32_t>(mHeightMapMsg.info.height * mTerrainMapRes);
+        uint32_t newSize = currMapCellSize * 2;
 
-        initMapMsgs(currMapCellSize * 2);
+
+        // Reinitialize OpenCV mats
+        cv::Rect roi;
+        roi.width = mHeightMapMsg.info.width;
+        roi.height = mHeightMapMsg.info.height;
+        roi.x = (newSize - roi.width) / 2;
+        roi.y = (newSize - roi.height) / 2;
+
+        // Copy old "small" Maps data to the new "big" Maps putting old data in the middle
+        cv::Mat tmpHeight = mCvHeightMat.clone();
+        cv::Mat tmpCost = mCvCostMat.clone();
+        mCvHeightMat = cv::Mat(newSize, newSize, CV_8SC1, cv::Scalar::all(-1));
+        mCvCostMat = cv::Mat(newSize, newSize, CV_8SC1, cv::Scalar::all(-1));
+        cv::Mat subHeight = mCvHeightMat(roi);
+        tmpHeight.copyTo(subHeight);
+        cv::Mat subCost = mCvCostMat(roi);
+        tmpCost.copyTo(subCost);
+
+        // Reinitialize map messages to new size (no CV Mats)
+        initMapMsgs(newSize, false);
+    }
+
+    bool ZEDWrapperNodelet::coord2cell(float xm, float ym, uint32_t& row, uint32_t& col) {
+        row = static_cast<int>(std::floor(ym));
+
+        // TODO Complete the function `coord2cell`
     }
 
     void ZEDWrapperNodelet::chunk2maps(sl::TerrainChunk& chunk) {
-        // TODO update maps using chunk info
-        sl::Dimension chunkDim = chunk.getDimension();
-        // use "mMapMaxHeight" to normalize |value| in range [0,100]
+        //        sl::Dimension chunkDim = chunk.getDimension();
+        //        // use "mMapMaxHeight" to normalize |value| in range [0,100]
 
-        double mapWm = mHeightMapMsg.info.width * mHeightMapMsg.info.resolution;
-        double mapMinX = mHeightMapMsg.info.origin.position.x;
-        double mapMaxX = mapMinX + mapWm;
+        //        double mapWm = mHeightMapMsg.info.width * mHeightMapMsg.info.resolution;
+        //        double mapMinX = mHeightMapMsg.info.origin.position.x;
+        //        double mapMaxX = mapMinX + mapWm;
 
-        double mapHm = mHeightMapMsg.info.height * mHeightMapMsg.info.resolution;
-        double mapMinY = mHeightMapMsg.info.origin.position.y;
-        double mapMaxY = mapMinY + mapHm;
+        //        double mapHm = mHeightMapMsg.info.height * mHeightMapMsg.info.resolution;
+        //        double mapMinY = mHeightMapMsg.info.origin.position.y;
+        //        double mapMaxY = mapMinY + mapHm;
 
-        if (chunkDim.getXmin() < mapMinX ||
-            chunkDim.getXmax() > mapMaxX ||
-            chunkDim.getYmin() < mapMinY ||
-            chunkDim.getYmax() > mapMaxY) {
-            doubleMapsDims();
-        }
+        //        if (chunkDim.getXmin() < mapMinX ||
+        //            chunkDim.getXmax() > mapMaxX ||
+        //            chunkDim.getYmin() < mapMinY ||
+        //            chunkDim.getYmax() > mapMaxY) {
+        //            doubleMapsDims(); // Create new double sized map
+        //        }
+
+        //        unsigned int cellCount = chunkDim.getFullSizeIdx();
+
+        //        #pragma omp for
+        //        for (unsigned int i = 0; i < cellCount; i++) {
+        //            float xm, ym;
+        //            chunkDim.index2x_y(i, xm, ym);
+
+
+        //        }
     }
 
     void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
@@ -1573,7 +1715,7 @@ namespace zed_wrapper {
                     }
                 }
 
-                mDataMutex.lock();
+                mCamDataMutex.lock();
 
                 // Publish the left == rgb image if someone has subscribed to
                 if (leftSubnumber > 0 || rgbSubnumber > 0) {
@@ -1679,7 +1821,7 @@ namespace zed_wrapper {
                     publishPointCloud(mMatWidth, mMatHeight);
                 }
 
-                mDataMutex.unlock();
+                mCamDataMutex.unlock();
                 // Transform from base to sensor
                 tf2::Transform sensor_to_base_transf;
 

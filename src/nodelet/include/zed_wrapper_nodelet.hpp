@@ -117,7 +117,7 @@ namespace zed_wrapper {
 
         /* \brief Publish the pose of the imu in "Odom" frame as a transformation
          * \param base_transform : Transformation representing the imu pose from base
-         * frame to odom frame
+         * frame to odom framevoid
          * \param t : the ros::Time to stamp the image
          */
         void publishImuFrame(tf2::Transform baseTransform);
@@ -189,15 +189,21 @@ namespace zed_wrapper {
          */
         void imuPubCallback(const ros::TimerEvent& e);
 
-        /* \brief Callback to handle async terrain MAPPING.
+        /* \brief Callback to handle async terrain MAPPING to generate high frequency local maps
          * \param e : the ros::TimerEvent binded to the callback
          */
-        void terrainCallback(const ros::TimerEvent& e);
+        void localTerrainCallback(const ros::TimerEvent& e);
+
+        /* \brief Callback to handle async terrain MAPPING to generate low frequency global maps
+         * \param e : the ros::TimerEvent binded to the callback
+         */
+        void globalTerrainCallback(const ros::TimerEvent& e);
 
         /* \brief Initialize the ROS Map messages
          * \param map_size : size of the map in meters
+         * \param initCvMat : indicates if \ref mCvHeightMat and \ref mCvCosttMat must be created or not
          */
-        void initMapMsgs(double map_size_m);
+        void initMapMsgs(double map_size_m, bool initCvMat = false);
 
         /* \brief Double the current dimensions of the maps to make space
          *        for new incoming data
@@ -208,6 +214,16 @@ namespace zed_wrapper {
          *        Height and Traversability maps
          */
         void chunk2maps(sl::TerrainChunk& chunk);
+
+        /* \brief Convert a metric coordinate to map cell indices
+         * \param xm : X coordinate in meters
+         * \param ym : Y coordinate in meters
+         * \param row : corresponding \ref mCvHeightMat and \ref mCvCosttMat row index
+         * \param col : corresponding \ref mCvHeightMat and \ref mCvCosttMat col index
+         *
+         * \returns false if indices are outside the matrix size
+         */
+        bool coord2cell(float xm, float ym, uint32_t& row, uint32_t& col);
 
         /* \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
@@ -285,16 +301,19 @@ namespace zed_wrapper {
         ros::Publisher mPubImu;
         ros::Publisher mPubImuRaw;
 
-        ros::Publisher mPubHeightMap;
-        ros::Publisher mPubCostMap;
-        ros::Publisher mPubGridMap;
-        ros::Publisher mPubHeightMapImg;
-        ros::Publisher mPubColorMapImg;
-        ros::Publisher mPubTravMapImg;
+        ros::Publisher mPubLocalHeightMap;
+        ros::Publisher mPubLocalCostMap;
+        ros::Publisher mPubGlobalHeightMap;
+        ros::Publisher mPubGlobalCostMap;
+        //ros::Publisher mPubGridMap;
+        ros::Publisher mPubGlobalHeightMapImg;
+        ros::Publisher mPubGlobalColorMapImg;
+        ros::Publisher mPubGlobalTravMapImg;
 
         // Timers
         ros::Timer mPubImuTimer;
-        ros::Timer mTerrainTimer;
+        ros::Timer mLocalTerrainTimer;
+        ros::Timer mGlobalTerrainTimer;
 
         // Services
         ros::ServiceServer mSrvSetInitPose;
@@ -362,14 +381,19 @@ namespace zed_wrapper {
         bool mTrackingReady;
 
         // Terrain Mapping
+        sl::Terrain mTerrain;
         bool mMappingReady;
         bool mTerrainMap;
         bool mMapsValid;
-        double mTerrainPubRate;
+        double mLocalTerrainPubRate;
+        double mGlobalTerrainPubRate;
+        bool mGlobalMapsUpdateReq;
         double mTerrainMapRes;
         double mMapMaxHeight;
         nav_msgs::OccupancyGrid mHeightMapMsg;
         nav_msgs::OccupancyGrid mCostMapMsg;
+        cv::Mat mCvHeightMat;
+        cv::Mat mCvCostMat;
 
         // IMU time
         ros::Time mImuTime;
@@ -418,7 +442,8 @@ namespace zed_wrapper {
         cv::Mat mCvConfMapFloat;
 
         // Mutex
-        std::mutex mDataMutex;
+        std::mutex mCamDataMutex;
+        std::mutex mTerrainMutex;
 
         // Point cloud variables
         sl::Mat mCloud;
