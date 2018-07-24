@@ -1,4 +1,4 @@
-#ifndef ZED_WRAPPER_NODELET_H
+﻿#ifndef ZED_WRAPPER_NODELET_H
 #define ZED_WRAPPER_NODELET_H
 
 ///////////////////////////////////////////////////////////////////////////
@@ -270,20 +270,20 @@ namespace zed_wrapper {
         image_transport::Publisher mPubDepth;
         image_transport::Publisher mPubConfImg;
 
-        ros::Publisher pubConfMap;
-        ros::Publisher pubDisparity;
-        ros::Publisher pubCloud;
-        ros::Publisher pubRgbCamInfo;
-        ros::Publisher pubLeftCamInfo;
-        ros::Publisher pubRightCamInfo;
-        ros::Publisher pubRgbCamInfoRaw;
-        ros::Publisher pubLeftCamInfoRaw;
-        ros::Publisher pubRightCamInfoRaw;
-        ros::Publisher pubDepthCamInfo;
-        ros::Publisher pubPose;
-        ros::Publisher pubOdom;
-        ros::Publisher pubImu;
-        ros::Publisher pubImuRaw;
+        ros::Publisher mPubConfMap;
+        ros::Publisher mPubDisparity;
+        ros::Publisher mPubCloud;
+        ros::Publisher mPubRgbCamInfo;
+        ros::Publisher mPubLeftCamInfo;
+        ros::Publisher mPubRightCamInfo;
+        ros::Publisher mPubRgbCamInfoRaw;
+        ros::Publisher mPubLeftCamInfoRaw;
+        ros::Publisher mPubRightCamInfoRaw;
+        ros::Publisher mPubDepthCamInfo;
+        ros::Publisher mPubPose;
+        ros::Publisher mPubOdom;
+        ros::Publisher mPubImu;
+        ros::Publisher mPubImuRaw;
 
         ros::Publisher mPubHeightMap;
         ros::Publisher mPubCostMap;
@@ -293,7 +293,7 @@ namespace zed_wrapper {
         ros::Publisher mPubTravMapImg;
 
         // Timers
-        ros::Timer pubImuTimer;
+        ros::Timer mPubImuTimer;
         ros::Timer mTerrainTimer;
 
         // Services
@@ -412,10 +412,10 @@ namespace zed_wrapper {
         int mCamHeight;
         int mMatWidth;
         int mMatHeight;
-        cv::Mat leftImRGB;
-        cv::Mat rightImRGB;
-        cv::Mat confImRGB;
-        cv::Mat confMapFloat;
+        cv::Mat mCvLeftImRGB;
+        cv::Mat mCvRightImRGB;
+        cv::Mat mCvConfImRGB;
+        cv::Mat mCvConfMapFloat;
 
         // Mutex
         std::mutex mDataMutex;

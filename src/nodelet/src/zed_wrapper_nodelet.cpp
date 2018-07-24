@@ -409,39 +409,39 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Advertised on topic " << conf_img_topic);
 
         // Confidence Map publisher
-        pubConfMap = mNh.advertise<sensor_msgs::Image>(conf_map_topic, 1); // confidence map
+        mPubConfMap = mNh.advertise<sensor_msgs::Image>(conf_map_topic, 1); // confidence map
         NODELET_INFO_STREAM("Advertised on topic " << conf_map_topic);
 
         // Disparity publisher
-        pubDisparity = mNh.advertise<stereo_msgs::DisparityImage>(disparity_topic, 1);
+        mPubDisparity = mNh.advertise<stereo_msgs::DisparityImage>(disparity_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << disparity_topic);
 
         // PointCloud publisher
-        pubCloud = mNh.advertise<sensor_msgs::PointCloud2>(point_cloud_topic, 1);
+        mPubCloud = mNh.advertise<sensor_msgs::PointCloud2>(point_cloud_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << point_cloud_topic);
 
         // Camera info publishers
-        pubRgbCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_topic, 1); // rgb
+        mPubRgbCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_topic, 1); // rgb
         NODELET_INFO_STREAM("Advertised on topic " << rgb_cam_info_topic);
-        pubLeftCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(left_cam_info_topic, 1); // left
+        mPubLeftCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(left_cam_info_topic, 1); // left
         NODELET_INFO_STREAM("Advertised on topic " << left_cam_info_topic);
-        pubRightCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(right_cam_info_topic, 1); // right
+        mPubRightCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(right_cam_info_topic, 1); // right
         NODELET_INFO_STREAM("Advertised on topic " << right_cam_info_topic);
-        pubDepthCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); // depth
+        mPubDepthCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); // depth
         NODELET_INFO_STREAM("Advertised on topic " << depth_cam_info_topic);
 
         // Raw
-        pubRgbCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_raw_topic, 1); // raw rgb
+        mPubRgbCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_raw_topic, 1); // raw rgb
         NODELET_INFO_STREAM("Advertised on topic " << rgb_cam_info_raw_topic);
-        pubLeftCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(left_cam_info_raw_topic, 1); // raw left
+        mPubLeftCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(left_cam_info_raw_topic, 1); // raw left
         NODELET_INFO_STREAM("Advertised on topic " << left_cam_info_raw_topic);
-        pubRightCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(right_cam_info_raw_topic, 1); // raw right
+        mPubRightCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(right_cam_info_raw_topic, 1); // raw right
         NODELET_INFO_STREAM("Advertised on topic " << right_cam_info_raw_topic);
 
         // Odometry and Map publisher
-        pubPose = mNh.advertise<geometry_msgs::PoseStamped>(pose_topic, 1);
+        mPubPose = mNh.advertise<geometry_msgs::PoseStamped>(pose_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << pose_topic);
-        pubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
+        mPubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
 
         // Terrain Mapping
@@ -460,15 +460,15 @@ namespace zed_wrapper {
 
         // Imu publisher
         if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED_M) {
-            pubImu = mNh.advertise<sensor_msgs::Imu>(imu_topic, 500);
+            mPubImu = mNh.advertise<sensor_msgs::Imu>(imu_topic, 500);
             NODELET_INFO_STREAM("Advertised on topic " << imu_topic << " @ "
                                 << mImuPubRate << " Hz");
-            pubImuRaw = mNh.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
+            mPubImuRaw = mNh.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
             NODELET_INFO_STREAM("Advertised on topic " << imu_topic_raw << " @ "
                                 << mImuPubRate << " Hz");
             mImuTime = ros::Time::now();
-            pubImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
-                                            &ZEDWrapperNodelet::imuPubCallback, this);
+            mPubImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
+                                             &ZEDWrapperNodelet::imuPubCallback, this);
         } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
             NODELET_WARN_STREAM(
                 "'imu_pub_rate' set to "
@@ -817,7 +817,7 @@ namespace zed_wrapper {
         odom.pose.pose.orientation.z = base2.rotation.z;
         odom.pose.pose.orientation.w = base2.rotation.w;
         // Publish odometry message
-        pubOdom.publish(odom);
+        mPubOdom.publish(odom);
     }
 
     void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform baseTransform,
@@ -848,7 +848,7 @@ namespace zed_wrapper {
         pose.pose.orientation.z = base2.rotation.z;
         pose.pose.orientation.w = base2.rotation.w;
         // Publish odometry message
-        pubPose.publish(pose);
+        mPubPose.publish(pose);
     }
 
     void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform,
@@ -907,7 +907,7 @@ namespace zed_wrapper {
         msg.T = zedParam.calibration_parameters.T.x;
         msg.min_disparity = msg.f * msg.T / mZed.getDepthMaxRangeValue();
         msg.max_disparity = msg.f * msg.T / mZed.getDepthMinRangeValue();
-        pubDisparity.publish(msg);
+        mPubDisparity.publish(msg);
     }
 
     void ZEDWrapperNodelet::publishPointCloud(uint32_t width, uint32_t height) {
@@ -937,7 +937,7 @@ namespace zed_wrapper {
         output.width = width;
         output.is_bigendian = false;
         output.is_dense = false;
-        pubCloud.publish(output);
+        mPubCloud.publish(output);
     }
 
     void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg,
@@ -1269,8 +1269,8 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
-        uint32_t imu_SubNumber = pubImu.getNumSubscribers();
-        uint32_t imu_RawSubNumber = pubImuRaw.getNumSubscribers();
+        uint32_t imu_SubNumber = mPubImu.getNumSubscribers();
+        uint32_t imu_RawSubNumber = mPubImuRaw.getNumSubscribers();
 
         if (imu_SubNumber < 1 && imu_RawSubNumber < 1) {
             return;
@@ -1316,7 +1316,7 @@ namespace zed_wrapper {
                     imu_data.angular_velocity_convariance.r[i * 3 + mIdxZ];
             }
 
-            pubImu.publish(imu_msg);
+            mPubImu.publish(imu_msg);
         }
 
         if (imu_RawSubNumber > 0) {
@@ -1351,7 +1351,7 @@ namespace zed_wrapper {
             imu_raw_msg.orientation_covariance[0] =
                 -1; // Orientation data is not available in "data_raw" -> See ROS REP145
             // http://www.ros.org/reps/rep-0145.html#topics
-            pubImuRaw.publish(imu_raw_msg);
+            mPubImuRaw.publish(imu_raw_msg);
         }
 
         // Publish IMU tf only if enabled
@@ -1409,10 +1409,10 @@ namespace zed_wrapper {
         mMatHeight = static_cast<int>(mCamHeight * mCamMatResizeFactor);
         NODELET_DEBUG_STREAM("Data Mat size : " << mMatWidth << "x" << mMatHeight);
         cv::Size cvSize(mMatWidth, mMatWidth);
-        leftImRGB = cv::Mat(cvSize, CV_8UC3);
-        rightImRGB = cv::Mat(cvSize, CV_8UC3);
-        confImRGB = cv::Mat(cvSize, CV_8UC3);
-        confMapFloat = cv::Mat(cvSize, CV_32FC1);
+        mCvLeftImRGB = cv::Mat(cvSize, CV_8UC3);
+        mCvRightImRGB = cv::Mat(cvSize, CV_8UC3);
+        mCvConfImRGB = cv::Mat(cvSize, CV_8UC3);
+        mCvConfMapFloat = cv::Mat(cvSize, CV_32FC1);
         // Create and fill the camera information messages
         fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId,
                     mRightCamOptFrameId);
@@ -1437,14 +1437,14 @@ namespace zed_wrapper {
             uint32_t rightSubnumber = mPubRight.getNumSubscribers();
             uint32_t rightRawSubnumber = mPubRawRight.getNumSubscribers();
             uint32_t depthSubnumber = mPubDepth.getNumSubscribers();
-            uint32_t disparitySubnumber = pubDisparity.getNumSubscribers();
-            uint32_t cloudSubnumber = pubCloud.getNumSubscribers();
-            uint32_t poseSubnumber = pubPose.getNumSubscribers();
-            uint32_t odomSubnumber = pubOdom.getNumSubscribers();
+            uint32_t disparitySubnumber = mPubDisparity.getNumSubscribers();
+            uint32_t cloudSubnumber = mPubCloud.getNumSubscribers();
+            uint32_t poseSubnumber = mPubPose.getNumSubscribers();
+            uint32_t odomSubnumber = mPubOdom.getNumSubscribers();
             uint32_t confImgSubnumber = mPubConfImg.getNumSubscribers();
-            uint32_t confMapSubnumber = pubConfMap.getNumSubscribers();
-            uint32_t imuSubnumber = pubImu.getNumSubscribers();
-            uint32_t imuRawsubnumber = pubImuRaw.getNumSubscribers();
+            uint32_t confMapSubnumber = mPubConfMap.getNumSubscribers();
+            uint32_t imuSubnumber = mPubImu.getNumSubscribers();
+            uint32_t imuRawsubnumber = mPubImuRaw.getNumSubscribers();
             bool runLoop = mTerrainMap ||
                            ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
                              leftRawSubnumber + rightSubnumber + rightRawSubnumber +
@@ -1580,16 +1580,16 @@ namespace zed_wrapper {
                     // Retrieve RGBA Left image
                     mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, mMatWidth,
                                        mMatHeight);
-                    cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
+                    cv::cvtColor(sl_tools::toCVMat(leftZEDMat), mCvLeftImRGB, CV_RGBA2RGB);
 
                     if (leftSubnumber > 0) {
-                        publishCamInfo(mLeftCamInfoMsg, pubLeftCamInfo, t);
-                        publishImage(leftImRGB, mPubLeft, mLeftCamOptFrameId, t);
+                        publishCamInfo(mLeftCamInfoMsg, mPubLeftCamInfo, t);
+                        publishImage(mCvLeftImRGB, mPubLeft, mLeftCamOptFrameId, t);
                     }
 
                     if (rgbSubnumber > 0) {
-                        publishCamInfo(mRgbCamInfoMsg, pubRgbCamInfo, t);
-                        publishImage(leftImRGB, mPubRgb, mDepthOptFrameId,
+                        publishCamInfo(mRgbCamInfoMsg, mPubRgbCamInfo, t);
+                        publishImage(mCvLeftImRGB, mPubRgb, mDepthOptFrameId,
                                      t); // rgb is the left image
                     }
                 }
@@ -1599,16 +1599,16 @@ namespace zed_wrapper {
                     // Retrieve RGBA Left image
                     mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU,
                                        mMatWidth, mMatHeight);
-                    cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
+                    cv::cvtColor(sl_tools::toCVMat(leftZEDMat), mCvLeftImRGB, CV_RGBA2RGB);
 
                     if (leftRawSubnumber > 0) {
-                        publishCamInfo(mLeftCamInfoRawMsg, pubLeftCamInfoRaw, t);
-                        publishImage(leftImRGB, mPubRawLeft, mLeftCamOptFrameId, t);
+                        publishCamInfo(mLeftCamInfoRawMsg, mPubLeftCamInfoRaw, t);
+                        publishImage(mCvLeftImRGB, mPubRawLeft, mLeftCamOptFrameId, t);
                     }
 
                     if (rgbRawSubnumber > 0) {
-                        publishCamInfo(mRgbCamInfoRawMsg, pubRgbCamInfoRaw, t);
-                        publishImage(leftImRGB, mPubRawRgb, mDepthOptFrameId, t);
+                        publishCamInfo(mRgbCamInfoRawMsg, mPubRgbCamInfoRaw, t);
+                        publishImage(mCvLeftImRGB, mPubRawRgb, mDepthOptFrameId, t);
                     }
                 }
 
@@ -1617,9 +1617,9 @@ namespace zed_wrapper {
                     // Retrieve RGBA Right image
                     mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU,
                                        mMatWidth, mMatHeight);
-                    cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
-                    publishCamInfo(mRightCamInfoMsg, pubRightCamInfo, t);
-                    publishImage(rightImRGB, mPubRight, mRightCamOptFrameId, t);
+                    cv::cvtColor(sl_tools::toCVMat(rightZEDMat), mCvRightImRGB, CV_RGBA2RGB);
+                    publishCamInfo(mRightCamInfoMsg, mPubRightCamInfo, t);
+                    publishImage(mCvRightImRGB, mPubRight, mRightCamOptFrameId, t);
                 }
 
                 // Publish the right image if someone has subscribed to
@@ -1627,16 +1627,16 @@ namespace zed_wrapper {
                     // Retrieve RGBA Right image
                     mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU,
                                        mMatWidth, mMatHeight);
-                    cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
-                    publishCamInfo(mRightCamInfoRawMsg, pubRightCamInfoRaw, t);
-                    publishImage(rightImRGB, mPubRawRight, mRightCamOptFrameId, t);
+                    cv::cvtColor(sl_tools::toCVMat(rightZEDMat), mCvRightImRGB, CV_RGBA2RGB);
+                    publishCamInfo(mRightCamInfoRawMsg, mPubRightCamInfoRaw, t);
+                    publishImage(mCvRightImRGB, mPubRawRight, mRightCamOptFrameId, t);
                 }
 
                 // Publish the depth image if someone has subscribed to
                 if (depthSubnumber > 0 || disparitySubnumber > 0) {
                     mZed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH, sl::MEM_CPU,
                                          mMatWidth, mMatHeight);
-                    publishCamInfo(mDepthCamInfoMsg, pubDepthCamInfo, t);
+                    publishCamInfo(mDepthCamInfoMsg, mPubDepthCamInfo, t);
                     publishDepth(sl_tools::toCVMat(depthZEDMat), t); // in meters
                 }
 
@@ -1653,18 +1653,18 @@ namespace zed_wrapper {
                 if (confImgSubnumber > 0) {
                     mZed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE, sl::MEM_CPU,
                                        mMatWidth, mMatHeight);
-                    cv::cvtColor(sl_tools::toCVMat(confImgZEDMat), confImRGB, CV_RGBA2RGB);
-                    publishImage(confImRGB, mPubConfImg, mConfidenceOptFrameId, t);
+                    cv::cvtColor(sl_tools::toCVMat(confImgZEDMat), mCvConfImRGB, CV_RGBA2RGB);
+                    publishImage(mCvConfImRGB, mPubConfImg, mConfidenceOptFrameId, t);
                 }
 
                 // Publish the confidence map if someone has subscribed to
                 if (confMapSubnumber > 0) {
                     mZed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE, sl::MEM_CPU,
                                          mMatWidth, mMatHeight);
-                    confMapFloat = sl_tools::toCVMat(confMapZEDMat);
-                    pubConfMap.publish(imageToROSmsg(
-                                           confMapFloat, sensor_msgs::image_encodings::TYPE_32FC1,
-                                           mConfidenceOptFrameId, t));
+                    mCvConfMapFloat = sl_tools::toCVMat(confMapZEDMat);
+                    mPubConfMap.publish(imageToROSmsg(
+                                            mCvConfMapFloat, sensor_msgs::image_encodings::TYPE_32FC1,
+                                            mConfidenceOptFrameId, t));
                 }
 
                 // Publish the point cloud if someone has subscribed to
