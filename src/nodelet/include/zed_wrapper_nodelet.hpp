@@ -98,7 +98,7 @@ namespace zed_wrapper {
          * from base frame to odom frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdom(tf2::Transform baseToOdomTransform, ros::Time t);
+        void publishOdom(tf2::Transform mBase2OdomTransf, ros::Time t);
 
         /* \brief Publish the pose of the camera in "Map" frame as a transformation
          * \param base_transform : Transformation representing the camera pose from
@@ -113,7 +113,7 @@ namespace zed_wrapper {
          * base frame to odom frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdomFrame(tf2::Transform baseToOdomTransform, ros::Time t);
+        void publishOdomFrame(tf2::Transform mBase2OdomTransf, ros::Time t);
 
         /* \brief Publish the pose of the imu in "Odom" frame as a transformation
          * \param base_transform : Transformation representing the imu pose from base
@@ -175,7 +175,7 @@ namespace zed_wrapper {
          * \param left_frame_id : the id of the reference frame of the left camera
          * \param right_frame_id : the id of the reference frame of the right camera
          */
-        void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr mLeftCamInfoMsg,
+        void fillCamInfo(sl::Camera& mZed, sensor_msgs::CameraInfoPtr mLeftCamInfoMsg,
                          sensor_msgs::CameraInfoPtr mRightCamInfoMsg,
                          string leftFrameId, string rightFrameId,
                          bool rawParam = false);
@@ -249,24 +249,27 @@ namespace zed_wrapper {
 
       private:
         // SDK version
-        int verMajor;
-        int verMinor;
-        int verSubMinor;
+        int mVerMajor;
+        int mVerMinor;
+        int mVerSubMinor;
 
         // ROS
         ros::NodeHandle mNh;
         ros::NodeHandle mNhNs;
+
+        // ZED Poll Thread
         boost::shared_ptr<boost::thread> mDevicePollThread;
 
         // Publishers
-        image_transport::Publisher pubRgb;
-        image_transport::Publisher pubRawRgb;
-        image_transport::Publisher pubLeft;
-        image_transport::Publisher pubRawLeft;
-        image_transport::Publisher pubRight;
-        image_transport::Publisher pubRawRight;
-        image_transport::Publisher pubDepth;
-        image_transport::Publisher pubConfImg;
+        image_transport::Publisher mPubRgb;
+        image_transport::Publisher mPubRawRgb;
+        image_transport::Publisher mPubLeft;
+        image_transport::Publisher mPubRawLeft;
+        image_transport::Publisher mPubRight;
+        image_transport::Publisher mPubRawRight;
+        image_transport::Publisher mPubDepth;
+        image_transport::Publisher mPubConfImg;
+
         ros::Publisher pubConfMap;
         ros::Publisher pubDisparity;
         ros::Publisher pubCloud;
@@ -281,6 +284,7 @@ namespace zed_wrapper {
         ros::Publisher pubOdom;
         ros::Publisher pubImu;
         ros::Publisher pubImuRaw;
+
         ros::Publisher mPubHeightMap;
         ros::Publisher mPubCostMap;
         ros::Publisher mPubGridMap;
@@ -306,51 +310,53 @@ namespace zed_wrapper {
         sensor_msgs::CameraInfoPtr mRightCamInfoRawMsg;
         sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;
 
-        // tf
-        tf2_ros::TransformBroadcaster transformPoseBroadcaster;
-        tf2_ros::TransformBroadcaster transformOdomBroadcaster;
-        tf2_ros::TransformBroadcaster transformImuBroadcaster;
+        // ROS TF
+        tf2_ros::TransformBroadcaster mTransformPoseBroadcaster;
+        tf2_ros::TransformBroadcaster mTransformOdomBroadcaster;
+        tf2_ros::TransformBroadcaster mTransformImuBroadcaster;
 
-        std::string rgbFrameId;
-        std::string rgbOptFrameId;
+        std::string mRgbFrameId;
+        std::string mRgbOptFrameId;
 
-        std::string depthFrameId;
-        std::string depthOptFrameId;
+        std::string mDepthFrameId;
+        std::string mDepthOptFrameId;
 
-        std::string disparityFrameId;
-        std::string disparityOptFrameId;
+        std::string mDisparityFrameId;
+        std::string mDisparityOptFrameId;
 
-        std::string confidenceFrameId;
-        std::string confidenceOptFrameId;
+        std::string mConfidenceFrameId;
+        std::string mConfidenceOptFrameId;
 
-        std::string cloudFrameId;
+        std::string mCloudFrameId;
+        std::string mPointCloudFrameId;
 
         std::string mMapFrameId;
         std::string mOdometryFrameId;
-        std::string baseFrameId;
-        std::string rightCamFrameId;
-        std::string rightCamOptFrameId;
-        std::string leftCamFrameId;
-        std::string leftCamOptFrameId;
-        std::string imuFrameId;
+        std::string mBaseFrameId;
+
+        std::string mRightCamFrameId;
+        std::string mRightCamOptFrameId;
+        std::string mLeftCamFrameId;
+        std::string mLeftCamOptFrameId;
+        std::string mImuFrameId;
 
         // initialization Transform listener
-        boost::shared_ptr<tf2_ros::Buffer> tfBuffer;
-        boost::shared_ptr<tf2_ros::TransformListener> tfListener;
-        bool publishTf;
+        boost::shared_ptr<tf2_ros::Buffer> mTfBuffer;
+        boost::shared_ptr<tf2_ros::TransformListener> mTfListener;
+        bool mPublishTf;
 
         // Launch file parameters
-        int resolution;
-        int frameRate;
-        int quality;
-        int sensingMode;
-        int gpuId;
-        int zedId;
+        int mCamResol;
+        int mCamFrameRate;
+        int mCamQuality;
+        int mCamSensingMode;
+        int mGpuId;
+        int mZedId;
         int mDepthStabilization;
-        std::string odometryDb;
-        std::string svoFilepath;
-        double imuPubRate;
-        bool verbose;
+        std::string mOdometryDb;
+        std::string mSvoFilepath;
+        double mImuPubRate;
+        bool mVerbose;
 
         bool mTrackingActivated;
         bool mTrackingReady;
@@ -366,41 +372,40 @@ namespace zed_wrapper {
         nav_msgs::OccupancyGrid mCostMapMsg;
 
         // IMU time
-        ros::Time imuTime;
-
-        bool poseSmoothing;
-        bool spatialMemory;
-        bool mFloorAlignment;
-        bool initOdomWithPose;
+        ros::Time mImuTime;
 
         // Tracking variables
-        sl::Transform initialPoseSl;
-        std::vector<float> initialTrackPose;
+        sl::Transform mInitialPoseSl;
+        std::vector<float> mInitialTrackPose;
 
-        tf2::Transform odomToMapTransform;
-        tf2::Transform baseToOdomTransform;
+        // TF Transforms
+        tf2::Transform mOdom2MapTransf;
+        tf2::Transform mBase2OdomTransf;
 
-        // zed object
-        sl::InitParameters param;
-        sl::Camera zed;
-        unsigned int mSerialNumber;
-        int userCamModel;       // Camera model set by ROS Param
-        sl::MODEL realCamModel; // Camera model requested to SDK
+        // Zed object
+        sl::InitParameters mZedParams;
+        sl::Camera mZed;
+        unsigned int mZedSerialNumber;
+        int mZedUserCamModel;       // Camera model set by ROS Param
+        sl::MODEL mZedRealCamModel; // Camera model requested to SDK
 
         // Dynamic Parameters
-        int mConfidence;
-        int mExposure;
-        int mGain;
-        double mMatResizeFactor;
-        double mMaxDepth;
-        bool mAutoExposure;
+        int mCamConfidence;
+        int mCamExposure;
+        int mCamGain;
+        double mCamMatResizeFactor;
+        double mCamMaxDepth;
+        bool mCamAutoExposure;
 
         // flags
         bool mTriggerAutoExposure;
         bool mComputeDepth;
         bool mGrabbing = false;
-        int mOpenniDepthMode = 0; // 16 bit UC data in mm else 32F in m, for more info
-        // http://www.ros.org/reps/rep-0118.html
+        bool mOpenniDepthMode; // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
+        bool mPoseSmoothing;
+        bool mSpatialMemory;
+        bool mFloorAlignment;
+        bool mInitOdomWithPose;
 
         // Frame and Mat
         int mCamWidth;
@@ -417,7 +422,6 @@ namespace zed_wrapper {
 
         // Point cloud variables
         sl::Mat mCloud;
-        string mPointCloudFrameId = "";
         ros::Time mPointCloudTime;
 
         // Dynamic reconfigure
@@ -426,7 +430,6 @@ namespace zed_wrapper {
         // Coordinate Changing indices and signs
         int mIdxX, mIdxY, mIdxZ;
         int mSignX, mSignY, mSignZ;
-
     }; // class ZEDROSWrapperNodelet
 } // namespace
 
