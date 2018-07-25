@@ -1141,9 +1141,35 @@ namespace zed_wrapper {
                 mZed.requestTerrainAsync();
                 mTerrainMutex.unlock();
 
-                // Process Updated Terrain Chuncks
+                // Local chunks list
                 std::vector<sl::HashKey> chunks;
-                chunks = mTerrain.getUpdatedChunks();
+
+                // Process only Updated Terrain Chuncks
+                //chunks = mTerrain.getUpdatedChunks();
+
+                // Camera position in map frame
+                // Look up the transformation from base frame to map link
+                tf2::Transform base_to_map;
+                try {
+                    // Save the transformation from base to frame
+                    geometry_msgs::TransformStamped b2m =
+                        mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId,  ros::Time(0));
+                    // Get the TF2 transformation
+                    tf2::fromMsg(b2m.transform, base_to_map);
+                } catch (tf2::TransformException& ex) {
+                    NODELET_WARN_THROTTLE(
+                        10.0, "The tf from '%s' to '%s' does not seem to be available. "
+                        "IMU TF not published!",
+                        mBaseFrameId.c_str(), mMapFrameId.c_str());
+                    NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+                    return;
+                }
+
+                // Process the robot surrounding chunks
+                chunks = mTerrain.getSurroundingValidChunks(-base_to_map.getOrigin().y(), base_to_map.getOrigin().x(), mCamMaxDepth);   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                //mTerrain.getSurroundingValidChunks( base_to_map.getOrigin().x(), base_to_map.getOrigin().y(), mCamMaxDepth );
+
+                NODELET_DEBUG_STREAM(" ********************** Camera Position: " << base_to_map.getOrigin().x() << "," << base_to_map.getOrigin().y());
 
                 NODELET_DEBUG_STREAM("Terrain chunks updated (local map): " << chunks.size());
 
