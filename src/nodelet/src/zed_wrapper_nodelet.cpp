@@ -1167,7 +1167,7 @@ namespace zed_wrapper {
 
                 // Process the robot surrounding chunks
                 chunks = mTerrain.getSurroundingValidChunks(-base_to_map.getOrigin().y(), base_to_map.getOrigin().x(), mCamMaxDepth);   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                //mTerrain.getSurroundingValidChunks( base_to_map.getOrigin().x(), base_to_map.getOrigin().y(), mCamMaxDepth );
+                //mTerrain.getSurroundingValidChunks( -base_to_map.getOrigin().x(), -base_to_map.getOrigin().y(), mCamMaxDepth );
 
                 NODELET_DEBUG_STREAM(" ********************** Camera Position: " << base_to_map.getOrigin().x() << "," << base_to_map.getOrigin().y());
 
@@ -1347,7 +1347,8 @@ namespace zed_wrapper {
 
                 // Height Map Image
                 if (heightSub > 0 /*|| gridSub > 0*/) {
-                    terrain.generateTerrainMap(sl_heightMap, sl::MAT_TYPE_32F_C1, sl::LayerName::ELEVATION);
+                    sl::float2 origin;
+                    terrain.generateTerrainMap(sl_heightMap, origin, sl::MAT_TYPE_32F_C1, sl::LayerName::ELEVATION);
 
                     if (sl_heightMap.getResolution().area() > 0) {
                         cv_heightMap = sl_tools::toCVMat(sl_heightMap);
@@ -1359,7 +1360,8 @@ namespace zed_wrapper {
 
                 // Color Map Image
                 if (colorSub > 0 /*|| gridSub > 0*/) {
-                    terrain.generateTerrainMap(sl_colorMap, sl::MAT_TYPE_8U_C4, sl::LayerName::COLOR);
+                    sl::float2 origin;
+                    terrain.generateTerrainMap(sl_colorMap, origin, sl::MAT_TYPE_8U_C4, sl::LayerName::COLOR);
 
                     if (sl_colorMap.getResolution().area() > 0) {
                         cv_colorMap = sl_tools::toCVMat(sl_colorMap);
@@ -1371,7 +1373,8 @@ namespace zed_wrapper {
 
                 // Traversability Map Image
                 if (travSub > 0 /*|| gridSub > 0*/) {
-                    terrain.generateTerrainMap(sl_traversMap, sl::MAT_TYPE_16U_C1, sl::LayerName::TRAVERSABILITY_COST);
+                    sl::float2 origin;
+                    terrain.generateTerrainMap(sl_traversMap, origin, sl::MAT_TYPE_16U_C1, sl::LayerName::TRAVERSABILITY_COST);
 
                     if (sl_traversMap.getResolution().area() > 0) {
                         cv_traversMap = sl_tools::toCVMat(sl_traversMap);
@@ -1987,7 +1990,7 @@ namespace zed_wrapper {
                     sl::Pose zed_pose; // Sensor to Map transform
                     sl::TRACKING_STATE status = mZed.getPosition(zed_pose, sl::REFERENCE_FRAME_WORLD);
 
-                    if (status == sl::TRACKING_STATE_OK || status == sl::TRACKING_STATE_SEARCHING) {
+                    if (status == sl::TRACKING_STATE_OK || status == sl::TRACKING_STATE_SEARCHING /*|| status == sl::TRACKING_STATE_FPS_TOO_LOW*/) {
                         // Transform ZED pose in TF2 Transformation
                         geometry_msgs::Transform sens2mapTransf;
                         sl::Translation translation = zed_pose.getTranslation();
