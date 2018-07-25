@@ -387,7 +387,7 @@ namespace zed_wrapper {
         bool mMapsValid;
         double mLocalTerrainPubRate;
         double mGlobalTerrainPubRate;
-        bool mGlobalMapsUpdateReq;
+        //bool mGlobalMapsUpdateReq;
         double mTerrainMapRes;
         double mMapMaxHeight;
         nav_msgs::OccupancyGrid mHeightMapMsg;

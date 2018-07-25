@@ -802,7 +802,7 @@ namespace zed_wrapper {
 
         initMapMsgs(200);
         mMappingReady = true;
-        mGlobalMapsUpdateReq = false;
+        //mGlobalMapsUpdateReq = false;
 
         // Start Terrain Mapping Timer
         mLocalTerrainTimer = mNhNs.createTimer(ros::Duration(1.0 / mLocalTerrainPubRate),
@@ -1108,91 +1108,94 @@ namespace zed_wrapper {
             start_mapping();
         }
 
-        if (mGlobalMapsUpdateReq) {
+        /*if (mGlobalMapsUpdateReq) {
             return;
-        }
+        }*/
 
         mMappingReady = true;
 
-        mTerrainMutex.lock();
-        if (mZed.getTerrainRequestStatusAsync() == sl::SUCCESS) {
-            uint32_t heightSub = mPubLocalHeightMap.getNumSubscribers();
-            uint32_t costSub = mPubLocalCostMap.getNumSubscribers();
-            uint32_t run = heightSub + costSub;
-
-            if (run > 0) {
-                if (mZed.retrieveTerrainAsync(mTerrain) == sl::SUCCESS) {
-                    mTerrainMutex.unlock();
-                    NODELET_DEBUG("Local Terrain available");
-                    sl::timeStamp t = mTerrain.getReferenceTS();
-
-                    // Request New Terrain calculation while elaborating data
-                    mZed.requestTerrainAsync();
-
-
-                    // Process Updated Terrain Chuncks
-                    std::vector<sl::HashKey> chunks;
-                    chunks = mTerrain.getUpdatedChunks();
-
-                    NODELET_DEBUG_STREAM("Terrain chunks updated (local map): " << chunks.size());
-
-                    if (chunks.size() > 0) {
-
-                        std::vector<sl::HashKey>::iterator it;
-
-                        float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX;
-
-                        // Local map limits
-                        for (it = chunks.begin(); it != chunks.end(); it++) {
-                            sl::HashKey key = *it;
-                            sl::TerrainChunk& chunk = mTerrain.getChunk(key);
-                            sl::Dimension dim = chunk.getDimension();
-
-                            if (dim.getXmin() < minX) {
-                                minX = dim.getXmin();
-                            }
-
-                            if (dim.getYmin() < minY) {
-                                minY = dim.getYmin();
-                            }
-
-                            if (dim.getXmax() > maxX) {
-                                maxX = dim.getXmax();
-                            }
-
-                            if (dim.getYmax() > maxY) {
-                                maxY = dim.getYmax();
-                            }
-                        }
-
-                        float mapW = maxX - minX;
-                        float mapH = maxY - minY;
-
-                        NODELET_DEBUG_STREAM("Local map size: " << mapW << "x" << mapH << " m");
-
-                        //#pragma omp parallel
-                        {
-                            for (it = chunks.begin(); it != chunks.end(); it++) {
-                                sl::HashKey key = *it;
-                                sl::TerrainChunk chunk = mTerrain.getChunk(key);
-                                chunk2maps(chunk);
-                            }
-                        }
-
-                        mMapsValid = true;
-                    }
-                } else {
-                    mTerrainMutex.unlock();
-                    NODELET_DEBUG_STREAM("Local terrain not available");
-                }
-
-            } else {
+        sl::ERROR_CODE res;
+        do {
+            mTerrainMutex.lock();
+            res = mZed.getTerrainRequestStatusAsync();
+            if (res != sl::SUCCESS) {
+                mZed.requestTerrainAsync(); // if an elaboration is in progress the request is ignored
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 mTerrainMutex.unlock();
             }
+        } while (res != sl::SUCCESS);
+
+
+        uint32_t heightSub = mPubLocalHeightMap.getNumSubscribers();
+        uint32_t costSub = mPubLocalCostMap.getNumSubscribers();
+        uint32_t run = heightSub + costSub;
+
+        if (run > 0) {
+            if (mZed.retrieveTerrainAsync(mTerrain) == sl::SUCCESS) {
+
+                NODELET_DEBUG("Local Terrain available");
+                sl::timeStamp t = mTerrain.getReferenceTS();
+
+                // Request New Terrain calculation while elaborating data
+                mZed.requestTerrainAsync();
+                mTerrainMutex.unlock();
+
+                // Process Updated Terrain Chuncks
+                std::vector<sl::HashKey> chunks;
+                chunks = mTerrain.getUpdatedChunks();
+
+                NODELET_DEBUG_STREAM("Terrain chunks updated (local map): " << chunks.size());
+
+                if (chunks.size() > 0) {
+
+                    std::vector<sl::HashKey>::iterator it;
+
+                    float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX;
+
+                    // Local map limits
+                    for (it = chunks.begin(); it != chunks.end(); it++) {
+                        sl::HashKey key = *it;
+                        sl::TerrainChunk& chunk = mTerrain.getChunk(key);
+                        sl::Dimension dim = chunk.getDimension();
+
+                        if (dim.getXmin() < minX) {
+                            minX = dim.getXmin();
+                        }
+
+                        if (dim.getYmin() < minY) {
+                            minY = dim.getYmin();
+                        }
+
+                        if (dim.getXmax() > maxX) {
+                            maxX = dim.getXmax();
+                        }
+
+                        if (dim.getYmax() > maxY) {
+                            maxY = dim.getYmax();
+                        }
+                    }
+
+                    float mapW = maxX - minX;
+                    float mapH = maxY - minY;
+
+                    NODELET_DEBUG_STREAM("Local map size: " << mapW << "x" << mapH << " m");
+
+                    //#pragma omp parallel
+                    {
+                        for (it = chunks.begin(); it != chunks.end(); it++) {
+                            sl::HashKey key = *it;
+                            sl::TerrainChunk chunk = mTerrain.getChunk(key);
+                            chunk2maps(chunk);
+                        }
+                    }
+
+                    mMapsValid = true;
+                }
+            } else {
+                mTerrainMutex.unlock();
+                NODELET_DEBUG_STREAM("Local terrain not available");
+            }
         } else {
-            NODELET_DEBUG("Local Terrain NOT available");
-            // Request Terrain calculation
-            mZed.requestTerrainAsync(); // if an elaboration is in progress the request is ignored
             mTerrainMutex.unlock();
         }
     }
@@ -1208,108 +1211,112 @@ namespace zed_wrapper {
         }
 
         mMappingReady = true;
-        mGlobalMapsUpdateReq = true;
+        //mGlobalMapsUpdateReq = true;
 
-        mTerrainMutex.lock();
-        if (mZed.getTerrainRequestStatusAsync() == sl::SUCCESS) {
-            //uint32_t gridSub = mPubGridMap.getNumSubscribers();
-            uint32_t heightSub = mPubGlobalHeightMapImg.getNumSubscribers();
-            uint32_t colorSub = mPubGlobalColorMapImg.getNumSubscribers();
-            uint32_t travSub = mPubGlobalTravMapImg.getNumSubscribers();
-            uint32_t run = /*gridSub + */heightSub + colorSub + travSub;
+        sl::ERROR_CODE res;
+        do {
+            mTerrainMutex.lock();
+            res = mZed.getTerrainRequestStatusAsync();
+            if (res != sl::SUCCESS) {
+                mZed.requestTerrainAsync(); // if an elaboration is in progress the request is ignored
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                mTerrainMutex.unlock();
+            }
+        } while (res != sl::SUCCESS);
 
-            if (run > 0) {
-                sl::Terrain terrain;
-                sl::Mat sl_heightMap, sl_colorMap, sl_traversMap;
-                cv::Mat cv_heightMap, cv_colorMap, cv_traversMap;
+        //uint32_t gridSub = mPubGridMap.getNumSubscribers();
+        uint32_t heightSub = mPubGlobalHeightMapImg.getNumSubscribers();
+        uint32_t colorSub = mPubGlobalColorMapImg.getNumSubscribers();
+        uint32_t travSub = mPubGlobalTravMapImg.getNumSubscribers();
+        uint32_t run = /*gridSub + */heightSub + colorSub + travSub;
 
-                if (mZed.retrieveTerrainAsync(terrain) == sl::SUCCESS) {
-                    mGlobalMapsUpdateReq = false;
-                    mTerrainMutex.unlock();
-                    NODELET_DEBUG("Global Terrain available");
-                    sl::timeStamp t = terrain.getReferenceTS();
-                    // Request New Terrain calculation while elaborating data
-                    mZed.requestTerrainAsync();
+        if (run > 0) {
+            sl::Terrain terrain;
+            sl::Mat sl_heightMap, sl_colorMap, sl_traversMap;
+            cv::Mat cv_heightMap, cv_colorMap, cv_traversMap;
+
+            if (mZed.retrieveTerrainAsync(terrain) == sl::SUCCESS) {
+                //mGlobalMapsUpdateReq = false;
+
+                NODELET_DEBUG("Global Terrain available");
+                sl::timeStamp t = terrain.getReferenceTS();
+
+                // Request New Terrain calculation while elaborating data
+                mZed.requestTerrainAsync();
+                mTerrainMutex.unlock();
 
 
-                    // Height Map Image
-                    if (heightSub > 0 /*|| gridSub > 0*/) {
-                        terrain.generateTerrainMap(sl_heightMap, sl::MAT_TYPE_32F_C1, sl::LayerName::ELEVATION);
+                // Height Map Image
+                if (heightSub > 0 /*|| gridSub > 0*/) {
+                    terrain.generateTerrainMap(sl_heightMap, sl::MAT_TYPE_32F_C1, sl::LayerName::ELEVATION);
 
-                        if (sl_heightMap.getResolution().area() > 0) {
-                            cv_heightMap = sl_tools::toCVMat(sl_heightMap);
-                            mPubGlobalHeightMapImg.publish(
-                                imageToROSmsg(cv_heightMap, sensor_msgs::image_encodings::TYPE_32FC1,
-                                              mMapFrameId, sl_tools::slTime2Ros(t)));
-                        }
+                    if (sl_heightMap.getResolution().area() > 0) {
+                        cv_heightMap = sl_tools::toCVMat(sl_heightMap);
+                        mPubGlobalHeightMapImg.publish(
+                            imageToROSmsg(cv_heightMap, sensor_msgs::image_encodings::TYPE_32FC1,
+                                          mMapFrameId, sl_tools::slTime2Ros(t)));
                     }
-
-                    // Color Map Image
-                    if (colorSub > 0 /*|| gridSub > 0*/) {
-                        terrain.generateTerrainMap(sl_colorMap, sl::MAT_TYPE_8U_C4, sl::LayerName::COLOR);
-
-                        if (sl_colorMap.getResolution().area() > 0) {
-                            cv_colorMap = sl_tools::toCVMat(sl_colorMap);
-                            mPubGlobalColorMapImg.publish(imageToROSmsg(
-                                                              cv_colorMap, sensor_msgs::image_encodings::TYPE_8UC4,
-                                                              mMapFrameId, sl_tools::slTime2Ros(t)));
-                        }
-                    }
-
-                    // Traversability Map Image
-                    if (travSub > 0 /*|| gridSub > 0*/) {
-                        terrain.generateTerrainMap(sl_traversMap, sl::MAT_TYPE_16U_C1, sl::LayerName::TRAVERSABILITY_COST);
-
-                        if (sl_traversMap.getResolution().area() > 0) {
-                            cv_traversMap = sl_tools::toCVMat(sl_traversMap);
-                            mPubGlobalTravMapImg.publish(imageToROSmsg(
-                                                             cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,
-                                                             mMapFrameId, sl_tools::slTime2Ros(t)));
-                        }
-                    }
-
-                    // Multilayer GridMap {https://github.com/ethz-asl/grid_map}
-                    //                    if (gridSub > 0) {
-
-                    //                        if (!cv_traversMap.empty() &&
-                    //                            !cv_colorMap.empty() &&
-                    //                            !cv_heightMap.empty())
-
-                    //                        {
-                    //                            // TODO USE CHUNK TO UPDATE SUBMAPS
-                    //                            // GridMap creation
-                    //                            grid_map::GridMap gridMap;
-                    //                            grid_map::Position pos(0, 0); // TODO: initialize with the initial position of the tracking
-                    //                            grid_map::GridMapCvConverter::initializeFromImage(cv_heightMap, mTerrainMapRes, gridMap, pos);
-                    //                            grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(cv_heightMap, "height_map", gridMap);
-                    //                            grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(cv_traversMap, "traversability_map", gridMap);
-                    //                            grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 4>(cv_colorMap, "color_map", gridMap);
-                    //                            // GridMap to ROS message
-                    //                            grid_map_msgs::GridMap gridMapMsg;
-                    //                            gridMap.setTimestamp(t);
-                    //                            gridMap.setFrameId(mMapFrameId);
-                    //                            grid_map::GridMapRosConverter::toMessage(gridMap, gridMapMsg);
-                    //                            // Publishing
-                    //                            mPubGridMap.publish(gridMapMsg);
-
-                    //                            /*sl::Mesh mesh;
-                    //                            terrain.toMesh(mesh);
-                    //                            mesh.save("./mesh.obj");*/
-                    //                        }
-                    //                    }
-                } else {
-                    mTerrainMutex.unlock();
-                    NODELET_DEBUG_STREAM("Local terrain not available");
                 }
+
+                // Color Map Image
+                if (colorSub > 0 /*|| gridSub > 0*/) {
+                    terrain.generateTerrainMap(sl_colorMap, sl::MAT_TYPE_8U_C4, sl::LayerName::COLOR);
+
+                    if (sl_colorMap.getResolution().area() > 0) {
+                        cv_colorMap = sl_tools::toCVMat(sl_colorMap);
+                        mPubGlobalColorMapImg.publish(imageToROSmsg(
+                                                          cv_colorMap, sensor_msgs::image_encodings::TYPE_8UC4,
+                                                          mMapFrameId, sl_tools::slTime2Ros(t)));
+                    }
+                }
+
+                // Traversability Map Image
+                if (travSub > 0 /*|| gridSub > 0*/) {
+                    terrain.generateTerrainMap(sl_traversMap, sl::MAT_TYPE_16U_C1, sl::LayerName::TRAVERSABILITY_COST);
+
+                    if (sl_traversMap.getResolution().area() > 0) {
+                        cv_traversMap = sl_tools::toCVMat(sl_traversMap);
+                        mPubGlobalTravMapImg.publish(imageToROSmsg(
+                                                         cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,
+                                                         mMapFrameId, sl_tools::slTime2Ros(t)));
+                    }
+                }
+
+                // Multilayer GridMap {https://github.com/ethz-asl/grid_map}
+                //                    if (gridSub > 0) {
+
+                //                        if (!cv_traversMap.empty() &&
+                //                            !cv_colorMap.empty() &&
+                //                            !cv_heightMap.empty())
+
+                //                        {
+                //                            // TODO USE CHUNK TO UPDATE SUBMAPS
+                //                            // GridMap creation
+                //                            grid_map::GridMap gridMap;
+                //                            grid_map::Position pos(0, 0); // TODO: initialize with the initial position of the tracking
+                //                            grid_map::GridMapCvConverter::initializeFromImage(cv_heightMap, mTerrainMapRes, gridMap, pos);
+                //                            grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(cv_heightMap, "height_map", gridMap);
+                //                            grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(cv_traversMap, "traversability_map", gridMap);
+                //                            grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 4>(cv_colorMap, "color_map", gridMap);
+                //                            // GridMap to ROS message
+                //                            grid_map_msgs::GridMap gridMapMsg;
+                //                            gridMap.setTimestamp(t);
+                //                            gridMap.setFrameId(mMapFrameId);
+                //                            grid_map::GridMapRosConverter::toMessage(gridMap, gridMapMsg);
+                //                            // Publishing
+                //                            mPubGridMap.publish(gridMapMsg);
+
+                //                            /*sl::Mesh mesh;
+                //                            terrain.toMesh(mesh);
+                //                            mesh.save("./mesh.obj");*/
+                //                        }
+                //                    }
             } else {
                 mTerrainMutex.unlock();
+                NODELET_DEBUG_STREAM("Local terrain not available");
             }
         } else {
             mTerrainMutex.unlock();
-            NODELET_DEBUG("Global Terrain NOT available");
-
-            // Request Terrain calculation
-            mZed.requestTerrainAsync(); // if an elaboration is in progress the request is ignored
         }
     }
 
