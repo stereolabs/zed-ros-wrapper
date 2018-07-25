@@ -205,6 +205,16 @@ namespace zed_wrapper {
          */
         void initMapMsgs(double map_size_m, bool initCvMat = false);
 
+        /* \brief Publish local height and cost maps from updated Terrain Chunks
+         * \param minX : minimum X coordinate of the map in meters
+         * \param minY : minimum Y coordinate of the map in meters
+         * \param maxX : maximum X coordinate of the map in meters
+         * \param maxY : maximum Y coordinate of the map in meters
+         * \param chunks : updated chunks from terrain mapping
+         * \param t : timestamp
+         */
+        void publishLocalMaps(float minX, float minY, float maxX, float maxY, std::vector<sl::HashKey>& chunks, ros::Time t);
+
         /* \brief Double the current dimensions of the maps to make space
          *        for new incoming data
          */
@@ -384,7 +394,6 @@ namespace zed_wrapper {
         sl::Terrain mTerrain;
         bool mMappingReady;
         bool mTerrainMap;
-        bool mMapsValid;
         double mLocalTerrainPubRate;
         double mGlobalTerrainPubRate;
         //bool mGlobalMapsUpdateReq;

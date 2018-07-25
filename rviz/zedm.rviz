@@ -9,6 +9,8 @@ Panels:
         - /TF1/Frames1
         - /DepthCloud1/Occlusion Compensation1
         - /Odometry1/Covariance1/Position1
+        - /Local Height Map1
+        - /Local Cost Map1
       Splitter Ratio: 0.5
     Tree Height: 305
   - Class: rviz/Selection
@@ -299,25 +301,25 @@ Visualization Manager:
       Topic: /zed/odom
       Unreliable: false
       Value: true
-    - Alpha: 0.699999988
+    - Alpha: 0.5
       Class: rviz/Map
-      Color Scheme: map
-      Draw Behind: false
+      Color Scheme: raw
+      Draw Behind: true
       Enabled: true
       Name: Local Height Map
       Topic: /zed/map/loc_map_heightmap
-      Unreliable: false
-      Use Timestamp: false
+      Unreliable: true
+      Use Timestamp: true
       Value: true
-    - Alpha: 0.699999988
+    - Alpha: 0.5
       Class: rviz/Map
-      Color Scheme: map
-      Draw Behind: false
+      Color Scheme: costmap
+      Draw Behind: true
       Enabled: true
       Name: Local Cost Map
       Topic: /zed/map/loc_map_costmap
-      Unreliable: false
-      Use Timestamp: false
+      Unreliable: true
+      Use Timestamp: true
       Value: true
     - Class: rviz/Image
       Enabled: true
@@ -416,10 +418,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.224797472
+      Pitch: 0.224797517
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.08409691
+      Yaw: 2.16409707
     Saved: ~
 Window Geometry:
   Camera:

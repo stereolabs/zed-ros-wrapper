@@ -782,7 +782,7 @@ namespace zed_wrapper {
         mMapMaxHeight = .5f; // TODO Expose parameter to launch file
         float height_resol = .025f; // TODO Expose parameter to launch file
 
-        sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution = sl::TerrainMappingParameters::GRID_RESOLUTION::LOW; // TODO Expose parameter to launch file
+        sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution = sl::TerrainMappingParameters::GRID_RESOLUTION::MEDIUM; // TODO Expose parameter to launch file
         mTerrainMapRes = terrainParams.setGridResolution(grid_resolution); // TODO: Check this value when bug is fixed in SDK
 
         NODELET_INFO_STREAM("Terrain Grid Resolution " << mTerrainMapRes << "m");
@@ -1114,6 +1114,7 @@ namespace zed_wrapper {
 
         mMappingReady = true;
 
+        // Timer synchronization with Global mapping
         sl::ERROR_CODE res;
         do {
             mTerrainMutex.lock();
@@ -1175,21 +1176,7 @@ namespace zed_wrapper {
                         }
                     }
 
-                    float mapW = maxX - minX;
-                    float mapH = maxY - minY;
-
-                    NODELET_DEBUG_STREAM("Local map size: " << mapW << "x" << mapH << " m");
-
-                    //#pragma omp parallel
-                    {
-                        for (it = chunks.begin(); it != chunks.end(); it++) {
-                            sl::HashKey key = *it;
-                            sl::TerrainChunk chunk = mTerrain.getChunk(key);
-                            chunk2maps(chunk);
-                        }
-                    }
-
-                    mMapsValid = true;
+                    publishLocalMaps(minX, minY, maxX, maxY, chunks, sl_tools::slTime2Ros(t));
                 }
             } else {
                 mTerrainMutex.unlock();
@@ -1198,6 +1185,91 @@ namespace zed_wrapper {
         } else {
             mTerrainMutex.unlock();
         }
+    }
+
+    void ZEDWrapperNodelet::publishLocalMaps(float minX, float minY, float maxX, float maxY, std::vector<sl::HashKey>& chunks, ros::Time t) {
+        float mapH = fabs(maxX - minX); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        float mapW = fabs(maxY - minY); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+
+        uint32_t mapRows = static_cast<uint32_t>(ceil(mapH / mTerrainMapRes));
+        uint32_t mapCols = static_cast<uint32_t>(ceil(mapW / mTerrainMapRes));
+
+        NODELET_DEBUG_STREAM("Local map origin: [" << minX << "," << minY << "]");
+        NODELET_DEBUG_STREAM("Local map dimensions: " << mapW << " x " << mapH << " m");
+        NODELET_DEBUG_STREAM("Local map cell dim: " << mapCols << " x " << mapRows);
+
+        // MetaData
+        nav_msgs::MapMetaData mapInfo;
+        mapInfo.resolution = mTerrainMapRes;
+        mapInfo.height = mapRows;
+        mapInfo.width = mapCols;
+        mapInfo.origin.position.x = minY;  /*minX;*/ // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        mapInfo.origin.position.y = -maxX; /*minY;*/ // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        mapInfo.origin.position.z = 0.0;
+        mapInfo.origin.orientation.x = 0;
+        mapInfo.origin.orientation.y = 0;
+        mapInfo.origin.orientation.z = 0;
+        mapInfo.origin.orientation.w = 1;
+        mapInfo.map_load_time = t;
+
+        // Height Map Message as OccupancyGrid
+        nav_msgs::OccupancyGrid heightMapMsg;
+        heightMapMsg.info = mapInfo;
+        heightMapMsg.header.frame_id = mMapFrameId;
+        heightMapMsg.header.stamp = t;
+        heightMapMsg.data = std::vector<int8_t>(mapRows * mapCols, -1);
+
+        // Cost Map Message as OccupancyGrid
+        nav_msgs::OccupancyGrid costMapMsg;
+        costMapMsg.info = mapInfo;
+        costMapMsg.header.frame_id = mMapFrameId;
+        costMapMsg.header.stamp = t;
+        costMapMsg.data = std::vector<int8_t>(mapRows * mapCols, -1);
+
+        std::vector<sl::HashKey>::iterator it;
+        for (it = chunks.begin(); it != chunks.end(); it++) {
+            //NODELET_DEBUG("*** NEW CHUNK parsing ***");
+            sl::HashKey key = *it;
+            sl::TerrainChunk chunk = mTerrain.getChunk(key);
+
+            sl::Dimension dim = chunk.getDimension();
+            unsigned int cellCount = dim.getFullSizeIdx();
+
+            #pragma omp parallel for
+            for (unsigned int i = 0; i < cellCount; i++) {
+                if (!chunk.isCellValid(i)) { // Leave the value to its default: -1
+                    continue;
+                }
+
+                int8_t height = static_cast<int8_t>(round(chunk.at(sl::ELEVATION, i) / mMapMaxHeight) * 100);
+                int8_t cost = static_cast<int8_t>(chunk.at(sl::TRAVERSABILITY_COST, i) * 100);
+
+                float xm, ym;
+                if (dim.index2x_y(i, xm, ym)) {
+                    continue; // Index out of range
+                }
+
+                // (xm,ym) to ROS map index
+                uint32_t v = static_cast<uint32_t>(round((-xm - (-maxX)) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                uint32_t u = static_cast<uint32_t>(round((ym - minY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                //uint32_t u = static_cast<uint32_t>(round((xm - minX) / mTerrainMapRes));
+                //uint32_t v = static_cast<uint32_t>(round((ym - minY) / mTerrainMapRes));
+
+                uint32_t mapIdx = u + v * mapCols;
+
+                if (mapIdx >= mapCols * mapRows) {
+                    NODELET_DEBUG_STREAM("Cell OUT OF RANGE: [" << u << "," << v << "] -> " << mapIdx);
+                    continue;
+                }
+
+                //NODELET_DEBUG_STREAM("Cell: [" << u << "," << v << "] -> " << mapIdx);
+                heightMapMsg.data.at(mapIdx) = height;
+                costMapMsg.data.at(mapIdx) = cost;
+            }
+        }
+
+        mPubLocalHeightMap.publish(heightMapMsg);
+        mPubLocalCostMap.publish(costMapMsg);
     }
 
     void ZEDWrapperNodelet::globalTerrainCallback(const ros::TimerEvent& e) {
@@ -1213,6 +1285,7 @@ namespace zed_wrapper {
         mMappingReady = true;
         //mGlobalMapsUpdateReq = true;
 
+        // Timer synchronization with Local mapping
         sl::ERROR_CODE res;
         do {
             mTerrainMutex.lock();
@@ -1321,8 +1394,6 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::initMapMsgs(double map_size_m, bool initCvMat) {
-        mMapsValid = false;
-
         // MetaData
         nav_msgs::MapMetaData mapInfo;
         mapInfo.resolution = mTerrainMapRes;
