@@ -38,7 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="publish_tf"                    default="true" />
     <arg name="pose_frame"                    default="map" />
     <arg name="odometry_frame"                default="odom" />
-    <arg name="base_frame"                    default="zed_camera_center" />
+    <arg name="base_frame"                    default="base_link" />
+    <arg name="camera_frame"                  default="zed_camera_center" />
     <arg name="left_camera_frame"             default="zed_left_camera_frame" />
     <arg name="left_camera_optical_frame"     default="zed_left_camera_optical_frame" />
     <arg name="right_camera_frame"            default="zed_right_camera_frame" />
