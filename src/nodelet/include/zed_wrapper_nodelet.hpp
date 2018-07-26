@@ -200,10 +200,10 @@ namespace zed_wrapper {
         void globalTerrainCallback(const ros::TimerEvent& e);
 
         /* \brief Initialize the ROS Map messages
-         * \param map_size : size of the map in meters
-         * \param initCvMat : indicates if \ref mCvHeightMat and \ref mCvCosttMat must be created or not
+         * \param map_W_m : width of the map in meters
+         * \param map_H_m : height of the map in meters
          */
-        void initMapMsgs(double map_size_m, bool initCvMat = false);
+        void initGlobalMapMsgs(double map_W_m, double map_H_m);
 
         /* \brief Publish local height and cost maps from updated Terrain Chunks
          * \param minX : minimum X coordinate of the map in meters
@@ -215,25 +215,15 @@ namespace zed_wrapper {
          */
         void publishLocalMaps(float minX, float minY, float maxX, float maxY, std::vector<sl::HashKey>& chunks, ros::Time t);
 
-        /* \brief Double the current dimensions of the maps to make space
-         *        for new incoming data
+        /* \brief Publish global height and cost maps from updated Terrain Chunks
+         * \param minX : minimum X coordinate of the map in meters
+         * \param minY : minimum Y coordinate of the map in meters
+         * \param maxX : maximum X coordinate of the map in meters
+         * \param maxY : maximum Y coordinate of the map in meters
+         * \param chunks : updated chunks from terrain mapping
+         * \param t : timestamp
          */
-        void doubleMapsDims();
-
-        /* \brief Process a terrain chunk and updates the relative
-         *        Height and Traversability maps
-         */
-        void chunk2maps(sl::TerrainChunk& chunk);
-
-        /* \brief Convert a metric coordinate to map cell indices
-         * \param xm : X coordinate in meters
-         * \param ym : Y coordinate in meters
-         * \param row : corresponding \ref mCvHeightMat and \ref mCvCosttMat row index
-         * \param col : corresponding \ref mCvHeightMat and \ref mCvCosttMat col index
-         *
-         * \returns false if indices are outside the matrix size
-         */
-        bool coord2cell(float xm, float ym, uint32_t& row, uint32_t& col);
+        void publishGlobalMaps(std::vector<sl::HashKey>& chunks, ros::Time t);
 
         /* \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
@@ -396,18 +386,18 @@ namespace zed_wrapper {
         bool mTerrainMap;
         double mLocalTerrainPubRate;
         double mGlobalTerrainPubRate;
-        //bool mGlobalMapsUpdateReq;
         double mTerrainMapRes;
         double mMapMaxHeight;
-        nav_msgs::OccupancyGrid mHeightMapMsg;
-        nav_msgs::OccupancyGrid mCostMapMsg;
-        cv::Mat mCvHeightMat;
-        cv::Mat mCvCostMat;
+        nav_msgs::OccupancyGrid mGlobHeightMapMsg;
+        nav_msgs::OccupancyGrid mGlobCostMapMsg;
+        bool mGlobMapEmpty;
+        sl::timeStamp mLastGlobMapTimestamp;
 
         // IMU time
         ros::Time mImuTime;
 
         // Tracking variables
+        sl::Pose mLastZedPose; // Sensor to Map transform
         sl::Transform mInitialPoseSl;
         std::vector<float> mInitialTrackPose;
 
