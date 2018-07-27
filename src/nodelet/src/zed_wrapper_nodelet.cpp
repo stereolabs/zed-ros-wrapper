@@ -235,7 +235,7 @@ namespace zed_wrapper {
         nhNs.getParam("imu_pub_rate", imuPubRate);
 
         // Create camera info
-        sensor_msgs::CameraInfoPtr rgb_cam_info_ms_g(new sensor_msgs::CameraInfo());
+        sensor_msgs::CameraInfoPtr rgb_cam_info_msg_(new sensor_msgs::CameraInfo());
         sensor_msgs::CameraInfoPtr left_cam_info_msg_(new sensor_msgs::CameraInfo());
         sensor_msgs::CameraInfoPtr right_cam_info_msg_(new sensor_msgs::CameraInfo());
         sensor_msgs::CameraInfoPtr rgb_cam_info_raw_msg_(
@@ -246,7 +246,7 @@ namespace zed_wrapper {
             new sensor_msgs::CameraInfo());
         sensor_msgs::CameraInfoPtr depth_cam_info_msg_(new sensor_msgs::CameraInfo());
 
-        rgbCamInfoMsg = rgb_cam_info_ms_g;
+        rgbCamInfoMsg = rgb_cam_info_msg_;
         leftCamInfoMsg = left_cam_info_msg_;
         rightCamInfoMsg = right_cam_info_msg_;
         rgbCamInfoRawMsg = rgb_cam_info_raw_msg_;
@@ -1379,8 +1379,7 @@ namespace zed_wrapper {
                     }
                     if (rgb_SubNumber > 0) {
                         publishCamInfo(rgbCamInfoMsg, pubRgbCamInfo, t);
-                        publishImage(leftImRGB, pubRgb, depthOptFrameId,
-                                     t); // rgb is the left image
+                        publishImage(leftImRGB, pubRgb, depthOptFrameId, t); // rgb is the left image
                     }
                 }
 
