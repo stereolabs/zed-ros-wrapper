@@ -1341,6 +1341,14 @@ namespace zed_wrapper {
                 if (chunk.isCellValid(i)) { // Leave the value to its default: -1
                     height = static_cast<int8_t>(fabs(round(chunk.at(sl::ELEVATION, i) / mMapMaxHeight) * 100));
                     cost = static_cast<int8_t>(chunk.at(sl::TRAVERSABILITY_COST, i) * 100);
+
+                    if (!isfinite(height)) {
+                        height = -1;
+                    }
+
+                    if (!isfinite(height)) {
+                        cost = -1;
+                    }
                 }
 
                 float xm, ym;
@@ -1349,14 +1357,17 @@ namespace zed_wrapper {
                 }
 
                 // (xm,ym) to ROS map index
-                uint32_t u = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                uint32_t v = static_cast<uint32_t>(round((-xm - mapMinY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                int u = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                int v = static_cast<uint32_t>(round((-xm - mapMinY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
 
-                uint32_t mapIdx = u + v * mapCols;
+                int mapIdx = u + v * mapCols;
 
-                if (mapIdx >= mapCols * mapRows) {
-                    NODELET_DEBUG_STREAM("[Global map] Cell OUT OF RANGE: [" << u << "," << v << "] -> " << mapIdx << "[max: " << mapCols * mapRows << "]");
-                    NODELET_DEBUG_STREAM("ym: " << ym << " - xm: " << xm);
+                if (u < 0 || v < 0 ||
+                    u > mGlobHeightMapMsg.info.width ||
+                    v > mGlobHeightMapMsg.info.height ||
+                    mapIdx < 0 || mapIdx >= mapCols * mapRows) {
+                    //NODELET_DEBUG_STREAM("[Global map] Cell OUT OF RANGE: [" << u << "," << v << "] -> " << mapIdx << "[max: " << mapCols * mapRows << "]");
+                    //NODELET_DEBUG_STREAM("ym: " << ym << " - xm: " << xm);
                     continue;
                 }
 
@@ -1419,19 +1430,22 @@ namespace zed_wrapper {
                 if (mGlobMapEmpty) {
                     chunks = mTerrain.getAllValidChunk();
                     mLastGlobMapTimestamp = mTerrain.getReferenceTS();
-                    NODELET_DEBUG("ALL CHUNKS");
+                    NODELET_DEBUG("*************** ALL CHUNKS ***************");
+                    mGlobMapEmpty = false;
                 } else {
                     chunks = mTerrain.getUpdatedChunks(mLastGlobMapTimestamp);
                     mLastGlobMapTimestamp = mTerrain.getReferenceTS();
 
-                    NODELET_DEBUG("UPDATED CHUNKS");
+                    NODELET_DEBUG("+++++++++++++++ UPDATED CHUNKS +++++++++++++++");
                 }
 
-                NODELET_DEBUG_STREAM("Terrain chunks updated (global map): " << chunks.size());
+                NODELET_DEBUG_STREAM("Terrain chunks (global map): " << chunks.size());
 
                 if (chunks.size() > 0) {
-                    mGlobMapEmpty = false;
-                    // Check if global map size is enough
+                    // Publish global map
+                    publishGlobalMaps(chunks, sl_tools::slTime2Ros(mLastGlobMapTimestamp));
+
+                    // Get chunks map limits
                     double mapWm = mGlobHeightMapMsg.info.width * mGlobHeightMapMsg.info.resolution;
                     double mapMinX = mGlobHeightMapMsg.info.origin.position.x;
                     double mapMaxX = mapMinX + mapWm;
@@ -1467,19 +1481,11 @@ namespace zed_wrapper {
                         }
                     }
 
-                    NODELET_DEBUG_STREAM("Global Map - ORIGIN: [" << minX << "," << minY << "] - SIZE: "
-                                         << maxX - minX << " x " << maxY - minY << "m");
-
-                    sl::Dimension dim = mTerrain.getDimension();
-
-                    NODELET_DEBUG_STREAM("SDK Global Map - ORIGIN: [" << dim.getXmin() << ","
-                                         << dim.getYmin() << "] - SIZE: " << dim.getSize()*dim.getResolution()
-                                         << " x " << dim.getSize()*dim.getResolution() << "m");
-
-                    if (minX < /*mapMinX*/ mapMinY ||       // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                        maxX > /*mapMaxX*/ mapMaxY ||       // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                        minY < /*mapMinY*/ (-mapMaxX) ||    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                        maxY > /*mapMaxY*/ (-mapMinX)) {    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                    // Check if the map must be resized
+                    if (minX < /*mapMinX*/ -(mapMaxY) ||       // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        maxX > /*mapMaxX*/ -(mapMinY) ||       // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        minY < /*mapMinY*/ mapMinX ||    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        maxY > /*mapMaxY*/ mapMaxX) {    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
 
                         float width = maxX - minX;
                         float height = maxY - minY;
@@ -1490,9 +1496,9 @@ namespace zed_wrapper {
                         mGlobHeightMapMsg.info.origin.position.y = -maxX; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                         mGlobCostMapMsg.info.origin.position.x = minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                         mGlobCostMapMsg.info.origin.position.y = -maxX; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                    }
 
-                    publishGlobalMaps(chunks, sl_tools::slTime2Ros(mLastGlobMapTimestamp));
+                        NODELET_DEBUG("****************************************************************************************************************");
+                    }
                 } else {
                     NODELET_DEBUG("Global map not available");
                     return;
@@ -1604,7 +1610,6 @@ namespace zed_wrapper {
         mGlobCostMapMsg.data = std::vector<int8_t>(mapRows * mapCols, -1);
         mGlobMapEmpty = true;
 
-        NODELET_DEBUG_STREAM("Initialized Global map origin: [" << mapInfo.origin.position.x << "," << mapInfo.origin.position.y << "]");
         NODELET_DEBUG_STREAM("Initialized Global map dimensions: " << map_W_m << " x " << map_H_m << " m");
         NODELET_DEBUG_STREAM("Initialized Global map cell dim: " << mapInfo.width << " x " << mapInfo.height);
     }
