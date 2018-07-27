@@ -1164,8 +1164,8 @@ namespace zed_wrapper {
                     return;
                 }
 
-                NODELET_DEBUG_STREAM("TF POSE: " << base_to_map.getOrigin().x() << "," << base_to_map.getOrigin().y());
-                NODELET_DEBUG_STREAM("ZED POSE: " << mLastZedPose.getTranslation().x << "," << mLastZedPose.getTranslation().y);
+                //NODELET_DEBUG_STREAM("TF POSE: " << base_to_map.getOrigin().x() << "," << base_to_map.getOrigin().y());
+                //NODELET_DEBUG_STREAM("ZED POSE: " << mLastZedPose.getTranslation().x << "," << mLastZedPose.getTranslation().y);
 
                 // Process the robot surrounding chunks
                 chunks = mTerrain.getSurroundingValidChunks(-base_to_map.getOrigin().y(), base_to_map.getOrigin().x(), 3);   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
@@ -1442,9 +1442,6 @@ namespace zed_wrapper {
                 NODELET_DEBUG_STREAM("Terrain chunks (global map): " << chunks.size());
 
                 if (chunks.size() > 0) {
-                    // Publish global map
-                    publishGlobalMaps(chunks, sl_tools::slTime2Ros(mLastGlobMapTimestamp));
-
                     // Get chunks map limits
                     double mapWm = mGlobHeightMapMsg.info.width * mGlobHeightMapMsg.info.resolution;
                     double mapMinX = mGlobHeightMapMsg.info.origin.position.x;
@@ -1456,7 +1453,9 @@ namespace zed_wrapper {
 
                     std::vector<sl::HashKey>::iterator it;
 
-                    float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX;
+                    float minX = -(mapMaxY), minY = mapMinX, maxX = -(mapMinY), maxY = mapMaxX; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+
+                    bool doResize = false;
 
                     // Chunk list limits
                     for (it = chunks.begin(); it != chunks.end(); it++) {
@@ -1466,31 +1465,36 @@ namespace zed_wrapper {
 
                         if (dim.getXmin() < minX) {
                             minX = dim.getXmin();
+                            doResize = true;
                         }
 
                         if (dim.getYmin() < minY) {
                             minY = dim.getYmin();
+                            doResize = true;
                         }
 
                         if (dim.getXmax() > maxX) {
                             maxX = dim.getXmax();
+                            doResize = true;
                         }
 
                         if (dim.getYmax() > maxY) {
                             maxY = dim.getYmax();
+                            doResize = true;
                         }
                     }
 
                     // Check if the map must be resized
-                    if (minX < /*mapMinX*/ -(mapMaxY) ||       // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                        maxX > /*mapMaxX*/ -(mapMinY) ||       // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                        minY < /*mapMinY*/ mapMinX ||    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                        maxY > /*mapMaxY*/ mapMaxX) {    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                    if (doResize) {    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
 
                         float width = maxX - minX;
                         float height = maxY - minY;
 
                         initGlobalMapMsgs(height, width); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+
+                        // Map as been reinitialized to -1. We need all chunksm not only the updated
+                        chunks = mTerrain.getAllValidChunk();
+                        mGlobMapEmpty = false;
 
                         mGlobHeightMapMsg.info.origin.position.x = minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                         mGlobHeightMapMsg.info.origin.position.y = -maxX; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
@@ -1499,6 +1503,9 @@ namespace zed_wrapper {
 
                         NODELET_DEBUG("****************************************************************************************************************");
                     }
+
+                    // Publish global map
+                    publishGlobalMaps(chunks, sl_tools::slTime2Ros(mLastGlobMapTimestamp));
                 } else {
                     NODELET_DEBUG("Global map not available");
                     return;
