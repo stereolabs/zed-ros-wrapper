@@ -1,4 +1,4 @@
-#ifndef ZED_WRAPPER_NODELET_H
+﻿#ifndef ZED_WRAPPER_NODELET_H
 #define ZED_WRAPPER_NODELET_H
 
 ///////////////////////////////////////////////////////////////////////////
@@ -285,6 +285,7 @@ namespace zed_wrapper {
         boost::shared_ptr<tf2_ros::Buffer> tfBuffer;
         boost::shared_ptr<tf2_ros::TransformListener> tfListener;
         bool publishTf;
+        bool mPublishMapTf;
 
         // Launch file parameters
         int resolution;

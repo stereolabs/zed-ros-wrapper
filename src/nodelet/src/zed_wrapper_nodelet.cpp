@@ -135,6 +135,7 @@ namespace zed_wrapper {
 
         // Publish odometry tf
         nhNs.param<bool>("publish_tf", publishTf, true);
+        nhNs.param<bool>("publish_map_tf", mPublishMapTf, true);
 
         if (serial_number > 0) {
             NODELET_INFO_STREAM("SN : " << serial_number);
@@ -155,12 +156,10 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("disparity_optical_frame    -> " << disparityOptFrameId);
 
         // Status of map TF
-        NODELET_INFO_STREAM("Publish " << mapFrameId << " ["
+        NODELET_INFO_STREAM("Broadcasting " << odometryFrameId << " ["
                             << (publishTf ? "TRUE" : "FALSE") << "]");
-
-        // Status of odometry TF
-        // NODELET_INFO_STREAM("Publish " << odometry_frame_id << " [" << (publish_tf
-        // ? "TRUE" : "FALSE") << "]");
+        NODELET_INFO_STREAM("Broadcasting " << mapFrameId << " ["
+                            << ((publishTf && mPublishMapTf) ? "TRUE" : "FALSE") << "]");
 
         std::string img_topic = "image_rect_color";
         std::string img_raw_topic = "image_raw_color";
@@ -1149,20 +1148,23 @@ namespace zed_wrapper {
 
         // Publish IMU tf only if enabled
         if (publishTf) {
-            // Camera to map transform from TF buffer
-            tf2::Transform base_to_map;
-            // Look up the transformation from base frame to map link
+            // Camera to pose transform from TF buffer
+            tf2::Transform base_to_pose;
+            std::string poseFrame;
+            // Look up the transformation from base frame to pose link
             try {
-                // Save the transformation from base to frame
-                geometry_msgs::TransformStamped b2m =
-                    tfBuffer->lookupTransform(mapFrameId, mCameraFrameId, ros::Time(0));
+                poseFrame = mPublishMapTf ? mapFrameId : odometryFrameId;
+
+                // Save the transformation from base to pose frame
+                geometry_msgs::TransformStamped b2p =
+                    tfBuffer->lookupTransform(poseFrame, mCameraFrameId, ros::Time(0));
                 // Get the TF2 transformation
-                tf2::fromMsg(b2m.transform, base_to_map);
+                tf2::fromMsg(b2p.transform, base_to_pose);
             } catch (tf2::TransformException& ex) {
                 NODELET_WARN_THROTTLE(
                     10.0, "The tf from '%s' to '%s' does not seem to be available. "
                     "IMU TF not published!",
-                    mCameraFrameId.c_str(), mapFrameId.c_str());
+                    mCameraFrameId.c_str(), poseFrame.c_str());
                 NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
                 return;
             }
@@ -1175,7 +1177,7 @@ namespace zed_wrapper {
             imu_q.setW(imu_data.getOrientation()[3]);
 
             // Pose Quaternion from ZED Camera
-            tf2::Quaternion map_q = base_to_map.getRotation();
+            tf2::Quaternion map_q = base_to_pose.getRotation();
 
             // Difference between IMU and ZED Quaternion
             tf2::Quaternion delta_q = imu_q * map_q.inverse();
@@ -1578,12 +1580,13 @@ namespace zed_wrapper {
                 if (publishTf) {
                     // Note, the frame is published, but its values will only change if
                     // someone has subscribed to odom
-                    publishOdomFrame(baseToOdomTransform,
-                                     t); // publish the base Frame in odometry frame
-                    // Note, the frame is published, but its values will only change if
-                    // someone has subscribed to map
-                    publishPoseFrame(odomToMapTransform,
-                                     t); // publish the odometry Frame in map frame
+                    publishOdomFrame(baseToOdomTransform, t); // publish the base Frame in odometry frame
+
+                    if (mPublishMapTf) {
+                        // Note, the frame is published, but its values will only change if
+                        // someone has subscribed to map
+                        publishPoseFrame(odomToMapTransform, t); // publish the odometry Frame in map frame
+                    }
 
                     imuTime = t;
                 }
@@ -1614,10 +1617,10 @@ namespace zed_wrapper {
                 if (publishTf) {
                     ros::Time t =
                         sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
-                    publishOdomFrame(baseToOdomTransform,
-                                     t); // publish the base Frame in odometry frame
-                    publishPoseFrame(odomToMapTransform,
-                                     t); // publish the odometry Frame in map frame
+                    publishOdomFrame(baseToOdomTransform, t); // publish the base Frame in odometry frame
+                    if (mPublishMapTf) {
+                        publishPoseFrame(odomToMapTransform, t); // publish the odometry Frame in map frame
+                    }
                 }
                 std::this_thread::sleep_for(
                     std::chrono::milliseconds(10)); // No subscribers, we just wait
