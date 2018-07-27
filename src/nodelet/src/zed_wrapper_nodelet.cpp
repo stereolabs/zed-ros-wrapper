@@ -341,7 +341,7 @@ void ZEDWrapperNodelet::onInit() {
   param.sdk_verbose = verbose;
   param.sdk_gpu_id = gpuId;
   param.depth_stabilization = depthStabilization;
-  param.camera_flip = cameraFlip;
+  param.camera_image_flip = cameraFlip;
   
   sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
   while (err != sl::SUCCESS) {
