@@ -38,27 +38,47 @@ checkPackage("CUDA" "CUDA not found, install it from:\n https://developer.nvidia
 find_package(PCL)
 checkPackage("PCL" "PCL not found, try to install it with:\n sudo apt-get install libpcl1 ros-$(rosversion -d)-pcl-ros")
 
+find_package(OpenMP)
+checkPackage("OpenMP" "OpenMP not found, please install it to improve performances: 'sudo apt install libomp-dev'")
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
 find_package(catkin COMPONENTS
   image_transport
   roscpp
   rosconsole
   sensor_msgs
+  stereo_msgs
   dynamic_reconfigure
   tf2_ros
   pcl_conversions
   nodelet
   tf2_geometry_msgs
+  message_generation
 )
 
 checkPackage("image_transport" "")
 checkPackage("roscpp" "")
 checkPackage("rosconsole" "")
 checkPackage("sensor_msgs" "")
+checkPackage("stereo_msgs" "")
 checkPackage("dynamic_reconfigure" "")
 checkPackage("tf2_ros" "")
 checkPackage("pcl_conversions" "")
 checkPackage("nodelet" "")
 checkPackage("tf2_geometry_msgs" "")
+checkPackage("message_generation" "")
+
+add_service_files( FILES
+    set_initial_pose.srv
+    reset_odometry.srv
+    reset_tracking.srv
+  )
+
+generate_messages()
 
 generate_dynamic_reconfigure_options(
   cfg/Zed.cfg
@@ -69,23 +89,37 @@ catkin_package(
     roscpp
     rosconsole
     sensor_msgs
+    stereo_msgs
     opencv3
     image_transport
     dynamic_reconfigure
     tf2_ros
     tf2_geometry_msgs
-    pcl_conversions
+    pcl_conversions    
+    message_runtime
 )
+
+###############################################################################
+# SOURCES
+
+set(TOOLS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp)
+set(NODE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_wrapper_node.cpp)
+set(NODELET_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.cpp)
+
+###############################################################################
+
 ###############################################################################
 # INCLUDES
 
 # Specify locations of header files.
 include_directories(
-	${catkin_INCLUDE_DIRS}
-	${CUDA_INCLUDE_DIRS}
-	${ZED_INCLUDE_DIRS}
-	${OpenCV_INCLUDE_DIRS}
-	${PCL_INCLUDE_DIRS}
+        ${catkin_INCLUDE_DIRS}
+        ${CUDA_INCLUDE_DIRS}
+        ${ZED_INCLUDE_DIRS}
+        ${OpenCV_INCLUDE_DIRS}
+        ${PCL_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/include
 )
 
 link_directories(${ZED_LIBRARY_DIR})
@@ -97,7 +131,6 @@ link_directories(${PCL_LIBRARY_DIRS})
 
 ###############################################################################
 # EXECUTABLE
-
 
 if(NOT DEFINED CUDA_NPP_LIBRARIES_ZED)
     #To deal with cuda 9 nppi libs and previous versions of ZED SDK
@@ -114,11 +147,11 @@ set(LINK_LIBRARIES
   ${OpenCV_LIBS}
   ${PCL_LIBRARIES})
 
-add_library(ZEDWrapper src/zed_wrapper_nodelet.cpp)
+add_library(ZEDWrapper ${TOOLS_SRC} ${NODELET_SRC})
 target_link_libraries(ZEDWrapper ${LINK_LIBRARIES})
 add_dependencies(ZEDWrapper ${PROJECT_NAME}_gencfg)
 
-add_executable(zed_wrapper_node src/zed_wrapper_node.cpp)
+add_executable(zed_wrapper_node ${NODE_SRC})
 target_link_libraries(zed_wrapper_node ZEDWrapper ${LINK_LIBRARIES})
 add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)
 
