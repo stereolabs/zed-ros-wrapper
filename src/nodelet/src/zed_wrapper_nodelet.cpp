@@ -193,6 +193,7 @@ namespace zed_wrapper {
         string imu_topic = "imu/data";
         string imu_topic_raw = "imu/data_raw";
         string loc_height_map_topic = "map/loc_map_heightmap";
+        string loc_height_cloud_topic = "map/loc_map_height_cloud";
         string loc_cost_map_topic = "map/loc_map_costmap";
         string glob_height_map_topic = "map/glob_map_heightmap";
         string glob_cost_map_topic = "map/glob_map_costmap";
@@ -453,6 +454,8 @@ namespace zed_wrapper {
             // Terrain Mapping publishers
             mPubLocalHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_height_map_topic, 1); // local height map
             NODELET_INFO_STREAM("Advertised on topic " << loc_height_map_topic);
+            mPubLocalHeightCloud = mNh.advertise<sensor_msgs::PointCloud2>(loc_height_cloud_topic, 1); // local height cloud
+            NODELET_INFO_STREAM("Advertised on topic " << loc_height_cloud_topic);
             mPubLocalCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_cost_map_topic, 1); // local cost map
             NODELET_INFO_STREAM("Advertised on topic " << loc_cost_map_topic);
             mPubGlobalHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(glob_height_map_topic, 1, true); // global height map latched
@@ -951,8 +954,7 @@ namespace zed_wrapper {
         }
 
         sensor_msgs::PointCloud2 output;
-        pcl::toROSMsg(point_cloud,
-                      output); // Convert the point cloud to a ROS message
+        pcl::toROSMsg(point_cloud, output); // Convert the point cloud to a ROS message
         output.header.frame_id =
             mPointCloudFrameId; // Set the header values of the ROS message
         output.header.stamp = mPointCloudTime;
@@ -1134,7 +1136,8 @@ namespace zed_wrapper {
 
         uint32_t heightSub = mPubLocalHeightMap.getNumSubscribers();
         uint32_t costSub = mPubLocalCostMap.getNumSubscribers();
-        uint32_t run = heightSub + costSub;
+        uint32_t cloudSub = mPubLocalHeightCloud.getNumSubscribers();
+        uint32_t run = heightSub + costSub + cloudSub;
 
         if (run > 0) {
             if (mZed.retrieveTerrainAsync(mTerrain) == sl::SUCCESS) {
@@ -1210,7 +1213,7 @@ namespace zed_wrapper {
                         }
                     }
 
-                    publishLocalMaps(minX, minY, maxX, maxY, chunks, sl_tools::slTime2Ros(t));
+                    publishLocalMaps(minX, minY, maxX, maxY, chunks, heightSub, costSub, cloudSub, sl_tools::slTime2Ros(t));
                 }
             } else {
                 mTerrainMutex.unlock();
@@ -1221,12 +1224,16 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::publishLocalMaps(float minX, float minY, float maxX, float maxY, std::vector<sl::HashKey>& chunks, ros::Time t) {
+    void ZEDWrapperNodelet::publishLocalMaps(float minX, float minY, float maxX, float maxY,
+            std::vector<sl::HashKey>& chunks,
+            uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, ros::Time t) {
         float mapH = fabs(maxX - minX); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
         float mapW = fabs(maxY - minY); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
 
         uint32_t mapRows = static_cast<uint32_t>(ceil(mapH / mTerrainMapRes)) + 1;
         uint32_t mapCols = static_cast<uint32_t>(ceil(mapW / mTerrainMapRes)) + 1;
+
+        uint32_t totCell = mapRows * mapCols;
 
         NODELET_DEBUG_STREAM("Local map origin: [" << minX << "," << minY << "]");
         NODELET_DEBUG_STREAM("Local map dimensions: " << mapW << " x " << mapH << " m");
@@ -1251,14 +1258,19 @@ namespace zed_wrapper {
         heightMapMsg.info = mapInfo;
         heightMapMsg.header.frame_id = mMapFrameId;
         heightMapMsg.header.stamp = t;
-        heightMapMsg.data = std::vector<int8_t>(mapRows * mapCols, -1);
+        heightMapMsg.data = std::vector<int8_t>(totCell, -1);
 
         // Cost Map Message as OccupancyGrid
         nav_msgs::OccupancyGrid costMapMsg;
         costMapMsg.info = mapInfo;
         costMapMsg.header.frame_id = mMapFrameId;
         costMapMsg.header.stamp = t;
-        costMapMsg.data = std::vector<int8_t>(mapRows * mapCols, -1);
+        costMapMsg.data = std::vector<int8_t>(totCell, -1);
+
+        // Height Cloud
+        pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
+        point_cloud.points.resize(totCell);
+
 
         std::vector<sl::HashKey>::iterator it;
         for (it = chunks.begin(); it != chunks.end(); it++) {
@@ -1275,7 +1287,8 @@ namespace zed_wrapper {
                     continue;
                 }
 
-                int8_t height = static_cast<int8_t>(fabs(round(chunk.at(sl::ELEVATION, i) / mMapMaxHeight) * 100));
+                float height = chunk.at(sl::ELEVATION, i);
+                int8_t heightAbs = static_cast<int8_t>(fabs(round(height / mMapMaxHeight) * 100));
                 int8_t cost = static_cast<int8_t>(chunk.at(sl::TRAVERSABILITY_COST, i) * 100);
 
                 float xm, ym;
@@ -1291,20 +1304,43 @@ namespace zed_wrapper {
 
                 uint32_t mapIdx = u + v * mapCols;
 
-                if (mapIdx >= mapCols * mapRows) {
+                if (mapIdx >= totCell) {
                     NODELET_DEBUG_STREAM("[Local map] Cell OUT OF RANGE: [" << u << "," << v << "] -> " << mapIdx);
                     continue;
                 }
 
                 //NODELET_DEBUG_STREAM("Cell: [" << u << "," << v << "] -> " << mapIdx);
-                heightMapMsg.data.at(mapIdx) = height;
+                heightMapMsg.data.at(mapIdx) = heightAbs;
                 costMapMsg.data.at(mapIdx) = cost;
+
+                point_cloud.points[mapIdx].x = ym; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                point_cloud.points[mapIdx].y = -xm; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                point_cloud.points[mapIdx].z = height;
             }
         }
 
         // Map publishing
-        mPubLocalHeightMap.publish(heightMapMsg);
-        mPubLocalCostMap.publish(costMapMsg);
+        if (heightSub > 0) {
+            mPubLocalHeightMap.publish(heightMapMsg);
+        }
+
+        if (costSub > 0) {
+            mPubLocalCostMap.publish(costMapMsg);
+        }
+
+        if (cloudSub > 0) {
+            sensor_msgs::PointCloud2 heightCloudMsg;
+            pcl::toROSMsg(point_cloud, heightCloudMsg); // Convert the point cloud to a ROS message
+
+            heightCloudMsg.header.frame_id = mMapFrameId;
+            heightCloudMsg.header.stamp = t;
+            heightCloudMsg.is_dense = false;
+            heightCloudMsg.is_bigendian = false;
+            heightCloudMsg.height = mapRows;
+            heightCloudMsg.width = mapCols;
+            mPubLocalHeightCloud.publish(heightCloudMsg);
+        }
+
     }
 
     void ZEDWrapperNodelet::publishGlobalMaps(std::vector<sl::HashKey>& chunks, ros::Time t) {

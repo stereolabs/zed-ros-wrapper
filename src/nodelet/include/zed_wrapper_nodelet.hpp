@@ -213,7 +213,8 @@ namespace zed_wrapper {
          * \param chunks : updated chunks from terrain mapping
          * \param t : timestamp
          */
-        void publishLocalMaps(float minX, float minY, float maxX, float maxY, std::vector<sl::HashKey>& chunks, ros::Time t);
+        void publishLocalMaps(float minX, float minY, float maxX, float maxY, std::vector<sl::HashKey>& chunks,
+                              uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, ros::Time t);
 
         /* \brief Publish global height and cost maps from updated Terrain Chunks
          * \param minX : minimum X coordinate of the map in meters
@@ -302,6 +303,7 @@ namespace zed_wrapper {
         ros::Publisher mPubImuRaw;
 
         ros::Publisher mPubLocalHeightMap;
+        ros::Publisher mPubLocalHeightCloud;
         ros::Publisher mPubLocalCostMap;
         ros::Publisher mPubGlobalHeightMap;
         ros::Publisher mPubGlobalCostMap;
