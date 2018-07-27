@@ -64,7 +64,7 @@ namespace zed_wrapper {
 #endif
         // Launch file parameters
         mCamResol = sl::RESOLUTION_HD720;
-        mCamQuality = sl::DEPTH_MODE_ULTRA /*sl::DEPTH_MODE_PERFORMANCE*/;
+        mCamQuality = sl::DEPTH_MODE_PERFORMANCE;
         mCamSensingMode = sl::SENSING_MODE_STANDARD;
         mCamFrameRate = 30;
         mGpuId = -1;
@@ -787,7 +787,7 @@ namespace zed_wrapper {
         float height_resol = .025f; // TODO Expose parameter to launch file
 
         sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution = sl::TerrainMappingParameters::GRID_RESOLUTION::HIGH; // TODO Expose parameter to launch file
-        mTerrainMapRes = terrainParams.setGridResolution(grid_resolution); // TODO: Check this value when bug is fixed in SDK
+        mTerrainMapRes = terrainParams.setGridResolution(grid_resolution);
 
         NODELET_INFO_STREAM("Terrain Grid Resolution " << mTerrainMapRes << "m");
         NODELET_INFO_STREAM("Terrain Cutting height " << terrainParams.setHeightThreshold(sl::UNIT_METER, mMapMaxHeight) << "m");
@@ -1467,6 +1467,15 @@ namespace zed_wrapper {
                         }
                     }
 
+                    NODELET_DEBUG_STREAM("Global Map - ORIGIN: [" << minX << "," << minY << "] - SIZE: "
+                                         << maxX - minX << " x " << maxY - minY << "m");
+
+                    sl::Dimension dim = mTerrain.getDimension();
+
+                    NODELET_DEBUG_STREAM("SDK Global Map - ORIGIN: [" << dim.getXmin() << ","
+                                         << dim.getYmin() << "] - SIZE: " << dim.getSize()*dim.getResolution()
+                                         << " x " << dim.getSize()*dim.getResolution() << "m");
+
                     if (minX < /*mapMinX*/ mapMinY ||       // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                         maxX > /*mapMaxX*/ mapMaxY ||       // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                         minY < /*mapMinY*/ (-mapMaxX) ||    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
@@ -1571,8 +1580,8 @@ namespace zed_wrapper {
         nav_msgs::MapMetaData mapInfo;
         mapInfo.resolution = mTerrainMapRes;
 
-        uint32_t mapRows = static_cast<uint32_t>(map_H_m / mTerrainMapRes) + 1;
-        uint32_t mapCols = static_cast<uint32_t>(map_W_m / mTerrainMapRes) + 1;
+        uint32_t mapRows = static_cast<uint32_t>(ceil(map_H_m / mTerrainMapRes)) + 1;
+        uint32_t mapCols = static_cast<uint32_t>(ceil(map_W_m / mTerrainMapRes)) + 1;
 
         mapInfo.resolution = mTerrainMapRes;
         mapInfo.height = mapRows;
