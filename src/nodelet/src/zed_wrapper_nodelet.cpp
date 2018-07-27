@@ -774,29 +774,34 @@ namespace zed_wrapper {
         mNhNs.getParam("loc_terrain_pub_rate",  mLocalTerrainPubRate);
         mNhNs.getParam("glob_terrain_pub_rate", mGlobalTerrainPubRate);
 
-        sl::TerrainMappingParameters terrainParams;
-        float agent_step = 0.05f; // TODO Expose parameter to launch file
-        float agent_slope = 20.f/*degrees*/; // TODO Expose parameter to launch file
-        float agent_radius = 0.18f; // TODO Expose parameter to launch file
-        float agent_height = 0.8f; // TODO Expose parameter to launch file
-        float agent_roughness = 0.05f; // TODO Expose parameter to launch file
-        terrainParams.setAgentParameters(sl::UNIT_METER, agent_step, agent_slope, agent_radius,
-                                         agent_height, agent_roughness);
-        float max_depth = 3.5f; // TODO Expose parameter to launch file
-        mMapMaxHeight = 0.5f; // TODO Expose parameter to launch file
-        float height_resol = .025f; // TODO Expose parameter to launch file
+        mNhNs.getParam("mapping_agent_step", mMapAgentStep);
+        mNhNs.getParam("mapping_agent_slope", mMapAgentSlope);
+        mNhNs.getParam("mapping_agent_radius", mMapAgentRadius);
+        mNhNs.getParam("mapping_agent_height", mMapAgentHeight);
+        mNhNs.getParam("mapping_agent_roughness", mMapAgentRoughness);
 
-        sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution = sl::TerrainMappingParameters::GRID_RESOLUTION::HIGH; // TODO Expose parameter to launch file
+        mNhNs.getParam("mapping_max_depth", mMapMaxDepth);
+        mNhNs.getParam("mapping_max_height", mMapMaxHeight);
+        mNhNs.getParam("mapping_height_resol", mMapHeightResol);
+        mNhNs.getParam("mapping_cell_resol", mMapResolIdx);
+
+        sl::TerrainMappingParameters terrainParams;
+
+        terrainParams.setAgentParameters(sl::UNIT_METER,
+                                         mMapAgentStep, mMapAgentSlope, mMapAgentRadius,
+                                         mMapAgentHeight, mMapAgentRoughness);
+
+        sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution = static_cast<sl::TerrainMappingParameters::GRID_RESOLUTION>(mMapResolIdx);
         mTerrainMapRes = terrainParams.setGridResolution(grid_resolution);
 
         NODELET_INFO_STREAM("Terrain Grid Resolution " << mTerrainMapRes << "m");
         NODELET_INFO_STREAM("Terrain Cutting height " << terrainParams.setHeightThreshold(sl::UNIT_METER, mMapMaxHeight) << "m");
-        NODELET_INFO_STREAM("Terrain Z Resolution " << terrainParams.setZResolution(sl::UNIT_METER, height_resol) << "m");
-        NODELET_INFO_STREAM("Terrain Max range " << terrainParams.setRange(sl::UNIT_METER, max_depth) << "m");
+        NODELET_INFO_STREAM("Terrain Z Resolution " << terrainParams.setZResolution(sl::UNIT_METER, mMapHeightResol) << "m");
+        NODELET_INFO_STREAM("Terrain Max range " << terrainParams.setRange(sl::UNIT_METER, mMapMaxDepth) << "m");
 
-        terrainParams.enable_traversability_cost_computation = true; // TODO Expose parameter to launch file
-        terrainParams.enable_dynamic_extraction = true; // TODO Expose parameter to launch file
-        terrainParams.enable_color_extraction = true; // TODO Expose parameter to launch file
+        terrainParams.enable_traversability_cost_computation = true;
+        terrainParams.enable_dynamic_extraction = true;
+        terrainParams.enable_color_extraction = true;
 
         if (mZed.enableTerrainMapping(terrainParams) != sl::SUCCESS) {
             NODELET_WARN_STREAM("Terrain Mapping: NOT ENABLED");
@@ -804,14 +809,15 @@ namespace zed_wrapper {
             return;
         }
 
-        initGlobalMapMsgs(10, 10);
+        initGlobalMapMsgs(1, 1);
         mMappingReady = true;
 
-        // Start Terrain Mapping Timer
+        // Start Local Terrain Mapping Timer
         mLocalTerrainTimer = mNhNs.createTimer(ros::Duration(1.0 / mLocalTerrainPubRate),
                                                &ZEDWrapperNodelet::localTerrainCallback, this);
         NODELET_INFO_STREAM("Local Terrain Mapping: ENABLED @ " << mLocalTerrainPubRate << "Hz");
 
+        // Start Global Terrain Mapping Timer
         mGlobalTerrainTimer = mNhNs.createTimer(ros::Duration(1.0 / mGlobalTerrainPubRate),
                                                 &ZEDWrapperNodelet::globalTerrainCallback, this);
         NODELET_INFO_STREAM("Global Terrain Mapping: ENABLED @ " << mGlobalTerrainPubRate << "Hz");

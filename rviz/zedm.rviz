@@ -153,7 +153,7 @@ Visualization Manager:
       Decay Time: 0
       Depth Map Topic: /zed/depth/depth_registered
       Depth Map Transport Hint: raw
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -171,7 +171,7 @@ Visualization Manager:
       Topic Filter: true
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -427,8 +427,8 @@ Visualization Manager:
       Scale: 50
       Target Frame: zed_camera_center
       Value: TopDownOrtho (rviz)
-      X: 0
-      Y: 0
+      X: 4.55999804
+      Y: 4.69999695
     Saved:
       - Angle: -1.57079637
         Class: rviz/TopDownOrtho

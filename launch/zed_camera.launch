@@ -87,7 +87,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="openni_depth_mode"     value="0" />
         <param name="gpu_id"                value="$(arg gpu_id)" />
         <param name="confidence"            value="80" />
-        <param name="max_depth"             value="10.0" />
+        <param name="max_depth"             value="5.0" />
         <param name="gain"                  value="50" />
         <param name="exposure"              value="100" />
         <param name="auto_exposure"         value="true" />
@@ -95,9 +95,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="pose_smoothing"        value="false" />
         <param name="spatial_memory"        value="true" />
         <param name="floor_alignment"       value="true" />
-        <param name="terrain_mapping"       value="true" />
-        <param name="loc_terrain_pub_rate"  value="5.0" />
-        <param name="glob_terrain_pub_rate" value="1.0" />
+
+        <param name="terrain_mapping"           value="true" />
+        <param name="loc_terrain_pub_rate"      value="5.0" />
+        <param name="glob_terrain_pub_rate"     value="1.0" />
+        <param name="mapping_agent_step"        value="0.05" />
+        <param name="mapping_agent_slope"       value="20.0" />
+        <param name="mapping_agent_radius"      value="0.25" />
+        <param name="mapping_agent_height"      value="0.8" />
+        <param name="mapping_agent_roughness"   value="0.05" />
+        <param name="mapping_max_depth"         value="3.5" />
+        <param name="mapping_max_height"        value="0.5" />
+        <param name="mapping_height_resol"      value="0.025" />
+        <param name="mapping_cell_resol"        value="1" /> <!-- 0->LOW (0.1m); 1->MEDIUM (0.05m); 2->HIGH (0.025m) -->
 
         <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>
 

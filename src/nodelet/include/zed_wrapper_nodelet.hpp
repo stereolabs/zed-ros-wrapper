@@ -383,15 +383,29 @@ namespace zed_wrapper {
         // Terrain Mapping
         sl::Terrain mTerrain;
         bool mMappingReady;
-        bool mTerrainMap;
-        double mLocalTerrainPubRate;
-        double mGlobalTerrainPubRate;
-        double mTerrainMapRes;
-        double mMapMaxHeight;
+
+
+
+
         nav_msgs::OccupancyGrid mGlobHeightMapMsg;
         nav_msgs::OccupancyGrid mGlobCostMapMsg;
         bool mGlobMapEmpty;
         sl::timeStamp mLastGlobMapTimestamp;
+
+        // Terrain Mapping Params
+        bool mTerrainMap;
+        double mLocalTerrainPubRate;
+        double mGlobalTerrainPubRate;
+        float mMapAgentStep = 0.05f;
+        float mMapAgentSlope = 20.f/*degrees*/;
+        float mMapAgentRadius = 0.18f;
+        float mMapAgentHeight = 0.8f;
+        float mMapAgentRoughness = 0.05f;
+        float mMapMaxDepth = 3.5f;
+        float mMapMaxHeight = 0.5f;
+        float mMapHeightResol = .025f;
+        int mMapResolIdx = 1;
+        double mTerrainMapRes;
 
         // IMU time
         ros::Time mImuTime;
