@@ -9,6 +9,7 @@ Panels:
         - /DepthCloud1/Occlusion Compensation1
         - /Odometry1/Covariance1/Position1
         - /Local Maps1
+        - /Local Maps1/Local Height Cloud1
       Splitter Ratio: 0.5
     Tree Height: 438
   - Class: rviz/Selection
@@ -338,7 +339,7 @@ Visualization Manager:
           Channel Name: intensity
           Class: rviz/PointCloud2
           Color: 255; 255; 255
-          Color Transformer: AxisColor
+          Color Transformer: RGB8
           Decay Time: 0
           Enabled: true
           Invert Rainbow: false
@@ -445,25 +446,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 14.0492802
+      Distance: 19.7382278
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.959926665
-        Y: 0.855657339
-        Z: -0.190986231
+        X: -1.29702318
+        Y: -0.224892378
+        Z: 0.549093485
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.890397668
+      Pitch: 0.71039772
       Target Frame: zed_camera_center
       Value: Orbit (rviz)
-      Yaw: 5.70224524
+      Yaw: 3.15225315
     Saved:
       - Angle: -1.57079637
         Class: rviz/TopDownOrtho

@@ -1287,10 +1287,6 @@ namespace zed_wrapper {
                     continue;
                 }
 
-                float height = chunk.at(sl::ELEVATION, i);
-                int8_t heightAbs = static_cast<int8_t>(fabs(round(height / mMapMaxHeight) * 100));
-                int8_t cost = static_cast<int8_t>(chunk.at(sl::TRAVERSABILITY_COST, i) * 100);
-
                 float xm, ym;
                 if (dim.index2x_y(i, xm, ym)) {
                     continue; // Index out of range
@@ -1310,12 +1306,31 @@ namespace zed_wrapper {
                 }
 
                 //NODELET_DEBUG_STREAM("Cell: [" << u << "," << v << "] -> " << mapIdx);
-                heightMapMsg.data.at(mapIdx) = heightAbs;
-                costMapMsg.data.at(mapIdx) = cost;
 
-                point_cloud.points[mapIdx].x = ym; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                point_cloud.points[mapIdx].y = -xm; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                point_cloud.points[mapIdx].z = height;
+                // Cost Map
+                if (costSub > 0) {
+                    int8_t cost = static_cast<int8_t>(chunk.at(sl::TRAVERSABILITY_COST, i) * 100);
+                    costMapMsg.data.at(mapIdx) = cost;
+                }
+
+                if (cloudSub > 0 || heightSub > 0) {
+                    float height = chunk.at(sl::ELEVATION, i);
+                    int8_t heightAbs = static_cast<int8_t>(fabs(round(height / mMapMaxHeight) * 100));
+
+                    // Height Map
+                    if (heightSub > 0) {
+                        heightMapMsg.data.at(mapIdx) = heightAbs;
+                    }
+
+                    // PointCloud
+                    if (cloudSub > 0) {
+                        float color = static_cast<float>(chunk.at(sl::COLOR, i));
+                        point_cloud.points[mapIdx].x = ym; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        point_cloud.points[mapIdx].y = -xm; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        point_cloud.points[mapIdx].z = height;
+                        point_cloud.points[mapIdx].rgb = color;
+                    }
+                }
             }
         }
 
