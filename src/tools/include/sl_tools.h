@@ -62,6 +62,60 @@ namespace sl_tools {
      */
     ros::Time slTime2Ros(sl::timeStamp t);
 
+    // TODO Remove when it will be available in Terrain SDK
+    inline float packColor(sl::uchar3 colorIn) {
+        float color_uint;
+        unsigned char* color_uchar = (unsigned char*) &color_uint;
+        for (int c = 0; c < 3; c++) {
+            color_uchar[c] = colorIn[c];
+        }
+        return color_uint;
+    }
+
+    // TODO Remove when it will be available in Terrain SDK
+    inline float packColor(sl::uchar4 colorIn) {
+        float color_uint; // = (colorIn.r << 16 | colorIn.g << 8 | colorIn.b);
+        unsigned char* color_uchar = (unsigned char*) &color_uint;
+        for (int c = 0; c < 4; c++) {
+            color_uchar[c] = colorIn[c];
+        }
+        return color_uint;
+    }
+
+    // TODO Remove when it will be available in Terrain SDK
+    inline sl::uchar3 depackColor3(float colorIn) {
+        sl::uchar3 out;
+        uint32_t color_uint = *(uint32_t*) & colorIn;
+        unsigned char* color_uchar = (unsigned char*) &color_uint;
+        for (int c = 0; c < 3; c++) {
+            out[c] = static_cast<unsigned char>(color_uchar[c]);
+        }
+        return out;
+    }
+
+    // TODO Remove when it will be available in Terrain SDK
+    inline sl::uchar4 depackColor4(float colorIn) {
+        sl::uchar4 out;
+        uint32_t color_uint = *(uint32_t*) & colorIn;
+        unsigned char* color_uchar = (unsigned char*) &color_uint;
+        for (int c = 0; c < 3; c++) {
+            out[c] = static_cast<unsigned char>(color_uchar[c]);
+        }
+        out.w = 255;
+        return out;
+    }
+
+    // TODO Remove when it will be available in Terrain SDK
+    inline sl::float3 depackColor3f(float colorIn) {
+        sl::float3 out;
+        uint32_t color_uint = *(uint32_t*) & colorIn;
+        unsigned char* color_uchar = (unsigned char*) &color_uint;
+        for (int c = 0; c < 3; c++) {
+            out[c] = static_cast<float>(color_uchar[2 - c] / 255.f);
+        }
+        return out;
+    }
+
 } // namespace
 
 #endif // SL_TOOLS_H

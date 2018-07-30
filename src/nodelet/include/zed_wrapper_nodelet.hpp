@@ -39,6 +39,7 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <nav_msgs/OccupancyGrid.h>
+#include <visualization_msgs/Marker.h>
 
 #include <zed_wrapper/ZedConfig.h>
 #include <zed_wrapper/reset_odometry.h>
@@ -211,10 +212,14 @@ namespace zed_wrapper {
          * \param maxX : maximum X coordinate of the map in meters
          * \param maxY : maximum Y coordinate of the map in meters
          * \param chunks : updated chunks from terrain mapping
+         * \param heightSub : Height map subscribers count
+         * \param costSub : Cost map subscribers count
+         * \param cloudSub : Height cloud subscribers count
+         * \param mrkSub : Height markers array subscribers count
          * \param t : timestamp
          */
         void publishLocalMaps(float minX, float minY, float maxX, float maxY, std::vector<sl::HashKey>& chunks,
-                              uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, ros::Time t);
+                              uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub, ros::Time t);
 
         /* \brief Publish global height and cost maps from updated Terrain Chunks
          * \param minX : minimum X coordinate of the map in meters
@@ -304,6 +309,7 @@ namespace zed_wrapper {
 
         ros::Publisher mPubLocalHeightMap;
         ros::Publisher mPubLocalHeightCloud;
+        ros::Publisher mPubLocalHeightMrk;
         ros::Publisher mPubLocalCostMap;
         ros::Publisher mPubGlobalHeightMap;
         ros::Publisher mPubGlobalCostMap;
@@ -385,10 +391,6 @@ namespace zed_wrapper {
         // Terrain Mapping
         sl::Terrain mTerrain;
         bool mMappingReady;
-
-
-
-
         nav_msgs::OccupancyGrid mGlobHeightMapMsg;
         nav_msgs::OccupancyGrid mGlobCostMapMsg;
         bool mGlobMapEmpty;
@@ -408,6 +410,7 @@ namespace zed_wrapper {
         float mMapHeightResol = .025f;
         int mMapResolIdx = 1;
         double mTerrainMapRes;
+
 
         // IMU time
         ros::Time mImuTime;
