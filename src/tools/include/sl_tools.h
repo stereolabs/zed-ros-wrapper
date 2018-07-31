@@ -41,7 +41,7 @@ namespace sl_tools {
     /* \brief Convert an sl:Mat to a cv::Mat
     * \param mat : the sl::Mat to convert
     */
-    cv::Mat toCVMat(sl::Mat &mat);
+    cv::Mat toCVMat(sl::Mat& mat);
 
     cv::Mat convertRodrigues(sl::float3 r);
 
@@ -54,8 +54,8 @@ namespace sl_tools {
      * \param major : major value for version
      * \param minor : minor value for version
      * \param sub_minor _ sub_minor value for version
-     */ 
-    std::string getSDKVersion( int& major, int& minor, int& sub_minor);
+     */
+    std::string getSDKVersion(int& major, int& minor, int& sub_minor);
 
     /* \brief Convert StereoLabs timestamp to ROS timestamp
      *  \param t : Stereolabs timestamp to be converted
