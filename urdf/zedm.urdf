@@ -18,12 +18,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <robot name="zedm_camera">
 
-    <!-- Camera Center -->
+<!-- base_link -->
+    <link name="base_link" />
+
+<!-- Camera Center -->
+    <joint name="zed_camera_center_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="zed_camera_center"/>
+        <origin xyz="0 0.0 0" rpy="0 0 0" />
+    </joint>
+
     <link name="zed_camera_center">
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-                <mesh filename="package://zed_wrapper/urdf/ZED.stl" />
+                <mesh filename="package://zed_wrapper/urdf/models/ZEDM.stl" />
             </geometry>
             <material name="light_grey">
                 <color rgba="0 0 0 0.9"/>

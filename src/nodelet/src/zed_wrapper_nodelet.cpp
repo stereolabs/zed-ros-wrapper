@@ -91,7 +91,8 @@ namespace zed_wrapper {
         // Set  default coordinate frames
         mNhNs.param<std::string>("pose_frame", mMapFrameId, "map");
         mNhNs.param<std::string>("odometry_frame", mOdometryFrameId, "odom");
-        mNhNs.param<std::string>("base_frame", mBaseFrameId, "zed_camera_center");
+        mNhNs.param<std::string>("base_frame", mBaseFrameId, "base_link");
+        mNhNs.param<std::string>("camera_frame", mCameraFrameId, "zed_camera_center");
         mNhNs.param<std::string>("imu_frame", mImuFrameId, "imu_link");
         mNhNs.param<std::string>("left_camera_frame", mLeftCamFrameId,
                                  "left_camera_frame");
@@ -133,8 +134,10 @@ namespace zed_wrapper {
         }
 
         mNhNs.getParam("camera_model", mZedUserCamModel);
+
         // Publish odometry tf
         mNhNs.param<bool>("publish_tf", mPublishTf, true);
+        mNhNs.param<bool>("publish_map_tf", mPublishMapTf, true);
 
         if (mZedSerialNumber > 0) {
             NODELET_INFO_STREAM("SN : " << mZedSerialNumber);
@@ -144,6 +147,7 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("pose_frame \t\t   -> " << mMapFrameId);
         NODELET_INFO_STREAM("odometry_frame \t\t   -> " << mOdometryFrameId);
         NODELET_INFO_STREAM("base_frame \t\t   -> " << mBaseFrameId);
+        NODELET_INFO_STREAM("camera_frame \t\t   -> " << mCameraFrameId);
         NODELET_INFO_STREAM("imu_link \t\t   -> " << mImuFrameId);
         NODELET_INFO_STREAM("left_camera_frame \t   -> " << mLeftCamFrameId);
         NODELET_INFO_STREAM("left_camera_optical_frame  -> " << mLeftCamOptFrameId);
@@ -153,12 +157,13 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("depth_optical_frame \t   -> " << mDepthOptFrameId);
         NODELET_INFO_STREAM("disparity_frame \t   -> " << mDisparityFrameId);
         NODELET_INFO_STREAM("disparity_optical_frame    -> " << mDisparityOptFrameId);
-        // Status of map TF
-        NODELET_INFO_STREAM("Publish " << mMapFrameId << " ["
-                            << (mPublishTf ? "TRUE" : "FALSE") << "]");
+
+
         // Status of odometry TF
-        // NODELET_INFO_STREAM("Publish " << odometry_frame_id << " [" << (publish_tf
-        // ? "TRUE" : "FALSE") << "]");
+        NODELET_INFO_STREAM("Broadcasting " << mOdometryFrameId << " [" << (mPublishTf ? "TRUE" : "FALSE") << "]");
+        // Status of map TF
+        NODELET_INFO_STREAM("Broadcasting " << mMapFrameId << " [" << ((mPublishTf && mPublishMapTf) ? "TRUE" : "FALSE") << "]");
+
         std::string img_topic = "image_rect_color";
         std::string img_raw_topic = "image_raw_color";
         // Set the default topic names
@@ -829,14 +834,14 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Global Terrain Mapping: ENABLED @ " << mGlobalTerrainPubRate << "Hz");
     }
 
-    void ZEDWrapperNodelet::publishOdom(tf2::Transform odom_base_transform,
+    void ZEDWrapperNodelet::publishOdom(tf2::Transform base2odomTransf,
                                         ros::Time t) {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
         odom.header.frame_id = mOdometryFrameId; // odom_frame
         odom.child_frame_id = mBaseFrameId;      // base_frame
         // conversion from Tranform to message
-        geometry_msgs::Transform base2 = tf2::toMsg(odom_base_transform);
+        geometry_msgs::Transform base2 = tf2::toMsg(base2odomTransf);
         // Add all value in odometry message
         odom.pose.pose.position.x = base2.translation.x;
         odom.pose.pose.position.y = base2.translation.y;
@@ -895,7 +900,7 @@ namespace zed_wrapper {
     void ZEDWrapperNodelet::publishImuFrame(tf2::Transform baseTransform) {
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = mImuTime;
-        transformStamped.header.frame_id = mBaseFrameId;
+        transformStamped.header.frame_id = mCameraFrameId;
         transformStamped.child_frame_id = mImuFrameId;
         // conversion from Tranform to message
         transformStamped.transform = tf2::toMsg(baseTransform);
@@ -1838,21 +1843,24 @@ namespace zed_wrapper {
 
         // Publish IMU tf only if enabled
         if (mPublishTf) {
-            // Camera to map transform from TF buffer
-            tf2::Transform base_to_map;
+            // Camera to pose transform from TF buffer
+            tf2::Transform cam_to_pose;
 
+            std::string poseFrame;
             // Look up the transformation from base frame to map link
             try {
+                poseFrame = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
+
                 // Save the transformation from base to frame
-                geometry_msgs::TransformStamped b2m =
-                    mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
+                geometry_msgs::TransformStamped c2p =
+                    mTfBuffer->lookupTransform(poseFrame, mCameraFrameId, ros::Time(0));
                 // Get the TF2 transformation
-                tf2::fromMsg(b2m.transform, base_to_map);
+                tf2::fromMsg(c2p.transform, cam_to_pose);
             } catch (tf2::TransformException& ex) {
                 NODELET_WARN_THROTTLE(
                     10.0, "The tf from '%s' to '%s' does not seem to be available. "
                     "IMU TF not published!",
-                    mBaseFrameId.c_str(), mMapFrameId.c_str());
+                    mCameraFrameId.c_str(), mMapFrameId.c_str());
                 NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
                 return;
             }
@@ -1864,7 +1872,7 @@ namespace zed_wrapper {
             imu_q.setZ(mSignZ * imu_data.getOrientation()[mIdxZ]);
             imu_q.setW(imu_data.getOrientation()[3]);
             // Pose Quaternion from ZED Camera
-            tf2::Quaternion map_q = base_to_map.getRotation();
+            tf2::Quaternion map_q = cam_to_pose.getRotation();
             // Difference between IMU and ZED Quaternion
             tf2::Quaternion delta_q = imu_q * map_q.inverse();
             tf2::Transform imu_pose;
@@ -2273,10 +2281,11 @@ namespace zed_wrapper {
                     // someone has subscribed to odom
                     publishOdomFrame(mBase2OdomTransf,
                                      t); // publish the base Frame in odometry frame
-                    // Note, the frame is published, but its values will only change if
-                    // someone has subscribed to map
-                    publishPoseFrame(mOdom2MapTransf,
-                                     t); // publish the odometry Frame in map frame
+                    if (mPublishMapTf) {
+                        // Note, the frame is published, but its values will only change if
+                        // someone has subscribed to map
+                        publishPoseFrame(mOdom2MapTransf, t); // publish the odometry Frame in map frame
+                    }
                     mImuTime = t;
                 }
 
@@ -2307,10 +2316,11 @@ namespace zed_wrapper {
                 if (mPublishTf) {
                     ros::Time t =
                         sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
-                    publishOdomFrame(mBase2OdomTransf,
-                                     t); // publish the base Frame in odometry frame
-                    publishPoseFrame(mOdom2MapTransf,
-                                     t); // publish the odometry Frame in map frame
+                    publishOdomFrame(mBase2OdomTransf, t); // publish the base Frame in odometry frame
+
+                    if (mPublishMapTf) {
+                        publishPoseFrame(mOdom2MapTransf, t); // publish the odometry Frame in map frame
+                    }
                 }
 
                 std::this_thread::sleep_for(

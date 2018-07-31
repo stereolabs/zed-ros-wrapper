@@ -95,11 +95,11 @@ namespace zed_wrapper {
         void publishPose(tf2::Transform poseBaseTransform, ros::Time t);
 
         /* \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
-         * \param odom_base_transform : Transformation representing the camera pose
+         * \param base2odomTransf : Transformation representing the camera pose
          * from base frame to odom frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdom(tf2::Transform mBase2OdomTransf, ros::Time t);
+        void publishOdom(tf2::Transform base2odomTransf, ros::Time t);
 
         /* \brief Publish the pose of the camera in "Map" frame as a transformation
          * \param base_transform : Transformation representing the camera pose from
@@ -360,6 +360,7 @@ namespace zed_wrapper {
         std::string mMapFrameId;
         std::string mOdometryFrameId;
         std::string mBaseFrameId;
+        std::string mCameraFrameId;
 
         std::string mRightCamFrameId;
         std::string mRightCamOptFrameId;
@@ -371,6 +372,7 @@ namespace zed_wrapper {
         boost::shared_ptr<tf2_ros::Buffer> mTfBuffer;
         boost::shared_ptr<tf2_ros::TransformListener> mTfListener;
         bool mPublishTf;
+        bool mPublishMapTf;
 
         // Launch file parameters
         int mCamResol;
