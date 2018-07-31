@@ -1166,18 +1166,18 @@ namespace zed_wrapper {
 
                 // Camera position in map frame
                 // Look up the transformation from base frame to map link
-                tf2::Transform base_to_map;
+                tf2::Transform cam_to_map;
                 try {
                     // Save the transformation from base to frame
-                    geometry_msgs::TransformStamped b2m =
-                        mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId,  ros::Time(0));
+                    geometry_msgs::TransformStamped c2m =
+                        mTfBuffer->lookupTransform(mMapFrameId, mCameraFrameId,  ros::Time(0));
                     // Get the TF2 transformation
-                    tf2::fromMsg(b2m.transform, base_to_map);
+                    tf2::fromMsg(c2m.transform, cam_to_map);
                 } catch (tf2::TransformException& ex) {
                     NODELET_WARN_THROTTLE(
                         10.0, "The tf from '%s' to '%s' does not seem to be available. "
                         "IMU TF not published!",
-                        mBaseFrameId.c_str(), mMapFrameId.c_str());
+                        mCameraFrameId.c_str(), mMapFrameId.c_str());
                     NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
                     return;
                 }
@@ -1186,7 +1186,7 @@ namespace zed_wrapper {
                 //NODELET_DEBUG_STREAM("ZED POSE: " << mLastZedPose.getTranslation().x << "," << mLastZedPose.getTranslation().y);
 
                 // Process the robot surrounding chunks
-                chunks = mTerrain.getSurroundingValidChunks(-base_to_map.getOrigin().y(), base_to_map.getOrigin().x(), 3);   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                chunks = mTerrain.getSurroundingValidChunks(-cam_to_map.getOrigin().y(), cam_to_map.getOrigin().x(), 3);   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                 //mTerrain.getSurroundingValidChunks( -base_to_map.getOrigin().x(), -base_to_map.getOrigin().y(), mCamMaxDepth );
 
                 //NODELET_DEBUG_STREAM(" ********************** Camera Position: " << base_to_map.getOrigin().x() << "," << base_to_map.getOrigin().y());
@@ -2250,17 +2250,27 @@ namespace zed_wrapper {
                                                                sens_to_map_transf *
                                                                sensor_to_base_transf.inverse();
 
-                        if (mInitOdomWithPose) {
-                            // Propagate Odom transform in time
-                            mBase2OdomTransf = base_to_map_transform;
-                            base_to_map_transform.setIdentity();
+                        bool initOdom;
 
-                            if (odomSubnumber > 0) {
-                                // Publish odometry message
-                                publishOdom(mBase2OdomTransf, t);
+                        if (!mTerrainMap) {
+                            initOdom = mInitOdomWithPose;
+                        } else {
+                            initOdom = (status == sl::TRACKING_STATE_OK) & mInitOdomWithPose;
+                        }
+
+                        if (initOdom) {
+                            if (mTerrainMap && status == sl::TRACKING_STATE_OK) { // If terrain mapping is active I need the first valid height from floor
+                                // Propagate Odom transform in time
+                                mBase2OdomTransf = base_to_map_transform;
+                                base_to_map_transform.setIdentity();
+
+                                if (odomSubnumber > 0) {
+                                    // Publish odometry message
+                                    publishOdom(mBase2OdomTransf, t);
+                                }
+
+                                mInitOdomWithPose = false;
                             }
-
-                            mInitOdomWithPose = false;
                         } else {
                             // Transformation from map to odometry frame
                             mOdom2MapTransf =
