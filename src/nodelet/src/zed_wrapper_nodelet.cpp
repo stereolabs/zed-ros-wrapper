@@ -34,9 +34,12 @@
 #include <stereo_msgs/DisparityImage.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
-#include <grid_map_ros/grid_map_ros.hpp>
-#include <grid_map_cv/GridMapCvConverter.hpp>
+//#include <grid_map_ros/grid_map_ros.hpp>
+//#include <grid_map_cv/GridMapCvConverter.hpp>
 #include <cv_bridge/cv_bridge.h>
+
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 // >>>>> Backward compatibility
 #define COORDINATE_SYSTEM_IMAGE                     static_cast<sl::COORDINATE_SYSTEM>(0)
@@ -199,7 +202,8 @@ namespace zed_wrapper {
         string imu_topic_raw = "imu/data_raw";
         string loc_height_map_topic = "map/loc_map_heightmap";
         string loc_height_cloud_topic = "map/loc_map_height_cloud";
-        string loc_height_marker_topic = "map/loc_map_height_marker";
+        string loc_height_marker_topic = "map/loc_map_height_cubes";
+        string loc_height_markers_topic = "map/loc_map_height_boxes";
         string loc_cost_map_topic = "map/loc_map_costmap";
         string glob_height_map_topic = "map/glob_map_heightmap";
         string glob_cost_map_topic = "map/glob_map_costmap";
@@ -464,6 +468,8 @@ namespace zed_wrapper {
             NODELET_INFO_STREAM("Advertised on topic " << loc_height_cloud_topic);
             mPubLocalHeightMrk = mNh.advertise<visualization_msgs::Marker>(loc_height_marker_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << loc_height_marker_topic);
+            mPubLocalHeightMrks = mNh.advertise<visualization_msgs::MarkerArray>(loc_height_markers_topic, 1);
+            NODELET_INFO_STREAM("Advertised on topic " << loc_height_markers_topic);
             mPubLocalCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_cost_map_topic, 1); // local cost map
             NODELET_INFO_STREAM("Advertised on topic " << loc_cost_map_topic);
             mPubGlobalHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(glob_height_map_topic, 1, true); // global height map latched
@@ -841,15 +847,15 @@ namespace zed_wrapper {
         odom.header.frame_id = mOdometryFrameId; // odom_frame
         odom.child_frame_id = mBaseFrameId;      // base_frame
         // conversion from Tranform to message
-        geometry_msgs::Transform base2 = tf2::toMsg(base2odomTransf);
+        geometry_msgs::Transform base2odom = tf2::toMsg(base2odomTransf);
         // Add all value in odometry message
-        odom.pose.pose.position.x = base2.translation.x;
-        odom.pose.pose.position.y = base2.translation.y;
-        odom.pose.pose.position.z = base2.translation.z;
-        odom.pose.pose.orientation.x = base2.rotation.x;
-        odom.pose.pose.orientation.y = base2.rotation.y;
-        odom.pose.pose.orientation.z = base2.rotation.z;
-        odom.pose.pose.orientation.w = base2.rotation.w;
+        odom.pose.pose.position.x = base2odom.translation.x;
+        odom.pose.pose.position.y = base2odom.translation.y;
+        odom.pose.pose.position.z = base2odom.translation.z;
+        odom.pose.pose.orientation.x = base2odom.rotation.x;
+        odom.pose.pose.orientation.y = base2odom.rotation.y;
+        odom.pose.pose.orientation.z = base2odom.rotation.z;
+        odom.pose.pose.orientation.w = base2odom.rotation.w;
         // Publish odometry message
         mPubOdom.publish(odom);
     }
@@ -1143,7 +1149,8 @@ namespace zed_wrapper {
         uint32_t costSub = mPubLocalCostMap.getNumSubscribers();
         uint32_t cloudSub = mPubLocalHeightCloud.getNumSubscribers();
         uint32_t mrkSub = mPubLocalHeightMrk.getNumSubscribers();
-        uint32_t run = heightSub + costSub + cloudSub + mrkSub;
+        uint32_t mrksSub = mPubLocalHeightMrks.getNumSubscribers();
+        uint32_t run = heightSub + costSub + cloudSub + mrkSub + mrksSub;
 
         if (run > 0) {
             if (mZed.retrieveTerrainAsync(mTerrain) == sl::SUCCESS) {
@@ -1183,10 +1190,11 @@ namespace zed_wrapper {
                 //NODELET_DEBUG_STREAM("ZED POSE: " << mLastZedPose.getTranslation().x << "," << mLastZedPose.getTranslation().y);
 
                 // Process the robot surrounding chunks
-                chunks = mTerrain.getSurroundingValidChunks(-cam_to_map.getOrigin().y(), cam_to_map.getOrigin().x(), mMapLocalRadius);   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                //mTerrain.getSurroundingValidChunks( -base_to_map.getOrigin().x(), -base_to_map.getOrigin().y(), mCamMaxDepth );
+                float camX = cam_to_map.getOrigin().x();
+                float camY = cam_to_map.getOrigin().y();
+                chunks = mTerrain.getSurroundingValidChunks(-camY, camX, mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
 
-                //NODELET_DEBUG_STREAM(" ********************** Camera Position: " << base_to_map.getOrigin().x() << "," << base_to_map.getOrigin().y());
+                NODELET_DEBUG_STREAM(" ********************** Camera Position: " << camX << "," << camY);
 
                 NODELET_DEBUG_STREAM("Terrain chunks updated (local map): " << chunks.size());
 
@@ -1219,7 +1227,7 @@ namespace zed_wrapper {
                         }
                     }
 
-                    publishLocalMaps(minX, minY, maxX, maxY, chunks, heightSub, costSub, cloudSub, mrkSub, sl_tools::slTime2Ros(t));
+                    publishLocalMaps(camX, camY, minX, minY, maxX, maxY, chunks, heightSub, costSub, cloudSub, mrkSub, mrksSub, sl_tools::slTime2Ros(t));
                 }
             } else {
                 mTerrainMutex.unlock();
@@ -1230,19 +1238,29 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::publishLocalMaps(float minX, float minY, float maxX, float maxY,
+    void ZEDWrapperNodelet::publishLocalMaps(float camX, float camY, float minX, float minY, float maxX, float maxY,
             std::vector<sl::HashKey>& chunks,
-            uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub,
+            uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub, uint32_t mrksSub,
             ros::Time t) {
-        float mapH = fabs(maxX - minX); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-        float mapW = fabs(maxY - minY); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+
+        float mapMinX = (minY > (camX - mMapLocalRadius)) ? minY : (camX - mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        float mapMaxX = (maxY < (camX + mMapLocalRadius)) ? maxY : (camX + mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        //float mapMinX = (minX > (camX-mMapLocalRadius))?minX:(camX-mMapLocalRadius);
+        //float mapMaxX = (maxX < (camX+mMapLocalRadius))?maxX:(camX+mMapLocalRadius);
+        float mapMinY = (-maxX > (camY - mMapLocalRadius)) ? -maxX : (camY - mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        float mapMaxY = (-minX < (camY + mMapLocalRadius)) ? -minX : (camY + mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        //float mapMinY = (minY > (camY-mMapLocalRadius))?minY:(camY-mMapLocalRadius);
+        //float mapMaxY = (maxY < (camY+mMapLocalRadius))?maxY:(camY+mMapLocalRadius);
+
+        float mapW = fabs(mapMaxX - mapMinX);
+        float mapH = fabs(mapMaxY - mapMinY);
 
         uint32_t mapRows = static_cast<uint32_t>(ceil(mapH / mTerrainMapRes)) + 1;
         uint32_t mapCols = static_cast<uint32_t>(ceil(mapW / mTerrainMapRes)) + 1;
 
         uint32_t totCell = mapRows * mapCols;
 
-        NODELET_DEBUG_STREAM("Local map origin: [" << minX << "," << minY << "]");
+        NODELET_DEBUG_STREAM("Local map origin: [" << mapMinX << "," << mapMinY << "]");
         NODELET_DEBUG_STREAM("Local map dimensions: " << mapW << " x " << mapH << " m");
         NODELET_DEBUG_STREAM("Local map cell dim: " << mapCols << " x " << mapRows);
 
@@ -1251,8 +1269,8 @@ namespace zed_wrapper {
         mapInfo.resolution = mTerrainMapRes;
         mapInfo.height = mapRows;
         mapInfo.width = mapCols;
-        mapInfo.origin.position.x = minY;  /*minX;*/ // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-        mapInfo.origin.position.y = -maxX; /*minY;*/ // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        mapInfo.origin.position.x = mapMinX;
+        mapInfo.origin.position.y = mapMinY;
         mapInfo.origin.position.z = 0.0;
         mapInfo.origin.orientation.x = 0;
         mapInfo.origin.orientation.y = 0;
@@ -1285,7 +1303,7 @@ namespace zed_wrapper {
         if (mrkSub) {
             marker.header.frame_id = mMapFrameId;
             marker.header.stamp = t;
-            marker.ns = "heights";
+            marker.ns = "height_cubes";
             marker.id = 0;
             marker.type = visualization_msgs::Marker::CUBE_LIST;
             marker.pose.position.x = 0;
@@ -1298,11 +1316,12 @@ namespace zed_wrapper {
             marker.scale.x = mTerrainMapRes;
             marker.scale.y = mTerrainMapRes;
             marker.scale.z = mMapHeightResol;
-            //marker.points.resize(totCell);
-            //marker.colors.resize(totCell);
-
-            marker.action = visualization_msgs::Marker::ADD;
+            marker.lifetime = ros::Duration(1.0);
+            marker.action = visualization_msgs::Marker::MODIFY;
         }
+
+        // Height MarkerArray
+        visualization_msgs::MarkerArray markers;
 
         #pragma omp parallel for
         for (int k = 0; k < chunks.size(); k++) {
@@ -1324,11 +1343,18 @@ namespace zed_wrapper {
                     continue; // Index out of range
                 }
 
+                float dist = sqrt((-xm - camY) * (-xm - camY) + (ym - camX) * (ym - camX)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                // float dist = sqrt((xm - camX) * (xm - camX) + (ym - camY) * (ym - camY));
+
+                if (dist > mMapLocalRadius) {
+                    continue;
+                }
+
                 // (xm,ym) to ROS map index
-                uint32_t v = static_cast<uint32_t>(round((-xm - (-maxX)) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                uint32_t u = static_cast<uint32_t>(round((ym - minY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                //uint32_t u = static_cast<uint32_t>(round((xm - minX) / mTerrainMapRes));
-                //uint32_t v = static_cast<uint32_t>(round((ym - minY) / mTerrainMapRes));
+                uint32_t v = static_cast<uint32_t>(round((-xm - mapMinY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                uint32_t u = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                //uint32_t u = static_cast<uint32_t>(round((xm - mapMinY) / mTerrainMapRes));
+                //uint32_t v = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes));
 
                 uint32_t mapIdx = u + v * mapCols;
 
@@ -1337,15 +1363,13 @@ namespace zed_wrapper {
                     continue;
                 }
 
-                //NODELET_DEBUG_STREAM("Cell: [" << u << "," << v << "] -> " << mapIdx);
-
                 // Cost Map
                 if (costSub > 0) {
                     int8_t cost = static_cast<int8_t>(chunk.at(sl::TRAVERSABILITY_COST, i) * 100);
                     costMapMsg.data.at(mapIdx) = cost;
                 }
 
-                if (cloudSub > 0 || heightSub > 0 || mrkSub > 0) {
+                if (cloudSub > 0 || heightSub > 0 || mrkSub > 0 || mrksSub > 0) {
                     float height = chunk.at(sl::ELEVATION, i);
                     int8_t heightAbs = static_cast<int8_t>(fabs(round(height / mMapMaxHeight) * 100));
 
@@ -1354,8 +1378,9 @@ namespace zed_wrapper {
                         heightMapMsg.data.at(mapIdx) = heightAbs;
                     }
 
-                    if (cloudSub > 0 || mrkSub > 0) {
+                    if (cloudSub > 0 || mrkSub > 0 || mrksSub > 0) {
                         float color_f = static_cast<float>(chunk.at(sl::COLOR, i));
+                        sl::float3 color = sl_tools::depackColor3f(color_f);
 
                         // PointCloud
                         if (cloudSub > 0) {
@@ -1383,8 +1408,6 @@ namespace zed_wrapper {
 
                                     //NODELET_INFO("Height: %g -> Squares: %d -> i: %d -> Current: %g", height, col_count, i, pt.z);
 
-                                    sl::float3 color = sl_tools::depackColor3f(color_f);
-
                                     std_msgs::ColorRGBA col;
                                     col.a = 1.0f;
                                     col.r = color[0];
@@ -1395,6 +1418,34 @@ namespace zed_wrapper {
                                     marker.colors.push_back(col);
                                 }
                             }
+                        }
+
+                        if (mrksSub > 0 && fabs(height) > 0) {
+                            visualization_msgs::Marker heightBox;
+                            heightBox.header.frame_id = mMapFrameId;
+                            heightBox.header.stamp = t;
+                            heightBox.ns = "height_boxes";
+                            heightBox.id = mapIdx;
+                            heightBox.type = visualization_msgs::Marker::CUBE;
+                            heightBox.pose.position.x = ym + (mTerrainMapRes / 2);  // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                            heightBox.pose.position.y = -xm  + (mTerrainMapRes / 2); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                            heightBox.pose.position.z = height / 2;
+                            heightBox.pose.orientation.x = 0.0;
+                            heightBox.pose.orientation.y = 0.0;
+                            heightBox.pose.orientation.z = 0.0;
+                            heightBox.pose.orientation.w = 1.0;
+                            heightBox.scale.x = mTerrainMapRes;
+                            heightBox.scale.y = mTerrainMapRes;
+                            heightBox.scale.z = height;
+                            heightBox.color.a = 1.0;
+                            heightBox.color.r = color.r;
+                            heightBox.color.g = color.g;
+                            heightBox.color.b = color.b;
+                            heightBox.action = visualization_msgs::Marker::MODIFY;
+                            heightBox.lifetime = ros::Duration(1.0 / mLocalTerrainPubRate);
+
+                            #pragma omp critical
+                            markers.markers.push_back(heightBox);
                         }
                     }
                 }
@@ -1426,6 +1477,10 @@ namespace zed_wrapper {
 
         if (mrkSub > 0) {
             mPubLocalHeightMrk.publish(marker);
+        }
+
+        if (mrksSub > 0) {
+            mPubLocalHeightMrks.publish(markers);
         }
     }
 
@@ -2226,6 +2281,7 @@ namespace zed_wrapper {
                 if (mTerrainMap || poseSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
                     depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0) {
 
+                    static sl::TRACKING_STATE oldStatus;
                     sl::TRACKING_STATE status = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME_WORLD);
 
                     if (status == sl::TRACKING_STATE_OK || status == sl::TRACKING_STATE_SEARCHING /*|| status == sl::TRACKING_STATE_FPS_TOO_LOW*/) {
@@ -2278,14 +2334,15 @@ namespace zed_wrapper {
                     } else {
                         NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << static_cast<int>(status));
                     }
+
+                    oldStatus = status;
                 }
 
                 // Publish pose tf only if enabled
                 if (mPublishTf) {
                     // Note, the frame is published, but its values will only change if
                     // someone has subscribed to odom
-                    publishOdomFrame(mBase2OdomTransf,
-                                     t); // publish the base Frame in odometry frame
+                    publishOdomFrame(mBase2OdomTransf, t); // publish the base Frame in odometry frame
                     if (mPublishMapTf) {
                         // Note, the frame is published, but its values will only change if
                         // someone has subscribed to map

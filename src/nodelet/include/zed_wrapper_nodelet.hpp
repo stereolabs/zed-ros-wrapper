@@ -39,7 +39,6 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <nav_msgs/OccupancyGrid.h>
-#include <visualization_msgs/Marker.h>
 
 #include <zed_wrapper/ZedConfig.h>
 #include <zed_wrapper/reset_odometry.h>
@@ -218,8 +217,10 @@ namespace zed_wrapper {
          * \param mrkSub : Height markers array subscribers count
          * \param t : timestamp
          */
-        void publishLocalMaps(float minX, float minY, float maxX, float maxY, std::vector<sl::HashKey>& chunks,
-                              uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub, ros::Time t);
+        void publishLocalMaps(float camX, float camY, float minX, float minY, float maxX, float maxY, std::vector<sl::HashKey>& chunks,
+                              uint32_t heightSub, uint32_t costSub, uint32_t cloudSub,
+                              uint32_t mrkSub,  uint32_t mrksSub,
+                              ros::Time t);
 
         /* \brief Publish global height and cost maps from updated Terrain Chunks
          * \param minX : minimum X coordinate of the map in meters
@@ -310,6 +311,7 @@ namespace zed_wrapper {
         ros::Publisher mPubLocalHeightMap;
         ros::Publisher mPubLocalHeightCloud;
         ros::Publisher mPubLocalHeightMrk;
+        ros::Publisher mPubLocalHeightMrks;
         ros::Publisher mPubLocalCostMap;
         ros::Publisher mPubGlobalHeightMap;
         ros::Publisher mPubGlobalCostMap;
