@@ -1118,8 +1118,14 @@ namespace zed_wrapper {
             mCamMaxDepth = config.max_depth;
             NODELET_INFO("Reconfigure max depth : %g", mCamMaxDepth);
             break;
+
+        case 6:
+            mMapLocalRadius = config.loc_map_radius;
+            NODELET_INFO("Reconfigure local map radius : %g", mMapLocalRadius);
+            break;
         }
     }
+
 
     void ZEDWrapperNodelet::localTerrainCallback(const ros::TimerEvent& e) {
         if (!mTrackingActivated) {
