@@ -148,12 +148,12 @@ set(LINK_LIBRARIES
   ${PCL_LIBRARIES})
 
 add_library(ZEDWrapper ${TOOLS_SRC} ${NODELET_SRC})
+add_dependencies(ZEDWrapper ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(ZEDWrapper ${LINK_LIBRARIES})
-add_dependencies(ZEDWrapper ${PROJECT_NAME}_gencfg)
 
 add_executable(zed_wrapper_node ${NODE_SRC})
+add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(zed_wrapper_node ZEDWrapper ${LINK_LIBRARIES})
-add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)
 
 ###############################################################################
 
