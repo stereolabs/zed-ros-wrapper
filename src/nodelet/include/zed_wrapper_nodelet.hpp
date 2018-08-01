@@ -305,6 +305,7 @@ namespace zed_wrapper {
         ros::Publisher mPubDepthCamInfo;
         ros::Publisher mPubPose;
         ros::Publisher mPubOdom;
+        ros::Publisher mPubPath;
         ros::Publisher mPubImu;
         ros::Publisher mPubImuRaw;
 
@@ -318,7 +319,9 @@ namespace zed_wrapper {
         //ros::Publisher mPubGridMap;
         ros::Publisher mPubGlobalHeightMapImg;
         ros::Publisher mPubGlobalColorMapImg;
-        ros::Publisher mPubGlobalTravMapImg;
+        ros::Publisher mPubGlobalCostMapImg;
+
+
 
         // Timers
         ros::Timer mPubImuTimer;

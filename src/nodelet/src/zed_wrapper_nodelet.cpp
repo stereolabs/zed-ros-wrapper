@@ -27,6 +27,7 @@
 #endif
 
 #include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/distortion_models.h>
@@ -198,6 +199,7 @@ namespace zed_wrapper {
         string conf_map_topic = "confidence/confidence_map";
         string pose_topic = "map";
         string odometry_topic = "odom";
+        string path_topic = "path";
         string imu_topic = "imu/data";
         string imu_topic_raw = "imu/data_raw";
         string loc_height_map_topic = "map/loc_map_heightmap";
@@ -459,6 +461,8 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Advertised on topic " << pose_topic);
         mPubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
+        mPubPath = mNh.advertise<nav_msgs::Path>(path_topic, 1, true);
+        NODELET_INFO_STREAM("Advertised on topic " << path_topic);
 
         if (mTerrainMap) {
             // Terrain Mapping publishers
@@ -482,7 +486,7 @@ namespace zed_wrapper {
             NODELET_INFO_STREAM("Advertised on topic " << height_map_image_topic);
             mPubGlobalColorMapImg = mNh.advertise<sensor_msgs::Image>(color_map_image_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << color_map_image_topic);
-            mPubGlobalTravMapImg = mNh.advertise<sensor_msgs::Image>(travers_map_image_topic, 1);
+            mPubGlobalCostMapImg = mNh.advertise<sensor_msgs::Image>(travers_map_image_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << travers_map_image_topic);
         }
 
@@ -845,7 +849,7 @@ namespace zed_wrapper {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
         odom.header.frame_id = mOdometryFrameId; // odom_frame
-        odom.child_frame_id = mBaseFrameId;      // base_frame
+        odom.child_frame_id = mBaseFrameId;      // camera_frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2odom = tf2::toMsg(base2odomTransf);
         // Add all value in odometry message
@@ -1598,7 +1602,7 @@ namespace zed_wrapper {
         //uint32_t gridSub = mPubGridMap.getNumSubscribers();
         uint32_t heightSub = mPubGlobalHeightMapImg.getNumSubscribers();
         uint32_t colorSub = mPubGlobalColorMapImg.getNumSubscribers();
-        uint32_t travSub = mPubGlobalTravMapImg.getNumSubscribers();
+        uint32_t travSub = mPubGlobalCostMapImg.getNumSubscribers();
         uint32_t heightMapSub = mPubGlobalHeightMap.getNumSubscribers();
         uint32_t costMapSub = mPubGlobalCostMap.getNumSubscribers();
 
@@ -1736,7 +1740,7 @@ namespace zed_wrapper {
 
                     if (sl_traversMap.getResolution().area() > 0) {
                         cv_traversMap = sl_tools::toCVMat(sl_traversMap);
-                        mPubGlobalTravMapImg.publish(imageToROSmsg(
+                        mPubGlobalCostMapImg.publish(imageToROSmsg(
                                                          cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,
                                                          mMapFrameId, sl_tools::slTime2Ros(mLastGlobMapTimestamp)));
                     }
@@ -2269,9 +2273,9 @@ namespace zed_wrapper {
                             tf2::Transform deltaOdomTf;
                             tf2::fromMsg(deltaTransf, deltaOdomTf);
                             // delta odom from sensor to base frame
-                            tf2::Transform deltaOdomTf_base = sensor_to_base_transf *
-                                                              deltaOdomTf *
-                                                              sensor_to_base_transf.inverse();
+                            tf2::Transform deltaOdomTf_base =
+                                sensor_to_base_transf * deltaOdomTf * sensor_to_base_transf.inverse();
+
                             // Propagate Odom transform in time
                             mBase2OdomTransf = mBase2OdomTransf * deltaOdomTf_base;
                             // Publish odometry message
@@ -2305,9 +2309,10 @@ namespace zed_wrapper {
                         tf2::Transform sens_to_map_transf;
                         tf2::fromMsg(sens2mapTransf, sens_to_map_transf);
                         // Transformation from camera sensor to base frame
-                        tf2::Transform base_to_map_transform = sensor_to_base_transf *
-                                                               sens_to_map_transf *
-                                                               sensor_to_base_transf.inverse();
+                        /*tf2::Transform base_to_map_transform =
+                            sensor_to_base_transf * sens_to_map_transf * sensor_to_base_transf.inverse();*/
+
+                        tf2::Transform base_to_map_transform = (sensor_to_base_transf * sens_to_map_transf.inverse()).inverse();
 
                         bool initOdom = false;
 
