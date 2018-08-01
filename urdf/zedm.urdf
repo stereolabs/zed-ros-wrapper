@@ -23,7 +23,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-                <mesh filename="package://zed_wrapper/urdf/ZED.stl" />
+                <mesh filename="package://zed_wrapper/urdf/ZEDM.stl" />
             </geometry>
             <material name="light_grey">
                 <color rgba="0 0 0 0.9"/>
