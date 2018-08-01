@@ -795,6 +795,7 @@ namespace zed_wrapper {
         mNhNs.getParam("mapping_max_height", mMapMaxHeight);
         mNhNs.getParam("mapping_height_resol", mMapHeightResol);
         mNhNs.getParam("mapping_cell_resol", mMapResolIdx);
+        mNhNs.getParam("mapping_local_radius", mMapLocalRadius);
 
         sl::TerrainMappingParameters terrainParams;
 
@@ -834,8 +835,7 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Global Terrain Mapping: ENABLED @ " << mGlobalTerrainPubRate << "Hz");
     }
 
-    void ZEDWrapperNodelet::publishOdom(tf2::Transform base2odomTransf,
-                                        ros::Time t) {
+    void ZEDWrapperNodelet::publishOdom(tf2::Transform base2odomTransf, ros::Time t) {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
         odom.header.frame_id = mOdometryFrameId; // odom_frame
@@ -854,25 +854,23 @@ namespace zed_wrapper {
         mPubOdom.publish(odom);
     }
 
-    void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform baseTransform,
-            ros::Time t) {
+    void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t) {
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = t;
         transformStamped.header.frame_id = mOdometryFrameId;
         transformStamped.child_frame_id = mBaseFrameId;
         // conversion from Tranform to message
-        transformStamped.transform = tf2::toMsg(baseTransform);
+        transformStamped.transform = tf2::toMsg(odomTransf);
         // Publish transformation
         mTransformOdomBroadcaster.sendTransform(transformStamped);
     }
 
-    void ZEDWrapperNodelet::publishPose(tf2::Transform poseBaseTransform,
-                                        ros::Time t) {
+    void ZEDWrapperNodelet::publishPose(tf2::Transform odom2mapTransform, ros::Time t) {
         geometry_msgs::PoseStamped pose;
         pose.header.stamp = t;
         pose.header.frame_id = mMapFrameId; // map_frame
         // conversion from Tranform to message
-        geometry_msgs::Transform base2 = tf2::toMsg(poseBaseTransform);
+        geometry_msgs::Transform base2 = tf2::toMsg(odom2mapTransform);
         // Add all value in Pose message
         pose.pose.position.x = base2.translation.x;
         pose.pose.position.y = base2.translation.y;
@@ -885,8 +883,7 @@ namespace zed_wrapper {
         mPubPose.publish(pose);
     }
 
-    void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform,
-            ros::Time t) {
+    void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time t) {
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = t;
         transformStamped.header.frame_id = mMapFrameId;
@@ -897,13 +894,13 @@ namespace zed_wrapper {
         mTransformPoseBroadcaster.sendTransform(transformStamped);
     }
 
-    void ZEDWrapperNodelet::publishImuFrame(tf2::Transform baseTransform) {
+    void ZEDWrapperNodelet::publishImuFrame(tf2::Transform imuTransform, ros::Time t) {
         geometry_msgs::TransformStamped transformStamped;
-        transformStamped.header.stamp = mImuTime;
+        transformStamped.header.stamp = t;
         transformStamped.header.frame_id = mCameraFrameId;
         transformStamped.child_frame_id = mImuFrameId;
         // conversion from Tranform to message
-        transformStamped.transform = tf2::toMsg(baseTransform);
+        transformStamped.transform = tf2::toMsg(imuTransform);
         // Publish transformation
         mTransformImuBroadcaster.sendTransform(transformStamped);
     }
@@ -988,12 +985,13 @@ namespace zed_wrapper {
         string rightFrameId, bool rawParam /*= false*/) {
         sl::CalibrationParameters zedParam;
 
-        if (rawParam)
+        if (rawParam) {
             zedParam = zed.getCameraInformation(sl::Resolution(mMatWidth, mMatHeight))
                        .calibration_parameters_raw;
-        else
+        } else {
             zedParam = zed.getCameraInformation(sl::Resolution(mMatWidth, mMatHeight))
                        .calibration_parameters;
+        }
 
         float baseline = zedParam.T[0];
         left_cam_info_msg->distortion_model =
@@ -1141,7 +1139,6 @@ namespace zed_wrapper {
             }
         } while (res != sl::SUCCESS);
 
-
         uint32_t heightSub = mPubLocalHeightMap.getNumSubscribers();
         uint32_t costSub = mPubLocalCostMap.getNumSubscribers();
         uint32_t cloudSub = mPubLocalHeightCloud.getNumSubscribers();
@@ -1186,7 +1183,7 @@ namespace zed_wrapper {
                 //NODELET_DEBUG_STREAM("ZED POSE: " << mLastZedPose.getTranslation().x << "," << mLastZedPose.getTranslation().y);
 
                 // Process the robot surrounding chunks
-                chunks = mTerrain.getSurroundingValidChunks(-cam_to_map.getOrigin().y(), cam_to_map.getOrigin().x(), 3);   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                chunks = mTerrain.getSurroundingValidChunks(-cam_to_map.getOrigin().y(), cam_to_map.getOrigin().x(), mMapLocalRadius);   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                 //mTerrain.getSurroundingValidChunks( -base_to_map.getOrigin().x(), -base_to_map.getOrigin().y(), mCamMaxDepth );
 
                 //NODELET_DEBUG_STREAM(" ********************** Camera Position: " << base_to_map.getOrigin().x() << "," << base_to_map.getOrigin().y());
@@ -1880,7 +1877,7 @@ namespace zed_wrapper {
             imu_pose.setRotation(delta_q);
             // Note, the frame is published, but its values will only change if someone
             // has subscribed to IMU
-            publishImuFrame(imu_pose); // publish the imu Frame
+            publishImuFrame(imu_pose, mImuTime); // publish the imu Frame
         }
     }
 
@@ -2250,7 +2247,7 @@ namespace zed_wrapper {
                                                                sens_to_map_transf *
                                                                sensor_to_base_transf.inverse();
 
-                        bool initOdom;
+                        bool initOdom = false;
 
                         if (!mTerrainMap) {
                             initOdom = mInitOdomWithPose;
@@ -2259,18 +2256,16 @@ namespace zed_wrapper {
                         }
 
                         if (initOdom) {
-                            if (mTerrainMap && status == sl::TRACKING_STATE_OK) { // If terrain mapping is active I need the first valid height from floor
-                                // Propagate Odom transform in time
-                                mBase2OdomTransf = base_to_map_transform;
-                                base_to_map_transform.setIdentity();
+                            // Propagate Odom transform in time
+                            mBase2OdomTransf = base_to_map_transform;
+                            base_to_map_transform.setIdentity();
 
-                                if (odomSubnumber > 0) {
-                                    // Publish odometry message
-                                    publishOdom(mBase2OdomTransf, t);
-                                }
-
-                                mInitOdomWithPose = false;
+                            if (odomSubnumber > 0) {
+                                // Publish odometry message
+                                publishOdom(mBase2OdomTransf, t);
                             }
+
+                            mInitOdomWithPose = false;
                         } else {
                             // Transformation from map to odometry frame
                             mOdom2MapTransf =

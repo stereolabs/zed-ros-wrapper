@@ -125,6 +125,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="mapping_max_depth"         value="3.5" />
         <param name="mapping_max_height"        value="0.5" />
         <param name="mapping_height_resol"      value="0.025" />
+        <param name="mapping_local_radius"      value="3.0" />
         <param name="mapping_cell_resol"        value="1" /> <!-- 0->LOW (0.1m); 1->MEDIUM (0.05m); 2->HIGH (0.025m) -->
 
         <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>

@@ -92,7 +92,7 @@ namespace zed_wrapper {
          * odom frame to map frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishPose(tf2::Transform poseBaseTransform, ros::Time t);
+        void publishPose(tf2::Transform odom2mapTransform, ros::Time t);
 
         /* \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
          * \param base2odomTransf : Transformation representing the camera pose
@@ -102,7 +102,7 @@ namespace zed_wrapper {
         void publishOdom(tf2::Transform base2odomTransf, ros::Time t);
 
         /* \brief Publish the pose of the camera in "Map" frame as a transformation
-         * \param base_transform : Transformation representing the camera pose from
+         * \param baseTransform : Transformation representing the camera pose from
          * odom frame to map frame
          * \param t : the ros::Time to stamp the image
          */
@@ -110,18 +110,18 @@ namespace zed_wrapper {
 
         /* \brief Publish the odometry of the camera in "Odom" frame as a
          * transformation
-         * \param base_transform : Transformation representing the camera pose from
+         * \param odomTransf : Transformation representing the camera pose from
          * base frame to odom frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdomFrame(tf2::Transform mBase2OdomTransf, ros::Time t);
+        void publishOdomFrame(tf2::Transform odomTransf, ros::Time t);
 
         /* \brief Publish the pose of the imu in "Odom" frame as a transformation
-         * \param base_transform : Transformation representing the imu pose from base
+         * \param imuTransform : Transformation representing the imu pose from base
          * frame to odom framevoid
          * \param t : the ros::Time to stamp the image
          */
-        void publishImuFrame(tf2::Transform baseTransform);
+        void publishImuFrame(tf2::Transform imuTransform, ros::Time t);
 
         /* \brief Publish a cv::Mat image with a ros Publisher
          * \param img : the image to publish
@@ -410,6 +410,7 @@ namespace zed_wrapper {
         float mMapMaxDepth = 3.5f;
         float mMapMaxHeight = 0.5f;
         float mMapHeightResol = .025f;
+        float mMapLocalRadius = 3.0f;
         int mMapResolIdx = 1;
         double mTerrainMapRes;
 
