@@ -1947,7 +1947,7 @@ namespace zed_wrapper {
 
         if (odomSub > 0) {
             nav_msgs::Path odomPath;
-            odomPath.header.frame_id = mOdometryFrameId;
+            odomPath.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
             odomPath.header.stamp = mLastFrameTime;
             odomPath.poses = mOdomPath;
 

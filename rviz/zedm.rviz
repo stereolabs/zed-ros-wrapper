@@ -8,9 +8,8 @@ Panels:
         - /RobotModel1/Links1
         - /TF1/Frames1
         - /DepthCloud1/Occlusion Compensation1
-        - /Map Path1
         - /Odometry1/Covariance1/Position1
-        - /Odom Path1
+        - /Local Maps1
         - /Local Maps1/Height Cubes1/Namespaces1
         - /Local Maps1/Height Boxes1/Namespaces1
         - /Global Maps1/Global Cost Map1
@@ -421,13 +420,13 @@ Visualization Manager:
           Use rainbow: true
           Value: false
         - Class: rviz/Marker
-          Enabled: false
+          Enabled: true
           Marker Topic: /zed/map/loc_map_height_cubes
           Name: Height Cubes
           Namespaces:
-            {}
+            height_cubes: true
           Queue Size: 1
-          Value: false
+          Value: true
         - Class: rviz/MarkerArray
           Enabled: false
           Marker Topic: /zed/map/loc_map_height_boxes
@@ -436,7 +435,7 @@ Visualization Manager:
             {}
           Queue Size: 1
           Value: false
-      Enabled: false
+      Enabled: true
       Name: Local Maps
     - Class: rviz/Group
       Displays:
@@ -523,25 +522,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 8.18550301
+      Distance: 9.52376366
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.453640699
-        Y: 0.127894372
-        Z: -0.781681836
+        X: 2.2447896
+        Y: 2.07323337
+        Z: -0.228504866
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.795398057
+      Pitch: 0.495398462
       Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 3.46040273
+      Yaw: 2.28539777
     Saved:
       - Angle: -1.57079637
         Class: rviz/TopDownOrtho
