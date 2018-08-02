@@ -164,7 +164,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="imu_topic_raw"             value="imu/data_raw" /> <!-- only used with ZED M -->
 
         <param name="imu_pub_rate"              value="500.0" /> <!-- only used with ZED M -->
-
+        
+        <param name="path_pub_rate"             value="0.5" />
+        <param name="path_max_count"            value="10000" /> <!-- use "-1" for no limits -->
     </node>
 
     <!-- ROS URDF description of the ZED -->

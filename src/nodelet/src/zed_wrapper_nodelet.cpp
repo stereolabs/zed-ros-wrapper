@@ -76,6 +76,7 @@ namespace zed_wrapper {
         mZedSerialNumber = 0;
         mOdometryDb = "";
         mImuPubRate = 100.0;
+        mPathPubRate = 1.0;
         mInitialTrackPose.resize(6);
         mOpenniDepthMode = false;
         mTerrainMap = false;
@@ -199,7 +200,8 @@ namespace zed_wrapper {
         string conf_map_topic = "confidence/confidence_map";
         string pose_topic = "map";
         string odometry_topic = "odom";
-        string path_topic = "path";
+        string odom_path_topic = "path_odom";
+        string map_path_topic = "path_map";
         string imu_topic = "imu/data";
         string imu_topic_raw = "imu/data_raw";
         string loc_height_map_topic = "map/loc_map_heightmap";
@@ -236,6 +238,12 @@ namespace zed_wrapper {
         mNhNs.getParam("imu_topic", imu_topic);
         mNhNs.getParam("imu_topic_raw", imu_topic_raw);
         mNhNs.getParam("imu_pub_rate", mImuPubRate);
+        mNhNs.getParam("path_pub_rate", mPathPubRate);
+        mNhNs.getParam("path_max_count", mPathMaxCount);
+        if (mPathMaxCount < 2 && mPathMaxCount != -1) {
+            mPathMaxCount = 2;
+        }
+
         // Create camera info
         sensor_msgs::CameraInfoPtr rgb_cam_info_msg_(new sensor_msgs::CameraInfo());
         sensor_msgs::CameraInfoPtr left_cam_info_msg_(new sensor_msgs::CameraInfo());
@@ -461,8 +469,25 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Advertised on topic " << pose_topic);
         mPubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
-        mPubPath = mNh.advertise<nav_msgs::Path>(path_topic, 1, true);
-        NODELET_INFO_STREAM("Advertised on topic " << path_topic);
+        
+        // Camera Path
+        if (mPathPubRate > 0) {
+            mPubOdomPath = mNh.advertise<nav_msgs::Path>(odom_path_topic, 1, true);
+            NODELET_INFO_STREAM("Advertised on topic " << odom_path_topic);
+            mPubMapPath = mNh.advertise<nav_msgs::Path>(map_path_topic, 1, true);
+            NODELET_INFO_STREAM("Advertised on topic " << map_path_topic);
+            
+            mPubPathTimer = mNhNs.createTimer(ros::Duration(1.0 / mPathPubRate),
+                                              &ZEDWrapperNodelet::pathPubCallback, this);
+
+            if (mPathMaxCount != -1) {
+                NODELET_DEBUG_STREAM("Path vectors reserved " << mPathMaxCount << " poses.");
+                mOdomPath.reserve(mPathMaxCount);
+                mMapPath.reserve(mPathMaxCount);
+
+                NODELET_DEBUG_STREAM("Path vector sizes: " << mOdomPath.size() << " " << mMapPath.size());
+            }
+        }
 
         if (mTerrainMap) {
             // Terrain Mapping publishers
@@ -498,7 +523,7 @@ namespace zed_wrapper {
             mPubImuRaw = mNh.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
             NODELET_INFO_STREAM("Advertised on topic " << imu_topic_raw << " @ "
                                 << mImuPubRate << " Hz");
-            mImuTime = ros::Time::now();
+            mLastFrameTime = ros::Time::now();
             mPubImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
                                              &ZEDWrapperNodelet::imuPubCallback, this);
         } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
@@ -880,15 +905,15 @@ namespace zed_wrapper {
         pose.header.stamp = t;
         pose.header.frame_id = mMapFrameId; // map_frame
         // conversion from Tranform to message
-        geometry_msgs::Transform base2 = tf2::toMsg(odom2mapTransform);
+        geometry_msgs::Transform odom2map = tf2::toMsg(odom2mapTransform);
         // Add all value in Pose message
-        pose.pose.position.x = base2.translation.x;
-        pose.pose.position.y = base2.translation.y;
-        pose.pose.position.z = base2.translation.z;
-        pose.pose.orientation.x = base2.rotation.x;
-        pose.pose.orientation.y = base2.rotation.y;
-        pose.pose.orientation.z = base2.rotation.z;
-        pose.pose.orientation.w = base2.rotation.w;
+        pose.pose.position.x = odom2map.translation.x;
+        pose.pose.position.y = odom2map.translation.y;
+        pose.pose.position.z = odom2map.translation.z;
+        pose.pose.orientation.x = odom2map.rotation.x;
+        pose.pose.orientation.y = odom2map.rotation.y;
+        pose.pose.orientation.z = odom2map.rotation.z;
+        pose.pose.orientation.w = odom2map.rotation.w;
         // Publish odometry message
         mPubPose.publish(pose);
     }
@@ -1817,6 +1842,120 @@ namespace zed_wrapper {
         NODELET_DEBUG_STREAM("Initialized Global map cell dim: " << mapInfo.width << " x " << mapInfo.height);
     }
 
+    void ZEDWrapperNodelet::pathPubCallback(const ros::TimerEvent& e) {
+        uint32_t mapSub = mPubMapPath.getNumSubscribers();
+        uint32_t odomSub = mPubOdomPath.getNumSubscribers();
+
+        tf2::Transform base_to_odom;
+        base_to_odom.setIdentity();
+        tf2::Transform base_to_map;
+        base_to_map.setIdentity();
+
+        // Look up the transformation from base frame to odom
+        try {
+            // Save the transformation from base to frame
+            geometry_msgs::TransformStamped b2o =
+                mTfBuffer->lookupTransform(mOdometryFrameId, mBaseFrameId, ros::Time(0));
+            // Get the TF2 transformation
+            tf2::fromMsg(b2o.transform, base_to_odom);
+        } catch (tf2::TransformException& ex) {
+            NODELET_WARN_THROTTLE(
+                10.0, "The tf from '%s' to '%s' does not seem to be available, "
+                "will assume it as identity!",
+                mBaseFrameId.c_str(), mOdometryFrameId.c_str());
+            NODELET_DEBUG("Transform error: %s", ex.what());
+
+        }
+
+        if (mPublishMapTf) {
+            // Look up the transformation from base frame to map
+            try {
+                // Save the transformation from base to frame
+                geometry_msgs::TransformStamped b2m =
+                    mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
+                // Get the TF2 transformation
+                tf2::fromMsg(b2m.transform, base_to_map);
+            } catch (tf2::TransformException& ex) {
+                NODELET_WARN_THROTTLE(
+                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
+                    "will assume it as identity!",
+                    mBaseFrameId.c_str(), mOdometryFrameId.c_str());
+                NODELET_DEBUG("Transform error: %s", ex.what());
+            }
+        }
+
+
+        geometry_msgs::PoseStamped odomPose;
+        geometry_msgs::PoseStamped mapPose;
+
+        odomPose.header.stamp = mLastFrameTime;
+        odomPose.header.frame_id = mOdometryFrameId; // odom_frame
+        // conversion from Tranform to message
+        geometry_msgs::Transform base2odom = tf2::toMsg(base_to_odom);
+        // Add all value in Pose message
+        odomPose.pose.position.x = base2odom.translation.x;
+        odomPose.pose.position.y = base2odom.translation.y;
+        odomPose.pose.position.z = base2odom.translation.z;
+        odomPose.pose.orientation.x = base2odom.rotation.x;
+        odomPose.pose.orientation.y = base2odom.rotation.y;
+        odomPose.pose.orientation.z = base2odom.rotation.z;
+        odomPose.pose.orientation.w = base2odom.rotation.w;
+
+        if (mPublishMapTf) {
+            mapPose.header.stamp = mLastFrameTime;
+            mapPose.header.frame_id = mMapFrameId; // map_frame
+            // conversion from Tranform to message
+            geometry_msgs::Transform base2map = tf2::toMsg(base_to_map);
+            // Add all value in Pose message
+            mapPose.pose.position.x = base2map.translation.x;
+            mapPose.pose.position.y = base2map.translation.y;
+            mapPose.pose.position.z = base2map.translation.z;
+            mapPose.pose.orientation.x = base2map.rotation.x;
+            mapPose.pose.orientation.y = base2map.rotation.y;
+            mapPose.pose.orientation.z = base2map.rotation.z;
+            mapPose.pose.orientation.w = base2map.rotation.w;
+        }
+
+        // Circular vector
+        if (mPathMaxCount != -1) {
+            if (mOdomPath.size() == mPathMaxCount) {
+                NODELET_DEBUG("Path vectors full: rotating ");
+                std::rotate(mOdomPath.begin(), mOdomPath.begin() + 1, mOdomPath.end());
+                std::rotate(mMapPath.begin(), mMapPath.begin() + 1, mMapPath.end());
+
+                mMapPath[mPathMaxCount - 1] = mapPose;
+                mOdomPath[mPathMaxCount - 1] = odomPose;
+            } else {
+                NODELET_DEBUG_STREAM("Path vectors adding last available poses");
+                mMapPath.push_back(mapPose);
+                mOdomPath.push_back(odomPose);
+            }
+        } else {
+            NODELET_DEBUG_STREAM("No limit path vectors adding last available poses");
+            mMapPath.push_back(mapPose);
+            mOdomPath.push_back(odomPose);
+        }
+
+        if (mapSub > 0 &&  mPublishMapTf) {
+            nav_msgs::Path mapPath;
+            mapPath.header.frame_id = mMapFrameId;
+            mapPath.header.stamp = mLastFrameTime;
+            mapPath.poses = mMapPath;
+
+            mPubMapPath.publish(mapPath);
+        }
+
+        if (odomSub > 0) {
+            nav_msgs::Path odomPath;
+            odomPath.header.frame_id = mOdometryFrameId;
+            odomPath.header.stamp = mLastFrameTime;
+            odomPath.poses = mOdomPath;
+
+            mPubOdomPath.publish(odomPath);
+        }
+
+    }
+
     void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
         uint32_t imu_SubNumber = mPubImu.getNumSubscribers();
         uint32_t imu_RawSubNumber = mPubImuRaw.getNumSubscribers();
@@ -1831,7 +1970,7 @@ namespace zed_wrapper {
 
         if (imu_SubNumber > 0) {
             sensor_msgs::Imu imu_msg;
-            imu_msg.header.stamp = mImuTime; // t;
+            imu_msg.header.stamp = mLastFrameTime; // t;
             imu_msg.header.frame_id = mImuFrameId;
             imu_msg.orientation.x = mSignX * imu_data.getOrientation()[mIdxX];
             imu_msg.orientation.y = mSignY * imu_data.getOrientation()[mIdxY];
@@ -1870,7 +2009,7 @@ namespace zed_wrapper {
 
         if (imu_RawSubNumber > 0) {
             sensor_msgs::Imu imu_raw_msg;
-            imu_raw_msg.header.stamp = mImuTime; // t;
+            imu_raw_msg.header.stamp = mLastFrameTime; // t;
             imu_raw_msg.header.frame_id = mImuFrameId;
             imu_raw_msg.angular_velocity.x = mSignX * imu_data.angular_velocity[mIdxX];
             imu_raw_msg.angular_velocity.y = mSignY * imu_data.angular_velocity[mIdxY];
@@ -1942,7 +2081,7 @@ namespace zed_wrapper {
             imu_pose.setRotation(delta_q);
             // Note, the frame is published, but its values will only change if someone
             // has subscribed to IMU
-            publishImuFrame(imu_pose, mImuTime); // publish the imu Frame
+            publishImuFrame(imu_pose, mLastFrameTime); // publish the imu Frame
         }
     }
 
@@ -1950,7 +2089,7 @@ namespace zed_wrapper {
         ros::Rate loop_rate(mCamFrameRate);
         ros::Time old_t =
             sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
-        mImuTime = old_t;
+        mLastFrameTime = old_t;
         sl::ERROR_CODE grab_status;
         mTrackingActivated = false;
         // Get the parameters of the ZED images
@@ -1997,12 +2136,13 @@ namespace zed_wrapper {
             uint32_t confMapSubnumber = mPubConfMap.getNumSubscribers();
             uint32_t imuSubnumber = mPubImu.getNumSubscribers();
             uint32_t imuRawsubnumber = mPubImuRaw.getNumSubscribers();
+            uint32_t pathSubNumber = mPubMapPath.getNumSubscribers() + mPubOdomPath.getNumSubscribers();
             bool runLoop = mTerrainMap ||
                            ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
                              leftRawSubnumber + rightSubnumber + rightRawSubnumber +
                              depthSubnumber + disparitySubnumber + cloudSubnumber +
                              poseSubnumber + odomSubnumber + confImgSubnumber +
-                             confMapSubnumber + imuSubnumber + imuRawsubnumber) > 0);
+                             confMapSubnumber + imuSubnumber + imuRawsubnumber + pathSubNumber) > 0);
             runParams.enable_point_cloud = false;
 
             if (cloudSubnumber > 0) {
@@ -2012,7 +2152,7 @@ namespace zed_wrapper {
             // Run the loop only if there is some subscribers
             if (runLoop) {
                 if ((mTerrainMap || mDepthStabilization || poseSubnumber > 0 || odomSubnumber > 0 ||
-                     cloudSubnumber > 0 || depthSubnumber > 0) &&
+                     cloudSubnumber > 0 || depthSubnumber > 0 || pathSubNumber > 0) &&
                     !mTrackingActivated) { // Start the tracking
                     start_tracking();
                 } else if (!mTerrainMap && !mDepthStabilization && poseSubnumber == 0 &&
@@ -2253,7 +2393,7 @@ namespace zed_wrapper {
 
                 // Publish the odometry if someone has subscribed to
                 if (mTerrainMap || poseSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
-                    depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0) {
+                    depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0 || pathSubNumber > 0) {
                     if (!mInitOdomWithPose) {
                         sl::Pose deltaOdom;
                         sl::TRACKING_STATE status = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
@@ -2289,7 +2429,7 @@ namespace zed_wrapper {
 
                 // Publish the zed camera pose if someone has subscribed to
                 if (mTerrainMap || poseSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
-                    depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0) {
+                    depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0 || pathSubNumber > 0) {
 
                     static sl::TRACKING_STATE oldStatus;
                     sl::TRACKING_STATE status = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME_WORLD);
@@ -2359,7 +2499,7 @@ namespace zed_wrapper {
                         // someone has subscribed to map
                         publishPoseFrame(mOdom2MapTransf, t); // publish the odometry Frame in map frame
                     }
-                    mImuTime = t;
+                    mLastFrameTime = t;
                 }
 
                 static int rateWarnCount = 0;

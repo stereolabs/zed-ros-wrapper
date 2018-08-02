@@ -39,6 +39,7 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <nav_msgs/OccupancyGrid.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #include <zed_wrapper/ZedConfig.h>
 #include <zed_wrapper/reset_odometry.h>
@@ -184,6 +185,11 @@ namespace zed_wrapper {
          */
         void dynamicReconfCallback(zed_wrapper::ZedConfig& config, uint32_t level);
 
+        /* \brief Callback to publish Path data with a ROS publisher.
+         * \param e : the ros::TimerEvent binded to the callback
+         */
+        void pathPubCallback(const ros::TimerEvent& e);
+        
         /* \brief Callback to publish IMU raw data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
@@ -305,7 +311,8 @@ namespace zed_wrapper {
         ros::Publisher mPubDepthCamInfo;
         ros::Publisher mPubPose;
         ros::Publisher mPubOdom;
-        ros::Publisher mPubPath;
+        ros::Publisher mPubOdomPath;
+        ros::Publisher mPubMapPath;
         ros::Publisher mPubImu;
         ros::Publisher mPubImuRaw;
 
@@ -320,13 +327,12 @@ namespace zed_wrapper {
         ros::Publisher mPubGlobalHeightMapImg;
         ros::Publisher mPubGlobalColorMapImg;
         ros::Publisher mPubGlobalCostMapImg;
-
-
-
+        
         // Timers
         ros::Timer mPubImuTimer;
         ros::Timer mLocalTerrainTimer;
         ros::Timer mGlobalTerrainTimer;
+        ros::Timer mPubPathTimer;
 
         // Services
         ros::ServiceServer mSrvSetInitPose;
@@ -390,6 +396,8 @@ namespace zed_wrapper {
         std::string mOdometryDb;
         std::string mSvoFilepath;
         double mImuPubRate;
+        double mPathPubRate;
+        int mPathMaxCount;
         bool mVerbose;
 
         bool mTrackingActivated;
@@ -419,14 +427,15 @@ namespace zed_wrapper {
         int mMapResolIdx = 1;
         double mTerrainMapRes;
 
-
-        // IMU time
-        ros::Time mImuTime;
+        // Last frame time
+        ros::Time mLastFrameTime;
 
         // Tracking variables
         sl::Pose mLastZedPose; // Sensor to Map transform
         sl::Transform mInitialPoseSl;
         std::vector<float> mInitialTrackPose;
+        std::vector<geometry_msgs::PoseStamped> mOdomPath;
+        std::vector<geometry_msgs::PoseStamped> mMapPath;
 
         // TF Transforms
         tf2::Transform mOdom2MapTransf;

@@ -4,14 +4,15 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
         - /RobotModel1/Links1
         - /TF1/Frames1
         - /DepthCloud1/Occlusion Compensation1
+        - /Map Path1
         - /Odometry1/Covariance1/Position1
-        - /Local Maps1
+        - /Odom Path1
         - /Local Maps1/Height Cubes1/Namespaces1
         - /Local Maps1/Height Boxes1/Namespaces1
-        - /Global Maps1
         - /Global Maps1/Global Cost Map1
       Splitter Ratio: 0.5
     Tree Height: 438
@@ -126,7 +127,7 @@ Visualization Manager:
           Value: false
       Marker Scale: 0.5
       Name: TF
-      Show Arrows: true
+      Show Arrows: false
       Show Axes: true
       Show Names: true
       Tree:
@@ -240,9 +241,11 @@ Visualization Manager:
           Local Height Cloud: true
           Local Height Map: true
           Value: true
+        Map Path: true
+        Map Pose: true
+        Odom Path: true
         Odometry: true
         PointCloud2: true
-        Pose: true
         RobotModel: true
         TF: true
         Value: false
@@ -274,15 +277,38 @@ Visualization Manager:
       Axes Length: 1
       Axes Radius: 0.100000001
       Class: rviz/Pose
-      Color: 0; 255; 0
+      Color: 25; 255; 0
       Enabled: true
       Head Length: 0.100000001
       Head Radius: 0.0500000007
-      Name: Pose
+      Name: Map Pose
       Shaft Length: 0.300000012
       Shaft Radius: 0.0199999996
       Shape: Arrow
       Topic: /zed/map
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 50
+      Enabled: true
+      Head Diameter: 0.0199999996
+      Head Length: 0.0199999996
+      Length: 0.0500000007
+      Line Style: Lines
+      Line Width: 0.0299999993
+      Name: Map Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 25; 255; 0
+      Pose Style: Arrows
+      Radius: 0.00999999978
+      Shaft Diameter: 0.00999999978
+      Shaft Length: 0.0500000007
+      Topic: /zed/path_map
       Unreliable: false
       Value: true
     - Angle Tolerance: 0
@@ -317,6 +343,29 @@ Visualization Manager:
         Shaft Radius: 0.0199999996
         Value: Arrow
       Topic: /zed/odom
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 255; 25; 50
+      Enabled: true
+      Head Diameter: 0.0199999996
+      Head Length: 0.0199999996
+      Length: 0.0500000007
+      Line Style: Lines
+      Line Width: 0.0299999993
+      Name: Odom Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 25; 0
+      Pose Style: Arrows
+      Radius: 0.00999999978
+      Shaft Diameter: 0.00999999978
+      Shaft Length: 0.0500000007
+      Topic: /zed/path_odom
       Unreliable: false
       Value: true
     - Class: rviz/Group
@@ -372,13 +421,13 @@ Visualization Manager:
           Use rainbow: true
           Value: false
         - Class: rviz/Marker
-          Enabled: true
+          Enabled: false
           Marker Topic: /zed/map/loc_map_height_cubes
           Name: Height Cubes
           Namespaces:
-            height_cubes: true
+            {}
           Queue Size: 1
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
           Enabled: false
           Marker Topic: /zed/map/loc_map_height_boxes
@@ -387,7 +436,7 @@ Visualization Manager:
             {}
           Queue Size: 1
           Value: false
-      Enabled: true
+      Enabled: false
       Name: Local Maps
     - Class: rviz/Group
       Displays:
@@ -474,25 +523,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 12.8087139
+      Distance: 8.18550301
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.0189046301
-        Y: 0.0371901542
-        Z: 0.0362154357
+        X: -0.453640699
+        Y: 0.127894372
+        Z: -0.781681836
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.920398176
-      Target Frame: zed_camera_center
+      Pitch: 0.795398057
+      Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 4.42540264
+      Yaw: 3.46040273
     Saved:
       - Angle: -1.57079637
         Class: rviz/TopDownOrtho
