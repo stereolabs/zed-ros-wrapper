@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	  <arg name="depth_topic"             	value="$(arg depth_topic)" />
 	  <arg name="rgb_info_topic"       	value="$(arg camera_info_topic)" />
 	  <arg name="depth_cam_info_topic" 	value="$(arg depth_camera_info_topic)" />
-	  <arg name="camera_frame"              value="$(arg camera_frame)" />
+	  <arg name="base_frame"              value="$(arg camera_frame)" />
 	</include>
   
 	<!-- RTAB-map Node-->
