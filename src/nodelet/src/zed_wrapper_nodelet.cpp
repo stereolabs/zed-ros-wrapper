@@ -49,7 +49,9 @@ namespace zed_wrapper {
     ZEDWrapperNodelet::ZEDWrapperNodelet() : Nodelet() {}
 
     ZEDWrapperNodelet::~ZEDWrapperNodelet() {
-        devicePollThread.get()->join();
+        if (devicePollThread.joinable()) {
+            devicePollThread.join();
+        }
     }
 
     void ZEDWrapperNodelet::onInit() {
@@ -496,8 +498,7 @@ namespace zed_wrapper {
                                "reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
 
         // Start pool thread
-        devicePollThread = boost::shared_ptr<boost::thread>(
-                               new boost::thread(boost::bind(&ZEDWrapperNodelet::device_poll, this)));
+        devicePollThread = std::thread(&ZEDWrapperNodelet::device_poll, this);
     }
 
     void ZEDWrapperNodelet::checkResolFps() {

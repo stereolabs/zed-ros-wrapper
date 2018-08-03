@@ -46,6 +46,7 @@
 #include <opencv2/core/core.hpp>
 
 #include <mutex>
+#include <thread>
 
 using namespace std;
 
@@ -210,7 +211,7 @@ namespace zed_wrapper {
         // ROS
         ros::NodeHandle nh;
         ros::NodeHandle nhNs;
-        boost::shared_ptr<boost::thread> devicePollThread;
+        std::thread devicePollThread;
 
         // Publishers
         image_transport::Publisher pubRgb;
