@@ -31,6 +31,7 @@ The zed_ros_wrapper is a catkin package. It depends on the following ROS package
    - dynamic_reconfigure
    - urdf
 
+
 Open a terminal and build the package:
 
     cd ~/catkin_ws/src
@@ -41,21 +42,18 @@ Open a terminal and build the package:
 
 ### Run the program
 
-To launch the wrapper along with an Rviz preview, open a terminal and launch:
-
-    $ roslaunch zed_display display.launch # by default open a ZED
-
-or
-
-    $ roslaunch zed_display display_zedm.launch # open a ZED Mini
-
-
-To launch the wrapper without Rviz, use:
+To launch ZED node, use:
 
     $ roslaunch zed_wrapper zed.launch
 
+**Note**: Remember to change the parameter `camera_model` to `0` if you are using a **ZED** or to `1` if you are using a **ZED Mini**
+
  To select the ZED from its serial number
 
-    $ roslaunch zed_wrapper zed.launch serial_number:=1010 #replace 1010 with the actual SN
+    $ roslaunch zed_wrapper zed.launch serial_number:=1010 
+
+**Note**: replace 1010 with the actual SN
+
+If you want to use the `ZEDWrapperNodelet` with an external nodelet manager follow the `zed_nodelet_example` approach
 
 [More](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
