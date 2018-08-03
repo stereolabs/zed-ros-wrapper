@@ -896,7 +896,7 @@ namespace zed_wrapper {
         std::unique_lock<std::mutex> lock(mPcMutex);
         while (!mStopNode) {
             while (!mPcDataReady) {  // loop to avoid spurious wakeups
-                if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(1000)) == std::cv_status::timeout) {
+                if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
                     // Check thread stopping
                     if (mStopNode) {
                         return;
@@ -1497,16 +1497,19 @@ namespace zed_wrapper {
                 if (cloud_SubNumber > 0) {
                     // Run the point cloud conversion asynchronously to avoid slowing down
                     // all the program
-                    // Retrieve raw pointCloud data
-                    std::unique_lock<std::mutex> lock(mPcMutex);
-                    zed.retrieveMeasure(cloud, sl::MEASURE_XYZBGRA, sl::MEM_CPU, matWidth, matHeight);
+                    // Retrieve raw pointCloud data if latest Pointcloud is ready
+                    std::unique_lock<std::mutex> lock(mPcMutex, std::defer_lock);
+                    if (lock.try_lock()) {
+                        zed.retrieveMeasure(cloud, sl::MEASURE_XYZBGRA, sl::MEM_CPU, matWidth, matHeight);
 
-                    pointCloudFrameId = depthFrameId;
-                    pointCloudTime = t;
+                        pointCloudFrameId = depthFrameId;
+                        pointCloudTime = t;
 
-                    // Signal Pointcloud thread that a new pointcloud is ready
-                    mPcDataReady = true;
-                    mPcDataReadyCondVar.notify_one();
+                        // Signal Pointcloud thread that a new pointcloud is ready
+                        mPcDataReady = true;
+
+                        mPcDataReadyCondVar.notify_one();
+                    }
                 }
 
                 dataMutex.unlock();
