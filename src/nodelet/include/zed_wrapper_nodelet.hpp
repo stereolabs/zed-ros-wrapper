@@ -47,6 +47,7 @@
 
 #include <mutex>
 #include <thread>
+#include <condition_variable>
 
 using namespace std;
 
@@ -79,6 +80,10 @@ namespace zed_wrapper {
         /* \brief ZED camera polling thread function
          */
         void device_poll();
+
+        /* \brief Pointcloud publishing function
+         */
+        void pointcloud_thread();
 
       protected:
 
@@ -136,7 +141,7 @@ namespace zed_wrapper {
          * \param width : the width of the point cloud
          * \param height : the height of the point cloud
          */
-        void publishPointCloud(int width, int height);
+        void publishPointCloud();
 
         /* \brief Publish the informations of a camera with a ros Publisher
          * \param cam_info_msg : the information message to publish
@@ -212,6 +217,9 @@ namespace zed_wrapper {
         ros::NodeHandle nh;
         ros::NodeHandle nhNs;
         std::thread devicePollThread;
+        std::thread mPcThread; // Point Cloud thread
+
+        bool mStopNode;
 
         // Publishers
         image_transport::Publisher pubRgb;
@@ -343,6 +351,9 @@ namespace zed_wrapper {
 
         // Mutex
         std::mutex dataMutex;
+        std::mutex mPcMutex;
+        std::condition_variable mPcDataReadyCondVar;
+        bool mPcDataReady;
 
         // Point cloud variables
         sl::Mat cloud;

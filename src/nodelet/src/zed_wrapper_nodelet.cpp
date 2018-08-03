@@ -52,9 +52,16 @@ namespace zed_wrapper {
         if (devicePollThread.joinable()) {
             devicePollThread.join();
         }
+
+        if (mPcThread.joinable()) {
+            mPcThread.join();
+        }
     }
 
     void ZEDWrapperNodelet::onInit() {
+
+        mStopNode = false;
+        mPcDataReady = false;
 
 #ifndef NDEBUG
         if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,
@@ -281,7 +288,9 @@ namespace zed_wrapper {
                 while (waiting_for_camera) {
 
                     if (!nhNs.ok()) {
+                        mStopNode = true; // Stops other threads
                         zed.close();
+                        NODELET_DEBUG("ZED pool thread finished");
                         return;
                     }
 
@@ -352,7 +361,9 @@ namespace zed_wrapper {
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
             if (!nhNs.ok()) {
+                mStopNode = true; // Stops other threads
                 zed.close();
+                NODELET_DEBUG("ZED pool thread finished");
                 return;
             }
         }
@@ -497,8 +508,13 @@ namespace zed_wrapper {
         srvResetTracking = nh.advertiseService(
                                "reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
 
+        // Start Pointcloud thread
+        mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread, this);
+
         // Start pool thread
         devicePollThread = std::thread(&ZEDWrapperNodelet::device_poll, this);
+
+
     }
 
     void ZEDWrapperNodelet::checkResolFps() {
@@ -876,11 +892,33 @@ namespace zed_wrapper {
         pubDisparity.publish(msg);
     }
 
-    void ZEDWrapperNodelet::publishPointCloud(int width, int height) {
+    void ZEDWrapperNodelet::pointcloud_thread() {
+        std::unique_lock<std::mutex> lock(mPcMutex);
+        while (!mStopNode) {
+            while (!mPcDataReady) {  // loop to avoid spurious wakeups
+                if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(1000)) == std::cv_status::timeout) {
+                    // Check thread stopping
+                    if (mStopNode) {
+                        return;
+                    } else {
+                        continue;
+                    }
+                }
+            }
+
+            publishPointCloud();
+            mPcDataReady = false;
+        }
+
+        NODELET_DEBUG("Pointcloud thread finished");
+    }
+
+    void ZEDWrapperNodelet::publishPointCloud() {
+
         pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
-        point_cloud.width = width;
-        point_cloud.height = height;
-        int size = width * height;
+        point_cloud.width = matWidth;
+        point_cloud.height = matHeight;
+        int size = matWidth * matHeight;
         point_cloud.points.resize(size);
 
         sl::Vector4<float>* cpu_cloud = cloud.getPtr<sl::float4>();
@@ -900,8 +938,8 @@ namespace zed_wrapper {
         output.header.frame_id =
             pointCloudFrameId; // Set the header values of the ROS message
         output.header.stamp = pointCloudTime;
-        output.height = height;
-        output.width = width;
+        output.height = matHeight;
+        output.width = matWidth;
         output.is_bigendian = false;
         output.is_dense = false;
         pubCloud.publish(output);
@@ -1316,7 +1354,9 @@ namespace zed_wrapper {
                         sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
                         while (err != sl::SUCCESS) {
                             if (!nhNs.ok()) {
+                                mStopNode = true;
                                 zed.close();
+                                NODELET_DEBUG("ZED pool thread finished");
                                 return;
                             }
 
@@ -1458,11 +1498,15 @@ namespace zed_wrapper {
                     // Run the point cloud conversion asynchronously to avoid slowing down
                     // all the program
                     // Retrieve raw pointCloud data
-                    zed.retrieveMeasure(cloud, sl::MEASURE_XYZBGRA, sl::MEM_CPU, matWidth,
-                                        matHeight);
+                    std::unique_lock<std::mutex> lock(mPcMutex);
+                    zed.retrieveMeasure(cloud, sl::MEASURE_XYZBGRA, sl::MEM_CPU, matWidth, matHeight);
+
                     pointCloudFrameId = depthFrameId;
                     pointCloudTime = t;
-                    publishPointCloud(matWidth, matHeight);
+
+                    // Signal Pointcloud thread that a new pointcloud is ready
+                    mPcDataReady = true;
+                    mPcDataReadyCondVar.notify_one();
                 }
 
                 dataMutex.unlock();
@@ -1488,7 +1532,10 @@ namespace zed_wrapper {
 
                 // Publish the odometry if someone has subscribed to
                 if (pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 ||
-                    depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
+                    depth_SubNumber >
+
+
+                    0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
                     if (!initOdomWithPose) {
                         sl::Pose deltaOdom;
                         zed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
@@ -1626,7 +1673,10 @@ namespace zed_wrapper {
             }
         } // while loop
 
+        mStopNode = true; // Stops other threads
         zed.close();
+
+        NODELET_DEBUG("ZED pool thread finished");
     }
 
 } // namespace
