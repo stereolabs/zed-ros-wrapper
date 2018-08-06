@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="publish_urdf"          default="true" />
 
     <!-- to flip or not to flip -->
-    <arg name="camera_flip"         default="true" />
+    <arg name="camera_flip"         default="false" />
     <arg name="rgb_topic"           default="rgb/image_rect_color" />
     <arg name="rgb_info_topic"      default="rgb/camera_info" />
     <arg name="depth_topic"         default="depth/depth_registered" />
