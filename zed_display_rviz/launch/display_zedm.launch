@@ -26,6 +26,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </include>
   
     <!-- Launch rivz display -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_wrapper)/rviz/zedm.rviz" output="screen" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_display_rviz)/rviz/zedm.rviz" output="screen" />
 
 </launch>

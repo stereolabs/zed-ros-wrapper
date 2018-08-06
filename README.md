@@ -13,7 +13,6 @@ This package lets you use the ZED stereo camera with ROS. It outputs the camera 
 - Ubuntu 16.04
 - [ZED SDK **≥ 2.3**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu)
-- [Point Cloud Library (PCL)](https://github.com/PointCloudLibrary/pcl)
 
 ### Build the program
 
