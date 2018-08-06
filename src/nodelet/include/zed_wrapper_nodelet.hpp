@@ -292,6 +292,7 @@ namespace zed_wrapper {
         std::shared_ptr<tf2_ros::Buffer> tfBuffer;
         std::shared_ptr<tf2_ros::TransformListener> tfListener;
         bool publishTf;
+        bool cameraFlip;
 
         // Launch file parameters
         int resolution;
