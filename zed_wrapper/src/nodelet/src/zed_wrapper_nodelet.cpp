@@ -132,6 +132,8 @@ void ZEDWrapperNodelet::onInit() {
   // Publish odometry tf
   nhNs.param<bool>("publish_tf", publishTf, true);
 
+  nhNs.param<bool>("camera_flip", cameraFlip, false);
+
   if (serial_number > 0)
     NODELET_INFO_STREAM("SN : " << serial_number);
 
@@ -152,6 +154,7 @@ void ZEDWrapperNodelet::onInit() {
   // Status of map TF
   NODELET_INFO_STREAM("Publish " << mapFrameId << " ["
                                  << (publishTf ? "TRUE" : "FALSE") << "]");
+  NODELET_INFO_STREAM("Camera Flip [" << (cameraFlip ? "TRUE" : "FALSE") << "]");
 
   // Status of odometry TF
   // NODELET_INFO_STREAM("Publish " << odometry_frame_id << " [" << (publish_tf
@@ -338,7 +341,8 @@ void ZEDWrapperNodelet::onInit() {
   param.sdk_verbose = verbose;
   param.sdk_gpu_id = gpuId;
   param.depth_stabilization = depthStabilization;
-
+  param.camera_image_flip = cameraFlip;
+  
   sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
   while (err != sl::SUCCESS) {
     err = zed.open(param);
