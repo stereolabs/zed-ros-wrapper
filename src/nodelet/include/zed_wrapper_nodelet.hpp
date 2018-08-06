@@ -284,6 +284,7 @@ private:
     boost::shared_ptr<tf2_ros::Buffer> tfBuffer;
     boost::shared_ptr<tf2_ros::TransformListener> tfListener;
     bool publishTf;
+    bool cameraFlip;
 
     // Launch file parameters
     int resolution;
