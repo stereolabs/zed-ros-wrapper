@@ -65,6 +65,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- flip camera -->
         <param name="camera_flip"           value="$(arg camera_flip)" />
+
         <!-- Configuration frame camera -->    
         <param name="pose_frame"                    value="$(arg pose_frame)" />
         <param name="odometry_frame"                value="$(arg odometry_frame)" />
