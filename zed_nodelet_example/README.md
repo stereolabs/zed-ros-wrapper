@@ -10,6 +10,11 @@ To launch the wrapper nodelet along with the `depthimage_to_laserscan` nodelet, 
 
 **Note**: Remember to change the parameter `camera_model` to `0` if you are using a **ZED** or to `1` if you are using a **ZED Mini**
 
-To visualize the result of the process open Rviz and add a `LaserScan` visualization and set `/zed/scan` as `topic` parameter
+## Visualization
+To visualize the result of the process open Rviz, add a `LaserScan` visualization and set `/zed/scan` as `topic` parameter
+
+![Virtual laser scan rendered in Rviz](images/laserscan.png)
+
+![Virtual laser scan rendered in Rviz on the Depthcloud](images/laserscan-depthcloud.png)
 
 [More](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
