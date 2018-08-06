@@ -43,8 +43,6 @@
     static_cast<sl::COORDINATE_SYSTEM>(5)
 // <<<<< Backward compatibility
 
-#include "stopwatch.h"
-
 using namespace std;
 
 namespace zed_wrapper {
