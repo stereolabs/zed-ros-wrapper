@@ -42,8 +42,6 @@
 #include <zed_wrapper/set_initial_pose.h>
 #include <zed_wrapper/reset_odometry.h>
 
-#include <boost/make_shared.hpp>
-
 #include <opencv2/core/core.hpp>
 
 #include <mutex>
@@ -291,8 +289,8 @@ namespace zed_wrapper {
         std::string imuFrameId;
 
         // initialization Transform listener
-        boost::shared_ptr<tf2_ros::Buffer> tfBuffer;
-        boost::shared_ptr<tf2_ros::TransformListener> tfListener;
+        std::shared_ptr<tf2_ros::Buffer> tfBuffer;
+        std::shared_ptr<tf2_ros::TransformListener> tfListener;
         bool publishTf;
 
         // Launch file parameters
