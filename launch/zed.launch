@@ -23,7 +23,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="serial_number"        default="0" />
     <arg name="verbose"              default="true" />
     <arg name="resolution"           default="2" /> <!--0=RESOLUTION_HD2K, 1=RESOLUTION_HD1080, 2=RESOLUTION_HD720, 3=RESOLUTION_VGA -->
-    <arg name="frame_rate"           default="30" />
+    <arg name="frame_rate"           default="60" />
     <!-- RESOLUTION_HD2K   -> 2208*1242, available framerates: 15 fps.
          RESOLUTION_HD1080 -> 1920*1080, available framerates: 15, 30 fps.
          RESOLUTION_HD720  -> 1280*720,  available framerates: 15, 30, 60 fps.

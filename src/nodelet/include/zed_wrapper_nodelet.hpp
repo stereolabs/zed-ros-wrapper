@@ -35,6 +35,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <image_transport/image_transport.h>
 #include <dynamic_reconfigure/server.h>
+#include <sensor_msgs/PointCloud2.h>
 
 #include <zed_wrapper/ZedConfig.h>
 #include <zed_wrapper/reset_tracking.h>
@@ -357,6 +358,7 @@ namespace zed_wrapper {
 
         // Point cloud variables
         sl::Mat cloud;
+        sensor_msgs::PointCloud2 mPointcloudMsg;
         string pointCloudFrameId = "";
         ros::Time pointCloudTime;
 

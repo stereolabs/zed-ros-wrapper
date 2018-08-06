@@ -27,11 +27,12 @@
 #endif
 
 #include <nav_msgs/Odometry.h>
-#include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/distortion_models.h>
 #include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/point_cloud2_iterator.h>
 #include <stereo_msgs/DisparityImage.h>
+
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 // >>>>> Backward compatibility
@@ -41,6 +42,8 @@
 #define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD                              \
     static_cast<sl::COORDINATE_SYSTEM>(5)
 // <<<<< Backward compatibility
+
+#include "stopwatch.h"
 
 using namespace std;
 
@@ -904,45 +907,50 @@ namespace zed_wrapper {
                         continue;
                     }
                 }
-            }
 
-            publishPointCloud();
-            mPcDataReady = false;
+                publishPointCloud();
+                mPcDataReady = false;
+            }
         }
 
         NODELET_DEBUG("Pointcloud thread finished");
     }
 
     void ZEDWrapperNodelet::publishPointCloud() {
+        // Initialize Point Cloud message
+        // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
+        int ptsCount = matWidth * matHeight;
+        mPointcloudMsg.header.stamp = pointCloudTime;
+        if (mPointcloudMsg.width != matWidth || mPointcloudMsg.height != matHeight) {
+            mPointcloudMsg.header.frame_id = pointCloudFrameId; // Set the header values of the ROS message
+            mPointcloudMsg.is_bigendian = false;
+            mPointcloudMsg.is_dense = false;
 
-        pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
-        point_cloud.width = matWidth;
-        point_cloud.height = matHeight;
-        int size = matWidth * matHeight;
-        point_cloud.points.resize(size);
+            sensor_msgs::PointCloud2Modifier modifier(mPointcloudMsg);
+            modifier.setPointCloud2Fields(4,
+                                          "x", 1, sensor_msgs::PointField::FLOAT32,
+                                          "y", 1, sensor_msgs::PointField::FLOAT32,
+                                          "z", 1, sensor_msgs::PointField::FLOAT32,
+                                          "rgb", 1, sensor_msgs::PointField::FLOAT32);
+
+            modifier.resize(ptsCount);
+        }
 
         sl::Vector4<float>* cpu_cloud = cloud.getPtr<sl::float4>();
 
+        // Data copy
+        float* ptCloudPtr = (float*)(&mPointcloudMsg.data[0]);
+
         #pragma omp parallel for
-        for (int i = 0; i < size; i++) {
-            // COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD
-            point_cloud.points[i].x = xSign * cpu_cloud[i][xIdx];
-            point_cloud.points[i].y = ySign * cpu_cloud[i][yIdx];
-            point_cloud.points[i].z = zSign * cpu_cloud[i][zIdx];
-            point_cloud.points[i].rgb = cpu_cloud[i][3];
+        for (size_t i = 0; i < ptsCount; ++i) {
+            ptCloudPtr[i * 4 + 0] = xSign * cpu_cloud[i][xIdx];
+            ptCloudPtr[i * 4 + 1] = ySign * cpu_cloud[i][yIdx];
+            ptCloudPtr[i * 4 + 2] = zSign * cpu_cloud[i][zIdx];
+            ptCloudPtr[i * 4 + 3] = cpu_cloud[i][3];
         }
 
-        sensor_msgs::PointCloud2 output;
-        pcl::toROSMsg(point_cloud,
-                      output); // Convert the point cloud to a ROS message
-        output.header.frame_id =
-            pointCloudFrameId; // Set the header values of the ROS message
-        output.header.stamp = pointCloudTime;
-        output.height = matHeight;
-        output.width = matWidth;
-        output.is_bigendian = false;
-        output.is_dense = false;
-        pubCloud.publish(output);
+        // Pointcloud publishing
+        pubCloud.publish(mPointcloudMsg);
     }
 
     void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg,
