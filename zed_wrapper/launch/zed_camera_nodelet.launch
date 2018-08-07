@@ -17,15 +17,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
+    <arg name="nodelet_manager_name"  default="zed_nodelet_manager" />
+
     <arg name="camera_model"          default="0" /> <!-- 0=ZED, 1=ZEDM-->
     <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
     <arg name="zed_id"                default="0" />
     <!-- If a ZED SN is given, zed_id is ignored and the wrapper will specifically look for the ZED with the corresponding serial number -->
-    <arg name="serial_number"         default="0" />     
+    <arg name="serial_number"         default="0" />
     <arg name="verbose"               default="true" />
 
     <arg name="resolution"            default="2" /> <!--0=RESOLUTION_HD2K, 1=RESOLUTION_HD1080, 2=RESOLUTION_HD720, 3=RESOLUTION_VGA -->
-    <arg name="frame_rate"            default="15" />
+    <arg name="frame_rate"            default="30" />
     <!-- RESOLUTION_HD2K   -> 2208*1242, available framerates: 15 fps.
          RESOLUTION_HD1080 -> 1920*1080, available framerates: 15, 30 fps.
          RESOLUTION_HD720  -> 1280*720,  available framerates: 15, 30, 60 fps.
@@ -37,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Definition coordinate frames -->
     <arg name="publish_tf"                    default="true" />
     <arg name="publish_map_tf"                default="true" />
+
     <arg name="pose_frame"                    default="map" />
     <arg name="odometry_frame"                default="odom" />
     <arg name="base_frame"                    default="base_link" />
@@ -52,11 +55,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Publish urdf zed -->
     <arg name="publish_urdf"          default="true" />
 
+    <!-- to flip or not to flip -->
+    <arg name="camera_flip"         default="false" />
     <arg name="rgb_topic"           default="rgb/image_rect_color" />
     <arg name="rgb_info_topic"      default="rgb/camera_info" />
     <arg name="depth_topic"         default="depth/depth_registered" />
-    
-    <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
+
+    <node pkg="nodelet" type="nodelet" name="ZED_nodelet" args="load zed_wrapper/ZEDWrapperNodelet $(arg nodelet_manager_name)" output="screen">
 
         <param name="camera_model"          value="$(arg camera_model)" />
 
@@ -64,7 +69,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="publish_tf"            value="$(arg publish_tf)" />
         <param name="publish_map_tf"        value="$(arg publish_map_tf)" />
 
-        <!-- Configuration frame camera -->    
+        <!-- flip camera -->
+        <param name="camera_flip"           value="$(arg camera_flip)" />
+
+        <!-- Configuration frame camera -->
         <param name="pose_frame"                    value="$(arg pose_frame)" />
         <param name="odometry_frame"                value="$(arg odometry_frame)" />
         <param name="base_frame"                    value="$(arg base_frame)" />
@@ -72,7 +80,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="left_camera_optical_frame"     value="$(arg left_camera_optical_frame)" />
         <param name="right_camera_frame"            value="$(arg right_camera_frame)" />
         <param name="right_camera_optical_frame"    value="$(arg right_camera_optical_frame)" />
-    
+
         <!-- SVO file path -->
         <param name="svo_filepath"          value="$(arg svo_file)" />
 
@@ -89,14 +97,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="odometry_db"           value="" />
         <param name="openni_depth_mode"     value="0" />
         <param name="gpu_id"                value="$(arg gpu_id)" />
-        <param name="confidence"            value="80" />
+        <param name="confidence"            value="100" />
         <param name="max_depth"             value="5.0" />
         <param name="gain"                  value="50" />
         <param name="exposure"              value="100" />
         <param name="auto_exposure"         value="true" />
         <param name="depth_stabilization"   value="1" />
         <param name="pose_smoothing"        value="false" />
-        <param name="spatial_memory"        value="false" />
+        <param name="spatial_memory"        value="true" />
         <param name="floor_alignment"       value="true" />
 
         <param name="terrain_mapping"           value="true" />
@@ -109,9 +117,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="mapping_agent_roughness"   value="0.05" />
         <param name="mapping_max_depth"         value="3.5" />
         <param name="mapping_max_height"        value="0.5" />
-        <param name="mapping_height_resol"      value="0.1" />
-        <param name="mapping_local_radius"      value="3.0" />
-        <param name="mapping_cell_resol"        value="0" /> <!-- 0->LOW (0.1m); 1->MEDIUM (0.05m); 2->HIGH (0.025m) -->
+        <param name="mapping_height_resol"      value="0.05" />
+        <param name="mapping_local_radius"      value="2.0" />
+        <param name="mapping_cell_resol"        value="1" /> <!-- 0->LOW (0.1m); 1->MEDIUM (0.05m); 2->HIGH (0.025m) -->
 
         <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>
 
@@ -134,7 +142,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="depth_topic"               value="$(arg depth_topic)" />
         <param name="depth_cam_info_topic"      value="depth/camera_info" />
 
-        <param name="point_cloud_topic"         value="point_cloud/cloud_registered" />        
+        <param name="point_cloud_topic"         value="point_cloud/cloud_registered" />
 
         <param name="disparity_topic"           value="disparity/disparity_image" />
         <param name="confidence_img_topic"      value="confidence/confidence_image" />
@@ -149,9 +157,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="imu_topic_raw"             value="imu/data_raw" /> <!-- only used with ZED M -->
 
         <param name="imu_pub_rate"              value="500.0" /> <!-- only used with ZED M -->
-
-        <param name="path_pub_rate"             value="2" />
-        <param name="path_max_count"            value="-1" /> <!-- use "-1" for no limits -->
+        
+        <param name="path_pub_rate"             value="0.5" />
+        <param name="path_max_count"            value="10000" /> <!-- use "-1" for no limits -->
     </node>
 
     <!-- ROS URDF description of the ZED -->

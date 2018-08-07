@@ -20,15 +20,11 @@
   <depend>opencv3</depend>
   <depend>image_transport</depend>
   <depend>dynamic_reconfigure</depend>
-  <depend>pcl_conversions</depend>
   <depend>nodelet</depend>
-  <depend>grid_map_core</depend>
-  <depend>grid_map_msgs</depend>
-  <depend>grid_map_cv</depend>
-  <depend>grid_map_ros</depend>
   
   <build_depend>urdf</build_depend>
   <build_depend>message_generation</build_depend>
+
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   

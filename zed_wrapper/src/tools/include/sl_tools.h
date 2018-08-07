@@ -104,18 +104,6 @@ namespace sl_tools {
         out.w = 255;
         return out;
     }
-
-    // TODO Remove when it will be available in Terrain SDK
-    inline sl::float3 depackColor3f(float colorIn) {
-        sl::float3 out;
-        uint32_t color_uint = *(uint32_t*) & colorIn;
-        unsigned char* color_uchar = (unsigned char*) &color_uint;
-        for (int c = 0; c < 3; c++) {
-            out[c] = static_cast<float>(color_uchar[2 - c] / 255.f);
-        }
-        return out;
-    }
-
 } // namespace
 
 #endif // SL_TOOLS_H

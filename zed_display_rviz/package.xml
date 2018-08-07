@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>zed_display_rviz</name>
+  <version>1.0.0</version>
+  <description>
+    "zed_display" is a ROS package to visualize in Rviz the information from the "zed_wrapper" node
+  </description>
+  <maintainer email="developers@stereolabs.com">STEREOLABS</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>  
+
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>rviz_imu_plugin</exec_depend>
+  <exec_depend>zed_wrapper</exec_depend>
+</package>

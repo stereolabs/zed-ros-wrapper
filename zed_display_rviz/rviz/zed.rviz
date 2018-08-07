@@ -9,6 +9,7 @@ Panels:
         - /TF1/Frames1
         - /Odometry1
         - /Odometry1/Shape1
+        - /Pose1
       Splitter Ratio: 0.5
     Tree Height: 452
   - Class: rviz/Selection
@@ -29,7 +30,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Camera
+    SyncSource: DepthCloud
 Visualization Manager:
   Class: ""
   Displays:
@@ -100,16 +101,24 @@ Visualization Manager:
         zed_camera_center:
           Value: true
         zed_left_camera_frame:
+<<<<<<< HEAD:rviz/zed.rviz
           Value: false
         zed_left_camera_optical_frame:
           Value: false
         zed_right_camera_frame:
           Value: false
+=======
+          Value: false
+        zed_left_camera_optical_frame:
+          Value: false
+        zed_right_camera_frame:
+          Value: false
+>>>>>>> origin/master:zed_display_rviz/rviz/zed.rviz
         zed_right_camera_optical_frame:
           Value: false
       Marker Scale: 1
       Name: TF
-      Show Arrows: false
+      Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
@@ -123,40 +132,6 @@ Visualization Manager:
                 zed_right_camera_optical_frame:
                   {}
       Update Interval: 0
-      Value: true
-    - Angle Tolerance: 0
-      Class: rviz/Odometry
-      Covariance:
-        Orientation:
-          Alpha: 0.5
-          Color: 255; 255; 127
-          Color Style: Unique
-          Frame: Local
-          Offset: 1
-          Scale: 1
-          Value: true
-        Position:
-          Alpha: 0.300000012
-          Color: 204; 51; 204
-          Scale: 1
-          Value: true
-        Value: true
-      Enabled: true
-      Keep: 1
-      Name: Odometry
-      Position Tolerance: 0
-      Shape:
-        Alpha: 0
-        Axes Length: 1
-        Axes Radius: 0.100000001
-        Color: 255; 25; 0
-        Head Length: 0.200000003
-        Head Radius: 0.100000001
-        Shaft Length: 0.300000012
-        Shaft Radius: 0.0199999996
-        Value: Arrow
-      Topic: /zed/odom
-      Unreliable: false
       Value: true
     - Alpha: 1
       Auto Size:
@@ -196,25 +171,6 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
-    - Class: rviz/Camera
-      Enabled: true
-      Image Rendering: background and overlay
-      Image Topic: /zed/rgb/image_rect_color
-      Name: Camera
-      Overlay Alpha: 0.5
-      Queue Size: 2
-      Transport Hint: raw
-      Unreliable: false
-      Value: true
-      Visibility:
-        DepthCloud: true
-        Grid: true
-        Odometry: true
-        PointCloud2: true
-        RobotModel: true
-        TF: true
-        Value: false
-      Zoom Factor: 1
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -245,6 +201,76 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
+    - Class: rviz/Camera
+      Enabled: true
+      Image Rendering: background and overlay
+      Image Topic: /zed/rgb/image_rect_color
+      Name: Camera
+      Overlay Alpha: 0.5
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+      Visibility:
+        Camera: true
+        DepthCloud: true
+        Grid: true
+        Odometry: true
+        PointCloud2: true
+        Pose: true
+        RobotModel: true
+        TF: true
+        Value: false
+      Zoom Factor: 1
+    - Angle Tolerance: 0
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.300000012
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: true
+      Keep: 1
+      Name: Odometry
+      Position Tolerance: 0
+      Shape:
+        Alpha: 1
+        Axes Length: 1
+        Axes Radius: 0.100000001
+        Color: 25; 255; 0
+        Head Length: 0.100000001
+        Head Radius: 0.100000001
+        Shaft Length: 0.300000012
+        Shaft Radius: 0.0199999996
+        Value: Arrow
+      Topic: /zed/odom
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.100000001
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.100000001
+      Head Radius: 0.100000001
+      Name: Pose
+      Shaft Length: 0.300000012
+      Shaft Radius: 0.0199999996
+      Shape: Arrow
+      Topic: /zed/map
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -270,25 +296,36 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
+<<<<<<< HEAD:rviz/zed.rviz
       Distance: 6.19356251
+=======
+      Distance: 7.54095364
+>>>>>>> origin/master:zed_display_rviz/rviz/zed.rviz
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.513705194
-        Y: -0.462442666
-        Z: 0.643072546
+        X: 0.946748376
+        Y: 0.731980622
+        Z: 0.698233485
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
+<<<<<<< HEAD:rviz/zed.rviz
       Pitch: 0.185398176
       Target Frame: zed_left_camera
       Value: Orbit (rviz)
       Yaw: 1.60223889
+=======
+      Pitch: 0.170398071
+      Target Frame: zed_left_camera
+      Value: Orbit (rviz)
+      Yaw: 2.91542745
+>>>>>>> origin/master:zed_display_rviz/rviz/zed.rviz
     Saved: ~
 Window Geometry:
   Camera:

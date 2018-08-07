@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>zed_rtabmap_example</name>
+  <version>1.0.0</version>
+  <description>
+    "zed_rtabmap_example" is a ROS package to show how to use the ROS wrapper with <a href="http://introlab.github.io/rtabmap/">"RTAB-MAP"</a>
+  </description>
+  <maintainer email="developers@stereolabs.com">STEREOLABS</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>  
+
+  <exec_depend>rtabmap</exec_depend>
+  <exec_depend>rtabmap_ros</exec_depend>
+  <exec_depend>zed_wrapper</exec_depend>
+</package>

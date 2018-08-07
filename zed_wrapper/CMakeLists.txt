@@ -35,9 +35,6 @@ checkPackage("OPENCV_IMGPROC" "OpenCV imgproc not found, install it from the tut
 find_package(CUDA)
 checkPackage("CUDA" "CUDA not found, install it from:\n https://developer.nvidia.com/cuda-downloads")
 
-find_package(PCL)
-checkPackage("PCL" "PCL not found, try to install it with:\n sudo apt-get install libpcl1 ros-$(rosversion -d)-pcl-ros")
-
 find_package(OpenMP)
 checkPackage("OpenMP" "OpenMP not found, please install it to improve performances: 'sudo apt install libomp-dev'")
 if (OPENMP_FOUND)
@@ -54,14 +51,9 @@ find_package(catkin COMPONENTS
   stereo_msgs
   dynamic_reconfigure
   tf2_ros
-  pcl_conversions
   nodelet
   tf2_geometry_msgs
   message_generation
-  grid_map_core
-  grid_map_msgs
-  grid_map_cv
-  grid_map_ros
 )
 
 checkPackage("image_transport" "")
@@ -71,7 +63,6 @@ checkPackage("sensor_msgs" "")
 checkPackage("stereo_msgs" "")
 checkPackage("dynamic_reconfigure" "")
 checkPackage("tf2_ros" "")
-checkPackage("pcl_conversions" "")
 checkPackage("nodelet" "")
 checkPackage("tf2_geometry_msgs" "")
 checkPackage("message_generation" "")
@@ -99,18 +90,14 @@ catkin_package(
     dynamic_reconfigure
     tf2_ros
     tf2_geometry_msgs
-    pcl_conversions
     message_runtime
-    grid_map_core
-    grid_map_msgs
-    grid_map_cv
-    grid_map_ros
 )
 
 ###############################################################################
 # SOURCES
 
-set(TOOLS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp)
+set(TOOLS_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp )
 set(NODE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_wrapper_node.cpp)
 set(NODELET_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.cpp)
 
@@ -125,7 +112,6 @@ include_directories(
         ${CUDA_INCLUDE_DIRS}
         ${ZED_INCLUDE_DIRS}
         ${OpenCV_INCLUDE_DIRS}
-        ${PCL_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/include
 )
@@ -133,7 +119,6 @@ include_directories(
 link_directories(${ZED_LIBRARY_DIR})
 link_directories(${CUDA_LIBRARY_DIRS})
 link_directories(${OpenCV_LIBRARY_DIRS})
-link_directories(${PCL_LIBRARY_DIRS})
 
 ###############################################################################
 
@@ -147,13 +132,12 @@ endif()
 
 
 add_definitions(-std=c++11)
-list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4") ## if using from pcl package (pcl/vtk bug)
 set(LINK_LIBRARIES
   ${catkin_LIBRARIES}
   ${ZED_LIBRARIES}
   ${CUDA_LIBRARIES} ${CUDA_NPP_LIBRARIES_ZED}
   ${OpenCV_LIBS}
-  ${PCL_LIBRARIES})
+  )
 
 add_library(ZEDWrapper ${TOOLS_SRC} ${NODELET_SRC})
 target_link_libraries(ZEDWrapper ${LINK_LIBRARIES})
