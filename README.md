@@ -40,13 +40,13 @@ Open a terminal and build the package:
 
 ### Run the program
 
-To launch the wrapper along with an Rviz preview, open a terminal and launch:
+To launch the wrapper [along with an Rviz preview](./zed_display_rviz), open a terminal and launch:
 
-    $ roslaunch zed_display display.launch # by default open a ZED
+    $ roslaunch zed_display_rviz display.launch # by default open a ZED
 
 or
 
-    $ roslaunch zed_display display_zedm.launch # open a ZED Mini
+    $ roslaunch zed_display_rviz display_zedm.launch # open a ZED Mini
 
 
 To launch the wrapper without Rviz, use:
@@ -56,5 +56,13 @@ To launch the wrapper without Rviz, use:
  To select the ZED from its serial number
 
     $ roslaunch zed_wrapper zed.launch serial_number:=1010 #replace 1010 with the actual SN
+
+### Modules
+
+Alongside the wrapper itself and the Rviz display, a few other modules are provided to interface the ZED with other ROS packages :
+
+- [RTAB-Map](http://introlab.github.io/rtabmap/) : See [zed_rtabmap_example](./zed_rtabmap_example)
+- ROS Nodelet, `depthimage_to_laserscan` : See [zed_nodelet_example](./zed_nodelet_example)
+
 
 [More](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
