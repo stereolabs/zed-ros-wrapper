@@ -8,7 +8,7 @@ To launch the example, open a terminal and launch:
 
     $ roslaunch zed_rtabmap_example zed_rtabmap.launch
 
-Example of outdoor 3D mapping
+Example of indoor 3D mapping using RTAB-map and ZED
 
-![Example of outdoor 3D mapping](images/rtab-map.png)
+![Example of indoor 3D mapping](images/rtab-map.png)
 
