@@ -48,14 +48,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="initial_pose"                  default="[0.0,0.0,0.0, 0.0,0.0,0.0]" /> <!-- X, Y, Z, (meter) R, P, Y, (radians)-->
 
     <!-- Publish urdf zed -->
-    <arg name="publish_urdf"          default="true" />
+    <arg name="publish_urdf"                  default="true" />
 
-    <!-- to flip or not to flip -->
-    <arg name="camera_flip"         default="false" />
-    <arg name="rgb_topic"           default="rgb/image_rect_color" />
-    <arg name="rgb_info_topic"      default="rgb/camera_info" />
-    <arg name="depth_topic"         default="depth/depth_registered" />
-    
+    <arg name="camera_flip"                   default="false" />
+    <arg name="rgb_topic"                     default="rgb/image_rect_color" />
+    <arg name="rgb_info_topic"                default="rgb/camera_info" />
+    <arg name="depth_topic"                   default="depth/depth_registered" />
+    <arg name="depth_cam_info_topic"          default="depth/camera_info" />
+
     <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
 
         <param name="camera_model"          value="$(arg camera_model)" />
@@ -118,7 +118,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="right_cam_info_raw_topic"  value="right/camera_info_raw" />
 
         <param name="depth_topic"               value="$(arg depth_topic)" />
-        <param name="depth_cam_info_topic"      value="depth/camera_info" />
+        <param name="depth_cam_info_topic"      value="$(arg depth_cam_info_topic)" />
 
         <param name="point_cloud_topic"         value="point_cloud/cloud_registered" />        
 

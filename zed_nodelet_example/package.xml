@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>zed_nodelet_example</name>
+  <version>1.0.0</version>
+  <description>
+    "zed_nodelet_example" is a ROS package to illustrate how to load the ZEDWrapperNodelet with an external nodelet manager and use the intraprocess communication.
+  </description>
+  <maintainer email="developers@stereolabs.com">STEREOLABS</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>  
+
+  <exec_depend>depthimage_to_laserscan</exec_depend>
+  <exec_depend>nodelet</exec_depend>
+  <exec_depend>zed_wrapper</exec_depend>
+</package>

@@ -20,10 +20,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
   <!-- Launch ZED camera wrapper -->
   <include file="$(find zed_wrapper)/launch/zed.launch">
-      <arg name="camera_model" value="1" /> <!-- 0=ZED, 1=ZEDM-->
+      <arg name="camera_model" value="0" /> <!-- 0=ZED, 1=ZEDM-->
   </include>
   
   <!-- Launch rivz display -->
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_wrapper)/rviz/zedm.rviz" output="screen" />
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_display_rviz)/rviz/zed.rviz" output="screen" />
 
 </launch>
