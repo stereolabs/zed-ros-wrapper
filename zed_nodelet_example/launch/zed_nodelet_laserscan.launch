@@ -17,8 +17,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
+    <arg name="svo_file" default=""/>
+
     <!-- Coordinate frame -->
-    <arg name="camera_model"         default="1" /> <!-- 0=ZED, 1=ZEDM-->
+    <arg name="camera_model"         default="0" /> <!-- 0=ZED, 1=ZEDM-->
     <arg name="serial_number"        default="0" />
     <arg name="verbose"              default="true" />
 
@@ -40,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- ZED wrapper as nodelet -->
         <include file="$(find zed_wrapper)/launch/zed_camera_nodelet.launch">
+            <arg name="svo_file"             value="$(arg svo_file)"/>
             <arg name="nodelet_manager_name" value="$(arg nodelet_manager_name)" />
             <arg name="camera_model"         value="$(arg camera_model)" />
             <arg name="serial_number"        value="$(arg serial_number)" />
