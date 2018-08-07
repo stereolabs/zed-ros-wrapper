@@ -822,12 +822,14 @@ namespace zed_wrapper {
         trackParams.enable_spatial_memory = mSpatialMemory;
         NODELET_INFO_STREAM("Spatial Memory : " << trackParams.enable_spatial_memory);
         trackParams.initial_world_transform = mInitialPoseSl;
+#ifdef TERRAIN_MAPPING
+        trackParams.enable_floor_alignment = mFloorAlignment;
+#endif
         mZed.enableTracking(trackParams);
         mTrackingActivated = true;
         NODELET_INFO("Tracking ENABLED");
 
 #ifdef TERRAIN_MAPPING
-        trackParams.enable_floor_alignment = mFloorAlignment;
         NODELET_INFO_STREAM("Floor Alignment : " << trackParams.enable_floor_alignment);
         if (mTerrainMap) {
             start_mapping();
