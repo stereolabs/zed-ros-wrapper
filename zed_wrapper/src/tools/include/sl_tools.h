@@ -26,6 +26,12 @@
 #include <sl/Camera.hpp>
 #include <string>
 
+#if ZED_SDK_MAJOR_VERSION>=2
+#if ZED_SDK_MINOR_VERSION>=7
+#define TERRAIN_MAPPING 1
+#endif
+#endif
+
 namespace sl_tools {
 
     /* \brief Check if a ZED camera is ready

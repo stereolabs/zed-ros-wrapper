@@ -196,6 +196,7 @@ namespace zed_wrapper {
          */
         void imuPubCallback(const ros::TimerEvent& e);
 
+#ifdef TERRAIN_MAPPING
         /* \brief Callback to handle async terrain MAPPING to generate high frequency local maps
          * \param e : the ros::TimerEvent binded to the callback
          */
@@ -238,6 +239,7 @@ namespace zed_wrapper {
          * \param t : timestamp
          */
         void publishGlobalMaps(std::vector<sl::HashKey>& chunks, ros::Time t);
+#endif
 
         /* \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
@@ -406,6 +408,8 @@ namespace zed_wrapper {
         bool mTrackingActivated;
         bool mTrackingReady;
 
+        bool mTerrainMap = false;
+#ifdef TERRAIN_MAPPING
         // Terrain Mapping
         sl::Terrain mTerrain;
         bool mMappingReady;
@@ -415,7 +419,6 @@ namespace zed_wrapper {
         sl::timeStamp mLastGlobMapTimestamp;
 
         // Terrain Mapping Params
-        bool mTerrainMap;
         double mLocalTerrainPubRate;
         double mGlobalTerrainPubRate;
         float mMapAgentStep = 0.05f;
@@ -429,6 +432,7 @@ namespace zed_wrapper {
         float mMapLocalRadius = 3.0f;
         int mMapResolIdx = 1;
         double mTerrainMapRes;
+#endif
 
         // Last frame time
         ros::Time mLastFrameTime;
@@ -466,8 +470,10 @@ namespace zed_wrapper {
         bool mOpenniDepthMode; // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
         bool mPoseSmoothing;
         bool mSpatialMemory;
-        bool mFloorAlignment;
         bool mInitOdomWithPose;
+#ifdef TERRAIN_MAPPING
+        bool mFloorAlignment;
+#endif
 
         // Frame and Mat
         int mCamWidth;

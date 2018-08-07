@@ -76,7 +76,7 @@ namespace sl_tools {
         case sl::MAT_TYPE_32F_C4:
             cvType = CV_32FC4;
             break;
-
+#ifdef TERRAIN_MAPPING
         case sl::MAT_TYPE_16U_C1:
             cvType = CV_16UC1;
             break;
@@ -92,6 +92,7 @@ namespace sl_tools {
         case sl::MAT_TYPE_16U_C4:
             cvType = CV_16UC4;
             break;
+#endif
 
         case sl::MAT_TYPE_8U_C1:
             cvType = CV_8UC1;

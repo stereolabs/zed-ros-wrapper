@@ -85,11 +85,15 @@ namespace zed_wrapper {
         mPathPubRate = 1.0;
         mInitialTrackPose.resize(6);
         mOpenniDepthMode = false;
-        mTerrainMap = false;
         mTrackingReady = false;
+
+        mTerrainMap = false;
+
+#ifdef TERRAIN_MAPPING
         mMappingReady = false;
         mLocalTerrainPubRate = 5.0;
         mGlobalTerrainPubRate = 1.0;
+#endif
 
         for (size_t i = 0; i < 6; i++) {
             mInitialTrackPose[i] = 0.0f;
@@ -136,7 +140,9 @@ namespace zed_wrapper {
         mNhNs.getParam("gpu_id", mGpuId);
         mNhNs.getParam("zed_id", mZedId);
         mNhNs.getParam("depth_stabilization", mDepthStabilization);
-        mNhNs.getParam("terrain_mapping", mTerrainMap); // TODO Check SDK version
+#ifdef TERRAIN_MAPPING
+        mNhNs.getParam("terrain_mapping", mTerrainMap);
+#endif
         int tmp_sn = 0;
         mNhNs.getParam("serial_number", tmp_sn);
 
@@ -501,6 +507,7 @@ namespace zed_wrapper {
             }
         }
 
+#ifdef TERRAIN_MAPPING
         if (mTerrainMap) {
             // Terrain Mapping publishers
             mPubLocalHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_height_map_topic, 1); // local height map
@@ -526,6 +533,7 @@ namespace zed_wrapper {
             mPubGlobalCostMapImg = mNh.advertise<sensor_msgs::Image>(travers_map_image_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << travers_map_image_topic);
         }
+#endif
 
         // Imu publisher
         if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED_M) {
@@ -778,12 +786,13 @@ namespace zed_wrapper {
         mNhNs.getParam("odometry_DB", mOdometryDb);
         mNhNs.getParam("pose_smoothing", mPoseSmoothing);
         mNhNs.getParam("spatial_memory", mSpatialMemory);
+#ifdef TERRAIN_MAPPING
         mNhNs.getParam("floor_alignment", mFloorAlignment);
-
         if (mTerrainMap && !mFloorAlignment) {
             NODELET_INFO_STREAM("Floor Alignment required by Terrain Mapping algorithm");
             mFloorAlignment = true;
         }
+#endif
 
         if (mZedRealCamModel == sl::MODEL_ZED_M) {
             mNhNs.getParam("init_odom_with_imu", mInitOdomWithPose);
@@ -816,18 +825,21 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Pose Smoothing : " << trackParams.enable_pose_smoothing);
         trackParams.enable_spatial_memory = mSpatialMemory;
         NODELET_INFO_STREAM("Spatial Memory : " << trackParams.enable_spatial_memory);
-        trackParams.enable_floor_alignment = mFloorAlignment;
-        NODELET_INFO_STREAM("Floor Alignment : " << trackParams.enable_floor_alignment);
         trackParams.initial_world_transform = mInitialPoseSl;
         mZed.enableTracking(trackParams);
         mTrackingActivated = true;
         NODELET_INFO("Tracking ENABLED");
 
+#ifdef TERRAIN_MAPPING
+        trackParams.enable_floor_alignment = mFloorAlignment;
+        NODELET_INFO_STREAM("Floor Alignment : " << trackParams.enable_floor_alignment);
         if (mTerrainMap) { // TODO Check SDK version
             start_mapping();
         }
+#endif
     }
 
+#ifdef TERRAIN_MAPPING
     void ZEDWrapperNodelet::start_mapping() {
         if (!mTerrainMap) {
             return;
@@ -885,6 +897,7 @@ namespace zed_wrapper {
                                                 &ZEDWrapperNodelet::globalTerrainCallback, this);
         NODELET_INFO_STREAM("Global Terrain Mapping: ENABLED @ " << mGlobalTerrainPubRate << "Hz");
     }
+#endif
 
     void ZEDWrapperNodelet::publishOdom(tf2::Transform base2odomTransf, ros::Time t) {
         nav_msgs::Odometry odom;
@@ -1192,15 +1205,16 @@ namespace zed_wrapper {
             mCamMaxDepth = config.max_depth;
             NODELET_INFO("Reconfigure max depth : %g", mCamMaxDepth);
             break;
-
+#ifdef TERRAIN_MAPPING
         case 6:
             mMapLocalRadius = config.loc_map_radius;
             NODELET_INFO("Reconfigure local map radius : %g", mMapLocalRadius);
             break;
+#endif
         }
     }
 
-
+#ifdef TERRAIN_MAPPING
     void ZEDWrapperNodelet::localTerrainCallback(const ros::TimerEvent& e) {
         if (!mTrackingActivated) {
             NODELET_DEBUG("Tracking not yet active");
@@ -1886,6 +1900,7 @@ namespace zed_wrapper {
         NODELET_DEBUG_STREAM("Initialized Global map dimensions: " << map_W_m << " x " << map_H_m << " m");
         NODELET_DEBUG_STREAM("Initialized Global map cell dim: " << mapInfo.width << " x " << mapInfo.height);
     }
+#endif
 
     void ZEDWrapperNodelet::pathPubCallback(const ros::TimerEvent& e) {
         uint32_t mapSub = mPubMapPath.getNumSubscribers();
@@ -2182,12 +2197,12 @@ namespace zed_wrapper {
             uint32_t imuSubnumber = mPubImu.getNumSubscribers();
             uint32_t imuRawsubnumber = mPubImuRaw.getNumSubscribers();
             uint32_t pathSubNumber = mPubMapPath.getNumSubscribers() + mPubOdomPath.getNumSubscribers();
-            bool runLoop = mTerrainMap ||
-                           ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
-                             leftRawSubnumber + rightSubnumber + rightRawSubnumber +
-                             depthSubnumber + disparitySubnumber + cloudSubnumber +
-                             poseSubnumber + odomSubnumber + confImgSubnumber +
-                             confMapSubnumber + imuSubnumber + imuRawsubnumber + pathSubNumber) > 0);
+            bool runLoop = mTerrainMap || ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
+                                            leftRawSubnumber + rightSubnumber + rightRawSubnumber +
+                                            depthSubnumber + disparitySubnumber + cloudSubnumber +
+                                            poseSubnumber + odomSubnumber + confImgSubnumber +
+                                            confMapSubnumber + imuSubnumber + imuRawsubnumber + pathSubNumber) > 0);
+
             runParams.enable_point_cloud = false;
 
             if (cloudSubnumber > 0) {
@@ -2196,9 +2211,10 @@ namespace zed_wrapper {
 
             // Run the loop only if there is some subscribers
             if (runLoop) {
-                if ((mTerrainMap || mDepthStabilization || poseSubnumber > 0 || odomSubnumber > 0 ||
-                     cloudSubnumber > 0 || depthSubnumber > 0 || pathSubNumber > 0) &&
-                    !mTrackingActivated) { // Start the tracking
+                bool startTracking = mTerrainMap || (mDepthStabilization || poseSubnumber > 0 || odomSubnumber > 0 ||
+                                                     cloudSubnumber > 0 || depthSubnumber > 0 || pathSubNumber > 0);
+
+                if ((startTracking) && !mTrackingActivated) { // Start the tracking
                     start_tracking();
                 } else if (!mTerrainMap && !mDepthStabilization && poseSubnumber == 0 &&
                            odomSubnumber == 0 &&
@@ -2208,10 +2224,10 @@ namespace zed_wrapper {
                 }
 
                 // Detect if one of the subscriber need to have the depth information
-                mComputeDepth = mTerrainMap ||
-                                ((depthSubnumber + disparitySubnumber + cloudSubnumber +
-                                  poseSubnumber + odomSubnumber + confImgSubnumber +
-                                  confMapSubnumber) > 0);
+                mComputeDepth = mTerrainMap || ((depthSubnumber + disparitySubnumber + cloudSubnumber +
+                                                 poseSubnumber + odomSubnumber + confImgSubnumber +
+                                                 confMapSubnumber) > 0);
+
                 // Timestamp
                 ros::Time t =
                     sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
@@ -2277,8 +2293,11 @@ namespace zed_wrapper {
 
                         mTrackingActivated = false;
 
-                        if (mTerrainMap || mDepthStabilization ||
-                            poseSubnumber > 0 || odomSubnumber > 0) { // Start the tracking
+                        startTracking = mDepthStabilization || poseSubnumber > 0 || odomSubnumber > 0;
+#ifdef TERRAIN_MAPPING
+                        startTracking |= mTerrainMap;
+#endif
+                        if (startTracking) {  // Start the tracking
                             start_tracking();
                         }
                     }
