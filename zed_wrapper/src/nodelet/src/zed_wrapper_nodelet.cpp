@@ -18,7 +18,6 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 #include "zed_wrapper_nodelet.hpp"
-#include "sl_tools.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -37,12 +36,6 @@
 
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
-
-// >>>>> Backward compatibility
-#define COORDINATE_SYSTEM_IMAGE                     static_cast<sl::COORDINATE_SYSTEM>(0)
-#define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP         static_cast<sl::COORDINATE_SYSTEM>(3)
-#define COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD   static_cast<sl::COORDINATE_SYSTEM>(5)
-// <<<<< Backward compatibility
 
 using namespace std;
 
@@ -324,40 +317,43 @@ namespace zed_wrapper {
         std::string ver = sl_tools::getSDKVersion(mVerMajor, mVerMinor, mVerSubMinor);
         NODELET_INFO_STREAM("SDK version : " << ver);
 
-        if (mVerMajor < 2) {
-            NODELET_WARN_STREAM("Please consider to upgrade to latest SDK version to "
-                                "get better performances");
-            mZedParams.coordinate_system = COORDINATE_SYSTEM_IMAGE;
-            NODELET_INFO_STREAM("Camera coordinate system : COORDINATE_SYSTEM_IMAGE");
-            mIdxX = 2;
-            mIdxY = 0;
-            mIdxZ = 1;
-            mSignX = 1;
-            mSignY = -1;
-            mSignZ = -1;
-        } else if (mVerMajor == 2 && mVerMinor < 5) {
-            NODELET_WARN_STREAM("Please consider to upgrade to latest SDK version to "
-                                "get latest features");
-            mZedParams.coordinate_system = COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP;
-            NODELET_INFO_STREAM(
-                "Camera coordinate system : COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP");
-            mIdxX = 1;
-            mIdxY = 0;
-            mIdxZ = 2;
-            mSignX = 1;
-            mSignY = -1;
-            mSignZ = 1;
-        } else {
-            mZedParams.coordinate_system = COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD;
-            NODELET_INFO_STREAM(
-                "Camera coordinate system : COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD");
-            mIdxX = 0;
-            mIdxY = 1;
-            mIdxZ = 2;
-            mSignX = 1;
-            mSignY = 1;
-            mSignZ = 1;
-        }
+#if (ZED_SDK_MAJOR_VERSION<2)
+        NODELET_WARN_STREAM("Please consider to upgrade to latest SDK version to "
+                            "get better performances");
+
+        mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_IMAGE;
+
+        NODELET_INFO_STREAM("Camera coordinate system : COORDINATE_SYSTEM_IMAGE");
+        mIdxX = 2;
+        mIdxY = 0;
+        mIdxZ = 1;
+        mSignX = 1;
+        mSignY = -1;
+        mSignZ = -1;
+#elif (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION<5)
+        NODELET_WARN_STREAM("Please consider to upgrade to latest SDK version to "
+                            "get latest features");
+
+        mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP;
+
+        NODELET_INFO_STREAM("Camera coordinate system : COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP");
+        mIdxX = 1;
+        mIdxY = 0;
+        mIdxZ = 2;
+        mSignX = 1;
+        mSignY = -1;
+        mSignZ = 1;
+#else
+        mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD;
+
+        NODELET_INFO_STREAM("Camera coordinate system : COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD");
+        mIdxX = 0;
+        mIdxY = 1;
+        mIdxZ = 2;
+        mSignX = 1;
+        mSignY = 1;
+        mSignZ = 1;
+#endif
 
         mZedParams.coordinate_units = sl::UNIT_METER;
         mZedParams.depth_mode = static_cast<sl::DEPTH_MODE>(mCamQuality);
@@ -833,7 +829,7 @@ namespace zed_wrapper {
 #ifdef TERRAIN_MAPPING
         trackParams.enable_floor_alignment = mFloorAlignment;
         NODELET_INFO_STREAM("Floor Alignment : " << trackParams.enable_floor_alignment);
-        if (mTerrainMap) { // TODO Check SDK version
+        if (mTerrainMap) {
             start_mapping();
         }
 #endif

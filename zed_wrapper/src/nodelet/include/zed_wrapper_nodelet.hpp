@@ -25,6 +25,7 @@
  ** This sample is a wrapper for the ZED library in order to use the ZED Camera with ROS.          **
  ** A set of parameters can be specified in the launch file.                                       **
  ****************************************************************************************************/
+#include "sl_tools.h"
 
 #include <sl/Camera.hpp>
 
