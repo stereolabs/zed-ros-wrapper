@@ -36,6 +36,8 @@
 #include <image_transport/image_transport.h>
 #include <dynamic_reconfigure/server.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <nav_msgs/OccupancyGrid.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #include <zed_wrapper/ZedConfig.h>
 #include <zed_wrapper/reset_tracking.h>
@@ -69,7 +71,9 @@ namespace zed_wrapper {
          * \param frameId : the id of the reference frame of the image
          * \param t : the ros::Time to stamp the image
          */
-        static sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img, const std::string encodingType, std::string frameId, ros::Time t);
+        static sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img,
+                const std::string encodingType,
+                std::string frameId, ros::Time t);
 
       private:
         /* \brief Initialization function called by the Nodelet base class
@@ -87,42 +91,51 @@ namespace zed_wrapper {
       protected:
 
         /* \brief Publish the pose of the camera in "Map" frame with a ros Publisher
-         * \param poseBaseTransform : Transformation representing the camera pose from odom frame to map frame
+         * \param poseBaseTransform : Transformation representing the camera pose from
+         * odom frame to map frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishPose(tf2::Transform poseBaseTransform, ros::Time t);
+        void publishPose(tf2::Transform odom2mapTransform, ros::Time t);
 
         /* \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
-         * \param odom_base_transform : Transformation representing the camera pose from base frame to odom frame
+         * \param base2odomTransf : Transformation representing the camera pose
+         * from base frame to odom frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdom(tf2::Transform baseToOdomTransform, ros::Time t);
+        void publishOdom(tf2::Transform base2odomTransf, ros::Time t);
 
         /* \brief Publish the pose of the camera in "Map" frame as a transformation
-         * \param base_transform : Transformation representing the camera pose from odom frame to map frame
+         * \param baseTransform : Transformation representing the camera pose from
+         * odom frame to map frame
          * \param t : the ros::Time to stamp the image
          */
         void publishPoseFrame(tf2::Transform baseTransform, ros::Time t);
 
-        /* \brief Publish the odometry of the camera in "Odom" frame as a transformation
-         * \param base_transform : Transformation representing the camera pose from base frame to odom frame
+        /* \brief Publish the odometry of the camera in "Odom" frame as a
+         * transformation
+         * \param odomTransf : Transformation representing the camera pose from
+         * base frame to odom frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdomFrame(tf2::Transform baseToOdomTransform, ros::Time t);
+        void publishOdomFrame(tf2::Transform odomTransf, ros::Time t);
 
         /* \brief Publish the pose of the imu in "Odom" frame as a transformation
-         * \param base_transform : Transformation representing the imu pose from base frame to odom frame
+         * \param imuTransform : Transformation representing the imu pose from base
+         * frame to odom framevoid
          * \param t : the ros::Time to stamp the image
          */
-        void publishImuFrame(tf2::Transform baseTransform);
+        void publishImuFrame(tf2::Transform imuTransform, ros::Time t);
 
         /* \brief Publish a cv::Mat image with a ros Publisher
          * \param img : the image to publish
-         * \param pub_img : the publisher object to use (different image publishers exist)
-         * \param img_frame_id : the id of the reference frame of the image (different image frames exist)
+         * \param pub_img : the publisher object to use (different image publishers
+         * exist)
+         * \param img_frame_id : the id of the reference frame of the image (different
+         * image frames exist)
          * \param t : the ros::Time to stamp the image
          */
-        void publishImage(cv::Mat img, image_transport::Publisher& pubImg, string imgFrameId, ros::Time t);
+        void publishImage(cv::Mat img, image_transport::Publisher& pubImg,
+                          string imgFrameId, ros::Time t);
 
         /* \brief Publish a cv::Mat depth image with a ros Publisher
          * \param depth : the depth image to publish
@@ -137,8 +150,6 @@ namespace zed_wrapper {
         void publishConf(cv::Mat conf, ros::Time t);
 
         /* \brief Publish a pointCloud with a ros Publisher
-         * \param width : the width of the point cloud
-         * \param height : the height of the point cloud
          */
         void publishPointCloud();
 
@@ -147,7 +158,8 @@ namespace zed_wrapper {
          * \param pub_cam_info : the publisher object to use
          * \param t : the ros::Time to stamp the message
          */
-        void publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg, ros::Publisher pubCamInfo, ros::Time t);
+        void publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg,
+                            ros::Publisher pubCamInfo, ros::Time t);
 
         /* \brief Publish a cv::Mat disparity image with a ros Publisher
          * \param disparity : the disparity image to publish
@@ -155,33 +167,88 @@ namespace zed_wrapper {
          */
         void publishDisparity(cv::Mat disparity, ros::Time t);
 
-        /* \brief Get the information of the ZED cameras and store them in an information message
+        /* \brief Get the information of the ZED cameras and store them in an
+         * information message
          * \param zed : the sl::zed::Camera* pointer to an instance
-         * \param left_cam_info_msg : the information message to fill with the left camera informations
-         * \param right_cam_info_msg : the information message to fill with the right camera informations
+         * \param left_cam_info_msg : the information message to fill with the left
+         * camera informations
+         * \param right_cam_info_msg : the information message to fill with the right
+         * camera informations
          * \param left_frame_id : the id of the reference frame of the left camera
          * \param right_frame_id : the id of the reference frame of the right camera
          */
-        void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg, sensor_msgs::CameraInfoPtr rightCamInfoMsg,
-                         string leftFrameId, string rightFrameId, bool rawParam = false);
+        void fillCamInfo(sl::Camera& mZed, sensor_msgs::CameraInfoPtr mLeftCamInfoMsg,
+                         sensor_msgs::CameraInfoPtr mRightCamInfoMsg,
+                         string leftFrameId, string rightFrameId,
+                         bool rawParam = false);
 
         /* \brief Callback to handle dynamic reconfigure events in ROS
          */
         void dynamicReconfCallback(zed_wrapper::ZedConfig& config, uint32_t level);
 
+        /* \brief Callback to publish Path data with a ROS publisher.
+         * \param e : the ros::TimerEvent binded to the callback
+         */
+        void pathPubCallback(const ros::TimerEvent& e);
+        
         /* \brief Callback to publish IMU raw data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
         void imuPubCallback(const ros::TimerEvent& e);
 
+        /* \brief Callback to handle async terrain MAPPING to generate high frequency local maps
+         * \param e : the ros::TimerEvent binded to the callback
+         */
+        void localTerrainCallback(const ros::TimerEvent& e);
+
+        /* \brief Callback to handle async terrain MAPPING to generate low frequency global maps
+         * \param e : the ros::TimerEvent binded to the callback
+         */
+        void globalTerrainCallback(const ros::TimerEvent& e);
+
+        /* \brief Initialize the ROS Map messages
+         * \param map_W_m : width of the map in meters
+         * \param map_H_m : height of the map in meters
+         */
+        void initGlobalMapMsgs(double map_W_m, double map_H_m);
+
+        /* \brief Publish local height and cost maps from updated Terrain Chunks
+         * \param minX : minimum X coordinate of the map in meters
+         * \param minY : minimum Y coordinate of the map in meters
+         * \param maxX : maximum X coordinate of the map in meters
+         * \param maxY : maximum Y coordinate of the map in meters
+         * \param chunks : updated chunks from terrain mapping
+         * \param heightSub : Height map subscribers count
+         * \param costSub : Cost map subscribers count
+         * \param cloudSub : Height cloud subscribers count
+         * \param mrkSub : Height markers array subscribers count
+         * \param t : timestamp
+         */
+        void publishLocalMaps(float camX, float camY, float minX, float minY, float maxX, float maxY, std::vector<sl::HashKey>& chunks,
+                              uint32_t heightSub, uint32_t costSub, uint32_t cloudSub,
+                              uint32_t mrkSub,  uint32_t mrksSub,
+                              ros::Time t);
+
+        /* \brief Publish global height and cost maps from updated Terrain Chunks
+         * \param minX : minimum X coordinate of the map in meters
+         * \param minY : minimum Y coordinate of the map in meters
+         * \param maxX : maximum X coordinate of the map in meters
+         * \param maxY : maximum Y coordinate of the map in meters
+         * \param chunks : updated chunks from terrain mapping
+         * \param t : timestamp
+         */
+        void publishGlobalMaps(std::vector<sl::HashKey>& chunks, ros::Time t);
+
         /* \brief Service callback to reset_tracking service
-         * Tracking pose is reinitialized to the value available in the ROS Param server
+         * Tracking pose is reinitialized to the value available in the ROS Param
+         * server
          */
         bool on_reset_tracking(zed_wrapper::reset_tracking::Request&  req,
                                zed_wrapper::reset_tracking::Response& res);
 
         /* \brief Service callback to reset_odometry service
-         *        Odometry is reset to clear drift and odometry frame gets the latest pose
+         *        Odometry is reset to clear drift and odometry frame gets the latest
+         * pose
          *        from ZED tracking.
          */
         bool on_reset_odometry(zed_wrapper::reset_odometry::Request&  req,
@@ -201,6 +268,10 @@ namespace zed_wrapper {
          */
         void start_tracking();
 
+        /* \bried Start mapping loading the parameters from param server
+         */
+        void start_mapping(); // TODO Check SDK version
+
         /* \bried Check if FPS and Resolution chosen by user are correct.
          *        Modifies FPS to match correct value.
          */
@@ -208,166 +279,224 @@ namespace zed_wrapper {
 
       private:
         // SDK version
-        int verMajor;
-        int verMinor;
-        int verSubMinor;
+        int mVerMajor;
+        int mVerMinor;
+        int mVerSubMinor;
 
         // ROS
-        ros::NodeHandle nh;
-        ros::NodeHandle nhNs;
-        std::thread devicePollThread;
+        ros::NodeHandle mNh;
+        ros::NodeHandle mNhNs;
+        std::thread mDevicePollThread;
         std::thread mPcThread; // Point Cloud thread
 
         bool mStopNode;
 
         // Publishers
-        image_transport::Publisher pubRgb;
-        image_transport::Publisher pubRawRgb;
-        image_transport::Publisher pubLeft;
-        image_transport::Publisher pubRawLeft;
-        image_transport::Publisher pubRight;
-        image_transport::Publisher pubRawRight;
-        image_transport::Publisher pubDepth;
-        image_transport::Publisher pubConfImg;
-        ros::Publisher pubConfMap;
-        ros::Publisher pubDisparity;
-        ros::Publisher pubCloud;
-        ros::Publisher pubRgbCamInfo;
-        ros::Publisher pubLeftCamInfo;
-        ros::Publisher pubRightCamInfo;
-        ros::Publisher pubRgbCamInfoRaw;
-        ros::Publisher pubLeftCamInfoRaw;
-        ros::Publisher pubRightCamInfoRaw;
-        ros::Publisher pubDepthCamInfo;
-        ros::Publisher pubPose;
-        ros::Publisher pubOdom;
-        ros::Publisher pubImu;
-        ros::Publisher pubImuRaw;
-        ros::Timer pubImuTimer;
+        image_transport::Publisher mPubRgb;
+        image_transport::Publisher mPubRawRgb;
+        image_transport::Publisher mPubLeft;
+        image_transport::Publisher mPubRawLeft;
+        image_transport::Publisher mPubRight;
+        image_transport::Publisher mPubRawRight;
+        image_transport::Publisher mPubDepth;
+        image_transport::Publisher mPubConfImg;
 
-        // Service
-        bool trackingActivated;
-        ros::ServiceServer srvSetInitPose;
-        ros::ServiceServer srvResetOdometry;
-        ros::ServiceServer srvResetTracking;
+        ros::Publisher mPubConfMap;
+        ros::Publisher mPubDisparity;
+        ros::Publisher mPubCloud;
+        ros::Publisher mPubRgbCamInfo;
+        ros::Publisher mPubLeftCamInfo;
+        ros::Publisher mPubRightCamInfo;
+        ros::Publisher mPubRgbCamInfoRaw;
+        ros::Publisher mPubLeftCamInfoRaw;
+        ros::Publisher mPubRightCamInfoRaw;
+        ros::Publisher mPubDepthCamInfo;
+        ros::Publisher mPubPose;
+        ros::Publisher mPubOdom;
+        ros::Publisher mPubOdomPath;
+        ros::Publisher mPubMapPath;
+        ros::Publisher mPubImu;
+        ros::Publisher mPubImuRaw;
+
+        ros::Publisher mPubLocalHeightMap;
+        ros::Publisher mPubLocalHeightCloud;
+        ros::Publisher mPubLocalHeightMrk;
+        ros::Publisher mPubLocalHeightMrks;
+        ros::Publisher mPubLocalCostMap;
+        ros::Publisher mPubGlobalHeightMap;
+        ros::Publisher mPubGlobalCostMap;
+        //ros::Publisher mPubGridMap;
+        ros::Publisher mPubGlobalHeightMapImg;
+        ros::Publisher mPubGlobalColorMapImg;
+        ros::Publisher mPubGlobalCostMapImg;
+        
+        // Timers
+        ros::Timer mPubImuTimer;
+        ros::Timer mLocalTerrainTimer;
+        ros::Timer mGlobalTerrainTimer;
+        ros::Timer mPubPathTimer;
+
+        // Services
+        ros::ServiceServer mSrvSetInitPose;
+        ros::ServiceServer mSrvResetOdometry;
+        ros::ServiceServer mSrvResetTracking;
 
         // Camera info
-        sensor_msgs::CameraInfoPtr rgbCamInfoMsg;
-        sensor_msgs::CameraInfoPtr leftCamInfoMsg;
-        sensor_msgs::CameraInfoPtr rightCamInfoMsg;
-        sensor_msgs::CameraInfoPtr rgbCamInfoRawMsg;
-        sensor_msgs::CameraInfoPtr leftCamInfoRawMsg;
-        sensor_msgs::CameraInfoPtr rightCamInfoRawMsg;
-        sensor_msgs::CameraInfoPtr depthCamInfoMsg;
+        sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
+        sensor_msgs::CameraInfoPtr mLeftCamInfoMsg;
+        sensor_msgs::CameraInfoPtr mRightCamInfoMsg;
+        sensor_msgs::CameraInfoPtr mRgbCamInfoRawMsg;
+        sensor_msgs::CameraInfoPtr mLeftCamInfoRawMsg;
+        sensor_msgs::CameraInfoPtr mRightCamInfoRawMsg;
+        sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;
 
-        // tf
-        tf2_ros::TransformBroadcaster transformPoseBroadcaster;
-        tf2_ros::TransformBroadcaster transformOdomBroadcaster;
-        tf2_ros::TransformBroadcaster transformImuBroadcaster;
+        // ROS TF
+        tf2_ros::TransformBroadcaster mTransformPoseBroadcaster;
+        tf2_ros::TransformBroadcaster mTransformOdomBroadcaster;
+        tf2_ros::TransformBroadcaster mTransformImuBroadcaster;
 
-        std::string rgbFrameId;
-        std::string rgbOptFrameId;
+        std::string mRgbFrameId;
+        std::string mRgbOptFrameId;
 
-        std::string depthFrameId;
-        std::string depthOptFrameId;
+        std::string mDepthFrameId;
+        std::string mDepthOptFrameId;
 
-        std::string disparityFrameId;
-        std::string disparityOptFrameId;
+        std::string mDisparityFrameId;
+        std::string mDisparityOptFrameId;
 
-        std::string confidenceFrameId;
-        std::string confidenceOptFrameId;
+        std::string mConfidenceFrameId;
+        std::string mConfidenceOptFrameId;
 
-        std::string cloudFrameId;
+        std::string mCloudFrameId;
+        std::string mPointCloudFrameId;
 
-        std::string mapFrameId;
-        std::string odometryFrameId;
-        std::string baseFrameId;
-        std::string rightCamFrameId;
-        std::string rightCamOptFrameId;
-        std::string leftCamFrameId;
-        std::string leftCamOptFrameId;
-        std::string imuFrameId;
+        std::string mMapFrameId;
+        std::string mOdometryFrameId;
+        std::string mBaseFrameId;
+        std::string mCameraFrameId;
+
+        std::string mRightCamFrameId;
+        std::string mRightCamOptFrameId;
+        std::string mLeftCamFrameId;
+        std::string mLeftCamOptFrameId;
+        std::string mImuFrameId;
 
         // initialization Transform listener
-        std::shared_ptr<tf2_ros::Buffer> tfBuffer;
-        std::shared_ptr<tf2_ros::TransformListener> tfListener;
-        bool publishTf;
-        bool cameraFlip;
+        boost::shared_ptr<tf2_ros::Buffer> mTfBuffer;
+        boost::shared_ptr<tf2_ros::TransformListener> mTfListener;
+        bool mPublishTf;
+        bool mPublishMapTf;
+        bool mCameraFlip;
 
         // Launch file parameters
-        int resolution;
-        int frameRate;
-        int quality;
-        int sensingMode;
-        int gpuId;
-        int zedId;
-        int depthStabilization;
-        std::string odometryDb;
-        std::string svoFilepath;
-        double imuPubRate;
-        bool verbose;
+        int mCamResol;
+        int mCamFrameRate;
+        int mCamQuality;
+        int mCamSensingMode;
+        int mGpuId;
+        int mZedId;
+        int mDepthStabilization;
+        std::string mOdometryDb;
+        std::string mSvoFilepath;
+        double mImuPubRate;
+        double mPathPubRate;
+        int mPathMaxCount;
+        bool mVerbose;
 
-        // IMU time
-        ros::Time imuTime;
+        bool mTrackingActivated;
+        bool mTrackingReady;
 
-        bool poseSmoothing;
-        bool spatialMemory;
-        bool initOdomWithPose;
+        // Terrain Mapping
+        sl::Terrain mTerrain;
+        bool mMappingReady;
+        nav_msgs::OccupancyGrid mGlobHeightMapMsg;
+        nav_msgs::OccupancyGrid mGlobCostMapMsg;
+        bool mGlobMapEmpty;
+        sl::timeStamp mLastGlobMapTimestamp;
+
+        // Terrain Mapping Params
+        bool mTerrainMap;
+        double mLocalTerrainPubRate;
+        double mGlobalTerrainPubRate;
+        float mMapAgentStep = 0.05f;
+        float mMapAgentSlope = 20.f/*degrees*/;
+        float mMapAgentRadius = 0.18f;
+        float mMapAgentHeight = 0.8f;
+        float mMapAgentRoughness = 0.05f;
+        float mMapMaxDepth = 3.5f;
+        float mMapMaxHeight = 0.5f;
+        float mMapHeightResol = .025f;
+        float mMapLocalRadius = 3.0f;
+        int mMapResolIdx = 1;
+        double mTerrainMapRes;
+
+        // Last frame time
+        ros::Time mLastFrameTime;
 
         //Tracking variables
-        sl::Transform initialPoseSl;
-        std::vector<float> initialTrackPose;
+        sl::Pose mLastZedPose; // Sensor to Map transform
+        sl::Transform mInitialPoseSl;
+        std::vector<float> mInitialTrackPose;
+        std::vector<geometry_msgs::PoseStamped> mOdomPath;
+        std::vector<geometry_msgs::PoseStamped> mMapPath;
 
-        tf2::Transform odomToMapTransform;
-        tf2::Transform baseToOdomTransform;
+        // TF Transforms
+        tf2::Transform mOdom2MapTransf;
+        tf2::Transform mBase2OdomTransf;
 
-        // zed object
-        sl::InitParameters param;
-        sl::Camera zed;
-        unsigned int serial_number;
-        int userCamModel; // Camera model set by ROS Param
-        sl::MODEL realCamModel; // Camera model requested to SDK
+        // Zed object
+        sl::InitParameters mZedParams;
+        sl::Camera mZed;
+        unsigned int mZedSerialNumber;
+        int mZedUserCamModel;       // Camera model set by ROS Param
+        sl::MODEL mZedRealCamModel; // Camera model requested to SDK
+
+        // Dynamic Parameters
+        int mCamConfidence;
+        int mCamExposure;
+        int mCamGain;
+        double mCamMatResizeFactor;
+        double mCamMaxDepth;
+        bool mCamAutoExposure;
 
         // flags
-        double matResizeFactor;
-        int confidence;
-        int exposure;
-        int gain;
-        bool autoExposure;
-        bool triggerAutoExposure;
-        bool computeDepth;
-        bool grabbing = false;
-        int openniDepthMode = 0; // 16 bit UC data in mm else 32F in m, for more info http://www.ros.org/reps/rep-0118.html
+        bool mTriggerAutoExposure;
+        bool mComputeDepth;
+        bool mGrabbing = false;
+        bool mOpenniDepthMode; // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
+        bool mPoseSmoothing;
+        bool mSpatialMemory;
+        bool mFloorAlignment;
+        bool mInitOdomWithPose;
 
         // Frame and Mat
-        int camWidth;
-        int camHeight;
-        int matWidth;
-        int matHeight;
-        cv::Mat leftImRGB;
-        cv::Mat rightImRGB;
-        cv::Mat confImRGB;
-        cv::Mat confMapFloat;
+        int mCamWidth;
+        int mCamHeight;
+        int mMatWidth;
+        int mMatHeight;
+        cv::Mat mCvLeftImRGB;
+        cv::Mat mCvRightImRGB;
+        cv::Mat mCvConfImRGB;
+        cv::Mat mCvConfMapFloat;
 
         // Mutex
-        std::mutex dataMutex;
+        std::mutex mCamDataMutex;
+        std::mutex mTerrainMutex;
         std::mutex mPcMutex;
         std::condition_variable mPcDataReadyCondVar;
         bool mPcDataReady;
 
         // Point cloud variables
-        sl::Mat cloud;
+        sl::Mat mCloud;
         sensor_msgs::PointCloud2 mPointcloudMsg;
-        string pointCloudFrameId = "";
-        ros::Time pointCloudTime;
+        ros::Time mPointCloudTime;
 
         // Dynamic reconfigure
-        boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> server;
+        boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> mDynRecServer;
 
         // Coordinate Changing indices and signs
-        unsigned int xIdx, yIdx, zIdx;
-        int xSign, ySign, zSign;
-
+        int mIdxX, mIdxY, mIdxZ;
+        int mSignX, mSignY, mSignZ;
     }; // class ZEDROSWrapperNodelet
 } // namespace
 

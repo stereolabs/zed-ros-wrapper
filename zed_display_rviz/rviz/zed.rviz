@@ -5,11 +5,8 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /RobotModel1/Links1
-        - /TF1
         - /TF1/Frames1
-        - /Odometry1
         - /Odometry1/Shape1
-        - /Pose1
       Splitter Ratio: 0.5
     Tree Height: 452
   - Class: rviz/Selection
@@ -62,6 +59,10 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         zed_camera_center:
           Alpha: 1
           Show Axes: false
@@ -94,6 +95,8 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        base_link:
+          Value: true
         map:
           Value: true
         odom:
@@ -101,19 +104,11 @@ Visualization Manager:
         zed_camera_center:
           Value: true
         zed_left_camera_frame:
-<<<<<<< HEAD:rviz/zed.rviz
           Value: false
         zed_left_camera_optical_frame:
           Value: false
         zed_right_camera_frame:
           Value: false
-=======
-          Value: false
-        zed_left_camera_optical_frame:
-          Value: false
-        zed_right_camera_frame:
-          Value: false
->>>>>>> origin/master:zed_display_rviz/rviz/zed.rviz
         zed_right_camera_optical_frame:
           Value: false
       Marker Scale: 1
@@ -124,13 +119,14 @@ Visualization Manager:
       Tree:
         map:
           odom:
-            zed_camera_center:
-              zed_left_camera_frame:
-                zed_left_camera_optical_frame:
-                  {}
-              zed_right_camera_frame:
-                zed_right_camera_optical_frame:
-                  {}
+            base_link:
+              zed_camera_center:
+                zed_left_camera_frame:
+                  zed_left_camera_optical_frame:
+                    {}
+                zed_right_camera_frame:
+                  zed_right_camera_optical_frame:
+                    {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -212,10 +208,11 @@ Visualization Manager:
       Unreliable: false
       Value: true
       Visibility:
-        Camera: true
         DepthCloud: true
         Grid: true
+        Map Path: true
         Odometry: true
+        Odometry Path: true
         PointCloud2: true
         Pose: true
         RobotModel: true
@@ -271,6 +268,52 @@ Visualization Manager:
       Topic: /zed/map
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 255; 25; 0
+      Enabled: true
+      Head Diameter: 0.300000012
+      Head Length: 0.200000003
+      Length: 0.300000012
+      Line Style: Lines
+      Line Width: 0.0299999993
+      Name: Odometry Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.0299999993
+      Shaft Diameter: 0.100000001
+      Shaft Length: 0.100000001
+      Topic: /zed/path_odom
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.300000012
+      Head Length: 0.200000003
+      Length: 0.300000012
+      Line Style: Lines
+      Line Width: 0.0299999993
+      Name: Map Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.0299999993
+      Shaft Diameter: 0.100000001
+      Shaft Length: 0.100000001
+      Topic: /zed/path_map
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -296,11 +339,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-<<<<<<< HEAD:rviz/zed.rviz
-      Distance: 6.19356251
-=======
-      Distance: 7.54095364
->>>>>>> origin/master:zed_display_rviz/rviz/zed.rviz
+      Distance: 13.6919937
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -315,17 +354,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-<<<<<<< HEAD:rviz/zed.rviz
-      Pitch: 0.185398176
+      Pitch: 0.585398018
       Target Frame: zed_left_camera
       Value: Orbit (rviz)
-      Yaw: 1.60223889
-=======
-      Pitch: 0.170398071
-      Target Frame: zed_left_camera
-      Value: Orbit (rviz)
-      Yaw: 2.91542745
->>>>>>> origin/master:zed_display_rviz/rviz/zed.rviz
+      Yaw: 3.87542725
     Saved: ~
 Window Geometry:
   Camera:
