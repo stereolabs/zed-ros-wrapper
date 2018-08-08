@@ -41,7 +41,7 @@ Visualization Manager:
       Cell Size: 1
       Class: rviz/Grid
       Color: 160; 160; 164
-      Enabled: false
+      Enabled: true
       Line Style:
         Line Width: 0.0299999993
         Value: Lines
@@ -54,7 +54,7 @@ Visualization Manager:
       Plane: XY
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
-      Value: false
+      Value: true
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
@@ -117,7 +117,7 @@ Visualization Manager:
           Value: false
         zed_right_camera_optical_frame:
           Value: false
-      Marker Scale: 0.5
+      Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
@@ -365,7 +365,7 @@ Visualization Manager:
         - Alpha: 0.5
           Class: rviz/Map
           Color Scheme: map
-          Draw Behind: true
+          Draw Behind: false
           Enabled: false
           Name: L. Height Map
           Topic: /zed/map/loc_map_heightmap
@@ -375,7 +375,7 @@ Visualization Manager:
         - Alpha: 0.300000012
           Class: rviz/Map
           Color Scheme: costmap
-          Draw Behind: true
+          Draw Behind: false
           Enabled: true
           Name: L. Cost Map
           Topic: /zed/map/loc_map_costmap
@@ -413,13 +413,13 @@ Visualization Manager:
           Use rainbow: true
           Value: false
         - Class: rviz/Marker
-          Enabled: true
+          Enabled: false
           Marker Topic: /zed/map/loc_map_height_cubes
           Name: L. Height Cubes
           Namespaces:
-            height_cubes: true
+            {}
           Queue Size: 1
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
           Enabled: false
           Marker Topic: /zed/map/loc_map_height_boxes
@@ -435,7 +435,7 @@ Visualization Manager:
         - Alpha: 0.5
           Class: rviz/Map
           Color Scheme: map
-          Draw Behind: true
+          Draw Behind: false
           Enabled: true
           Name: G. Height Map
           Topic: /zed/map/glob_map_heightmap
@@ -445,7 +445,7 @@ Visualization Manager:
         - Alpha: 0.5
           Class: rviz/Map
           Color Scheme: costmap
-          Draw Behind: true
+          Draw Behind: false
           Enabled: false
           Name: G. Cost Map
           Topic: /zed/map/glob_map_costmap
@@ -483,24 +483,12 @@ Visualization Manager:
           Use rainbow: true
           Value: false
         - Class: rviz/Marker
-          Enabled: false
+          Enabled: true
           Marker Topic: /zed/map/glob_map_height_cubes
           Name: G. Height Cubes
           Namespaces:
-            {}
+            height_cubes: true
           Queue Size: 1
-          Value: false
-        - Class: rviz/Image
-          Enabled: true
-          Image Topic: /zed/map/height_map_image
-          Max Value: 1
-          Median window: 5
-          Min Value: 0
-          Name: Height Map Image
-          Normalize Range: true
-          Queue Size: 2
-          Transport Hint: raw
-          Unreliable: false
           Value: true
         - Class: rviz/Image
           Enabled: true
@@ -509,6 +497,18 @@ Visualization Manager:
           Median window: 5
           Min Value: 0
           Name: Color Map Image
+          Normalize Range: true
+          Queue Size: 2
+          Transport Hint: raw
+          Unreliable: false
+          Value: true
+        - Class: rviz/Image
+          Enabled: true
+          Image Topic: /zed/map/height_map_image
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Height Map Image
           Normalize Range: true
           Queue Size: 2
           Transport Hint: raw
@@ -553,25 +553,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 9.6182127
+      Distance: 17.0908909
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -0.977044225
+        Y: 3.19723988
+        Z: 1.20101762
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.79039824
+      Pitch: 0.715397775
       Target Frame: zed_camera_center
       Value: Orbit (rviz)
-      Yaw: 1.53039896
+      Yaw: 3.94040108
     Saved:
       - Angle: -1.57079637
         Class: rviz/TopDownOrtho

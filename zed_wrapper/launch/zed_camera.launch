@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="right_camera_optical_frame"    default="zed_right_camera_optical_frame" />
     <arg name="imu_frame"                     default="imu_link" /> <!-- only used with ZED M -->
 
-    <arg name="initial_pose"                  default="[0.0,0.0,0.0, 0.0,0.0,0.0]" /> <!-- X, Y, Z, (meter) R, P, Y, (radians)-->
+    <arg name="initial_pose"                  default="[5.0,10.0,1.0, 0.0,0.0,0.0]" /> <!-- X, Y, Z, (meter) R, P, Y, (radians)-->
 
     <!-- Publish urdf zed -->
     <arg name="publish_urdf"                  default="true" />

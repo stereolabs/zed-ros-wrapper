@@ -2537,6 +2537,9 @@ namespace zed_wrapper {
                     (cloudSub > 0 && lastCloudSub == 0)) {
                     mGlobMapWholeUpdate = true;
                 }
+                lastHeightMapSub = heightMapSub;
+                lastCostMapSub = costMapSub;
+                lastCloudSub = cloudSub;
 
                 // Chunks list
                 std::vector<sl::HashKey> chunks;
@@ -2712,8 +2715,8 @@ namespace zed_wrapper {
         mapInfo.resolution = mTerrainMapRes;
         mapInfo.height = mapRows;
         mapInfo.width = mapCols;
-        mapInfo.origin.position.x = -(map_W_m / 2.0); // TODO this is valid only if the map is centered in (0,0)
-        mapInfo.origin.position.y = -(map_H_m / 2.0);
+        mapInfo.origin.position.x = mInitialPoseSl.getTranslation().x - (map_W_m / 2.0); // TODO this is valid only if the map is centered in (0,0)
+        mapInfo.origin.position.y = mInitialPoseSl.getTranslation().y - (map_H_m / 2.0);
         mapInfo.origin.position.z = 0.0;
         mapInfo.origin.orientation.x = 0.0;
         mapInfo.origin.orientation.y = 0.0;
