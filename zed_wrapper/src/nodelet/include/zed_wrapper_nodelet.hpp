@@ -332,6 +332,7 @@ namespace zed_wrapper {
         ros::Publisher mPubLocalCostMap;
         ros::Publisher mPubGlobalHeightMap;
         ros::Publisher mPubGlobalHeightCloud;
+        ros::Publisher mPubGlobalHeightMrk;
         ros::Publisher mPubGlobalCostMap;
         //ros::Publisher mPubGridMap;
         ros::Publisher mPubGlobalHeightMapImg;
@@ -420,7 +421,7 @@ namespace zed_wrapper {
 #ifdef TERRAIN_MAPPING
         sl::Terrain mTerrain;
         bool mMappingReady;
-        bool mGlobMapEmpty;
+        bool mGlobMapWholeUpdate;
 
         sensor_msgs::PointCloud2 mLocalHeightPointcloudMsg;
         sensor_msgs::PointCloud2 mGlobalHeightPointcloudMsg;
