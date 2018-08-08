@@ -2076,6 +2076,24 @@ namespace zed_wrapper {
         NODELET_DEBUG_STREAM("Local map dimensions: " << mapW << " x " << mapH << " m");
         NODELET_DEBUG_STREAM("Local map cell dim: " << mapCols << " x " << mapRows);
 
+        // Pointcloud
+        int ptsCount = mapRows * mapCols;
+        mLocalHeightPointcloudMsg.header.stamp = t;
+        if (mLocalHeightPointcloudMsg.width != mapCols || mLocalHeightPointcloudMsg.height != mapRows) {
+            mLocalHeightPointcloudMsg.header.frame_id = mMapFrameId; // Set the header values of the ROS message
+            mLocalHeightPointcloudMsg.is_bigendian = false;
+            mLocalHeightPointcloudMsg.is_dense = false;
+
+            sensor_msgs::PointCloud2Modifier modifier(mLocalHeightPointcloudMsg);
+            modifier.setPointCloud2Fields(4,
+                                          "x", 1, sensor_msgs::PointField::FLOAT32,
+                                          "y", 1, sensor_msgs::PointField::FLOAT32,
+                                          "z", 1, sensor_msgs::PointField::FLOAT32,
+                                          "rgb", 1, sensor_msgs::PointField::FLOAT32);
+
+            modifier.resize(ptsCount);
+        }
+
         // MetaData
         nav_msgs::MapMetaData mapInfo;
         mapInfo.resolution = mTerrainMapRes;
@@ -2103,12 +2121,6 @@ namespace zed_wrapper {
         costMapMsg.header.frame_id = mMapFrameId;
         costMapMsg.header.stamp = t;
         costMapMsg.data = std::vector<int8_t>(totCell, -1);
-
-        // Height Cloud
-        //        pcl::PointCloud<pcl::PointXYZRGB> point_cloud;
-        //        if (cloudSub) {
-        //            point_cloud.points.resize(totCell);
-        //        }
 
         // Height Marker
         visualization_msgs::Marker marker;
@@ -2194,14 +2206,16 @@ namespace zed_wrapper {
                         float color_f = static_cast<float>(chunk.at(sl::COLOR, i));
                         sl::float3 color = sl_tools::depackColor3f(color_f);
 
-                        // PointCloud
-                        //                        if (cloudSub > 0) {
-                        //                            point_cloud.points[mapIdx].x = ym + (mTerrainMapRes / 2);  // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                        //                            point_cloud.points[mapIdx].y = -xm  + (mTerrainMapRes / 2); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                        //                            point_cloud.points[mapIdx].z = height;
-                        //                            point_cloud.points[mapIdx].rgb = color_f;
-                        //                        }
+                        //PointCloud
+                        if (cloudSub > 0) {
+                            float* ptCloudPtr = (float*)(&mLocalHeightPointcloudMsg.data[0]);
+                            ptCloudPtr[mapIdx * 4 + 0] = ym + (mTerrainMapRes / 2);  // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                            ptCloudPtr[mapIdx * 4 + 1] = -xm  + (mTerrainMapRes / 2); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                            ptCloudPtr[mapIdx * 4 + 2] = height;
+                            ptCloudPtr[mapIdx * 4 + 3] = color_f;
+                        }
 
+                        // Cube List
                         if (mrkSub > 0) {
                             int col_count = static_cast<int>(ceil(fabs(height) / mMapHeightResol));
 
@@ -2232,6 +2246,7 @@ namespace zed_wrapper {
                             }
                         }
 
+                        // Parallelepipeds
                         if (mrksSub > 0 && fabs(height) > 0) {
                             visualization_msgs::Marker heightBox;
                             heightBox.header.frame_id = mMapFrameId;
@@ -2274,18 +2289,9 @@ namespace zed_wrapper {
             mPubLocalCostMap.publish(costMapMsg);
         }
 
-        //        if (cloudSub > 0) {
-        //            sensor_msgs::PointCloud2 heightCloudMsg;
-        //            pcl::toROSMsg(point_cloud, heightCloudMsg); // Convert the point cloud to a ROS message
-
-        //            heightCloudMsg.header.frame_id = mMapFrameId;
-        //            heightCloudMsg.header.stamp = t;
-        //            heightCloudMsg.is_dense = false;
-        //            heightCloudMsg.is_bigendian = false;
-        //            heightCloudMsg.height = mapRows;
-        //            heightCloudMsg.width = mapCols;
-        //            mPubLocalHeightCloud.publish(heightCloudMsg);
-        //        }
+        if (cloudSub > 0) {
+            mPubLocalHeightCloud.publish(mLocalHeightPointcloudMsg);
+        }
 
         if (mrkSub > 0) {
             mPubLocalHeightMrk.publish(marker);

@@ -414,6 +414,7 @@ namespace zed_wrapper {
         // Terrain Mapping
         sl::Terrain mTerrain;
         bool mMappingReady;
+        sensor_msgs::PointCloud2 mLocalHeightPointcloudMsg;
         nav_msgs::OccupancyGrid mGlobHeightMapMsg;
         nav_msgs::OccupancyGrid mGlobCostMapMsg;
         bool mGlobMapEmpty;
