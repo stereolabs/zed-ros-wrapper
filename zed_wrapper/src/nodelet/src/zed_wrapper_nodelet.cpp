@@ -217,6 +217,7 @@ namespace zed_wrapper {
         string loc_height_markers_topic = "map/loc_map_height_boxes";
         string loc_cost_map_topic = "map/loc_map_costmap";
         string glob_height_map_topic = "map/glob_map_heightmap";
+        string glob_height_cloud_topic = "map/glob_map_height_cloud";
         string glob_cost_map_topic = "map/glob_map_costmap";
         //string gridmap_topic = "map/gridmap";
         string height_map_image_topic = "map/height_map_image";
@@ -518,6 +519,8 @@ namespace zed_wrapper {
             NODELET_INFO_STREAM("Advertised on topic " << loc_cost_map_topic);
             mPubGlobalHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(glob_height_map_topic, 1, true); // global height map latched
             NODELET_INFO_STREAM("Advertised on topic " << glob_height_map_topic);
+            mPubGlobalHeightCloud = mNh.advertise<sensor_msgs::PointCloud2>(glob_height_cloud_topic, 1); // global height cloud
+            NODELET_INFO_STREAM("Advertised on topic " << glob_height_cloud_topic);
             mPubGlobalCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(glob_cost_map_topic, 1, true); // global cost map latched
             NODELET_INFO_STREAM("Advertised on topic " << glob_cost_map_topic);
             //mPubGridMap = mNh.advertise<grid_map_msgs::GridMap>(gridmap_topic, 1);
@@ -555,10 +558,10 @@ namespace zed_wrapper {
         mSrvResetTracking = mNh.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
         
         // Start Pointcloud thread
-        mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread, this);
+        mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
 
         // Start pool thread
-        mDevicePollThread = std::thread(&ZEDWrapperNodelet::device_poll, this);
+        mDevicePollThread = std::thread(&ZEDWrapperNodelet::device_poll_thread_func, this);
 
 
     }
@@ -824,25 +827,22 @@ namespace zed_wrapper {
         trackParams.initial_world_transform = mInitialPoseSl;
 #ifdef TERRAIN_MAPPING
         trackParams.enable_floor_alignment = mFloorAlignment;
+        NODELET_INFO_STREAM("Floor Alignment : " << trackParams.enable_floor_alignment);
 #endif
         mZed.enableTracking(trackParams);
         mTrackingActivated = true;
         NODELET_INFO("Tracking ENABLED");
 
-#ifdef TERRAIN_MAPPING
-        NODELET_INFO_STREAM("Floor Alignment : " << trackParams.enable_floor_alignment);
         if (mTerrainMap) {
-            start_mapping();
+            startTerrainMapping();
         }
-#endif
     }
 
-#ifdef TERRAIN_MAPPING
-    void ZEDWrapperNodelet::start_mapping() {
+    void ZEDWrapperNodelet::startTerrainMapping() {
         if (!mTerrainMap) {
             return;
         }
-
+#ifdef TERRAIN_MAPPING
         mNhNs.getParam("loc_terrain_pub_rate",  mLocalTerrainPubRate);
         mNhNs.getParam("glob_terrain_pub_rate", mGlobalTerrainPubRate);
 
@@ -894,8 +894,9 @@ namespace zed_wrapper {
         mGlobalTerrainTimer = mNhNs.createTimer(ros::Duration(1.0 / mGlobalTerrainPubRate),
                                                 &ZEDWrapperNodelet::globalTerrainCallback, this);
         NODELET_INFO_STREAM("Global Terrain Mapping: ENABLED @ " << mGlobalTerrainPubRate << "Hz");
-    }
 #endif
+    }
+
 
     void ZEDWrapperNodelet::publishOdom(tf2::Transform base2odomTransf, ros::Time t) {
         nav_msgs::Odometry odom;
@@ -1003,7 +1004,7 @@ namespace zed_wrapper {
         mPubDisparity.publish(msg);
     }
 
-    void ZEDWrapperNodelet::pointcloud_thread() {
+    void ZEDWrapperNodelet::pointcloud_thread_func() {
         std::unique_lock<std::mutex> lock(mPcMutex);
         while (!mStopNode) {
             while (!mPcDataReady) {  // loop to avoid spurious wakeups
@@ -1457,7 +1458,7 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::device_poll() {
+    void ZEDWrapperNodelet::device_poll_thread_func() {
         ros::Rate loop_rate(mCamFrameRate);
         ros::Time old_t =
             sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
@@ -1940,7 +1941,7 @@ namespace zed_wrapper {
         }
 
         if (!mMappingReady) {
-            start_mapping();
+            startTerrainMapping();
         }
 
         mMappingReady = true;
@@ -2302,7 +2303,9 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::publishGlobalMaps(std::vector<sl::HashKey>& chunks, ros::Time t) {
+    void ZEDWrapperNodelet::publishGlobalMaps(std::vector<sl::HashKey>& chunks,
+            uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub,
+            ros::Time t) {
 
         float mapWm = mGlobHeightMapMsg.info.width * mGlobHeightMapMsg.info.resolution;
         double mapMinX = mGlobHeightMapMsg.info.origin.position.x;
@@ -2325,6 +2328,26 @@ namespace zed_wrapper {
         mGlobCostMapMsg.info.map_load_time = t;
         mGlobCostMapMsg.header.stamp = t;
 
+        // Height Pointcloud
+        if (cloudSub > 0) {
+            int ptsCount = mapRows * mapCols;
+            mGlobalHeightPointcloudMsg.header.stamp = t;
+            if (mGlobalHeightPointcloudMsg.width != mapCols || mGlobalHeightPointcloudMsg.height != mapRows) {
+                mGlobalHeightPointcloudMsg.header.frame_id = mMapFrameId; // Set the header values of the ROS message
+                mGlobalHeightPointcloudMsg.is_bigendian = false;
+                mGlobalHeightPointcloudMsg.is_dense = false;
+
+                sensor_msgs::PointCloud2Modifier modifier(mGlobalHeightPointcloudMsg);
+                modifier.setPointCloud2Fields(4,
+                                              "x", 1, sensor_msgs::PointField::FLOAT32,
+                                              "y", 1, sensor_msgs::PointField::FLOAT32,
+                                              "z", 1, sensor_msgs::PointField::FLOAT32,
+                                              "rgb", 1, sensor_msgs::PointField::FLOAT32);
+
+                modifier.resize(ptsCount);
+            }
+        }
+
         #pragma omp parallel for
         for (int k = 0; k < chunks.size(); k++) {
             //NODELET_DEBUG("*** NEW CHUNK parsing ***");
@@ -2337,18 +2360,23 @@ namespace zed_wrapper {
             #pragma omp parallel for
             for (unsigned int i = 0; i < cellCount; i++) {
 
-                int height = -1, cost = -1; // If cell is not valid the current value must be replaced with -1
+                float height = std::numeric_limits<float>::quiet_NaN();
+                int heightNorm = -1, costNorm = -1; // If cell is not valid the current value must be replaced with -1
+
 
                 if (chunk.isCellValid(i)) { // Leave the value to its default: -1
-                    height = static_cast<int8_t>(fabs(round(chunk.at(sl::ELEVATION, i) / mMapMaxHeight) * 100));
-                    cost = static_cast<int8_t>(chunk.at(sl::TRAVERSABILITY_COST, i) * 100);
+                    height = chunk.at(sl::ELEVATION, i);
+                    heightNorm = static_cast<int8_t>(fabs(round(height / mMapMaxHeight) * 100));
+                    costNorm = static_cast<int8_t>(chunk.at(sl::TRAVERSABILITY_COST, i) * 100);
 
-                    if (!isfinite(height)) {
-                        height = -1;
+                    if (!isfinite(heightNorm)) {
+                        heightNorm = -1;
+                        height = std::numeric_limits<float>::quiet_NaN();
                     }
 
-                    if (!isfinite(height)) {
-                        cost = -1;
+                    if (!isfinite(heightNorm)) {
+                        costNorm = -1;
+                        height = std::numeric_limits<float>::quiet_NaN();
                     }
                 }
 
@@ -2373,14 +2401,35 @@ namespace zed_wrapper {
                 }
 
                 //NODELET_DEBUG_STREAM("Cell: [" << u << "," << v << "] -> " << mapIdx);
-                mGlobHeightMapMsg.data.at(mapIdx) = height;
-                mGlobCostMapMsg.data.at(mapIdx) = cost;
+                mGlobHeightMapMsg.data.at(mapIdx) = heightNorm;
+                mGlobCostMapMsg.data.at(mapIdx) = costNorm;
+
+                //PointCloud
+                if (cloudSub > 0) {
+                    float color_f = static_cast<float>(chunk.at(sl::COLOR, i));
+
+                    float* ptCloudPtr = (float*)(&mGlobalHeightPointcloudMsg.data[0]);
+                    ptCloudPtr[mapIdx * 4 + 0] = ym + (mTerrainMapRes / 2);  // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                    ptCloudPtr[mapIdx * 4 + 1] = -xm  + (mTerrainMapRes / 2); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                    ptCloudPtr[mapIdx * 4 + 2] = height;
+                    ptCloudPtr[mapIdx * 4 + 3] = color_f;
+                }
             }
         }
 
         // Map publishing
-        mPubGlobalHeightMap.publish(mGlobHeightMapMsg);
-        mPubGlobalCostMap.publish(mGlobCostMapMsg);
+        if (heightSub > 0) {
+            mPubGlobalHeightMap.publish(mGlobHeightMapMsg);
+        }
+
+        if (costSub > 0) {
+            mPubGlobalCostMap.publish(mGlobCostMapMsg);
+        }
+
+        if (cloudSub > 0) {
+            mPubGlobalHeightCloud.publish(mGlobalHeightPointcloudMsg);
+        }
+
     }
 
     void ZEDWrapperNodelet::globalTerrainCallback(const ros::TimerEvent& e) {
@@ -2390,7 +2439,7 @@ namespace zed_wrapper {
         }
 
         if (!mMappingReady) {
-            start_mapping();
+            startTerrainMapping();
         }
 
         mMappingReady = true;
@@ -2412,9 +2461,11 @@ namespace zed_wrapper {
         uint32_t colorSub = mPubGlobalColorMapImg.getNumSubscribers();
         uint32_t travSub = mPubGlobalCostMapImg.getNumSubscribers();
         uint32_t heightMapSub = mPubGlobalHeightMap.getNumSubscribers();
+        uint32_t cloudSub = mPubGlobalHeightCloud.getNumSubscribers();
+        uint32_t mrkSub = 0;
         uint32_t costMapSub = mPubGlobalCostMap.getNumSubscribers();
 
-        uint32_t run = /*gridSub + */heightSub + colorSub + travSub + heightMapSub + costMapSub;
+        uint32_t run = /*gridSub + */heightSub + colorSub + travSub + heightMapSub + costMapSub + cloudSub;
 
         if (run > 0) {
             sl::Mat sl_heightMap, sl_colorMap, sl_traversMap;
@@ -2490,7 +2541,6 @@ namespace zed_wrapper {
 
                     // Check if the map must be resized
                     if (doResize) {    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-
                         float width = maxX - minX;
                         float height = maxY - minY;
 
@@ -2509,7 +2559,7 @@ namespace zed_wrapper {
                     }
 
                     // Publish global map
-                    publishGlobalMaps(chunks, sl_tools::slTime2Ros(mLastGlobMapTimestamp));
+                    publishGlobalMaps(chunks, heightMapSub, costMapSub, cloudSub, mrkSub, sl_tools::slTime2Ros(mLastGlobMapTimestamp));
                 } else {
                     NODELET_DEBUG("Global map not available");
                     return;

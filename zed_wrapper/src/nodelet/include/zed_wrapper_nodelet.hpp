@@ -83,11 +83,11 @@ namespace zed_wrapper {
 
         /* \brief ZED camera polling thread function
          */
-        void device_poll();
+        void device_poll_thread_func();
 
         /* \brief Pointcloud publishing function
          */
-        void pointcloud_thread();
+        void pointcloud_thread_func();
 
       protected:
 
@@ -183,6 +183,11 @@ namespace zed_wrapper {
                          string leftFrameId, string rightFrameId,
                          bool rawParam = false);
 
+        /* \bried Check if FPS and Resolution chosen by user are correct.
+         *        Modifies FPS to match correct value.
+         */
+        void checkResolFps();
+
         /* \brief Callback to handle dynamic reconfigure events in ROS
          */
         void dynamicReconfCallback(zed_wrapper::ZedConfig& config, uint32_t level);
@@ -196,51 +201,6 @@ namespace zed_wrapper {
          * \param e : the ros::TimerEvent binded to the callback
          */
         void imuPubCallback(const ros::TimerEvent& e);
-
-#ifdef TERRAIN_MAPPING
-        /* \brief Callback to handle async terrain MAPPING to generate high frequency local maps
-         * \param e : the ros::TimerEvent binded to the callback
-         */
-        void localTerrainCallback(const ros::TimerEvent& e);
-
-        /* \brief Callback to handle async terrain MAPPING to generate low frequency global maps
-         * \param e : the ros::TimerEvent binded to the callback
-         */
-        void globalTerrainCallback(const ros::TimerEvent& e);
-
-        /* \brief Initialize the ROS Map messages
-         * \param map_W_m : width of the map in meters
-         * \param map_H_m : height of the map in meters
-         */
-        void initGlobalMapMsgs(double map_W_m, double map_H_m);
-
-        /* \brief Publish local height and cost maps from updated Terrain Chunks
-         * \param minX : minimum X coordinate of the map in meters
-         * \param minY : minimum Y coordinate of the map in meters
-         * \param maxX : maximum X coordinate of the map in meters
-         * \param maxY : maximum Y coordinate of the map in meters
-         * \param chunks : updated chunks from terrain mapping
-         * \param heightSub : Height map subscribers count
-         * \param costSub : Cost map subscribers count
-         * \param cloudSub : Height cloud subscribers count
-         * \param mrkSub : Height markers array subscribers count
-         * \param t : timestamp
-         */
-        void publishLocalMaps(float camX, float camY, float minX, float minY, float maxX, float maxY, std::vector<sl::HashKey>& chunks,
-                              uint32_t heightSub, uint32_t costSub, uint32_t cloudSub,
-                              uint32_t mrkSub,  uint32_t mrksSub,
-                              ros::Time t);
-
-        /* \brief Publish global height and cost maps from updated Terrain Chunks
-         * \param minX : minimum X coordinate of the map in meters
-         * \param minY : minimum Y coordinate of the map in meters
-         * \param maxX : maximum X coordinate of the map in meters
-         * \param maxY : maximum Y coordinate of the map in meters
-         * \param chunks : updated chunks from terrain mapping
-         * \param t : timestamp
-         */
-        void publishGlobalMaps(std::vector<sl::HashKey>& chunks, ros::Time t);
-#endif
 
         /* \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
@@ -272,13 +232,57 @@ namespace zed_wrapper {
         void start_tracking();
 
         /* \bried Start mapping loading the parameters from param server
+         * \note Terrain Mapping is available since SDK v2.7
          */
-        void start_mapping(); // TODO Check SDK version
+        void startTerrainMapping();
 
-        /* \bried Check if FPS and Resolution chosen by user are correct.
-         *        Modifies FPS to match correct value.
+#ifdef TERRAIN_MAPPING
+        /* \brief Callback to handle async terrain MAPPING to generate high frequency local maps
+         * \param e : the ros::TimerEvent binded to the callback
          */
-        void checkResolFps();
+        void localTerrainCallback(const ros::TimerEvent& e);
+
+        /* \brief Callback to handle async terrain MAPPING to generate low frequency global maps
+         * \param e : the ros::TimerEvent binded to the callback
+         */
+        void globalTerrainCallback(const ros::TimerEvent& e);
+
+        /* \brief Initialize the ROS Map messages
+         * \param map_W_m : width of the map in meters
+         * \param map_H_m : height of the map in meters
+         */
+        void initGlobalMapMsgs(double map_W_m, double map_H_m);
+
+        /* \brief Publish local height and cost maps from updated Terrain Chunks
+         * \param minX : minimum X coordinate of the map in meters
+         * \param minY : minimum Y coordinate of the map in meters
+         * \param maxX : maximum X coordinate of the map in meters
+         * \param maxY : maximum Y coordinate of the map in meters
+         * \param chunks : updated chunks from terrain mapping
+         * \param heightSub : Height map subscribers count
+         * \param costSub : Cost map subscribers count
+         * \param cloudSub : Height cloud subscribers count
+         * \param mrkSub : Height markers array subscribers count
+         * \param t : timestamp
+         */
+        void publishLocalMaps(float camX, float camY, float minX, float minY, float maxX,
+                              float maxY, std::vector<sl::HashKey>& chunks,
+                              uint32_t heightSub, uint32_t costSub, uint32_t cloudSub,
+                              uint32_t mrkSub,  uint32_t mrksSub,
+                              ros::Time t);
+
+        /* \brief Publish global height and cost maps from updated Terrain Chunks
+         * \param chunks : updated chunks from terrain mapping
+         * \param heightSub : Height map subscribers count
+         * \param costSub : Cost map subscribers count
+         * \param cloudSub : Height cloud subscribers count
+         * \param mrkSub : Height markers array subscribers count
+         * \param t : timestamp
+         */
+        void publishGlobalMaps(std::vector<sl::HashKey>& chunks,
+                               uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub,
+                               ros::Time t);
+#endif
 
       private:
         // SDK version
@@ -327,6 +331,7 @@ namespace zed_wrapper {
         ros::Publisher mPubLocalHeightMrks;
         ros::Publisher mPubLocalCostMap;
         ros::Publisher mPubGlobalHeightMap;
+        ros::Publisher mPubGlobalHeightCloud;
         ros::Publisher mPubGlobalCostMap;
         //ros::Publisher mPubGridMap;
         ros::Publisher mPubGlobalHeightMapImg;
@@ -409,15 +414,19 @@ namespace zed_wrapper {
         bool mTrackingActivated;
         bool mTrackingReady;
 
-        bool mTerrainMap = false;
-#ifdef TERRAIN_MAPPING
         // Terrain Mapping
+        bool mTerrainMap = false; // Used only if Terrain Mapping is available
+        bool mFloorAlignment = false;
+#ifdef TERRAIN_MAPPING
         sl::Terrain mTerrain;
         bool mMappingReady;
+        bool mGlobMapEmpty;
+
         sensor_msgs::PointCloud2 mLocalHeightPointcloudMsg;
+        sensor_msgs::PointCloud2 mGlobalHeightPointcloudMsg;
         nav_msgs::OccupancyGrid mGlobHeightMapMsg;
         nav_msgs::OccupancyGrid mGlobCostMapMsg;
-        bool mGlobMapEmpty;
+
         sl::timeStamp mLastGlobMapTimestamp;
 
         // Terrain Mapping Params
@@ -473,11 +482,8 @@ namespace zed_wrapper {
         bool mPoseSmoothing;
         bool mSpatialMemory;
         bool mInitOdomWithPose;
-#ifdef TERRAIN_MAPPING
-        bool mFloorAlignment;
-#endif
 
-        // Frame and Mat
+        // OpenCV Mat
         int mCamWidth;
         int mCamHeight;
         int mMatWidth;
@@ -487,7 +493,7 @@ namespace zed_wrapper {
         cv::Mat mCvConfImRGB;
         cv::Mat mCvConfMapFloat;
 
-        // Mutex
+        // Thread Sync
         std::mutex mCamDataMutex;
         std::mutex mTerrainMutex;
         std::mutex mPcMutex;
