@@ -483,13 +483,13 @@ Visualization Manager:
           Use rainbow: true
           Value: false
         - Class: rviz/Marker
-          Enabled: true
+          Enabled: false
           Marker Topic: /zed/map/glob_map_height_cubes
           Name: G. Height Cubes
           Namespaces:
-            height_cubes: true
+            {}
           Queue Size: 1
-          Value: true
+          Value: false
         - Class: rviz/Image
           Enabled: true
           Image Topic: /zed/map/color_map_image

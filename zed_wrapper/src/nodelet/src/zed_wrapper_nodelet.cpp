@@ -2416,45 +2416,59 @@ namespace zed_wrapper {
                     float color_f = static_cast<float>(chunk.at(sl::COLOR, i));
 
                     //PointCloud
-                    if (cloudSub > 0) {
+                    if (cloudSub > 0 || mrkSub > 0) {
                         float* ptCloudPtr = (float*)(&mGlobalHeightPointcloudMsg.data[0]);
                         ptCloudPtr[mapIdx * 4 + 0] = ym + (mTerrainMapRes / 2);   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                         ptCloudPtr[mapIdx * 4 + 1] = -xm  + (mTerrainMapRes / 2); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                         ptCloudPtr[mapIdx * 4 + 2] = height;
                         ptCloudPtr[mapIdx * 4 + 3] = color_f;
                     }
+                }
+            }
+        }
 
-                    // Cube List
-                    if (mrkSub > 0) {
-                        int col_count = static_cast<int>(ceil(fabs(height) / mMapHeightResol));
+        // Cube List Update
+        // Note: the cube list cannot be taken all in memory because it's dimension varies in Z direction at each step
+        //       we must reconstruct it completely starting from the Height Point Cloud
+        if (mrkSub > 0) {
+            size_t ptCount = mGlobalHeightPointcloudMsg.data.size() / (4 * sizeof(float));
+            float* ptCloudPtr = (float*)(&mGlobalHeightPointcloudMsg.data[0]);
 
-                        sl::float3 color = sl_tools::depackColor3f(color_f);
+            #pragma omp parallel for
+            for (int p = 0; p < ptCount; p++) {
+                // Current point
+                float xm = ptCloudPtr[p * 4 + 0];
+                float ym = ptCloudPtr[p * 4 + 1];
+                float zm = ptCloudPtr[p * 4 + 2];
+                float color_f = ptCloudPtr[p * 4 + 3];
+                sl::float3 color = sl_tools::depackColor3f(color_f);
 
-                        #pragma omp critical
-                        {
-                            #pragma omp parallel for
-                            for (int i = 1; i <= col_count; i++) {
-                                geometry_msgs::Point pt;
-                                pt.x = ym + (mTerrainMapRes / 2);  // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                                pt.y = -xm  + (mTerrainMapRes / 2); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                                pt.z = i * mMapHeightResol;
+                // Number of vertical cubes for the current point
+                int col_count = static_cast<int>(ceil(fabs(zm) / mMapHeightResol));
 
-                                if (height < 0) {
-                                    pt.z *= - 1.0f;
-                                }
+                #pragma omp critical
+                {
+                    #pragma omp parallel for
+                    for (int i = 1; i <= col_count; i++) {
+                        geometry_msgs::Point pt;
+                        pt.x = xm + (mTerrainMapRes / 2);
+                        pt.y = ym  + (mTerrainMapRes / 2);
+                        pt.z = i * mMapHeightResol;
 
-                                //NODELET_INFO("Height: %g -> Squares: %d -> i: %d -> Current: %g", height, col_count, i, pt.z);
-
-                                std_msgs::ColorRGBA col;
-                                col.a = 1.0f;
-                                col.r = color[0];
-                                col.g = color[1];
-                                col.b = color[2];
-
-                                marker.points.push_back(pt);
-                                marker.colors.push_back(col);
-                            }
+                        if (zm < 0) {
+                            pt.z *= - 1.0f;
                         }
+
+                        //NODELET_INFO("Height: %g -> Squares: %d -> i: %d -> Current: %g", height, col_count, i, pt.z);
+
+                        std_msgs::ColorRGBA col;
+                        col.a = 1.0f;
+                        col.r = color[0];
+                        col.g = color[1];
+                        col.b = color[2];
+
+                        marker.points.push_back(pt);
+                        marker.colors.push_back(col);
                     }
                 }
             }
