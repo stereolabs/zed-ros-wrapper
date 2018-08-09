@@ -1844,7 +1844,7 @@ namespace zed_wrapper {
 
                         bool initOdom = false;
 
-                        if (!mTerrainMap) {
+                        if (!(mTerrainMap || mFloorAlignment)) {
                             initOdom = mInitOdomWithPose;
                         } else {
                             initOdom = (status == sl::TRACKING_STATE_OK) & mInitOdomWithPose;
