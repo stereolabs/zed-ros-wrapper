@@ -202,6 +202,11 @@ namespace zed_wrapper {
          */
         void imuPubCallback(const ros::TimerEvent& e);
 
+        /* \brief Callback to handle new global maps subscription.
+         * \param e : the ros::TimerEvent binded to the callback
+         */
+        void globalMapSubscribeCallback(const ros::SingleSubscriberPublisher& pub);
+
         /* \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
          * server

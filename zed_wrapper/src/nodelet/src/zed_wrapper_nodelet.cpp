@@ -518,16 +518,25 @@ namespace zed_wrapper {
             NODELET_INFO_STREAM("Advertised on topic " << loc_height_markers_topic);
             mPubLocalCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_cost_map_topic, 1); // local cost map
             NODELET_INFO_STREAM("Advertised on topic " << loc_cost_map_topic);
-            mPubGlobalHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(glob_height_map_topic, 1, true); // global height map latched
+
+            mPubGlobalHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(glob_height_map_topic, 1,
+                                  boost::bind(&ZEDWrapperNodelet::globalMapSubscribeCallback, this, _1),
+                                  ros::SubscriberStatusCallback(), ros::VoidConstPtr(), true); // global height map latched
             NODELET_INFO_STREAM("Advertised on topic " << glob_height_map_topic);
-            mPubGlobalHeightCloud = mNh.advertise<sensor_msgs::PointCloud2>(glob_height_cloud_topic, 1); // global height cloud
+            mPubGlobalHeightCloud = mNh.advertise<sensor_msgs::PointCloud2>(glob_height_cloud_topic, 1,
+                                    boost::bind(&ZEDWrapperNodelet::globalMapSubscribeCallback, this, _1)); // global height cloud
             NODELET_INFO_STREAM("Advertised on topic " << glob_height_cloud_topic);
-            mPubGlobalHeightMrk = mNh.advertise<visualization_msgs::Marker>(glob_height_marker_topic, 1); // global height cubes
+            mPubGlobalHeightMrk = mNh.advertise<visualization_msgs::Marker>(glob_height_marker_topic, 1,
+                                  boost::bind(&ZEDWrapperNodelet::globalMapSubscribeCallback, this, _1)); // global height cubes
             NODELET_INFO_STREAM("Advertised on topic " << glob_height_marker_topic);
-            mPubGlobalCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(glob_cost_map_topic, 1, true); // global cost map latched
+            mPubGlobalCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(glob_cost_map_topic, 1,
+                                boost::bind(&ZEDWrapperNodelet::globalMapSubscribeCallback, this, _1), // global cost map latched
+                                ros::SubscriberStatusCallback(), ros::VoidConstPtr(), true);
             NODELET_INFO_STREAM("Advertised on topic " << glob_cost_map_topic);
+
             //mPubGridMap = mNh.advertise<grid_map_msgs::GridMap>(gridmap_topic, 1);
             //NODELET_INFO_STREAM("Advertised on topic " << gridmap_topic);
+
             mPubGlobalHeightMapImg = mNh.advertise<sensor_msgs::Image>(height_map_image_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << height_map_image_topic);
             mPubGlobalColorMapImg = mNh.advertise<sensor_msgs::Image>(color_map_image_topic, 1);
@@ -2522,15 +2531,10 @@ namespace zed_wrapper {
         uint32_t colorImgSub = mPubGlobalColorMapImg.getNumSubscribers();
         uint32_t costImgSub = mPubGlobalCostMapImg.getNumSubscribers();
 
-        static uint32_t lastHeightMapSub = 0;
-        static uint32_t lastCostMapSub = 0;
-        static uint32_t lastCloudSub = 0;
-
         uint32_t heightMapSub = mPubGlobalHeightMap.getNumSubscribers();
         uint32_t costMapSub = mPubGlobalCostMap.getNumSubscribers();
         uint32_t cloudSub = mPubGlobalHeightCloud.getNumSubscribers();
         uint32_t mrkSub = mPubGlobalHeightMrk.getNumSubscribers();
-
 
         uint32_t run = /*gridSub + */heightImgSub + colorImgSub + costImgSub + heightMapSub + costMapSub + cloudSub + mrkSub;
 
@@ -2545,15 +2549,6 @@ namespace zed_wrapper {
                 // Request New Terrain calculation while elaborating data
                 mZed.requestTerrainAsync();
                 mTerrainMutex.unlock();
-
-                if ((heightMapSub > 0 && lastHeightMapSub == 0) ||
-                    (costMapSub > 0 && lastCostMapSub == 0) ||
-                    (cloudSub > 0 && lastCloudSub == 0)) {
-                    mGlobMapWholeUpdate = true;
-                }
-                lastHeightMapSub = heightMapSub;
-                lastCostMapSub = costMapSub;
-                lastCloudSub = cloudSub;
 
                 // Chunks list
                 std::vector<sl::HashKey> chunks;
@@ -2768,5 +2763,17 @@ namespace zed_wrapper {
 
     }
 #endif
+
+    void ZEDWrapperNodelet::globalMapSubscribeCallback(const ros::SingleSubscriberPublisher& pub) {
+        uint32_t heightMapSub = mPubGlobalHeightMap.getNumSubscribers();
+        uint32_t costMapSub = mPubGlobalCostMap.getNumSubscribers();
+        uint32_t cloudSub = mPubGlobalHeightCloud.getNumSubscribers();
+        uint32_t mrkSub = mPubGlobalHeightMrk.getNumSubscribers();
+        if (heightMapSub == 1 || costMapSub == 1 || cloudSub == 1 || mrkSub == 1) {
+            mGlobMapWholeUpdate = true;
+        }
+
+        NODELET_DEBUG_STREAM("New global map subscription by " << pub.getSubscriberName() << " to topic " << pub.getTopic());
+    }
 
 } // namespace
