@@ -488,6 +488,7 @@ namespace zed_wrapper {
         bool mPoseSmoothing;
         bool mSpatialMemory;
         bool mInitOdomWithPose;
+        bool mResetOdom = false;
 
         // OpenCV Mat
         int mCamWidth;

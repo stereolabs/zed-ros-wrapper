@@ -780,14 +780,17 @@ namespace zed_wrapper {
                      mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
         }
 
-        mZed.resetTracking(mInitialPoseSl);
-        return true;
+        if (mZed.resetTracking(mInitialPoseSl) == sl::SUCCESS) {
+            return true;
+        }
+
+        return false;
     }
 
     bool ZEDWrapperNodelet::on_reset_odometry(
         zed_wrapper::reset_odometry::Request& req,
         zed_wrapper::reset_odometry::Response& res) {
-        mInitOdomWithPose = true;
+        mResetOdom = true;
         res.reset_done = true;
         return true;
     }
@@ -1859,7 +1862,7 @@ namespace zed_wrapper {
                             initOdom = (status == sl::TRACKING_STATE_OK) & mInitOdomWithPose;
                         }
 
-                        if (initOdom) {
+                        if (initOdom || mResetOdom) {
                             // Propagate Odom transform in time
                             mBase2OdomTransf = base_to_map_transform;
                             base_to_map_transform.setIdentity();
@@ -1870,6 +1873,7 @@ namespace zed_wrapper {
                             }
 
                             mInitOdomWithPose = false;
+                            mResetOdom = false;
                         } else {
                             // Transformation from map to odometry frame
                             mOdom2MapTransf =
