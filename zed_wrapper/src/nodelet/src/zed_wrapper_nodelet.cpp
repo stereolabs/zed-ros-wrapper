@@ -546,7 +546,11 @@ namespace zed_wrapper {
         }
 
         // Mapping services
-        mSrvGetMap = mNh.advertiseService("static_map", &ZEDWrapperNodelet::on_get_static_map, this);
+        mSrvGetStaticMap = mNh.advertiseService("static_map", &ZEDWrapperNodelet::on_get_static_map, this);
+        mSrvGetLocHeightMap = mNh.advertiseService("local_height_map", &ZEDWrapperNodelet::on_get_loc_height_map, this);
+        mSrvGetLocCostMap = mNh.advertiseService("local_cost_map", &ZEDWrapperNodelet::on_get_loc_height_map, this);
+        mSrvGetGlobHeightMap = mNh.advertiseService("global_height_map", &ZEDWrapperNodelet::on_get_glob_height_map, this);
+        mSrvGetGlobCostMap = mNh.advertiseService("global_cost_map", &ZEDWrapperNodelet::on_get_glob_cost_map, this);
 #endif
 
         // Imu publisher
@@ -2767,6 +2771,82 @@ namespace zed_wrapper {
         } else {
             res.map = mGlobCostMapMsg;
         }
+
+        mGlobMapMutex.unlock();
+
+        return true;
+    }
+
+    bool ZEDWrapperNodelet::on_get_loc_height_map(nav_msgs::GetMap::Request&  req,
+            nav_msgs::GetMap::Response& res) {
+
+#ifndef TERRAIN_MAPPING
+        return false;
+#endif
+        if (!mTerrainMap || !mMappingReady) {
+            return false;
+        }
+
+        mLocMapMutex.lock();
+
+        // TODO
+
+        mLocMapMutex.unlock();
+
+        return true;
+    }
+
+    bool ZEDWrapperNodelet::on_get_loc_cost_map(nav_msgs::GetMap::Request&  req,
+            nav_msgs::GetMap::Response& res) {
+
+#ifndef TERRAIN_MAPPING
+        return false;
+#endif
+        if (!mTerrainMap || !mMappingReady) {
+            return false;
+        }
+
+        mLocMapMutex.lock();
+
+        // TODO
+
+        mLocMapMutex.unlock();
+
+        return true;
+    }
+
+    bool ZEDWrapperNodelet::on_get_glob_height_map(nav_msgs::GetMap::Request&  req,
+            nav_msgs::GetMap::Response& res) {
+
+#ifndef TERRAIN_MAPPING
+        return false;
+#endif
+        if (!mTerrainMap || !mMappingReady) {
+            return false;
+        }
+
+        mGlobMapMutex.lock();
+
+        res.map = mGlobHeightMapMsg;
+
+        mGlobMapMutex.unlock();
+
+        return true;
+    }
+
+    bool ZEDWrapperNodelet::on_get_glob_cost_map(nav_msgs::GetMap::Request&  req,
+            nav_msgs::GetMap::Response& res) {
+
+#ifndef TERRAIN_MAPPING
+        return false;
+#endif
+        if (!mTerrainMap || !mMappingReady) {
+            return false;
+        }
+
+        mGlobMapMutex.lock();
+
+        res.map = mGlobCostMapMsg;
 
         mGlobMapMutex.unlock();
 

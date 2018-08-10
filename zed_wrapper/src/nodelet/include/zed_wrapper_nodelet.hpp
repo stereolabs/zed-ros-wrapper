@@ -214,6 +214,30 @@ namespace zed_wrapper {
         bool on_get_static_map(nav_msgs::GetMap::Request&  req,
                                nav_msgs::GetMap::Response& res);
 
+        /* \brief Service callback to GetMap service
+         * server to request Local Height Map
+         */
+        bool on_get_loc_height_map(nav_msgs::GetMap::Request&  req,
+                                   nav_msgs::GetMap::Response& res);
+
+        /* \brief Service callback to GetMap service
+         * server to request Local Cost Map
+         */
+        bool on_get_loc_cost_map(nav_msgs::GetMap::Request&  req,
+                                 nav_msgs::GetMap::Response& res);
+
+        /* \brief Service callback to GetMap service
+         * server to request Global Height Map
+         */
+        bool on_get_glob_height_map(nav_msgs::GetMap::Request&  req,
+                                    nav_msgs::GetMap::Response& res);
+
+        /* \brief Service callback to GetMap service
+         * server to request Global Cost Map
+         */
+        bool on_get_glob_cost_map(nav_msgs::GetMap::Request&  req,
+                                  nav_msgs::GetMap::Response& res);
+
         /* \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
          * server
@@ -361,7 +385,11 @@ namespace zed_wrapper {
         ros::ServiceServer mSrvSetInitPose;
         ros::ServiceServer mSrvResetOdometry;
         ros::ServiceServer mSrvResetTracking;
-        ros::ServiceServer mSrvGetMap;
+        ros::ServiceServer mSrvGetStaticMap;
+        ros::ServiceServer mSrvGetGlobHeightMap;
+        ros::ServiceServer mSrvGetGlobCostMap;
+        ros::ServiceServer mSrvGetLocHeightMap;
+        ros::ServiceServer mSrvGetLocCostMap;
 
         // Camera info
         sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
