@@ -2069,7 +2069,9 @@ namespace zed_wrapper {
                         }
                     }
 
+                    mLocMapMutex.lock();
                     publishLocalMaps(camX, camY, minX, minY, maxX, maxY, chunks, heightSub, costSub, cloudSub, mrkSub, mrksSub, sl_tools::slTime2Ros(t));
+                    mLocMapMutex.unlock();
                 }
             } else {
                 mTerrainMutex.unlock();
@@ -2139,18 +2141,16 @@ namespace zed_wrapper {
         mapInfo.map_load_time = t;
 
         // Height Map Message as OccupancyGrid
-        nav_msgs::OccupancyGrid heightMapMsg;
-        heightMapMsg.info = mapInfo;
-        heightMapMsg.header.frame_id = mMapFrameId;
-        heightMapMsg.header.stamp = t;
-        heightMapMsg.data = std::vector<int8_t>(totCell, -1);
+        mLocHeightMapMsg.info = mapInfo;
+        mLocHeightMapMsg.header.frame_id = mMapFrameId;
+        mLocHeightMapMsg.header.stamp = t;
+        mLocHeightMapMsg.data = std::vector<int8_t>(totCell, -1);
 
         // Cost Map Message as OccupancyGrid
-        nav_msgs::OccupancyGrid costMapMsg;
-        costMapMsg.info = mapInfo;
-        costMapMsg.header.frame_id = mMapFrameId;
-        costMapMsg.header.stamp = t;
-        costMapMsg.data = std::vector<int8_t>(totCell, -1);
+        mLocCostMapMsg.info = mapInfo;
+        mLocCostMapMsg.header.frame_id = mMapFrameId;
+        mLocCostMapMsg.header.stamp = t;
+        mLocCostMapMsg.data = std::vector<int8_t>(totCell, -1);
 
         // Height Marker
         visualization_msgs::Marker marker;
@@ -2220,7 +2220,7 @@ namespace zed_wrapper {
                 // Cost Map
                 if (costSub > 0) {
                     int8_t cost = static_cast<int8_t>(chunk.at(sl::TRAVERSABILITY_COST, i) * 100);
-                    costMapMsg.data.at(mapIdx) = cost;
+                    mLocCostMapMsg.data.at(mapIdx) = cost;
                 }
 
                 if (cloudSub > 0 || heightSub > 0 || mrkSub > 0 || mrksSub > 0) {
@@ -2229,7 +2229,7 @@ namespace zed_wrapper {
 
                     // Height Map
                     if (heightSub > 0) {
-                        heightMapMsg.data.at(mapIdx) = heightAbs;
+                        mLocHeightMapMsg.data.at(mapIdx) = heightAbs;
                     }
 
                     if (cloudSub > 0 || mrkSub > 0 || mrksSub > 0) {
@@ -2312,11 +2312,11 @@ namespace zed_wrapper {
 
         // Map publishing
         if (heightSub > 0) {
-            mPubLocalHeightMap.publish(heightMapMsg);
+            mPubLocalHeightMap.publish(mLocHeightMapMsg);
         }
 
         if (costSub > 0) {
-            mPubLocalCostMap.publish(costMapMsg);
+            mPubLocalCostMap.publish(mLocCostMapMsg);
         }
 
         if (cloudSub > 0) {
@@ -2789,7 +2789,7 @@ namespace zed_wrapper {
 
         mLocMapMutex.lock();
 
-        // TODO
+        res.map = mLocHeightMapMsg;
 
         mLocMapMutex.unlock();
 
@@ -2808,7 +2808,7 @@ namespace zed_wrapper {
 
         mLocMapMutex.lock();
 
-        // TODO
+        res.map = mLocCostMapMsg;
 
         mLocMapMutex.unlock();
 

@@ -467,6 +467,8 @@ namespace zed_wrapper {
 
         sensor_msgs::PointCloud2 mLocalHeightPointcloudMsg;
         sensor_msgs::PointCloud2 mGlobalHeightPointcloudMsg;
+        nav_msgs::OccupancyGrid mLocHeightMapMsg;
+        nav_msgs::OccupancyGrid mLocCostMapMsg;
         nav_msgs::OccupancyGrid mGlobHeightMapMsg;
         nav_msgs::OccupancyGrid mGlobCostMapMsg;
 
