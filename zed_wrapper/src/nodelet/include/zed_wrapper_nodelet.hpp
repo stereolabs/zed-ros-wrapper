@@ -435,7 +435,7 @@ namespace zed_wrapper {
         sl::Terrain mTerrain;
         bool mMappingReady;
         bool mGlobMapWholeUpdate;
-        uint8_t mDefaultMap = 0; // Map to be returned by "static_map" service: 0->HeightMap - 1->CostMap
+        int mDefaultMap = 0; // Map to be returned by "static_map" service: 0->HeightMap - 1->CostMap
 
         sensor_msgs::PointCloud2 mLocalHeightPointcloudMsg;
         sensor_msgs::PointCloud2 mGlobalHeightPointcloudMsg;

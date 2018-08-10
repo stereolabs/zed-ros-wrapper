@@ -864,6 +864,8 @@ namespace zed_wrapper {
         mNhNs.getParam("loc_terrain_pub_rate",  mLocalTerrainPubRate);
         mNhNs.getParam("glob_terrain_pub_rate", mGlobalTerrainPubRate);
 
+        mNhNs.getParam("default_map", mDefaultMap);
+
         mNhNs.getParam("mapping_agent_step", mMapAgentStep);
         mNhNs.getParam("mapping_agent_slope", mMapAgentSlope);
         mNhNs.getParam("mapping_agent_radius", mMapAgentRadius);
@@ -875,6 +877,7 @@ namespace zed_wrapper {
         mNhNs.getParam("mapping_height_resol", mMapHeightResol);
         mNhNs.getParam("mapping_cell_resol", mMapResolIdx);
         mNhNs.getParam("mapping_local_radius", mMapLocalRadius);
+
 
         sl::TerrainMappingParameters terrainParams;
 

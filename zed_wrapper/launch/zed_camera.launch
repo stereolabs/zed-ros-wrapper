@@ -105,8 +105,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="spatial_memory"        value="false" />
         <param name="floor_alignment"       value="true" />
 
-        <param name="terrain_mapping"           value="true" />
-        <param name="loc_terrain_pub_rate"      value="5.0" />
+        <param name="terrain_mapping"           value="true" />        
+        <param name="default_map"               value="0" /> <!-- 0->HeightMap - 1->CostMap -->
         <param name="glob_terrain_pub_rate"     value="1.0" />
         <param name="mapping_agent_step"        value="0.05" />
         <param name="mapping_agent_slope"       value="20.0" />
