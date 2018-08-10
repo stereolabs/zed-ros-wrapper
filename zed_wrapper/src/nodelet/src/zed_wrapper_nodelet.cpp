@@ -2116,8 +2116,8 @@ namespace zed_wrapper {
         mapInfo.resolution = mTerrainMapRes;
         mapInfo.height = mapRows;
         mapInfo.width = mapCols;
-        mapInfo.origin.position.x = mapMinX;
-        mapInfo.origin.position.y = mapMinY;
+        mapInfo.origin.position.x = /*mInitialPoseSl.getTranslation().x + */ mapMinX; // TODO uncomment and test when the bug in SDK is fixed
+        mapInfo.origin.position.y = /*mInitialPoseSl.getTranslation().x + */ mapMinY; // TODO uncomment and test when the bug in SDK is fixed
         mapInfo.origin.position.z = 0.0;
         mapInfo.origin.orientation.x = 0;
         mapInfo.origin.orientation.y = 0;
@@ -2625,10 +2625,10 @@ namespace zed_wrapper {
                         chunks = mTerrain.getAllValidChunk();
                         mGlobMapWholeUpdate = false;
 
-                        mGlobHeightMapMsg.info.origin.position.x = minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                        mGlobHeightMapMsg.info.origin.position.y = -maxX; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                        mGlobCostMapMsg.info.origin.position.x = minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                        mGlobCostMapMsg.info.origin.position.y = -maxX; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        mGlobHeightMapMsg.info.origin.position.x = /*mInitialPoseSl.getTranslation().x + */ minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL - // TODO uncomment and test when the bug in SDK is fixed
+                        mGlobHeightMapMsg.info.origin.position.y = /*mInitialPoseSl.getTranslation().y + */ -maxX; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL - // TODO uncomment and test when the bug in SDK is fixed
+                        mGlobCostMapMsg.info.origin.position.x = /*mInitialPoseSl.getTranslation().x + */   minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL - // TODO uncomment and test when the bug in SDK is fixed
+                        mGlobCostMapMsg.info.origin.position.y = /*mInitialPoseSl.getTranslation().y + */  -maxX; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL - // TODO uncomment and test when the bug in SDK is fixed
 
                         NODELET_DEBUG("****************************************************************************************************************");
                     }
@@ -2679,36 +2679,6 @@ namespace zed_wrapper {
                     }
                 }
 
-                // Multilayer GridMap {https://github.com/ethz-asl/grid_map}
-                //                    if (gridSub > 0) {
-
-                //                        if (!cv_traversMap.empty() &&
-                //                            !cv_colorMap.empty() &&
-                //                            !cv_heightMap.empty())
-
-                //                        {
-                //                            // TODO USE CHUNK TO UPDATE SUBMAPS
-                //                            // GridMap creation
-                //                            grid_map::GridMap gridMap;
-                //                            grid_map::Position pos(0, 0); // TODO: initialize with the initial position of the tracking
-                //                            grid_map::GridMapCvConverter::initializeFromImage(cv_heightMap, mTerrainMapRes, gridMap, pos);
-                //                            grid_map::GridMapCvConverter::addLayerFromImage<float, 1>(cv_heightMap, "height_map", gridMap);
-                //                            grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(cv_traversMap, "traversability_map", gridMap);
-                //                            grid_map::GridMapCvConverter::addColorLayerFromImage<unsigned char, 4>(cv_colorMap, "color_map", gridMap);
-                //                            // GridMap to ROS message
-                //                            grid_map_msgs::GridMap gridMapMsg;
-                //                            gridMap.setTimestamp(t);
-                //                            gridMap.setFrameId(mMapFrameId);
-                //                            grid_map::GridMapRosConverter::toMessage(gridMap, gridMapMsg);
-                //                            // Publishing
-                //                            mPubGridMap.publish(gridMapMsg);
-
-                //                            /*sl::Mesh mesh;
-                //                            terrain.toMesh(mesh);
-                //                            mesh.save("./mesh.obj");*/
-                //                        }
-                //                    }
-            } else {
                 mTerrainMutex.unlock();
                 NODELET_DEBUG_STREAM("Local terrain not available");
             }
@@ -2728,8 +2698,8 @@ namespace zed_wrapper {
         mapInfo.resolution = mTerrainMapRes;
         mapInfo.height = mapRows;
         mapInfo.width = mapCols;
-        mapInfo.origin.position.x = mInitialPoseSl.getTranslation().x - (map_W_m / 2.0); // TODO this is valid only if the map is centered in (0,0)
-        mapInfo.origin.position.y = mInitialPoseSl.getTranslation().y - (map_H_m / 2.0);
+        mapInfo.origin.position.x = /*mInitialPoseSl.getTranslation().x + */ - (map_W_m / 2.0); // TODO uncomment and test when the bug in SDK is fixed
+        mapInfo.origin.position.y = /*mInitialPoseSl.getTranslation().y + */ - (map_H_m / 2.0); // TODO uncomment and test when the bug in SDK is fixed
         mapInfo.origin.position.z = 0.0;
         mapInfo.origin.orientation.x = 0.0;
         mapInfo.origin.orientation.y = 0.0;
