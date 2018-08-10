@@ -38,6 +38,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <nav_msgs/GetMap.h>
 #include <geometry_msgs/PoseStamped.h>
 
 #include <zed_wrapper/ZedConfig.h>
@@ -207,6 +208,12 @@ namespace zed_wrapper {
          */
         void globalMapSubscribeCallback(const ros::SingleSubscriberPublisher& pub);
 
+        /* \brief Service callback to GetMap service
+         * server to simulate the Navigation stack `map_server` functionality
+         */
+        bool on_get_static_map(nav_msgs::GetMap::Request&  req,
+                               nav_msgs::GetMap::Response& res);
+
         /* \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
          * server
@@ -354,6 +361,7 @@ namespace zed_wrapper {
         ros::ServiceServer mSrvSetInitPose;
         ros::ServiceServer mSrvResetOdometry;
         ros::ServiceServer mSrvResetTracking;
+        ros::ServiceServer mSrvGetMap;
 
         // Camera info
         sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
@@ -427,6 +435,7 @@ namespace zed_wrapper {
         sl::Terrain mTerrain;
         bool mMappingReady;
         bool mGlobMapWholeUpdate;
+        uint8_t mDefaultMap = 0; // Map to be returned by "static_map" service: 0->HeightMap - 1->CostMap
 
         sensor_msgs::PointCloud2 mLocalHeightPointcloudMsg;
         sensor_msgs::PointCloud2 mGlobalHeightPointcloudMsg;
@@ -503,6 +512,8 @@ namespace zed_wrapper {
         // Thread Sync
         std::mutex mCamDataMutex;
         std::mutex mTerrainMutex;
+        std::mutex mLocMapMutex;
+        std::mutex mGlobMapMutex;
         std::mutex mPcMutex;
         std::condition_variable mPcDataReadyCondVar;
         bool mPcDataReady;

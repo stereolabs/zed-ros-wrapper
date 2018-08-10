@@ -544,6 +544,9 @@ namespace zed_wrapper {
             mPubGlobalCostMapImg = mNh.advertise<sensor_msgs::Image>(travers_map_image_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << travers_map_image_topic);
         }
+
+        // Mapping services
+        mSrvGetMap = mNh.advertiseService("static_map", &ZEDWrapperNodelet::on_get_static_map, this);
 #endif
 
         // Imu publisher
@@ -897,7 +900,10 @@ namespace zed_wrapper {
             return;
         }
 
+        mGlobMapMutex.lock();
         initGlobalMapMsgs(1, 1);
+        mGlobMapMutex.unlock();
+
         mMappingReady = true;
 
         // Start Local Terrain Mapping Timer
@@ -2336,14 +2342,6 @@ namespace zed_wrapper {
         NODELET_DEBUG_STREAM("Global map dimensions: " << mapWm << " x " << mapHm << " m");
         NODELET_DEBUG_STREAM("Global map cell dim: " << mapCols << " x " << mapRows);
 
-        // Height Map Message as OccupancyGrid
-        mGlobHeightMapMsg.info.map_load_time = t;
-        mGlobHeightMapMsg.header.stamp = t;
-
-        // Cost Map Message as OccupancyGrid
-        mGlobCostMapMsg.info.map_load_time = t;
-        mGlobCostMapMsg.header.stamp = t;
-
         // Height Pointcloud
         mGlobalHeightPointcloudMsg.header.stamp = t;
 
@@ -2368,6 +2366,14 @@ namespace zed_wrapper {
             //marker.lifetime = ros::Duration(2.5 / mGlobalTerrainPubRate);
             marker.action = visualization_msgs::Marker::MODIFY;
         }
+
+        // Height Map Message as OccupancyGrid
+        mGlobHeightMapMsg.info.map_load_time = t;
+        mGlobHeightMapMsg.header.stamp = t;
+
+        // Cost Map Message as OccupancyGrid
+        mGlobCostMapMsg.info.map_load_time = t;
+        mGlobCostMapMsg.header.stamp = t;
 
         #pragma omp parallel for
         for (int k = 0; k < chunks.size(); k++) {
@@ -2614,6 +2620,8 @@ namespace zed_wrapper {
                         }
                     }
 
+                    mGlobMapMutex.lock();
+
                     // Check if the map must be resized
                     if (doResize) {    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                         float width = maxX - minX;
@@ -2635,6 +2643,8 @@ namespace zed_wrapper {
 
                     // Publish global map
                     publishGlobalMaps(chunks, heightMapSub, costMapSub, cloudSub, mrkSub, sl_tools::slTime2Ros(mLastGlobMapTimestamp));
+
+                    mGlobMapMutex.unlock();
                 } else {
                     NODELET_DEBUG("Global map not available");
                     return;
@@ -2734,9 +2744,31 @@ namespace zed_wrapper {
 
             modifier.resize(mapRows * mapCols);
         }
-
     }
 #endif
+
+    bool ZEDWrapperNodelet::on_get_static_map(nav_msgs::GetMap::Request&  req,
+            nav_msgs::GetMap::Response& res) {
+
+#ifndef TERRAIN_MAPPING
+        return false;
+#endif
+        if (!mTerrainMap || !mMappingReady) {
+            return false;
+        }
+
+        mGlobMapMutex.lock();
+
+        if (mDefaultMap == 0) {
+            res.map = mGlobHeightMapMsg;
+        } else {
+            res.map = mGlobCostMapMsg;
+        }
+
+        mGlobMapMutex.unlock();
+
+        return true;
+    }
 
     void ZEDWrapperNodelet::globalMapSubscribeCallback(const ros::SingleSubscriberPublisher& pub) {
         uint32_t heightMapSub = mPubGlobalHeightMap.getNumSubscribers();
