@@ -105,7 +105,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="spatial_memory"        value="false" />
         <param name="floor_alignment"       value="true" />
 
-        <param name="terrain_mapping"           value="true" />        
+        <param name="terrain_mapping"           value="true" />
         <param name="default_map"               value="0" /> <!-- 0->HeightMap - 1->CostMap -->
         <param name="glob_terrain_pub_rate"     value="1.0" />
         <param name="mapping_agent_step"        value="0.05" />
@@ -115,7 +115,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="mapping_agent_roughness"   value="0.05" />
         <param name="mapping_max_depth"         value="3.5" />
         <param name="mapping_max_height"        value="0.5" />
-        <param name="mapping_height_resol"      value="0.1" />
+        <param name="mapping_height_resol"      value="0.05" />
         <param name="mapping_local_radius"      value="3.0" />
         <param name="mapping_cell_resol"        value="0" /> <!-- 0->LOW (0.1m); 1->MEDIUM (0.05m); 2->HIGH (0.025m) -->
 
