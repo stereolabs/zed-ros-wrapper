@@ -202,7 +202,7 @@ namespace zed_wrapper {
         string point_cloud_topic = "point_cloud/cloud_registered";
         string conf_img_topic = "confidence/confidence_image";
         string conf_map_topic = "confidence/confidence_map";
-        string pose_topic = "map";
+        string pose_topic = "pose";
         string odometry_topic = "odom";
         string odom_path_topic = "path_odom";
         string map_path_topic = "path_map";

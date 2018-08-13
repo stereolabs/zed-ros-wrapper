@@ -8,7 +8,6 @@ Panels:
         - /RobotModel1/Links1
         - /TF1/Frames1
         - /Odometry1/Covariance1/Position1
-        - /Local Maps1
         - /Local Maps1/L. Height Cubes1/Namespaces1
         - /Local Maps1/L. Height Boxes1/Namespaces1
         - /Global Maps1
@@ -277,7 +276,7 @@ Visualization Manager:
       Shaft Length: 0.300000012
       Shaft Radius: 0.0199999996
       Shape: Arrow
-      Topic: /zed/map
+      Topic: /zed/pose
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -553,16 +552,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 17.0908909
+      Distance: 25.539341
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.977044225
-        Y: 3.19723988
-        Z: 1.20101762
+        X: -0.221644878
+        Y: 0.541130722
+        Z: -0.382753164
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false

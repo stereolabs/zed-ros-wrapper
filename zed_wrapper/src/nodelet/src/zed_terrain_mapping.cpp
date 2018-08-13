@@ -7,6 +7,8 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #ifdef TERRAIN_MAPPING
 
