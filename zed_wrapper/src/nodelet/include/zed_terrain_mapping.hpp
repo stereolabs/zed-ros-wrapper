@@ -46,12 +46,17 @@ namespace zed_wrapper {
 
     class ZEDTerrainMapping {
       public:
+        /* \brief Default constructor
+         * \param nh : node handler
+         * \param nhNs : private node handler
+         * \param zed : pointer to a ZED camera object
+         */
         ZEDTerrainMapping(ros::NodeHandle nh, ros::NodeHandle nhNs, sl::Camera* zed = nullptr);
 
         /* \bried Start mapping loading the parameters from param server
          * \note Terrain Mapping is available since SDK v2.7
          */
-        void startTerrainMapping();
+        bool startTerrainMapping();
 
       protected:
         bool init();
@@ -182,6 +187,7 @@ namespace zed_wrapper {
         sl::Terrain mTerrain;
 
         // Flags
+        bool mInitialized;
         bool mMappingReady;
         bool mGlobMapWholeUpdate;
         int mDefaultMap = 0; // Map to be returned by "static_map" service: 0->HeightMap - 1->CostMap

@@ -20,6 +20,7 @@ namespace zed_wrapper {
         mNhNs = nhNs;
 
         mMappingReady = false;
+        mInitialized = false;
         mLocalTerrainPubRate = 5.0;
         mGlobalTerrainPubRate = 1.0;
     }
@@ -90,9 +91,24 @@ namespace zed_wrapper {
         mSrvGetLocCostMap = mNh.advertiseService("local_cost_map", &ZEDTerrainMapping::on_get_loc_height_map, this);
         mSrvGetGlobHeightMap = mNh.advertiseService("global_height_map", &ZEDTerrainMapping::on_get_glob_height_map, this);
         mSrvGetGlobCostMap = mNh.advertiseService("global_cost_map", &ZEDTerrainMapping::on_get_glob_cost_map, this);
+
+        mInitialized = true;
+        return true;
     }
 
-    void ZEDTerrainMapping::startTerrainMapping() {
+    bool ZEDTerrainMapping::startTerrainMapping() {
+
+        if (!mZed) {
+            ROS_WARN("ZED Camera not initialized");
+            return false;
+        }
+
+        if (!mInitialized) {
+            if (!init()) {
+                return false;
+            }
+        }
+
         mNhNs.getParam("loc_terrain_pub_rate",  mLocalTerrainPubRate);
         mNhNs.getParam("glob_terrain_pub_rate", mGlobalTerrainPubRate);
 
@@ -132,7 +148,7 @@ namespace zed_wrapper {
         if (mZed->enableTerrainMapping(terrainParams) != sl::SUCCESS) {
             ROS_WARN_STREAM("Terrain Mapping: NOT ENABLED");
             mMappingReady = false;
-            return;
+            return false;
         }
 
         mGlobMapMutex.lock();
@@ -150,6 +166,8 @@ namespace zed_wrapper {
         mGlobalTerrainTimer = mNhNs.createTimer(ros::Duration(1.0 / mGlobalTerrainPubRate),
                                                 &ZEDTerrainMapping::globalTerrainCallback, this);
         ROS_INFO_STREAM("Global Terrain Mapping: ENABLED @ " << mGlobalTerrainPubRate << "Hz");
+
+        return true;
     }
 
     void ZEDTerrainMapping::dynamicReconfCallback(zed_wrapper::TerrainMappingConfig& config, uint32_t level) {
@@ -163,7 +181,7 @@ namespace zed_wrapper {
 
     void ZEDTerrainMapping::localTerrainCallback(const ros::TimerEvent& e) {
         if (!mMappingReady) {
-            startTerrainMapping();
+            mMappingReady = startTerrainMapping();
         }
 
         mMappingReady = true;
@@ -714,7 +732,7 @@ namespace zed_wrapper {
 
     void ZEDTerrainMapping::globalTerrainCallback(const ros::TimerEvent& e) {
         if (!mMappingReady) {
-            startTerrainMapping();
+            mMappingReady = startTerrainMapping();
         }
 
         mMappingReady = true;

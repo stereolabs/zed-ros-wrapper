@@ -28,7 +28,7 @@
 #include <string>
 
 #if ZED_SDK_MAJOR_VERSION>=2
-#if ZED_SDK_MINOR_VERSION>=7 // TODO put to 7 when SDK v2.7 will be available
+#if ZED_SDK_MINOR_VERSION>=5 // TODO put to 7 when SDK v2.7 will be available
 #define TERRAIN_MAPPING 1
 #endif
 #endif
