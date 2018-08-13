@@ -36,10 +36,8 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <image_transport/image_transport.h>
 #include <dynamic_reconfigure/server.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <nav_msgs/GetMap.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <sensor_msgs/PointCloud2.h>
 
 #include <zed_wrapper/ZedConfig.h>
 #include <zed_wrapper/reset_tracking.h>
@@ -51,6 +49,10 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+
+#ifdef TERRAIN_MAPPING
+#include "zed_terrain_mapping.hpp"
+#endif
 
 using namespace std;
 
@@ -66,16 +68,6 @@ namespace zed_wrapper {
         /* \brief \ref ZEDWrapperNodelet destructor
          */
         virtual ~ZEDWrapperNodelet();
-
-        /* \brief Image to ros message conversion
-         * \param img : the image to publish
-         * \param encodingType : the sensor_msgs::image_encodings encoding type
-         * \param frameId : the id of the reference frame of the image
-         * \param t : the ros::Time to stamp the image
-         */
-        static sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img,
-                const std::string encodingType,
-                std::string frameId, ros::Time t);
 
       private:
         /* \brief Initialization function called by the Nodelet base class
@@ -179,7 +171,7 @@ namespace zed_wrapper {
          * \param left_frame_id : the id of the reference frame of the left camera
          * \param right_frame_id : the id of the reference frame of the right camera
          */
-        void fillCamInfo(sl::Camera& mZed, sensor_msgs::CameraInfoPtr mLeftCamInfoMsg,
+        void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr mLeftCamInfoMsg,
                          sensor_msgs::CameraInfoPtr mRightCamInfoMsg,
                          string leftFrameId, string rightFrameId,
                          bool rawParam = false);
@@ -202,41 +194,6 @@ namespace zed_wrapper {
          * \param e : the ros::TimerEvent binded to the callback
          */
         void imuPubCallback(const ros::TimerEvent& e);
-
-        /* \brief Callback to handle new global maps subscription.
-         * \param e : the ros::TimerEvent binded to the callback
-         */
-        void globalMapSubscribeCallback(const ros::SingleSubscriberPublisher& pub);
-
-        /* \brief Service callback to GetMap service
-         * server to simulate the Navigation stack `map_server` functionality
-         */
-        bool on_get_static_map(nav_msgs::GetMap::Request&  req,
-                               nav_msgs::GetMap::Response& res);
-
-        /* \brief Service callback to GetMap service
-         * server to request Local Height Map
-         */
-        bool on_get_loc_height_map(nav_msgs::GetMap::Request&  req,
-                                   nav_msgs::GetMap::Response& res);
-
-        /* \brief Service callback to GetMap service
-         * server to request Local Cost Map
-         */
-        bool on_get_loc_cost_map(nav_msgs::GetMap::Request&  req,
-                                 nav_msgs::GetMap::Response& res);
-
-        /* \brief Service callback to GetMap service
-         * server to request Global Height Map
-         */
-        bool on_get_glob_height_map(nav_msgs::GetMap::Request&  req,
-                                    nav_msgs::GetMap::Response& res);
-
-        /* \brief Service callback to GetMap service
-         * server to request Global Cost Map
-         */
-        bool on_get_glob_cost_map(nav_msgs::GetMap::Request&  req,
-                                  nav_msgs::GetMap::Response& res);
 
         /* \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
@@ -267,58 +224,7 @@ namespace zed_wrapper {
          */
         void start_tracking();
 
-        /* \bried Start mapping loading the parameters from param server
-         * \note Terrain Mapping is available since SDK v2.7
-         */
-        void startTerrainMapping();
 
-#ifdef TERRAIN_MAPPING
-        /* \brief Callback to handle async terrain MAPPING to generate high frequency local maps
-         * \param e : the ros::TimerEvent binded to the callback
-         */
-        void localTerrainCallback(const ros::TimerEvent& e);
-
-        /* \brief Callback to handle async terrain MAPPING to generate low frequency global maps
-         * \param e : the ros::TimerEvent binded to the callback
-         */
-        void globalTerrainCallback(const ros::TimerEvent& e);
-
-        /* \brief Initialize the ROS Map messages
-         * \param map_W_m : width of the map in meters
-         * \param map_H_m : height of the map in meters
-         */
-        void initGlobalMapMsgs(double map_W_m, double map_H_m);
-
-        /* \brief Publish local height and cost maps from updated Terrain Chunks
-         * \param minX : minimum X coordinate of the map in meters
-         * \param minY : minimum Y coordinate of the map in meters
-         * \param maxX : maximum X coordinate of the map in meters
-         * \param maxY : maximum Y coordinate of the map in meters
-         * \param chunks : updated chunks from terrain mapping
-         * \param heightSub : Height map subscribers count
-         * \param costSub : Cost map subscribers count
-         * \param cloudSub : Height cloud subscribers count
-         * \param mrkSub : Height markers array subscribers count
-         * \param t : timestamp
-         */
-        void publishLocalMaps(float camX, float camY, float minX, float minY, float maxX,
-                              float maxY, std::vector<sl::HashKey>& chunks,
-                              uint32_t heightSub, uint32_t costSub, uint32_t cloudSub,
-                              uint32_t mrkSub,  uint32_t mrksSub,
-                              ros::Time t);
-
-        /* \brief Publish global height and cost maps from updated Terrain Chunks
-         * \param chunks : updated chunks from terrain mapping
-         * \param heightSub : Height map subscribers count
-         * \param costSub : Cost map subscribers count
-         * \param cloudSub : Height cloud subscribers count
-         * \param mrkSub : Height markers array subscribers count
-         * \param t : timestamp
-         */
-        void publishGlobalMaps(std::vector<sl::HashKey>& chunks,
-                               uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub,
-                               ros::Time t);
-#endif
 
       private:
         // SDK version
@@ -361,35 +267,15 @@ namespace zed_wrapper {
         ros::Publisher mPubImu;
         ros::Publisher mPubImuRaw;
 
-        ros::Publisher mPubLocalHeightMap;
-        ros::Publisher mPubLocalHeightCloud;
-        ros::Publisher mPubLocalHeightMrk;
-        ros::Publisher mPubLocalHeightMrks;
-        ros::Publisher mPubLocalCostMap;
-        ros::Publisher mPubGlobalHeightMap;
-        ros::Publisher mPubGlobalHeightCloud;
-        ros::Publisher mPubGlobalHeightMrk;
-        ros::Publisher mPubGlobalCostMap;
-        //ros::Publisher mPubGridMap;
-        ros::Publisher mPubGlobalHeightMapImg;
-        ros::Publisher mPubGlobalColorMapImg;
-        ros::Publisher mPubGlobalCostMapImg;
-        
         // Timers
         ros::Timer mPubImuTimer;
-        ros::Timer mLocalTerrainTimer;
-        ros::Timer mGlobalTerrainTimer;
         ros::Timer mPubPathTimer;
 
         // Services
         ros::ServiceServer mSrvSetInitPose;
         ros::ServiceServer mSrvResetOdometry;
         ros::ServiceServer mSrvResetTracking;
-        ros::ServiceServer mSrvGetStaticMap;
-        ros::ServiceServer mSrvGetGlobHeightMap;
-        ros::ServiceServer mSrvGetGlobCostMap;
-        ros::ServiceServer mSrvGetLocHeightMap;
-        ros::ServiceServer mSrvGetLocCostMap;
+
 
         // Camera info
         sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
@@ -434,6 +320,7 @@ namespace zed_wrapper {
         // initialization Transform listener
         boost::shared_ptr<tf2_ros::Buffer> mTfBuffer;
         boost::shared_ptr<tf2_ros::TransformListener> mTfListener;
+
         bool mPublishTf;
         bool mPublishMapTf;
         bool mCameraFlip;
@@ -459,35 +346,9 @@ namespace zed_wrapper {
         // Terrain Mapping
         bool mTerrainMap = false; // Used only if Terrain Mapping is available
         bool mFloorAlignment = false;
+
 #ifdef TERRAIN_MAPPING
-        sl::Terrain mTerrain;
-        bool mMappingReady;
-        bool mGlobMapWholeUpdate;
-        int mDefaultMap = 0; // Map to be returned by "static_map" service: 0->HeightMap - 1->CostMap
-
-        sensor_msgs::PointCloud2 mLocalHeightPointcloudMsg;
-        sensor_msgs::PointCloud2 mGlobalHeightPointcloudMsg;
-        nav_msgs::OccupancyGrid mLocHeightMapMsg;
-        nav_msgs::OccupancyGrid mLocCostMapMsg;
-        nav_msgs::OccupancyGrid mGlobHeightMapMsg;
-        nav_msgs::OccupancyGrid mGlobCostMapMsg;
-
-        sl::timeStamp mLastGlobMapTimestamp;
-
-        // Terrain Mapping Params
-        double mLocalTerrainPubRate;
-        double mGlobalTerrainPubRate;
-        float mMapAgentStep = 0.05f;
-        float mMapAgentSlope = 20.f/*degrees*/;
-        float mMapAgentRadius = 0.18f;
-        float mMapAgentHeight = 0.8f;
-        float mMapAgentRoughness = 0.05f;
-        float mMapMaxDepth = 3.5f;
-        float mMapMaxHeight = 0.5f;
-        float mMapHeightResol = .025f;
-        float mMapLocalRadius = 3.0f;
-        int mMapResolIdx = 1;
-        double mTerrainMapRes;
+        ZEDTerrainMapping* mZedMapping = nullptr;
 #endif
 
         // Last frame time
@@ -541,9 +402,6 @@ namespace zed_wrapper {
 
         // Thread Sync
         std::mutex mCamDataMutex;
-        std::mutex mTerrainMutex;
-        std::mutex mLocMapMutex;
-        std::mutex mGlobMapMutex;
         std::mutex mPcMutex;
         std::condition_variable mPcDataReadyCondVar;
         bool mPcDataReady;

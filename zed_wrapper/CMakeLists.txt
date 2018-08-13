@@ -79,6 +79,7 @@ generate_messages()
 
 generate_dynamic_reconfigure_options(
   cfg/Zed.cfg
+  cfg/TerrainMapping.cfg
 )
 
 catkin_package(
@@ -102,7 +103,9 @@ catkin_package(
 set(TOOLS_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp )
 set(NODE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_wrapper_node.cpp)
-set(NODELET_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.cpp)
+set(NODELET_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_terrain_mapping.cpp)
 
 ###############################################################################
 

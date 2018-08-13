@@ -23,11 +23,12 @@
 
 #include <opencv2/core/core.hpp>
 #include <ros/time.h>
+#include <sensor_msgs/Image.h>
 #include <sl/Camera.hpp>
 #include <string>
 
 #if ZED_SDK_MAJOR_VERSION>=2
-#if ZED_SDK_MINOR_VERSION>=5 // TODO put to 7 when SDK v2.7 will be available
+#if ZED_SDK_MINOR_VERSION>=7 // TODO put to 7 when SDK v2.7 will be available
 #define TERRAIN_MAPPING 1
 #endif
 #endif
@@ -67,6 +68,16 @@ namespace sl_tools {
      *  \param t : Stereolabs timestamp to be converted
      */
     ros::Time slTime2Ros(sl::timeStamp t);
+
+    /* \brief Image to ros message conversion
+     * \param img : the image to publish
+     * \param encodingType : the sensor_msgs::image_encodings encoding type
+     * \param frameId : the id of the reference frame of the image
+     * \param t : the ros::Time to stamp the image
+     */
+    sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img,
+                                        const std::string encodingType,
+                                        std::string frameId, ros::Time t);
 
     // TODO Remove when it will be available in Terrain SDK
     inline float packColor(sl::uchar3 colorIn) {
