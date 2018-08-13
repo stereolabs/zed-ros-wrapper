@@ -85,11 +85,9 @@ namespace zed_wrapper {
       protected:
 
         /* \brief Publish the pose of the camera in "Map" frame with a ros Publisher
-         * \param poseBaseTransform : Transformation representing the camera pose from
-         * odom frame to map frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishPose(tf2::Transform odom2mapTransform, ros::Time t);
+        void publishPose(ros::Time t);
 
         /* \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
          * \param base2odomTransf : Transformation representing the camera pose

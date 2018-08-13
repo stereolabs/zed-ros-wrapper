@@ -804,21 +804,74 @@ namespace zed_wrapper {
         mTransformOdomBroadcaster.sendTransform(transformStamped);
     }
 
-    void ZEDWrapperNodelet::publishPose(tf2::Transform odom2mapTransform, ros::Time t) {
+    void ZEDWrapperNodelet::publishPose(ros::Time t) {
+        //        geometry_msgs::PoseStamped pose;
+        //        pose.header.stamp = t;
+        //        pose.header.frame_id = mMapFrameId; // map_frame
+        //        // conversion from Tranform to message
+        //        geometry_msgs::Transform odom2map = tf2::toMsg(odom2mapTransform);
+        //        // Add all value in Pose message
+        //        pose.pose.position.x = odom2map.translation.x;
+        //        pose.pose.position.y = odom2map.translation.y;
+        //        pose.pose.position.z = odom2map.translation.z;
+        //        pose.pose.orientation.x = odom2map.rotation.x;
+        //        pose.pose.orientation.y = odom2map.rotation.y;
+        //        pose.pose.orientation.z = odom2map.rotation.z;
+        //        pose.pose.orientation.w = odom2map.rotation.w;
+        //        // Publish pose stamped message
+        //        mPubPose.publish(pose);
+
+        tf2::Transform base_pose;
+        base_pose.setIdentity();
+
+        if (mPublishMapTf) {
+            // Look up the transformation from base frame to map
+            try {
+                // Save the transformation from base to frame
+                geometry_msgs::TransformStamped b2m =
+                    mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
+                // Get the TF2 transformation
+                tf2::fromMsg(b2m.transform, base_pose);
+            } catch (tf2::TransformException& ex) {
+                NODELET_WARN_THROTTLE(
+                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
+                    "will assume it as identity!",
+                    mBaseFrameId.c_str(), mMapFrameId.c_str());
+                NODELET_DEBUG("Transform error: %s", ex.what());
+            }
+        } else {
+            // Look up the transformation from base frame to map
+            try {
+                // Save the transformation from base to frame
+                geometry_msgs::TransformStamped b2o =
+                    mTfBuffer->lookupTransform(mOdometryFrameId, mBaseFrameId, ros::Time(0));
+                // Get the TF2 transformation
+                tf2::fromMsg(b2o.transform, base_pose);
+            } catch (tf2::TransformException& ex) {
+                NODELET_WARN_THROTTLE(
+                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
+                    "will assume it as identity!",
+                    mBaseFrameId.c_str(), mOdometryFrameId.c_str());
+                NODELET_DEBUG("Transform error: %s", ex.what());
+            }
+        }
+
         geometry_msgs::PoseStamped pose;
-        pose.header.stamp = t;
-        pose.header.frame_id = mMapFrameId; // map_frame
+
+        pose.header.stamp = mLastFrameTime;
+        pose.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
         // conversion from Tranform to message
-        geometry_msgs::Transform odom2map = tf2::toMsg(odom2mapTransform);
+        geometry_msgs::Transform base2frame = tf2::toMsg(base_pose);
         // Add all value in Pose message
-        pose.pose.position.x = odom2map.translation.x;
-        pose.pose.position.y = odom2map.translation.y;
-        pose.pose.position.z = odom2map.translation.z;
-        pose.pose.orientation.x = odom2map.rotation.x;
-        pose.pose.orientation.y = odom2map.rotation.y;
-        pose.pose.orientation.z = odom2map.rotation.z;
-        pose.pose.orientation.w = odom2map.rotation.w;
-        // Publish odometry message
+        pose.pose.position.x = base2frame.translation.x;
+        pose.pose.position.y = base2frame.translation.y;
+        pose.pose.position.z = base2frame.translation.z;
+        pose.pose.orientation.x = base2frame.rotation.x;
+        pose.pose.orientation.y = base2frame.rotation.y;
+        pose.pose.orientation.z = base2frame.rotation.z;
+        pose.pose.orientation.w = base2frame.rotation.w;
+
+        // Publish pose stamped message
         mPubPose.publish(pose);
     }
 
@@ -1734,7 +1787,7 @@ namespace zed_wrapper {
                         }
 
                         // Publish Pose message
-                        publishPose(mOdom2MapTransf, t);
+                        publishPose(t);
                         mTrackingReady = true;
                     } else {
                         NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << static_cast<int>(status));
