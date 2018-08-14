@@ -7,6 +7,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
+#include <map_msgs/OccupancyGridUpdate.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
@@ -46,9 +47,11 @@ namespace zed_wrapper {
         string loc_height_markers_topic = "map/loc_map_height_boxes";
         string loc_cost_map_topic       = "map/loc_map_costmap";
         string glob_height_map_topic    = "map/glob_map_heightmap";
+        string glob_height_map_updates_topic = glob_height_map_topic + "_updates";
         string glob_height_cloud_topic  = "map/glob_map_height_cloud";
         string glob_height_marker_topic = "map/glob_map_height_cubes";
         string glob_cost_map_topic      = "map/glob_map_costmap";
+        string glob_cost_map_updates_topic  = glob_cost_map_topic + "_updates";
         string height_map_image_topic   = "map/height_map_image";
         string color_map_image_topic    = "map/color_map_image";
         string travers_map_image_topic  = "map/travers_map_image";
@@ -64,11 +67,12 @@ namespace zed_wrapper {
         ROS_INFO_STREAM("Advertised on topic " << loc_height_markers_topic);
         mPubLocalCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_cost_map_topic, 1); // local cost map
         ROS_INFO_STREAM("Advertised on topic " << loc_cost_map_topic);
-
         mPubGlobalHeightMap = mNh.advertise<nav_msgs::OccupancyGrid>(glob_height_map_topic, 1,
                               boost::bind(&ZEDTerrainMapping::globalMapSubscribeCallback, this, _1),
                               ros::SubscriberStatusCallback(), ros::VoidConstPtr(), true); // global height map latched
         ROS_INFO_STREAM("Advertised on topic " << glob_height_map_topic);
+        mPubGlobalHeightMapUpd = mNh.advertise<map_msgs::OccupancyGridUpdate>(glob_height_map_updates_topic, 1);  // global height map updates
+        ROS_INFO_STREAM("Advertised on topic " << glob_height_map_updates_topic);
         mPubGlobalHeightCloud = mNh.advertise<sensor_msgs::PointCloud2>(glob_height_cloud_topic, 1,
                                 boost::bind(&ZEDTerrainMapping::globalMapSubscribeCallback, this, _1)); // global height cloud
         ROS_INFO_STREAM("Advertised on topic " << glob_height_cloud_topic);
@@ -79,6 +83,8 @@ namespace zed_wrapper {
                             boost::bind(&ZEDTerrainMapping::globalMapSubscribeCallback, this, _1), // global cost map latched
                             ros::SubscriberStatusCallback(), ros::VoidConstPtr(), true);
         ROS_INFO_STREAM("Advertised on topic " << glob_cost_map_topic);
+        mPubGlobalCostMapUpd = mNh.advertise<map_msgs::OccupancyGridUpdate>(glob_cost_map_updates_topic, 1);  // global cost map updates
+        ROS_INFO_STREAM("Advertised on topic " << glob_cost_map_updates_topic);
 
         mPubGlobalHeightMapImg = mNh.advertise<sensor_msgs::Image>(height_map_image_topic, 1);
         ROS_INFO_STREAM("Advertised on topic " << height_map_image_topic);
@@ -546,7 +552,7 @@ namespace zed_wrapper {
     }
 
     void ZEDTerrainMapping::publishGlobalMaps(std::vector<sl::HashKey>& chunks,
-            uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub,
+            uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub, uint32_t heightUpdSub, uint32_t costUpdSub,
             ros::Time t) {
 
         float mapWm = mGlobHeightMapMsg.info.width * mGlobHeightMapMsg.info.resolution;
@@ -595,6 +601,10 @@ namespace zed_wrapper {
         mGlobCostMapMsg.info.map_load_time = t;
         mGlobCostMapMsg.header.stamp = t;
 
+        if (heightUpdSub > 0 || costUpdSub > 0) {
+            TODO CALCULATE UPDATES LIMITS PARSING CHUNK LIST
+        }
+
         #pragma omp parallel for
         for (int k = 0; k < chunks.size(); k++) {
             //ROS_DEBUG("*** NEW CHUNK parsing ***");
@@ -631,6 +641,8 @@ namespace zed_wrapper {
                 if (dim.index2x_y(i, xm, ym)) {
                     continue; // Index out of range
                 }
+
+                TODO FILL UPDATES MAPS
 
                 // (xm,ym) to ROS map index
                 int u = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
@@ -730,6 +742,14 @@ namespace zed_wrapper {
             mPubGlobalHeightMrk.publish(marker);
         }
 
+        if (heightUpdSub > 0) {
+            TODO PUBLISH UPDATES
+        }
+
+        if (costUpdSub > 0) {
+            TODO PUBLISH UPDATES
+        }
+
     }
 
     void ZEDTerrainMapping::globalTerrainCallback(const ros::TimerEvent& e) {
@@ -760,7 +780,11 @@ namespace zed_wrapper {
         uint32_t cloudSub = mPubGlobalHeightCloud.getNumSubscribers();
         uint32_t mrkSub = mPubGlobalHeightMrk.getNumSubscribers();
 
-        uint32_t run = /*gridSub + */heightImgSub + colorImgSub + costImgSub + heightMapSub + costMapSub + cloudSub + mrkSub;
+        uint32_t heightUpdSub = mPubGlobalHeightMapUpd.getNumSubscribers();
+        uint32_t costUpdSub = mPubGlobalCostMapUpd.getNumSubscribers();
+
+        uint32_t run = heightImgSub + colorImgSub + costImgSub + heightMapSub + costMapSub + cloudSub + mrkSub +
+                       heightUpdSub + costUpdSub;
 
         if (run > 0) {
             sl::Mat sl_heightMap, sl_colorMap, sl_traversMap;

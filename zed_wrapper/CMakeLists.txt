@@ -50,6 +50,7 @@ find_package(catkin COMPONENTS
   sensor_msgs
   stereo_msgs
   nav_msgs
+  map_msgs
   dynamic_reconfigure
   tf2_ros
   nodelet
@@ -63,6 +64,7 @@ checkPackage("rosconsole" "")
 checkPackage("sensor_msgs" "")
 checkPackage("stereo_msgs" "")
 checkPackage("nav_msgs" "")
+checkPackage("map_msgs" "")
 checkPackage("dynamic_reconfigure" "")
 checkPackage("tf2_ros" "")
 checkPackage("nodelet" "")
@@ -89,6 +91,7 @@ catkin_package(
     sensor_msgs
     stereo_msgs
     nav_msgs
+    map_msgs
     opencv3
     image_transport
     dynamic_reconfigure

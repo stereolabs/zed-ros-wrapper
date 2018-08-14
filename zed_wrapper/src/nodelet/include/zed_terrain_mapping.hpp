@@ -105,11 +105,13 @@ namespace zed_wrapper {
          * \param costSub : Cost map subscribers count
          * \param cloudSub : Height cloud subscribers count
          * \param mrkSub : Height markers array subscribers count
+         * \param heightUpdSub : Height map updates subscribers count
+         * \param costUpdSub : Cost map updates subscribers count
          * \param t : timestamp
          */
         void publishGlobalMaps(std::vector<sl::HashKey>& chunks,
                                uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub,
-                               ros::Time t);
+                               uint32_t heightUpdSub, uint32_t costUpdSub,  ros::Time t);
 
         /* \brief Callback to handle new global maps subscription.
          * \param e : the ros::TimerEvent binded to the callback
@@ -159,9 +161,11 @@ namespace zed_wrapper {
         ros::Publisher mPubLocalHeightMrks;
         ros::Publisher mPubLocalCostMap;
         ros::Publisher mPubGlobalHeightMap;
+        ros::Publisher mPubGlobalHeightMapUpd;
         ros::Publisher mPubGlobalHeightCloud;
         ros::Publisher mPubGlobalHeightMrk;
         ros::Publisher mPubGlobalCostMap;
+        ros::Publisher mPubGlobalCostMapUpd;
         ros::Publisher mPubGlobalHeightMapImg;
         ros::Publisher mPubGlobalColorMapImg;
         ros::Publisher mPubGlobalCostMapImg;

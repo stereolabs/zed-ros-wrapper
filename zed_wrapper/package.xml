@@ -10,17 +10,18 @@
 
   <buildtool_depend>catkin</buildtool_depend>  
   
+  <depend>roscpp</depend>
+  <depend>rosconsole</depend>
+  <depend>nodelet</depend>
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>nav_msgs</depend>
-  <depend>roscpp</depend>
-  <depend>rosconsole</depend>
+  <depend>map_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>stereo_msgs</depend>
   <depend>opencv3</depend>
   <depend>image_transport</depend>
-  <depend>dynamic_reconfigure</depend>
-  <depend>nodelet</depend>
+  <depend>dynamic_reconfigure</depend>  
   
   <build_depend>urdf</build_depend>
   <build_depend>message_generation</build_depend>
