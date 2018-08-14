@@ -1,0 +1,34 @@
+global_costmap:
+    global_frame:           /map
+    robot_base_frame:       /base_link
+    update_frequency:       1.0
+    publish_frequency:      0.5
+    static_map:             true
+    transform_tolerance:    0.5
+    plugins:
+        - {name: height_layer,            type: "costmap_2d::StaticLayer"}
+        - {name: traversability_layer,    type: "costmap_2d::StaticLayer"}
+
+height_layer:
+    enabled:                true
+    map_topic:              /zed/map/glob_map_costmap
+    first_map_only:         false
+    unknown_cost_value:     -1
+    lethal_cost_threshold:  100
+    subscribe_to_updates:   false
+    track_unknown_space:    true
+    use_maximum:            false     
+    trinary_costmap:        false       
+
+traversability_layer:
+    enabled:                true
+    map_topic:              /zed/map/glob_map_heightmap
+    first_map_only:         false
+    unknown_cost_value:     -1
+    lethal_cost_threshold:  100
+    subscribe_to_updates:   false
+    track_unknown_space:    true
+    use_maximum:            false     
+    trinary_costmap:        false
+
+

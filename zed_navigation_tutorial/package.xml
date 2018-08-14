@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>zed_map_layer</name>
+  <version>1.0.0</version>
+  <description>
+    A wrapper to use ZED Terrain Maps as layer for costmap_2d
+  </description>
+  <maintainer email="developers@stereolabs.com">STEREOLABS</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>costmap_2d</exec_depend>
+  <exec_depend>zed_wrapper</exec_depend>
+</package>
