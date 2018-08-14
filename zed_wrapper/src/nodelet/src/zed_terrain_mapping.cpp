@@ -751,7 +751,6 @@ namespace zed_wrapper {
             }
         } while (res != sl::SUCCESS);
 
-        //uint32_t gridSub = mPubGridMap.getNumSubscribers();
         uint32_t heightImgSub = mPubGlobalHeightMapImg.getNumSubscribers();
         uint32_t colorImgSub = mPubGlobalColorMapImg.getNumSubscribers();
         uint32_t costImgSub = mPubGlobalCostMapImg.getNumSubscribers();

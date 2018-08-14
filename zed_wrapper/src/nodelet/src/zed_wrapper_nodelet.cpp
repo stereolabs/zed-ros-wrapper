@@ -805,22 +805,6 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::publishPose(ros::Time t) {
-        //        geometry_msgs::PoseStamped pose;
-        //        pose.header.stamp = t;
-        //        pose.header.frame_id = mMapFrameId; // map_frame
-        //        // conversion from Tranform to message
-        //        geometry_msgs::Transform odom2map = tf2::toMsg(odom2mapTransform);
-        //        // Add all value in Pose message
-        //        pose.pose.position.x = odom2map.translation.x;
-        //        pose.pose.position.y = odom2map.translation.y;
-        //        pose.pose.position.z = odom2map.translation.z;
-        //        pose.pose.orientation.x = odom2map.rotation.x;
-        //        pose.pose.orientation.y = odom2map.rotation.y;
-        //        pose.pose.orientation.z = odom2map.rotation.z;
-        //        pose.pose.orientation.w = odom2map.rotation.w;
-        //        // Publish pose stamped message
-        //        mPubPose.publish(pose);
-
         tf2::Transform base_pose;
         base_pose.setIdentity();
 
@@ -840,7 +824,7 @@ namespace zed_wrapper {
                 NODELET_DEBUG("Transform error: %s", ex.what());
             }
         } else {
-            // Look up the transformation from base frame to map
+            // Look up the transformation from base frame to odom frame
             try {
                 // Save the transformation from base to frame
                 geometry_msgs::TransformStamped b2o =
@@ -1569,8 +1553,7 @@ namespace zed_wrapper {
                 // Publish the left == rgb image if someone has subscribed to
                 if (leftSubnumber > 0 || rgbSubnumber > 0) {
                     // Retrieve RGBA Left image
-                    mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, mMatWidth,
-                                       mMatHeight);
+                    mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, mMatWidth, mMatHeight);
                     cv::cvtColor(sl_tools::toCVMat(leftZEDMat), mCvLeftImRGB, CV_RGBA2RGB);
 
                     if (leftSubnumber > 0) {
@@ -1580,16 +1563,14 @@ namespace zed_wrapper {
 
                     if (rgbSubnumber > 0) {
                         publishCamInfo(mRgbCamInfoMsg, mPubRgbCamInfo, t);
-                        publishImage(mCvLeftImRGB, mPubRgb, mDepthOptFrameId,
-                                     t); // rgb is the left image
+                        publishImage(mCvLeftImRGB, mPubRgb, mDepthOptFrameId, t); // rgb is the left image
                     }
                 }
 
                 // Publish the left_raw == rgb_raw image if someone has subscribed to
                 if (leftRawSubnumber > 0 || rgbRawSubnumber > 0) {
                     // Retrieve RGBA Left image
-                    mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU,
-                                       mMatWidth, mMatHeight);
+                    mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU, mMatWidth, mMatHeight);
                     cv::cvtColor(sl_tools::toCVMat(leftZEDMat), mCvLeftImRGB, CV_RGBA2RGB);
 
                     if (leftRawSubnumber > 0) {
@@ -1606,8 +1587,7 @@ namespace zed_wrapper {
                 // Publish the right image if someone has subscribed to
                 if (rightSubnumber > 0) {
                     // Retrieve RGBA Right image
-                    mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU,
-                                       mMatWidth, mMatHeight);
+                    mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU, mMatWidth, mMatHeight);
                     cv::cvtColor(sl_tools::toCVMat(rightZEDMat), mCvRightImRGB, CV_RGBA2RGB);
                     publishCamInfo(mRightCamInfoMsg, mPubRightCamInfo, t);
                     publishImage(mCvRightImRGB, mPubRight, mRightCamOptFrameId, t);
@@ -1616,8 +1596,7 @@ namespace zed_wrapper {
                 // Publish the right image if someone has subscribed to
                 if (rightRawSubnumber > 0) {
                     // Retrieve RGBA Right image
-                    mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU,
-                                       mMatWidth, mMatHeight);
+                    mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU, mMatWidth, mMatHeight);
                     cv::cvtColor(sl_tools::toCVMat(rightZEDMat), mCvRightImRGB, CV_RGBA2RGB);
                     publishCamInfo(mRightCamInfoRawMsg, mPubRightCamInfoRaw, t);
                     publishImage(mCvRightImRGB, mPubRawRight, mRightCamOptFrameId, t);
@@ -1625,16 +1604,14 @@ namespace zed_wrapper {
 
                 // Publish the depth image if someone has subscribed to
                 if (depthSubnumber > 0 || disparitySubnumber > 0) {
-                    mZed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH, sl::MEM_CPU,
-                                         mMatWidth, mMatHeight);
+                    mZed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH, sl::MEM_CPU, mMatWidth, mMatHeight);
                     publishCamInfo(mDepthCamInfoMsg, mPubDepthCamInfo, t);
                     publishDepth(sl_tools::toCVMat(depthZEDMat), t); // in meters
                 }
 
                 // Publish the disparity image if someone has subscribed to
                 if (disparitySubnumber > 0) {
-                    mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY, sl::MEM_CPU,
-                                         mMatWidth, mMatHeight);
+                    mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY, sl::MEM_CPU, mMatWidth, mMatHeight);
                     // Need to flip sign, but cause of this is not sure
                     cv::Mat disparity = sl_tools::toCVMat(disparityZEDMat) * -1.0;
                     publishDisparity(disparity, t);
@@ -1642,16 +1619,14 @@ namespace zed_wrapper {
 
                 // Publish the confidence image if someone has subscribed to
                 if (confImgSubnumber > 0) {
-                    mZed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE, sl::MEM_CPU,
-                                       mMatWidth, mMatHeight);
+                    mZed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE, sl::MEM_CPU, mMatWidth, mMatHeight);
                     cv::cvtColor(sl_tools::toCVMat(confImgZEDMat), mCvConfImRGB, CV_RGBA2RGB);
                     publishImage(mCvConfImRGB, mPubConfImg, mConfidenceOptFrameId, t);
                 }
 
                 // Publish the confidence map if someone has subscribed to
                 if (confMapSubnumber > 0) {
-                    mZed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE, sl::MEM_CPU,
-                                         mMatWidth, mMatHeight);
+                    mZed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE, sl::MEM_CPU, mMatWidth, mMatHeight);
                     mCvConfMapFloat = sl_tools::toCVMat(confMapZEDMat);
                     mPubConfMap.publish(sl_tools::imageToROSmsg(
                                             mCvConfMapFloat, sensor_msgs::image_encodings::TYPE_32FC1,
