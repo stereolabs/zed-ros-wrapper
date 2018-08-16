@@ -1,1 +1,2 @@
 #A dummy file loaded when no custom param file is given 
+robot_radius: 0.20  # distance a circular robot should be clear of the obstacle (kobuki: 0.18)
