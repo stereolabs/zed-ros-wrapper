@@ -923,8 +923,10 @@ namespace zed_wrapper {
         // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
         int ptsCount = matWidth * matHeight;
         mPointcloudMsg.header.stamp = pointCloudTime;
+
         if (mPointcloudMsg.width != matWidth || mPointcloudMsg.height != matHeight) {
-            mPointcloudMsg.header.frame_id = pointCloudFrameId; // Set the header values of the ROS message
+            mPointcloudMsg.header.frame_id = pointCloudFrameId;    // Set the header values of the ROS message
+
             mPointcloudMsg.is_bigendian = false;
             mPointcloudMsg.is_dense = false;
 
@@ -936,6 +938,9 @@ namespace zed_wrapper {
                                           "rgb", 1, sensor_msgs::PointField::FLOAT32);
 
             modifier.resize(ptsCount);
+
+            mPointcloudMsg.width = matWidth;
+            mPointcloudMsg.height = matHeight;
         }
 
         sl::Vector4<float>* cpu_cloud = cloud.getPtr<sl::float4>();
