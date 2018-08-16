@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.7)
 
-project(zed_map_layer)
+project(zed_navigation_tutorial)
 
 find_package(catkin REQUIRED)
 

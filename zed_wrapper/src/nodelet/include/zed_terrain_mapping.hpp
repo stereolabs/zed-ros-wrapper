@@ -95,8 +95,6 @@ namespace zed_wrapper {
          */
         void publishLocalMaps(float camX, float camY, float minX, float minY, float maxX,
                               float maxY, std::vector<sl::HashKey>& chunks,
-                              uint32_t heightSub, uint32_t costSub, uint32_t cloudSub,
-                              uint32_t mrkSub,  uint32_t mrksSub,
                               ros::Time t);
 
         /* \brief Publish global height and cost maps from updated Terrain Chunks
@@ -109,9 +107,7 @@ namespace zed_wrapper {
          * \param costUpdSub : Cost map updates subscribers count
          * \param t : timestamp
          */
-        void publishGlobalMaps(std::vector<sl::HashKey>& chunks,
-                               uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub,
-                               uint32_t heightUpdSub, uint32_t costUpdSub,  ros::Time t);
+        void publishGlobalMaps(std::vector<sl::HashKey>& chunks,  ros::Time t);
 
         /* \brief Callback to handle new global maps subscription.
          * \param e : the ros::TimerEvent binded to the callback

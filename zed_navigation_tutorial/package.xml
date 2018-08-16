@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>zed_map_layer</name>
+  <name>zed_navigation_tutorial</name>
   <version>1.0.0</version>
   <description>
     A wrapper to use ZED Terrain Maps as layer for costmap_2d

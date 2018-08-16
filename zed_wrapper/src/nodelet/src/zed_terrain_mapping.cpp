@@ -289,7 +289,7 @@ namespace zed_wrapper {
                     }
 
                     mLocMapMutex.lock();
-                    publishLocalMaps(camX, camY, minX, minY, maxX, maxY, chunks, heightSub, costSub, cloudSub, mrkSub, mrksSub, sl_tools::slTime2Ros(t));
+                    publishLocalMaps(camX, camY, minX, minY, maxX, maxY, chunks, sl_tools::slTime2Ros(t));
                     mLocMapMutex.unlock();
                 }
             } else {
@@ -303,9 +303,15 @@ namespace zed_wrapper {
 
     void ZEDTerrainMapping::publishLocalMaps(float camX, float camY, float minX, float minY, float maxX, float maxY,
             std::vector<sl::HashKey>& chunks,
-            uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub, uint32_t mrksSub,
             ros::Time t) {
+        // Subscribers count
+        uint32_t heightSub = mPubLocalHeightMap.getNumSubscribers();
+        uint32_t costSub = mPubLocalCostMap.getNumSubscribers();
+        uint32_t cloudSub = mPubLocalHeightCloud.getNumSubscribers();
+        uint32_t mrkSub = mPubLocalHeightMrk.getNumSubscribers();
+        uint32_t mrksSub = mPubLocalHeightMrks.getNumSubscribers();
 
+        // Map sizes
         float mapMinX = (minY > (camX - mMapLocalRadius)) ? minY : (camX - mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
         float mapMaxX = (maxY < (camX + mMapLocalRadius)) ? maxY : (camX + mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
         //float mapMinX = (minX > (camX-mMapLocalRadius))?minX:(camX-mMapLocalRadius);
@@ -343,6 +349,9 @@ namespace zed_wrapper {
                                           "rgb", 1, sensor_msgs::PointField::FLOAT32);
 
             modifier.resize(ptsCount);
+
+            mLocalHeightPointcloudMsg.width = mapCols;
+            mLocalHeightPointcloudMsg.height = mapRows;
         }
 
         // MetaData
@@ -551,10 +560,16 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDTerrainMapping::publishGlobalMaps(std::vector<sl::HashKey>& chunks,
-            uint32_t heightSub, uint32_t costSub, uint32_t cloudSub, uint32_t mrkSub, uint32_t heightUpdSub, uint32_t costUpdSub,
-            ros::Time t) {
+    void ZEDTerrainMapping::publishGlobalMaps(std::vector<sl::HashKey>& chunks, ros::Time t) {
+        // Subscribers count
+        uint32_t heightSub = mPubGlobalHeightMap.getNumSubscribers();
+        uint32_t costSub = mPubGlobalCostMap.getNumSubscribers();
+        uint32_t cloudSub = mPubGlobalHeightCloud.getNumSubscribers();
+        uint32_t mrkSub = mPubGlobalHeightMrk.getNumSubscribers();
+        uint32_t heightUpdSub = mPubGlobalHeightMapUpd.getNumSubscribers();
+        uint32_t costUpdSub = mPubGlobalCostMapUpd.getNumSubscribers();
 
+        // Map sizes
         float mapWm = mGlobHeightMapMsg.info.width * mGlobHeightMapMsg.info.resolution;
         double mapMinX = mGlobHeightMapMsg.info.origin.position.x;
 
@@ -601,8 +616,35 @@ namespace zed_wrapper {
         mGlobCostMapMsg.info.map_load_time = t;
         mGlobCostMapMsg.header.stamp = t;
 
+        // Updates sizes
+        float updMinX = FLT_MAX, updMinY = FLT_MAX, updMaxX = -FLT_MAX, updMaxY = -FLT_MAX;
         if (heightUpdSub > 0 || costUpdSub > 0) {
-            TODO CALCULATE UPDATES LIMITS PARSING CHUNK LIST
+            std::vector<sl::HashKey>::iterator it;
+
+
+
+            // Local map limits
+            for (it = chunks.begin(); it != chunks.end(); it++) {
+                sl::HashKey key = *it;
+                sl::TerrainChunk& chunk = mTerrain.getChunk(key);
+                sl::Dimension dim = chunk.getDimension();
+
+                if (dim.getXmin() < updMinX) {
+                    updMinX = dim.getXmin();
+                }
+
+                if (dim.getYmin() < updMinY) {
+                    updMinY = dim.getYmin();
+                }
+
+                if (dim.getXmax() > updMaxX) {
+                    updMaxX = dim.getXmax();
+                }
+
+                if (dim.getYmax() > updMaxY) {
+                    updMaxY = dim.getYmax();
+                }
+            }
         }
 
         #pragma omp parallel for
@@ -642,9 +684,15 @@ namespace zed_wrapper {
                     continue; // Index out of range
                 }
 
-                TODO FILL UPDATES MAPS
+                if( costUpdSub >0 || heightUpdSub>0 ){
+                    // Updates only
+                    // (xm,ym) to ROS whole map index
+                    int updU = static_cast<uint32_t>(round((ym - updMinX) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                    int updV = static_cast<uint32_t>(round((-xm - updMinY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                }
 
-                // (xm,ym) to ROS map index
+                // Whole map
+                // (xm,ym) to ROS whole map index
                 int u = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                 int v = static_cast<uint32_t>(round((-xm - mapMinY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
 
@@ -880,7 +928,7 @@ namespace zed_wrapper {
                     }
 
                     // Publish global map
-                    publishGlobalMaps(chunks, heightMapSub, costMapSub, cloudSub, mrkSub, sl_tools::slTime2Ros(mLastGlobMapTimestamp));
+                    publishGlobalMaps(chunks, sl_tools::slTime2Ros(mLastGlobMapTimestamp));
 
                     mGlobMapMutex.unlock();
                 } else {
