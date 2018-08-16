@@ -433,8 +433,8 @@ namespace zed_wrapper {
                 }
 
                 // (xm,ym) to ROS map index
-                uint32_t v = static_cast<uint32_t>(round((-xm - mapMinY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                 uint32_t u = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                uint32_t v = static_cast<uint32_t>(round((-xm - mapMinY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                 //uint32_t u = static_cast<uint32_t>(round((xm - mapMinY) / mTerrainMapRes));
                 //uint32_t v = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes));
 
@@ -618,12 +618,15 @@ namespace zed_wrapper {
 
         // Updates sizes
         float updMinX = FLT_MAX, updMinY = FLT_MAX, updMaxX = -FLT_MAX, updMaxY = -FLT_MAX;
+        map_msgs::OccupancyGridUpdate heightUpdMsg;
+        map_msgs::OccupancyGridUpdate costUpdMsg;
+
+        int updMinU, updMaxU, updMinV, updMaxV;
+
         if (heightUpdSub > 0 || costUpdSub > 0) {
             std::vector<sl::HashKey>::iterator it;
 
-
-
-            // Local map limits
+            // Updates map limits
             for (it = chunks.begin(); it != chunks.end(); it++) {
                 sl::HashKey key = *it;
                 sl::TerrainChunk& chunk = mTerrain.getChunk(key);
@@ -645,6 +648,9 @@ namespace zed_wrapper {
                     updMaxY = dim.getYmax();
                 }
             }
+
+            // TODO Calculate the update origin in Map Indices (u,v)
+            // TODO Calculate the update size in Map Indices
         }
 
         #pragma omp parallel for
@@ -684,11 +690,13 @@ namespace zed_wrapper {
                     continue; // Index out of range
                 }
 
-                if( costUpdSub >0 || heightUpdSub>0 ){
+                if (costUpdSub > 0 || heightUpdSub > 0) {
                     // Updates only
                     // (xm,ym) to ROS whole map index
-                    int updU = static_cast<uint32_t>(round((ym - updMinX) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                    int updV = static_cast<uint32_t>(round((-xm - updMinY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                    uint32_t updU = static_cast<uint32_t>(round((ym - updMinX) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                    uint32_t updV = static_cast<uint32_t>(round((-xm - updMinY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                    //uint32_t u = static_cast<uint32_t>(round((xm - mapMinX) / mTerrainMapRes));
+                    //uint32_t v = static_cast<uint32_t>(round((ym - mapMinY) / mTerrainMapRes));
                 }
 
                 // Whole map
@@ -791,11 +799,11 @@ namespace zed_wrapper {
         }
 
         if (heightUpdSub > 0) {
-            TODO PUBLISH UPDATES
+            // mPubGlobalHeightMapUpd.publish(heightUpdMsg); // TODO Uncomment when ready
         }
 
         if (costUpdSub > 0) {
-            TODO PUBLISH UPDATES
+            // mPubGlobalCostMapUpd.publish(costUpdMsg); // TODO Uncomment when ready
         }
 
     }
