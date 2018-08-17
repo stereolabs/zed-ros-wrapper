@@ -1,5 +1,92 @@
-<launch>
-  <!-- Move base -->
-  <include file="$(find zed_navigation_tutorial)/launch/includes/move_base.launch.xml"/>
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2018, STEREOLABS.
 
+All rights reserved.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+-->
+<launch>
+    <!-- Play recorded SVO -->
+    <arg name="svo_file" default=""/>
+
+    <!-- ZED Params -->
+    <arg name="camera_model"         default="1" /> <!-- 0=ZED, 1=ZEDM-->
+    <arg name="serial_number"        default="0" />
+    <arg name="verbose"              default="true" />
+    <arg name="resolution"           default="2" /> <!--0=RESOLUTION_HD2K, 1=RESOLUTION_HD1080, 2=RESOLUTION_HD720, 3=RESOLUTION_VGA -->
+    <arg name="frame_rate"           default="30" />
+    <!-- RESOLUTION_HD2K   -> 2208*1242, available framerates: 15 fps.
+         RESOLUTION_HD1080 -> 1920*1080, available framerates: 15, 30 fps.
+         RESOLUTION_HD720  -> 1280*720,  available framerates: 15, 30, 60 fps.
+         RESOLUTION_VGA    -> 672*376,   available framerates: 15, 30, 60, 100 fps. -->
+
+    <!-- ZED Mapping -->
+    <arg name="loc_terrain_pub_rate"      default="5.0" />
+    <arg name="glob_terrain_pub_rate"     default="1.0" />
+    <arg name="mapping_agent_step"        default="0.05" />
+    <arg name="mapping_agent_slope"       default="20.0" />
+    <arg name="mapping_agent_radius"      default="0.25" />
+    <arg name="mapping_agent_height"      default="0.8" />
+    <arg name="mapping_agent_roughness"   default="0.05" />
+    <arg name="mapping_max_depth"         default="3.5" />
+    <arg name="mapping_max_height"        default="0.75" />
+    <arg name="mapping_height_resol"      default="0.02" />
+    <arg name="mapping_local_radius"      default="1.5" />
+    <arg name="mapping_cell_resol"        default="0" /> <!-- 0->LOW (0.1m); 1->MEDIUM (0.05m); 2->HIGH (0.025m) -->
+
+    <!-- Useful coordinate frame -->
+    <arg name="left_camera_frame"    default="zed_left_camera_frame" />
+    <arg name="depth_topic"          default="depth/depth_registered" />
+
+    <arg name="nodelet_manager_name" default="zed_nodelet_manager" />
+
+    <arg name="laser_topic"          default="virt_scan" />
+
+    <group ns="zed">
+	    <!-- Nodelet Manager -->
+        <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen" />
+
+        <!-- ZED wrapper as nodelet -->
+        <include file="$(find zed_wrapper)/launch/zed_camera_nodelet.launch">
+            <arg name="svo_file"             value="$(arg svo_file)"/>
+            <arg name="nodelet_manager_name" value="$(arg nodelet_manager_name)" />
+            <arg name="camera_model"         value="$(arg camera_model)" />
+            <arg name="serial_number"        value="$(arg serial_number)" />
+            <arg name="resolution"           value="$(arg resolution)" />
+            <arg name="frame_rate"           value="$(arg frame_rate)" />
+            <arg name="verbose"              value="$(arg verbose)" />
+
+            <arg name="loc_terrain_pub_rate"      value="$(arg loc_terrain_pub_rate)" />
+            <arg name="glob_terrain_pub_rate"     value="$(arg glob_terrain_pub_rate)" />
+            <arg name="mapping_agent_step"        value="$(arg mapping_agent_step)" />
+            <arg name="mapping_agent_slope"       value="$(arg mapping_agent_slope)" />
+            <arg name="mapping_agent_radius"      value="$(arg mapping_agent_radius)" />
+            <arg name="mapping_agent_height"      value="$(arg mapping_agent_height)" />
+            <arg name="mapping_agent_roughness"   value="$(arg mapping_agent_roughness)" />
+            <arg name="mapping_max_depth"         value="$(arg mapping_max_depth)" />
+            <arg name="mapping_max_height"        value="$(arg mapping_max_height)" />
+            <arg name="mapping_height_resol"      value="$(arg mapping_height_resol)" />
+            <arg name="mapping_local_radius"      value="$(arg mapping_local_radius)" />
+            <arg name="mapping_cell_resol"        value="$(arg mapping_cell_resol)" />
+        </include>
+
+        <!-- Virtual laser scan as nodelet -->
+        <!-- "$ sudo apt install ros-kinetic-depthimage-to-laserscan" -->
+        <node pkg="nodelet" type="nodelet" name="depthimage_to_laserscan" args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet zed_nodelet_manager">
+             <param name="scan_height" value="10"/>
+             <param name="output_frame_id" value="$(arg left_camera_frame)"/>
+             <param name="range_min" value="0.45"/>
+             <remap from="image" to="$(arg depth_topic)"/>
+             <remap from="scan" to="$(arg laser_topic)"/>
+        </node>
+        
+        <!-- Move base -->
+        <include file="$(find zed_navigation_tutorial)/launch/includes/move_base.launch.xml">
+            <param name="laser_topic" value="$(arg laser_topic)" />  
+        </include>
+    </group>
 </launch>

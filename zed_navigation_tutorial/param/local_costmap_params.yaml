@@ -1,29 +1,29 @@
 local_costmap:
     global_frame:           /map
-    robot_base_frame:       base_link
+    robot_base_frame:       /base_link
     update_frequency:       5.0
     publish_frequency:      5.0
     static_map:             false
     rolling_window:         true
     transform_tolerance:    10.0
     plugins:
-        - {name: height_layer,            type: "costmap_2d::StaticLayer"}
-        - {name: traversability_layer,    type: "costmap_2d::StaticLayer"}
+        - {name: loc_height_layer,            type: "costmap_2d::StaticLayer"}
+        - {name: loc_traversability_layer,    type: "costmap_2d::StaticLayer"}
 
-    height_layer:
+    loc_height_layer:
         enabled:                true
-        map_topic:              /zed/map/loc_map_heightmap
+        map_topic:              map/loc_map_heightmap
         first_map_only:         false
         unknown_cost_value:     -1
         lethal_cost_threshold:  100
         subscribe_to_updates:   false
         track_unknown_space:    false
         use_maximum:            false     
-        trinary_costmap:        true       
+        trinary_costmap:        false       
 
-    traversability_layer:
+    loc_traversability_layer:
         enabled:                true
-        map_topic:              /zed/map/loc_map_costmap
+        map_topic:              map/loc_map_costmap
         first_map_only:         false
         unknown_cost_value:     -1
         lethal_cost_threshold:  100

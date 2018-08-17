@@ -54,12 +54,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <!-- Publish urdf zed -->
     <arg name="publish_urdf"          default="true" />
-
-    <!-- to flip or not to flip -->
+    
     <arg name="camera_flip"         default="false" />
     <arg name="rgb_topic"           default="rgb/image_rect_color" />
     <arg name="rgb_info_topic"      default="rgb/camera_info" />
     <arg name="depth_topic"         default="depth/depth_registered" />
+
+    <!-- ZED Mapping -->
+    <arg name="loc_terrain_pub_rate"      default="5.0" />
+    <arg name="glob_terrain_pub_rate"     default="1.0" />
+    <arg name="mapping_agent_step"        default="0.05" />
+    <arg name="mapping_agent_slope"       default="20.0" />
+    <arg name="mapping_agent_radius"      default="0.25" />
+    <arg name="mapping_agent_height"      default="0.8" />
+    <arg name="mapping_agent_roughness"   default="0.05" />
+    <arg name="mapping_max_depth"         default="3.5" />
+    <arg name="mapping_max_height"        default="0.5" />
+    <arg name="mapping_height_resol"      default="0.02" />
+    <arg name="mapping_local_radius"      default="1.0" />
+    <arg name="mapping_cell_resol"        default="2" /> <!-- 0->LOW (0.1m); 1->MEDIUM (0.05m); 2->HIGH (0.025m) -->
 
     <node pkg="nodelet" type="nodelet" name="ZED_nodelet" args="load zed_wrapper/ZEDWrapperNodelet $(arg nodelet_manager_name)" output="screen">
 
@@ -109,18 +122,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <param name="terrain_mapping"           value="true" />
         <param name="default_map"               value="0" /> <!-- 0->HeightMap - 1->CostMap -->
-        <param name="loc_terrain_pub_rate"      value="5.0" />
-        <param name="glob_terrain_pub_rate"     value="1.0" />
-        <param name="mapping_agent_step"        value="0.05" />
-        <param name="mapping_agent_slope"       value="20.0" />
-        <param name="mapping_agent_radius"      value="0.25" />
-        <param name="mapping_agent_height"      value="0.8" />
-        <param name="mapping_agent_roughness"   value="0.05" />
-        <param name="mapping_max_depth"         value="3.5" />
-        <param name="mapping_max_height"        value="0.5" />
-        <param name="mapping_height_resol"      value="0.05" />
-        <param name="mapping_local_radius"      value="2.0" />
-        <param name="mapping_cell_resol"        value="1" /> <!-- 0->LOW (0.1m); 1->MEDIUM (0.05m); 2->HIGH (0.025m) -->
+        <param name="loc_terrain_pub_rate"      value="$(arg loc_terrain_pub_rate)" />
+        <param name="glob_terrain_pub_rate"     value="$(arg glob_terrain_pub_rate)" />
+        <param name="mapping_agent_step"        value="$(arg mapping_agent_step)" />
+        <param name="mapping_agent_slope"       value="$(arg mapping_agent_slope)" />
+        <param name="mapping_agent_radius"      value="$(arg mapping_agent_radius)" />
+        <param name="mapping_agent_height"      value="$(arg mapping_agent_height)" />
+        <param name="mapping_agent_roughness"   value="$(arg mapping_agent_roughness)" />
+        <param name="mapping_max_depth"         value="$(arg mapping_max_depth)" />
+        <param name="mapping_max_height"        value="$(arg mapping_max_height)" />
+        <param name="mapping_height_resol"      value="$(arg mapping_height_resol)" />
+        <param name="mapping_local_radius"      value="$(arg mapping_local_radius)" />
+        <param name="mapping_cell_resol"        value="$(arg mapping_cell_resol)" />
 
         <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>
 

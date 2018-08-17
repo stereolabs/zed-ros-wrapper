@@ -8,8 +8,8 @@
   <arg name="odom_frame_id"   default="/odom"/>
   <arg name="base_frame_id"   default="/base_link"/>
   <arg name="global_frame_id" default="/map"/>
-  <arg name="odom_topic" default="/zed/odom" />
-  <!--arg name="laser_topic" default="/zed/scan" /-->  
+  <arg name="odom_topic" default="odom" />
+  <arg name="laser_topic" default="scan" />  
   <arg name="custom_param_file" default="$(find zed_navigation_tutorial)/param/dummy.yaml"/>
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
@@ -33,6 +33,6 @@
 
     <remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>
     <remap from="odom" to="$(arg odom_topic)"/>
-    <!--remap from="scan" to="$(arg laser_topic)"/-->
+    <remap from="scan" to="$(arg laser_topic)"/>
   </node>
 </launch>

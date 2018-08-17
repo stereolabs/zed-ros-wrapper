@@ -900,6 +900,7 @@ namespace zed_wrapper {
         }
 
         mPubDepth.publish(sl_tools::imageToROSmsg(depth, encoding, mDepthOptFrameId, t));
+        NODELET_DEBUG_STREAM("Depth Image timestamp:" << t);
     }
 
     void ZEDWrapperNodelet::publishDisparity(cv::Mat disparity, ros::Time t) {
@@ -1569,6 +1570,7 @@ namespace zed_wrapper {
                     if (rgbSubnumber > 0) {
                         publishCamInfo(mRgbCamInfoMsg, mPubRgbCamInfo, t);
                         publishImage(mCvLeftImRGB, mPubRgb, mDepthOptFrameId, t); // rgb is the left image
+                        NODELET_DEBUG_STREAM("RGB Image timestamp:" << t);
                     }
                 }
 

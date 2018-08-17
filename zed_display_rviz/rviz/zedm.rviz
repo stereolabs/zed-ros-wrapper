@@ -7,8 +7,8 @@ Panels:
         - /Global Options1
         - /RobotModel1/Links1
         - /TF1/Frames1
-        - /Camera1
         - /Odometry1/Covariance1/Position1
+        - /Local Maps1
         - /Local Maps1/L. Height Cubes1/Namespaces1
         - /Local Maps1/L. Height Boxes1/Namespaces1
       Splitter Ratio: 0.5
@@ -158,7 +158,7 @@ Visualization Manager:
         Grid: false
         Imu: true
         Local Maps:
-          L. Cost Map: false
+          L. Cost Map: true
           L. Height Boxes: true
           L. Height Cloud: true
           L. Height Cubes: true
@@ -416,7 +416,7 @@ Visualization Manager:
           Marker Topic: /zed/map/loc_map_height_cubes
           Name: L. Height Cubes
           Namespaces:
-            height_cubes: true
+            {}
           Queue Size: 1
           Value: true
         - Class: rviz/MarkerArray
@@ -552,25 +552,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 25.539341
+      Distance: 4.72206259
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.221644878
-        Y: 0.541130722
-        Z: -0.382753164
+        X: 1.36782825
+        Y: 0.147351742
+        Z: -0.737371206
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.715397775
+      Pitch: 0.635397851
       Target Frame: zed_camera_center
       Value: Orbit (rviz)
-      Yaw: 3.94040108
+      Yaw: 3.08540297
     Saved:
       - Angle: -1.57079637
         Class: rviz/TopDownOrtho
