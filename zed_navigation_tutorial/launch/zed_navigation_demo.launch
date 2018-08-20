@@ -35,7 +35,8 @@ A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
     <arg name="mapping_max_depth"         default="3.5" />
     <arg name="mapping_max_height"        default="0.75" />
     <arg name="mapping_height_resol"      default="0.02" />
-    <arg name="mapping_local_radius"      default="1.5" />
+    <arg name="mapping_local_circular"    default="false" />
+    <arg name="mapping_local_size"        default="3.0" />
     <arg name="mapping_cell_resol"        default="0" /> <!-- 0->LOW (0.1m); 1->MEDIUM (0.05m); 2->HIGH (0.025m) -->
 
     <!-- Useful coordinate frame -->
@@ -70,7 +71,8 @@ A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
             <arg name="mapping_max_depth"         value="$(arg mapping_max_depth)" />
             <arg name="mapping_max_height"        value="$(arg mapping_max_height)" />
             <arg name="mapping_height_resol"      value="$(arg mapping_height_resol)" />
-            <arg name="mapping_local_radius"      value="$(arg mapping_local_radius)" />
+            <arg name="mapping_local_circular"    value="$(arg mapping_local_circular)" />
+            <arg name="mapping_local_size"        value="$(arg mapping_local_size)" />
             <arg name="mapping_cell_resol"        value="$(arg mapping_cell_resol)" />
         </include>
 

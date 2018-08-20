@@ -132,7 +132,8 @@ namespace zed_wrapper {
         mNhNs.getParam("mapping_max_height", mMapMaxHeight);
         mNhNs.getParam("mapping_height_resol", mMapHeightResol);
         mNhNs.getParam("mapping_cell_resol", mMapResolIdx);
-        mNhNs.getParam("mapping_local_radius", mMapLocalRadius);
+        mNhNs.getParam("mapping_local_circular", mMapLocalCircular);
+        mNhNs.getParam("mapping_local_size", mMapLocalSize);
 
 
         sl::TerrainMappingParameters terrainParams;
@@ -176,15 +177,6 @@ namespace zed_wrapper {
         ROS_INFO_STREAM("Global Terrain Mapping: ENABLED @ " << mGlobalTerrainPubRate << "Hz");
 
         return true;
-    }
-
-    void ZEDTerrainMapping::dynamicReconfCallback(zed_wrapper::TerrainMappingConfig& config, uint32_t level) {
-        switch (level) {
-        case 0:
-            mMapLocalRadius = config.loc_map_radius;
-            ROS_INFO("Reconfigure local map radius : %g", mMapLocalRadius);
-            break;
-        }
     }
 
     void ZEDTerrainMapping::localTerrainCallback(const ros::TimerEvent& e) {
@@ -253,7 +245,7 @@ namespace zed_wrapper {
                 // Process the robot surrounding chunks
                 float camX = cam_to_map.getOrigin().x();
                 float camY = cam_to_map.getOrigin().y();
-                chunks = mTerrain.getSurroundingValidChunks(-camY, camX, mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                chunks = mTerrain.getSurroundingValidChunks(-camY, camX, mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
 
                 ROS_DEBUG_STREAM(" ********************** Camera Position: " << camX << "," << camY);
 
@@ -312,12 +304,12 @@ namespace zed_wrapper {
         uint32_t mrksSub = mPubLocalHeightMrks.getNumSubscribers();
 
         // Map sizes
-        float mapMinX = (minY > (camX - mMapLocalRadius)) ? minY : (camX - mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-        float mapMaxX = (maxY < (camX + mMapLocalRadius)) ? maxY : (camX + mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        float mapMinX = (minY > (camX - mMapLocalSize / 2.0f)) ? minY : (camX - mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        float mapMaxX = (maxY < (camX + mMapLocalSize / 2.0f)) ? maxY : (camX + mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
         //float mapMinX = (minX > (camX-mMapLocalRadius))?minX:(camX-mMapLocalRadius);
         //float mapMaxX = (maxX < (camX+mMapLocalRadius))?maxX:(camX+mMapLocalRadius);
-        float mapMinY = (-maxX > (camY - mMapLocalRadius)) ? -maxX : (camY - mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-        float mapMaxY = (-minX < (camY + mMapLocalRadius)) ? -minX : (camY + mMapLocalRadius); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        float mapMinY = (-maxX > (camY - mMapLocalSize / 2.0f)) ? -maxX : (camY - mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        float mapMaxY = (-minX < (camY + mMapLocalSize / 2.0f)) ? -minX : (camY + mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
         //float mapMinY = (minY > (camY-mMapLocalRadius))?minY:(camY-mMapLocalRadius);
         //float mapMaxY = (maxY < (camY+mMapLocalRadius))?maxY:(camY+mMapLocalRadius);
 
@@ -425,16 +417,23 @@ namespace zed_wrapper {
                     continue; // Index out of range
                 }
 
-                float dist = sqrt((-xm - camY) * (-xm - camY) + (ym - camX) * (ym - camX)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                // float dist = sqrt((xm - camX) * (xm - camX) + (ym - camY) * (ym - camY));
+                if (mMapLocalCircular) {
+                    float dist = sqrt((-xm - camY) * (-xm - camY) + (ym - camX) * (ym - camX)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                    // float dist = sqrt((xm - camX) * (xm - camX) + (ym - camY) * (ym - camY));
 
-                if (dist > mMapLocalRadius) {
-                    continue;
+                    if (dist > mMapLocalSize / 2.0f) {
+                        continue;
+                    }
+                } else {
+                    if (fabs(-xm - camY) > (mMapLocalSize / 2.0f) || // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        fabs(ym - camX) > (mMapLocalSize / 2.0f)) {  // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        continue;
+                    }
                 }
 
                 // (xm,ym) to ROS map index
-                uint32_t u = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                uint32_t v = static_cast<uint32_t>(round((-xm - mapMinY) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                uint32_t u = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes));    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                uint32_t v = static_cast<uint32_t>(round((-xm - mapMinY) / mTerrainMapRes));   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                 //uint32_t u = static_cast<uint32_t>(round((xm - mapMinY) / mTerrainMapRes));
                 //uint32_t v = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes));
 
@@ -1136,6 +1135,13 @@ namespace zed_wrapper {
         ROS_DEBUG_STREAM("New global map subscription by " << pub.getSubscriberName() << " to topic " << pub.getTopic());
     }
 
+    void ZEDTerrainMapping::setLocalMapType(bool circular) {
+        mMapLocalCircular = circular;
+    }
+
+    void ZEDTerrainMapping::setLocalMapSize(double size) {
+        mMapLocalSize = size;
+    }
 
 }
 

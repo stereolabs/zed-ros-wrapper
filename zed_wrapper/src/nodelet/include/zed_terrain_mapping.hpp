@@ -40,8 +40,6 @@
 #include <mutex>
 #include <thread>
 
-#include <zed_wrapper/TerrainMappingConfig.h>
-
 namespace zed_wrapper {
 
     class ZEDTerrainMapping {
@@ -58,12 +56,18 @@ namespace zed_wrapper {
          */
         bool startTerrainMapping();
 
+        /* \brief Set local map type
+         * \ param circular : if True map is radial, otherwise is square
+         */
+        void setLocalMapType(bool circular);
+
+        /* \brief Set the size of the local map
+         * \ param size : size of the local map in meters (diameter if circular)
+         */
+        void setLocalMapSize(double size);
+
       protected:
         bool init();
-
-        /* \brief Callback to handle dynamic reconfigure events in ROS
-         */
-        void dynamicReconfCallback(TerrainMappingConfig& config, uint32_t level);
 
         /* \brief Callback to handle async terrain MAPPING to generate high frequency local maps
          * \param e : the ros::TimerEvent binded to the callback
@@ -144,7 +148,6 @@ namespace zed_wrapper {
         bool on_get_glob_cost_map(nav_msgs::GetMap::Request&  req,
                                   nav_msgs::GetMap::Response& res);
 
-
       private:
         // ROS
         ros::NodeHandle mNh;
@@ -220,7 +223,8 @@ namespace zed_wrapper {
         float mMapMaxDepth = 3.5f;
         float mMapMaxHeight = 0.5f;
         float mMapHeightResol = .025f;
-        float mMapLocalRadius = 3.0f;
+        bool mMapLocalCircular = false;
+        float mMapLocalSize = 3.0f;
         int mMapResolIdx = 1;
         double mTerrainMapRes;
 
@@ -228,7 +232,6 @@ namespace zed_wrapper {
         std::mutex mTerrainMutex;
         std::mutex mLocMapMutex;
         std::mutex mGlobMapMutex;
-
     };
 }
 

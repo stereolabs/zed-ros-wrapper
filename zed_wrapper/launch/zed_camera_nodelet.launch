@@ -71,7 +71,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="mapping_max_depth"         default="3.5" />
     <arg name="mapping_max_height"        default="0.5" />
     <arg name="mapping_height_resol"      default="0.02" />
-    <arg name="mapping_local_radius"      default="1.0" />
+    <arg name="mapping_local_circular"    default="false" />
+    <arg name="mapping_local_size"        default="3.0" />
     <arg name="mapping_cell_resol"        default="2" /> <!-- 0->LOW (0.1m); 1->MEDIUM (0.05m); 2->HIGH (0.025m) -->
 
     <node pkg="nodelet" type="nodelet" name="ZED_nodelet" args="load zed_wrapper/ZEDWrapperNodelet $(arg nodelet_manager_name)" output="screen">
@@ -132,7 +133,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="mapping_max_depth"         value="$(arg mapping_max_depth)" />
         <param name="mapping_max_height"        value="$(arg mapping_max_height)" />
         <param name="mapping_height_resol"      value="$(arg mapping_height_resol)" />
-        <param name="mapping_local_radius"      value="$(arg mapping_local_radius)" />
+        <param name="mapping_local_circular"    value="false" />
+        <param name="mapping_local_size"        value="$(arg mapping_local_size)" />
         <param name="mapping_cell_resol"        value="$(arg mapping_cell_resol)" />
 
         <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>

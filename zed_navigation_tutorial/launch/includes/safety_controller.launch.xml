@@ -3,9 +3,9 @@
 -->
 <launch>
   <node pkg="nodelet" type="nodelet" name="kobuki_safety_controller" args="load kobuki_safety_controller/SafetyControllerNodelet mobile_base_nodelet_manager">
-    <remap from="kobuki_safety_controller/cmd_vel" to="cmd_vel_mux/input/safety_controller"/>
-    <remap from="kobuki_safety_controller/events/bumper" to="mobile_base/events/bumper"/>
-    <remap from="kobuki_safety_controller/events/cliff" to="mobile_base/events/cliff"/>
-    <remap from="kobuki_safety_controller/events/wheel_drop" to="mobile_base/events/wheel_drop"/>
+    <remap from="kobuki_safety_controller/cmd_vel" to="/zed/cmd_vel_mux/input/safety_controller"/>
+    <remap from="kobuki_safety_controller/events/bumper" to="/zed/mobile_base/events/bumper"/>
+    <remap from="kobuki_safety_controller/events/cliff" to="/zed/mobile_base/events/cliff"/>
+    <remap from="kobuki_safety_controller/events/wheel_drop" to="/zed/mobile_base/events/wheel_drop"/>
   </node>
 </launch>

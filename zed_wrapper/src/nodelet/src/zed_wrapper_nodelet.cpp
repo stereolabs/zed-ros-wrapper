@@ -1123,6 +1123,41 @@ namespace zed_wrapper {
             mCamMaxDepth = config.max_depth;
             NODELET_INFO("Reconfigure max depth : %g", mCamMaxDepth);
             break;
+
+        case 6:
+#ifdef TERRAIN_MAPPING
+            {
+                if (!mZedMapping) {
+                    break;
+                }
+
+                bool mapLocalCircular = config.loc_map_circular;
+
+                mZedMapping->setLocalMapType(mapLocalCircular);
+
+                ROS_INFO("Reconfigure local map type : %s", mapLocalCircular ? "Circular" : "Square");
+            }
+#else
+            NODELET_WARN("The dynamic parameter `loc_map_circular` is available only with Terrain Mapping");
+#endif
+            break;
+
+        case 7:
+#ifdef TERRAIN_MAPPING
+            {
+                if (!mZedMapping) {
+                    break;
+                }
+                double mapLocalSize = config.loc_map_size;
+
+                mZedMapping->setLocalMapSize(mapLocalSize);
+
+                ROS_INFO("Reconfigure local map size : %g", mapLocalSize);
+            }
+#else
+            NODELET_WARN("The dynamic parameter `loc_map_size` is available only with Terrain Mapping");
+#endif
+            break;
         }
     }
 
