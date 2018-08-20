@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2018, STEREOLABS.
+
+All rights reserved.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+-->
+<launch>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_navigation_tutorial)/rviz/navigation.rviz">
+    <remap from="move_base_simple/goal" to="/zed/move_base_simple/goal"/>
+  </node>
+</launch>
