@@ -271,8 +271,9 @@ namespace zed_wrapper {
             mZedParams.svo_input_filename = mSvoFilepath.c_str();
             mZedParams.svo_real_time_mode = true;
 
-            mPubClock = mNh.advertise<rosgraph_msgs::Clock>("/clock", 1);
-            NODELET_INFO("Advertised on topic /clock");
+            //            mPubClock = mNh.advertise<rosgraph_msgs::Clock>("/clock", 1);
+            //            NODELET_INFO("Advertised on topic /clock");
+            mSvoMode = true;
         } else {
             mZedParams.camera_fps = mCamFrameRate;
             mZedParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
@@ -1289,7 +1290,13 @@ namespace zed_wrapper {
             return;
         }
 
-        ros::Time t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
+        ros::Time t;
+        if (mSvoMode) {
+            t = ros::Time::now();
+        } else {
+            t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
+        }
+
         sl::IMUData imu_data;
         mZed.getIMUData(imu_data, sl::TIME_REFERENCE_CURRENT);
 
@@ -1412,8 +1419,15 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::device_poll_thread_func() {
         ros::Rate loop_rate(mCamFrameRate);
-        ros::Time old_t =
-            sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+
+        ros::Time t_old;
+        if (mSvoMode) {
+            t_old = ros::Time::now();
+        } else {
+            t_old = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+        }
+        ros::Time old_t = t_old;
+
         mLastFrameTime = old_t;
         sl::ERROR_CODE grab_status;
         mTrackingActivated = false;
@@ -1494,8 +1508,13 @@ namespace zed_wrapper {
                                                  confMapSubnumber) > 0);
 
                 // Timestamp
-                ros::Time t =
-                    sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
+                ros::Time t;
+                if (mSvoMode) {
+                    t = ros::Time::now();
+                } else {
+                    t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
+                }
+
                 mGrabbing = true;
 
                 if (mComputeDepth) {
@@ -1528,12 +1547,12 @@ namespace zed_wrapper {
                         NODELET_INFO_STREAM_ONCE(toString(grab_status));
                     }
 
-                    if (mPubClock.getNumSubscribers() > 0) {
-                        rosgraph_msgs::Clock clkMsg;
-                        clkMsg.clock = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
+                    //                    if ( mSvoMode && mPubClock.getNumSubscribers() > 0) {
+                    //                        rosgraph_msgs::Clock clkMsg;
+                    //                        clkMsg.clock = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
 
-                        mPubClock.publish(clkMsg);
-                    }
+                    //                        mPubClock.publish(clkMsg);
+                    //                    }
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
 
@@ -1578,7 +1597,13 @@ namespace zed_wrapper {
                 }
 
                 // Time update
-                old_t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+                ros::Time t_old;
+                if (mSvoMode) {
+                    t_old = ros::Time::now();
+                } else {
+                    t_old = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+                }
+                old_t = t_old;
 
                 if (mCamAutoExposure) {
                     // getCameraSettings() can't check status of auto exposure
@@ -1864,8 +1889,14 @@ namespace zed_wrapper {
 
                 // Publish odometry tf only if enabled
                 if (mPublishTf) {
-                    ros::Time t =
-                        sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+                    ros::Time t;
+
+                    if (mSvoMode) {
+                        t = ros::Time::now();
+                    } else {
+                        t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+                    }
+
                     publishOdomFrame(mBase2OdomTransf, t); // publish the base Frame in odometry frame
 
                     if (mPublishMapTf) {

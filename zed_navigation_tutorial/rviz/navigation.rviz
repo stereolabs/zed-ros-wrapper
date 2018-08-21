@@ -4,7 +4,11 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /TF1/Tree1
+        - /TF1/Frames1
+        - /TF1/Tree1/map1
+        - /TF1/Tree1/map1/odom1
+        - /TF1/Tree1/map1/odom1/base_link1
+        - /Global Map1
       Splitter Ratio: 0.597222209
     Tree Height: 843
   - Class: rviz/Selection
@@ -25,7 +29,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Visualization Manager:
   Class: ""
   Displays:
@@ -93,20 +97,45 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        base_link:
+          Value: true
+        map:
+          Value: true
+        odom:
+          Value: true
+        zed_camera_center:
+          Value: true
+        zed_left_camera_frame:
+          Value: false
+        zed_left_camera_optical_frame:
+          Value: false
+        zed_right_camera_frame:
+          Value: false
+        zed_right_camera_optical_frame:
+          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        map:
+          odom:
+            base_link:
+              zed_camera_center:
+                zed_left_camera_frame:
+                  zed_left_camera_optical_frame:
+                    {}
+                zed_right_camera_frame:
+                  zed_right_camera_optical_frame:
+                    {}
       Update Interval: 0
       Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.882617891
-        Min Value: 0.812837481
+        Max Value: 0.884533644
+        Min Value: 0.810519874
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -212,7 +241,7 @@ Visualization Manager:
           Marker Topic: /zed/map/glob_map_height_cubes
           Name: Height 2.5D
           Namespaces:
-            {}
+            height_cubes: true
           Queue Size: 100
           Value: true
       Enabled: true
@@ -267,7 +296,7 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 954.400024
+          Max Intensity: 966.799988
           Min Color: 0; 0; 0
           Min Intensity: 0
           Name: Cost Cloud
@@ -277,7 +306,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.0399999991
           Style: Flat Squares
-          Topic: move_base/TrajectoryPlannerROS/cost_cloud
+          Topic: /move_base/DWAPlannerROS/cost_cloud
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -297,29 +326,29 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 88052.2031
+          Max Intensity: 88050.2031
           Min Color: 0; 0; 0
-          Min Intensity: 88050
+          Min Intensity: 115.599998
           Name: Trajectory Cloud
           Position Transformer: XYZ
           Queue Size: 10
-          Selectable: true
+          Selectable: false
           Size (Pixels): 3
           Size (m): 0.0399999991
           Style: Flat Squares
-          Topic: /zed/map/loc_map_height_cloud
+          Topic: /move_base/DWAPlannerROS/trajectory_cloud
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: false
           Value: true
         - Class: rviz/Marker
-          Enabled: true
+          Enabled: false
           Marker Topic: /zed/map/loc_map_height_cubes
           Name: Height 2.5D
           Namespaces:
             {}
           Queue Size: 100
-          Value: true
+          Value: false
       Enabled: true
       Name: Local Map
     - Alpha: 1
@@ -385,7 +414,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 8.18438816
+      Distance: 4.96637821
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -400,10 +429,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.984796226
+      Pitch: 1.3797965
       Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 3.15038896
+      Yaw: 3.20040226
     Saved: ~
 Window Geometry:
   Displays:

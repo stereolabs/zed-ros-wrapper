@@ -188,8 +188,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <remap from="robot_description" to="zed_description" />
         </node>
     </group>
-
-
-        <param name="use_sim_time" value="true"/>
-        
 </launch>

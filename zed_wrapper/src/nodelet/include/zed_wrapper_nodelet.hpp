@@ -264,7 +264,7 @@ namespace zed_wrapper {
         ros::Publisher mPubMapPath;
         ros::Publisher mPubImu;
         ros::Publisher mPubImuRaw;
-        ros::Publisher mPubClock;
+        //ros::Publisher mPubClock;
 
         // Timers
         ros::Timer mPubImuTimer;
@@ -338,6 +338,7 @@ namespace zed_wrapper {
         double mPathPubRate;
         int mPathMaxCount;
         bool mVerbose;
+        bool mSvoMode = false;
 
         bool mTrackingActivated;
         bool mTrackingReady;
