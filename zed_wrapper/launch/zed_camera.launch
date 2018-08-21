@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="rgb_info_topic"                default="rgb/camera_info" />
     <arg name="depth_topic"                   default="depth/depth_registered" />
     <arg name="depth_cam_info_topic"          default="depth/camera_info" />
+    <arg name="odometry_topic"                default="odom" />
 
     <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
 
@@ -149,7 +150,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="confidence_map_topic"      value="confidence/confidence_map" />
 
         <param name="pose_topic"                value="pose" />
-        <param name="odometry_topic"            value="odom" />
+        <param name="odometry_topic"            value="$(arg odometry_topic)" />
 
         <param name="init_odom_with_imu"        value="true" /> <!-- only used with ZED mini -->
 

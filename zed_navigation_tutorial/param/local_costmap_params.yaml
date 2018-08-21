@@ -12,7 +12,7 @@ local_costmap:
 
     loc_height_layer:
         enabled:                true
-        map_topic:              map/loc_map_heightmap
+        map_topic:              zed/map/loc_map_heightmap
         first_map_only:         false
         unknown_cost_value:     -1
         lethal_cost_threshold:  100
@@ -23,7 +23,7 @@ local_costmap:
 
     loc_traversability_layer:
         enabled:                true
-        map_topic:              map/loc_map_costmap
+        map_topic:              zed/map/loc_map_costmap
         first_map_only:         false
         unknown_cost_value:     -1
         lethal_cost_threshold:  100

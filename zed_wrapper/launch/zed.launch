@@ -32,12 +32,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Coordinate frame -->
     <arg name="pose_frame"           default="map" />
     <arg name="odometry_frame"       default="odom" />
+    <arg name="odometry_topic"       default="odom" />
 
     <group ns="zed">
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
             <arg name="svo_file"            value="$(arg svo_file)" />
             <arg name="pose_frame"          value="$(arg pose_frame)" />
             <arg name="odometry_frame"      value="$(arg odometry_frame)" />
+            <arg name="odometry_topic"      value="$(arg odometry_topic)" />
             <arg name="camera_model"        value="$(arg camera_model)" />
             <arg name="serial_number"       default="$(arg serial_number)" /> 
             <arg name="resolution"          default="$(arg resolution)" />

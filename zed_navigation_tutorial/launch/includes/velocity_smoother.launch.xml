@@ -8,6 +8,6 @@
 
     <!-- Robot velocity feedbacks; use the default base configuration -->
     <remap from="navigation_velocity_smoother/odometry" to="/zed/odom"/>
-    <remap from="navigation_velocity_smoother/robot_cmd_vel" to="/zed/mobile_base/commands/velocity"/>
+    <remap from="navigation_velocity_smoother/robot_cmd_vel" to="mobile_base/commands/velocity"/>
   </node>
 </launch>

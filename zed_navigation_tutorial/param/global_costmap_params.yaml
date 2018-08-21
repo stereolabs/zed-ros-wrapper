@@ -11,7 +11,7 @@ global_costmap:
 
     glob_height_layer:
         enabled:                true
-        map_topic:              map/glob_map_heightmap
+        map_topic:              zed/map/glob_map_heightmap
         first_map_only:         false
         unknown_cost_value:     -1
         lethal_cost_threshold:  100
@@ -22,7 +22,7 @@ global_costmap:
 
     glob_traversability_layer:
         enabled:                true
-        map_topic:              map/glob_map_costmap
+        map_topic:              zed/map/glob_map_costmap
         first_map_only:         false
         unknown_cost_value:     -1
         lethal_cost_threshold:  100

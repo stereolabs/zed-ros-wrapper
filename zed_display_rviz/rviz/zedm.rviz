@@ -7,10 +7,12 @@ Panels:
         - /Global Options1
         - /RobotModel1/Links1
         - /TF1/Frames1
+        - /Camera1/Visibility1
         - /Odometry1/Covariance1/Position1
         - /Local Maps1
         - /Local Maps1/L. Height Cubes1/Namespaces1
         - /Local Maps1/L. Height Boxes1/Namespaces1
+        - /Global Maps1
       Splitter Ratio: 0.5
     Tree Height: 438
   - Class: rviz/Selection
@@ -152,9 +154,9 @@ Visualization Manager:
           G. Cost Map: true
           G. Height Cloud: true
           G. Height Cubes: true
-          G. Height Map: false
+          G. Height Map: true
           Height Map Image: false
-          Value: false
+          Value: true
         Grid: false
         Imu: true
         Local Maps:
@@ -412,13 +414,13 @@ Visualization Manager:
           Use rainbow: true
           Value: false
         - Class: rviz/Marker
-          Enabled: true
+          Enabled: false
           Marker Topic: /zed/map/loc_map_height_cubes
           Name: L. Height Cubes
           Namespaces:
             {}
           Queue Size: 1
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
           Enabled: false
           Marker Topic: /zed/map/loc_map_height_boxes
@@ -482,13 +484,13 @@ Visualization Manager:
           Use rainbow: true
           Value: false
         - Class: rviz/Marker
-          Enabled: false
+          Enabled: true
           Marker Topic: /zed/map/glob_map_height_cubes
           Name: G. Height Cubes
           Namespaces:
-            {}
+            height_cubes: true
           Queue Size: 1
-          Value: false
+          Value: true
         - Class: rviz/Image
           Enabled: true
           Image Topic: /zed/map/color_map_image
@@ -552,25 +554,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.72206259
+      Distance: 16.4259319
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.36782825
-        Y: 0.147351742
-        Z: -0.737371206
+        X: 3.60565567
+        Y: 0.711304665
+        Z: 0.665869594
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.635397851
+      Pitch: 0.235397652
       Target Frame: zed_camera_center
       Value: Orbit (rviz)
-      Yaw: 3.08540297
+      Yaw: 3.19040084
     Saved:
       - Angle: -1.57079637
         Class: rviz/TopDownOrtho

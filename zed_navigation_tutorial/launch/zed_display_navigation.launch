@@ -11,6 +11,6 @@ A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
 -->
 <launch>
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_navigation_tutorial)/rviz/navigation.rviz">
-    <remap from="move_base_simple/goal" to="/zed/move_base_simple/goal"/>
+    <!--remap from="move_base_simple/goal" to="/zed/move_base_simple/goal"/-->
   </node>
 </launch>
