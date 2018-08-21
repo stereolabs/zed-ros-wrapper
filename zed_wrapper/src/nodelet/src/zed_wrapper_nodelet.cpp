@@ -25,6 +25,7 @@
 #include <ros/console.h>
 #endif
 
+#include <rosgraph_msgs/Clock.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <sensor_msgs/Imu.h>
@@ -252,8 +253,10 @@ namespace zed_wrapper {
         mLeftCamInfoRawMsg = left_cam_info_raw_msg_;
         mRightCamInfoRawMsg = right_cam_info_raw_msg_;
         mDepthCamInfoMsg = depth_cam_info_msg_;
+
         // SVO
         mNhNs.param<std::string>("svo_filepath", mSvoFilepath, std::string());
+
         // Initialize tf2 transformation
         mNhNs.getParam("initial_tracking_pose", mInitialTrackPose);
         set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
@@ -267,6 +270,9 @@ namespace zed_wrapper {
         if (!mSvoFilepath.empty()) {
             mZedParams.svo_input_filename = mSvoFilepath.c_str();
             mZedParams.svo_real_time_mode = true;
+
+            mPubClock = mNh.advertise<rosgraph_msgs::Clock>("/clock", 1);
+            NODELET_INFO("Advertised on topic /clock");
         } else {
             mZedParams.camera_fps = mCamFrameRate;
             mZedParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
@@ -1520,6 +1526,13 @@ namespace zed_wrapper {
                     // re-initialize the ZED
                     if (grab_status != sl::ERROR_CODE_NOT_A_NEW_FRAME) {
                         NODELET_INFO_STREAM_ONCE(toString(grab_status));
+                    }
+
+                    if (mPubClock.getNumSubscribers() > 0) {
+                        rosgraph_msgs::Clock clkMsg;
+                        clkMsg.clock = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
+
+                        mPubClock.publish(clkMsg);
                     }
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));

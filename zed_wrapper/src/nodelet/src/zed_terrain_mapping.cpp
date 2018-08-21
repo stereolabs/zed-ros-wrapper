@@ -147,8 +147,9 @@ namespace zed_wrapper {
 
         ROS_INFO_STREAM("Terrain Grid Resolution " << mTerrainMapRes << "m");
         ROS_INFO_STREAM("Terrain Cutting height " << terrainParams.setHeightThreshold(sl::UNIT_METER, mMapMaxHeight) << "m");
-        ROS_INFO_STREAM("Terrain Z Resolution " << terrainParams.setZResolution(sl::UNIT_METER, mMapHeightResol) << "m");
-        ROS_INFO_STREAM("Terrain Max range " << terrainParams.setRange(sl::UNIT_METER, mMapMaxDepth) << "m");
+        ROS_INFO_STREAM("Terrain Z Resolution " << terrainParams.setHeightResolution(sl::UNIT_METER, mMapHeightResol) << "m");
+        terrainParams.setRange(mMapMaxDepth);
+        ROS_INFO_STREAM("Terrain Max range " << mMapMaxDepth << "m");
 
         terrainParams.enable_traversability_cost_computation = true;
         terrainParams.enable_dynamic_extraction = true;
