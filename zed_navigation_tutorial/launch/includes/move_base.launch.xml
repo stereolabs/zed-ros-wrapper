@@ -18,6 +18,7 @@
     <rosparam file="$(find zed_navigation_tutorial)/param/local_costmap_params.yaml" command="load" />   
     <rosparam file="$(find zed_navigation_tutorial)/param/global_costmap_params.yaml" command="load" />
     <rosparam file="$(find zed_navigation_tutorial)/param/dwa_local_planner_params.yaml" command="load" />
+    <rosparam file="$(find zed_navigation_tutorial)/param/trajectory_planner_params.yaml" command="load" />
     <rosparam file="$(find zed_navigation_tutorial)/param/move_base_params.yaml" command="load" />
     <rosparam file="$(find zed_navigation_tutorial)/param/global_planner_params.yaml" command="load" />
     <rosparam file="$(find zed_navigation_tutorial)/param/navfn_global_planner_params.yaml" command="load" />
@@ -29,7 +30,8 @@
     <!--param name="global_costmap/robot_base_frame" value="$(arg base_frame_id)"/-->
     <!--param name="local_costmap/global_frame" value="$(arg global_frame_id)"/-->
     <!--param name="local_costmap/robot_base_frame" value="$(arg base_frame_id)"/-->
-    <param name="DWAPlannerROS/global_frame_id" value="$(arg global_frame_id)"/>
+    <!--<param name="DWAPlannerROS/global_frame_id" value="$(arg global_frame_id)"/>-->
+    <param name="TrajectoryPlannerROS/global_frame_id" value="$(arg global_frame_id)"/>
 
     <remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>
     <remap from="odom" to="$(arg odom_topic)"/>

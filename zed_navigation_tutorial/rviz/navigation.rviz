@@ -204,7 +204,7 @@ Visualization Manager:
           Radius: 0.0299999993
           Shaft Diameter: 0.100000001
           Shaft Length: 0.100000001
-          Topic: move_base/DWAPlannerROS/global_plan
+          Topic: move_base/TrajectoryPlannerROS/global_plan
           Unreliable: false
           Value: true
         - Class: rviz/Marker
@@ -249,7 +249,7 @@ Visualization Manager:
           Radius: 0.0299999993
           Shaft Diameter: 0.100000001
           Shaft Length: 0.100000001
-          Topic: move_base/DWAPlannerROS/local_plan
+          Topic: move_base/TrajectoryPlannerROS/local_plan
           Unreliable: false
           Value: true
         - Alpha: 0.800000012
@@ -277,7 +277,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.0399999991
           Style: Flat Squares
-          Topic: move_base/DWAPlannerROS/cost_cloud
+          Topic: move_base/TrajectoryPlannerROS/cost_cloud
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -307,7 +307,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.0399999991
           Style: Flat Squares
-          Topic: move_base/DWAPlannerROS/trajectory_cloud
+          Topic: /zed/map/loc_map_height_cloud
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: false
