@@ -25,7 +25,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Visualization Manager:
   Class: ""
   Displays:
@@ -93,38 +93,13 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        base_link:
-          Value: true
-        map:
-          Value: true
-        odom:
-          Value: true
-        zed_camera_center:
-          Value: false
-        zed_left_camera_frame:
-          Value: false
-        zed_left_camera_optical_frame:
-          Value: false
-        zed_right_camera_frame:
-          Value: false
-        zed_right_camera_optical_frame:
-          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          odom:
-            base_link:
-              zed_camera_center:
-                zed_left_camera_frame:
-                  zed_left_camera_optical_frame:
-                    {}
-                zed_right_camera_frame:
-                  zed_right_camera_optical_frame:
-                    {}
+        {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -237,7 +212,7 @@ Visualization Manager:
           Marker Topic: /zed/map/glob_map_height_cubes
           Name: Height 2.5D
           Namespaces:
-            height_cubes: true
+            {}
           Queue Size: 100
           Value: true
       Enabled: true
@@ -342,7 +317,7 @@ Visualization Manager:
           Marker Topic: /zed/map/loc_map_height_cubes
           Name: Height 2.5D
           Namespaces:
-            height_cubes: true
+            {}
           Queue Size: 100
           Value: true
       Enabled: true
