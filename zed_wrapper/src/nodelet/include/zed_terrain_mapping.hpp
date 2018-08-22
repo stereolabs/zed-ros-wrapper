@@ -54,7 +54,7 @@ namespace zed_wrapper {
         /* \bried Start mapping loading the parameters from param server
          * \note Terrain Mapping is available since SDK v2.7
          */
-        bool startTerrainMapping();
+        bool startTerrainMapping(sl::Transform initialPoseSl);
 
         /* \brief Set local map type
          * \ param circular : if True map is radial, otherwise is square
@@ -202,6 +202,7 @@ namespace zed_wrapper {
 
         // Terrain MApping
         sl::Terrain mTerrain;
+        sl::Transform mInitialPoseSl;
 
         // Flags
         bool mInitialized;

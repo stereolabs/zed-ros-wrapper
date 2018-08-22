@@ -116,7 +116,7 @@ namespace zed_wrapper {
         return true;
     }
 
-    bool ZEDTerrainMapping::startTerrainMapping() {
+    bool ZEDTerrainMapping::startTerrainMapping(sl::Transform initialPoseSl) {
 
         if (!mZed) {
             ROS_WARN("ZED Camera not initialized");
@@ -128,6 +128,8 @@ namespace zed_wrapper {
                 return false;
             }
         }
+
+        mInitialPoseSl = initialPoseSl;
 
         mNhNs.getParam("loc_terrain_pub_rate",  mLocalTerrainPubRate);
         mNhNs.getParam("glob_terrain_pub_rate", mGlobalTerrainPubRate);
@@ -191,7 +193,7 @@ namespace zed_wrapper {
 
     void ZEDTerrainMapping::localTerrainCallback(const ros::TimerEvent& e) {
         if (!mMappingReady) {
-            mMappingReady = startTerrainMapping();
+            mMappingReady = startTerrainMapping(mInitialPoseSl);
         }
 
         mMappingReady = true;
@@ -362,8 +364,8 @@ namespace zed_wrapper {
         mapInfo.resolution = mTerrainMapRes;
         mapInfo.height = mapRows;
         mapInfo.width = mapCols;
-        mapInfo.origin.position.x = /*mInitialPoseSl.getTranslation().x + */ mapMinX; // TODO uncomment and test when the bug in SDK is fixed
-        mapInfo.origin.position.y = /*mInitialPoseSl.getTranslation().x + */ mapMinY; // TODO uncomment and test when the bug in SDK is fixed
+        mapInfo.origin.position.x = mapMinX;
+        mapInfo.origin.position.y =  mapMinY;
         mapInfo.origin.position.z = 0.0;
         mapInfo.origin.orientation.x = 0;
         mapInfo.origin.orientation.y = 0;
@@ -818,7 +820,7 @@ namespace zed_wrapper {
 
     void ZEDTerrainMapping::globalTerrainCallback(const ros::TimerEvent& e) {
         if (!mMappingReady) {
-            mMappingReady = startTerrainMapping();
+            mMappingReady = startTerrainMapping(mInitialPoseSl);
         }
 
         mMappingReady = true;
@@ -937,12 +939,12 @@ namespace zed_wrapper {
                         chunks = mTerrain.getAllValidChunk();
                         mGlobMapWholeUpdate = false;
 
-                        mGlobHeightMapMsg.info.origin.position.x = /*mInitialPoseSl.getTranslation().x + */ minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL - // TODO uncomment and test when the bug in SDK is fixed
-                        mGlobHeightMapMsg.info.origin.position.y = /*mInitialPoseSl.getTranslation().y + */ -maxX; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL - // TODO uncomment and test when the bug in SDK is fixed
-                        mGlobCostMapMsg.info.origin.position.x = /*mInitialPoseSl.getTranslation().x + */   minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL - // TODO uncomment and test when the bug in SDK is fixed
-                        mGlobCostMapMsg.info.origin.position.y = /*mInitialPoseSl.getTranslation().y + */  -maxX; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL - // TODO uncomment and test when the bug in SDK is fixed
-                        mGlobOccupGridMsg.info.origin.position.x = /*mInitialPoseSl.getTranslation().x + */   minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL - // TODO uncomment and test when the bug in SDK is fixed
-                        mGlobOccupGridMsg.info.origin.position.y = /*mInitialPoseSl.getTranslation().y + */  -maxX; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL - // TODO uncomment and test when the bug in SDK is fixed
+                        mGlobHeightMapMsg.info.origin.position.x = minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        mGlobHeightMapMsg.info.origin.position.y = (-maxX);  // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        mGlobCostMapMsg.info.origin.position.x = minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        mGlobCostMapMsg.info.origin.position.y = (-maxX);   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        mGlobOccupGridMsg.info.origin.position.x = minY; // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                        mGlobOccupGridMsg.info.origin.position.y = (-maxX);   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
 
                         ROS_DEBUG("****************************************************************************************************************");
                     }
@@ -1014,8 +1016,8 @@ namespace zed_wrapper {
         mapInfo.resolution = mTerrainMapRes;
         mapInfo.height = mapRows;
         mapInfo.width = mapCols;
-        mapInfo.origin.position.x = /*mInitialPoseSl.getTranslation().x + */ - (map_W_m / 2.0); // TODO uncomment and test when the bug in SDK is fixed
-        mapInfo.origin.position.y = /*mInitialPoseSl.getTranslation().y + */ - (map_H_m / 2.0); // TODO uncomment and test when the bug in SDK is fixed
+        mapInfo.origin.position.x = (- (map_W_m / 2.0));
+        mapInfo.origin.position.y = (- (map_H_m / 2.0));
         mapInfo.origin.position.z = 0.0;
         mapInfo.origin.orientation.x = 0.0;
         mapInfo.origin.orientation.y = 0.0;

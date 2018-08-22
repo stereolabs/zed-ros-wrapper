@@ -776,7 +776,7 @@ namespace zed_wrapper {
 
 #ifdef TERRAIN_MAPPING
         if (mTerrainMap && mZedMapping) {
-            mZedMapping->startTerrainMapping();
+            mZedMapping->startTerrainMapping(mInitialPoseSl);
         }
 #endif
     }
