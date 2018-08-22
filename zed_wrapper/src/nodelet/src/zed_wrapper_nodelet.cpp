@@ -1556,7 +1556,7 @@ namespace zed_wrapper {
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
 
-                    if ((t - old_t).toSec() > 5) {
+                    if ((t - old_t).toSec() > 5 && !mSvoMode) {
                         mZed.close();
                         NODELET_INFO("Re-opening the ZED");
                         sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;

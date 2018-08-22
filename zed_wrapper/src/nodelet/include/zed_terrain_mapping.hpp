@@ -137,6 +137,12 @@ namespace zed_wrapper {
                                  nav_msgs::GetMap::Response& res);
 
         /* \brief Service callback to GetMap service
+         * server to request Local Occupancy Map
+         */
+        bool on_get_loc_occupancy(nav_msgs::GetMap::Request&  req,
+                                  nav_msgs::GetMap::Response& res);
+
+        /* \brief Service callback to GetMap service
          * server to request Global Height Map
          */
         bool on_get_glob_height_map(nav_msgs::GetMap::Request&  req,
@@ -147,6 +153,12 @@ namespace zed_wrapper {
          */
         bool on_get_glob_cost_map(nav_msgs::GetMap::Request&  req,
                                   nav_msgs::GetMap::Response& res);
+
+        /* \brief Service callback to GetMap service
+         * server to request Global Occupancy Map
+         */
+        bool on_get_glob_occupancy(nav_msgs::GetMap::Request&  req,
+                                   nav_msgs::GetMap::Response& res);
 
       private:
         // ROS
@@ -159,12 +171,14 @@ namespace zed_wrapper {
         ros::Publisher mPubLocalHeightMrk;
         ros::Publisher mPubLocalHeightMrks;
         ros::Publisher mPubLocalCostMap;
+        ros::Publisher mPubLocalOccupGrid;
         ros::Publisher mPubGlobalHeightMap;
         ros::Publisher mPubGlobalHeightMapUpd;
         ros::Publisher mPubGlobalHeightCloud;
         ros::Publisher mPubGlobalHeightMrk;
         ros::Publisher mPubGlobalCostMap;
         ros::Publisher mPubGlobalCostMapUpd;
+        ros::Publisher mPubGlobalOccupGrid;
         ros::Publisher mPubGlobalHeightMapImg;
         ros::Publisher mPubGlobalColorMapImg;
         ros::Publisher mPubGlobalCostMapImg;
@@ -193,22 +207,25 @@ namespace zed_wrapper {
         bool mInitialized;
         bool mMappingReady;
         bool mGlobMapWholeUpdate;
-        int mDefaultMap = 0; // Map to be returned by "static_map" service: 0->HeightMap - 1->CostMap
 
         // Messages
         sensor_msgs::PointCloud2 mLocalHeightPointcloudMsg;
         sensor_msgs::PointCloud2 mGlobalHeightPointcloudMsg;
         nav_msgs::OccupancyGrid mLocHeightMapMsg;
+        nav_msgs::OccupancyGrid mLocOccupGridMsg;
         nav_msgs::OccupancyGrid mLocCostMapMsg;
         nav_msgs::OccupancyGrid mGlobHeightMapMsg;
         nav_msgs::OccupancyGrid mGlobCostMapMsg;
+        nav_msgs::OccupancyGrid mGlobOccupGridMsg;
 
         // Services
         ros::ServiceServer mSrvGetStaticMap;
         ros::ServiceServer mSrvGetGlobHeightMap;
         ros::ServiceServer mSrvGetGlobCostMap;
+        ros::ServiceServer mSrvGetGlobOccupancy;
         ros::ServiceServer mSrvGetLocHeightMap;
         ros::ServiceServer mSrvGetLocCostMap;
+        ros::ServiceServer mSrvGetLocOccupancy;
 
         sl::timeStamp mLastGlobMapTimestamp;
 
