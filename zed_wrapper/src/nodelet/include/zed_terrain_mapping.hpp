@@ -177,6 +177,7 @@ namespace zed_wrapper {
         ros::Publisher mPubGlobalHeightMrk;
         ros::Publisher mPubGlobalCostMap;
         ros::Publisher mPubGlobalCostMapUpd;
+        ros::Publisher mPubGlobalOccGridUpd;
         ros::Publisher mPubGlobalOccupGrid;
         ros::Publisher mPubGlobalHeightMapImg;
         ros::Publisher mPubGlobalColorMapImg;

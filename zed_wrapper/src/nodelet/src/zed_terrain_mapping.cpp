@@ -51,6 +51,7 @@ namespace zed_wrapper {
         string glob_height_cloud_topic  = "map/glob_map_height_cloud";
         string glob_height_marker_topic = "map/glob_map_height_cubes";
         string glob_occup_grid_topic      = "map/glob_map_occupancy";
+        string glob_occup_grid_updates_topic  = glob_occup_grid_topic + "_updates";
         string glob_cost_map_topic      = "map/glob_map_costmap";
         string glob_cost_map_updates_topic  = glob_cost_map_topic + "_updates";
         string height_map_image_topic   = "map/height_map_image";
@@ -86,12 +87,14 @@ namespace zed_wrapper {
                             boost::bind(&ZEDTerrainMapping::globalMapSubscribeCallback, this, _1), // global cost map latched
                             ros::SubscriberStatusCallback(), ros::VoidConstPtr(), true);
         ROS_INFO_STREAM("Advertised on topic " << glob_cost_map_topic);
+        mPubGlobalCostMapUpd = mNh.advertise<map_msgs::OccupancyGridUpdate>(glob_cost_map_updates_topic, 1);  // global cost map updates
+        ROS_INFO_STREAM("Advertised on topic " << glob_cost_map_updates_topic);
         mPubGlobalOccupGrid = mNh.advertise<nav_msgs::OccupancyGrid>(glob_occup_grid_topic, 1,
                               boost::bind(&ZEDTerrainMapping::globalMapSubscribeCallback, this, _1), // global occupancy map latched
                               ros::SubscriberStatusCallback(), ros::VoidConstPtr(), true);
         ROS_INFO_STREAM("Advertised on topic " << glob_occup_grid_topic);
-        mPubGlobalCostMapUpd = mNh.advertise<map_msgs::OccupancyGridUpdate>(glob_cost_map_updates_topic, 1);  // global cost map updates
-        ROS_INFO_STREAM("Advertised on topic " << glob_cost_map_updates_topic);
+        mPubGlobalOccGridUpd = mNh.advertise<map_msgs::OccupancyGridUpdate>(glob_occup_grid_updates_topic, 1);  // global occupancy map updates
+        ROS_INFO_STREAM("Advertised on topic " << glob_occup_grid_updates_topic);
 
         mPubGlobalHeightMapImg = mNh.advertise<sensor_msgs::Image>(height_map_image_topic, 1);
         ROS_INFO_STREAM("Advertised on topic " << height_map_image_topic);
@@ -521,8 +524,6 @@ namespace zed_wrapper {
                                 }
                             }
                         }
-
-
                     }
                 }
             }
@@ -553,13 +554,14 @@ namespace zed_wrapper {
 
     void ZEDTerrainMapping::publishGlobalMaps(std::vector<sl::HashKey>& chunks, ros::Time t) {
         // Subscribers count
-        uint32_t heightSub = mPubGlobalHeightMap.getNumSubscribers();
-        uint32_t costSub = mPubGlobalCostMap.getNumSubscribers();
-        uint32_t cloudSub = mPubGlobalHeightCloud.getNumSubscribers();
-        uint32_t mrkSub = mPubGlobalHeightMrk.getNumSubscribers();
-        uint32_t heightUpdSub = mPubGlobalHeightMapUpd.getNumSubscribers();
-        uint32_t costUpdSub = mPubGlobalCostMapUpd.getNumSubscribers();
-        uint32_t occGrPub = mPubGlobalOccupGrid.getNumSubscribers();
+        uint32_t heightSub      = mPubGlobalHeightMap.getNumSubscribers();
+        uint32_t costSub        = mPubGlobalCostMap.getNumSubscribers();
+        uint32_t cloudSub       = mPubGlobalHeightCloud.getNumSubscribers();
+        uint32_t mrkSub         = mPubGlobalHeightMrk.getNumSubscribers();
+        uint32_t heightUpdSub   = mPubGlobalHeightMapUpd.getNumSubscribers();
+        uint32_t costUpdSub     = mPubGlobalCostMapUpd.getNumSubscribers();
+        uint32_t occGrUpdSub    = mPubGlobalOccGridUpd.getNumSubscribers();
+        uint32_t occGrSub       = mPubGlobalOccupGrid.getNumSubscribers();
 
         // Map sizes
         float mapWm = mGlobHeightMapMsg.info.width * mGlobHeightMapMsg.info.resolution;
@@ -616,10 +618,12 @@ namespace zed_wrapper {
         float updMinX = FLT_MAX, updMinY = FLT_MAX, updMaxX = -FLT_MAX, updMaxY = -FLT_MAX;
         map_msgs::OccupancyGridUpdate heightUpdMsg;
         map_msgs::OccupancyGridUpdate costUpdMsg;
+        map_msgs::OccupancyGridUpdate occGridUpdMsg;
+
 
         int updMinU, updMaxU, updMinV, updMaxV;
 
-        if (heightUpdSub > 0 || costUpdSub > 0) {
+        if (heightUpdSub > 0 || costUpdSub > 0 || occGrUpdSub > 0) {
             std::vector<sl::HashKey>::iterator it;
 
             // Updates map limits
@@ -686,7 +690,7 @@ namespace zed_wrapper {
                     continue; // Index out of range
                 }
 
-                if (costUpdSub > 0 || heightUpdSub > 0) {
+                if (costUpdSub > 0 || heightUpdSub > 0 || occGrUpdSub > 0) {
                     // Updates only
                     // (xm,ym) to ROS whole map index
                     uint32_t updU = static_cast<uint32_t>(round((ym - updMinX) / mTerrainMapRes)); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
@@ -787,7 +791,7 @@ namespace zed_wrapper {
             mPubGlobalCostMap.publish(mGlobCostMapMsg);
         }
 
-        if (occGrPub > 0) {
+        if (occGrSub > 0) {
             mPubGlobalOccupGrid.publish(mGlobOccupGridMsg);
         }
 
@@ -800,13 +804,16 @@ namespace zed_wrapper {
         }
 
         if (heightUpdSub > 0) {
-            // mPubGlobalHeightMapUpd.publish(heightUpdMsg); // TODO Uncomment when ready
+            //mPubGlobalHeightMapUpd.publish(heightUpdMsg); // TODO Uncomment when ready
         }
 
         if (costUpdSub > 0) {
             // mPubGlobalCostMapUpd.publish(costUpdMsg); // TODO Uncomment when ready
         }
 
+        if (occGrUpdSub > 0) {
+            //mPubGlobalOccGridUpd.publish(occGridUpdMsg); // TODO Uncomment when ready
+        }
     }
 
     void ZEDTerrainMapping::globalTerrainCallback(const ros::TimerEvent& e) {
@@ -840,9 +847,10 @@ namespace zed_wrapper {
 
         uint32_t heightUpdSub = mPubGlobalHeightMapUpd.getNumSubscribers();
         uint32_t costUpdSub = mPubGlobalCostMapUpd.getNumSubscribers();
+        uint32_t occGridUpdSub = mPubGlobalOccGridUpd.getNumSubscribers();
 
         uint32_t run = heightImgSub + colorImgSub + costImgSub + heightMapSub + costMapSub + cloudSub + mrkSub +
-                       heightUpdSub + costUpdSub + occGridSub;
+                       heightUpdSub + costUpdSub + occGridSub + occGridUpdSub;
 
         if (run > 0) {
             sl::Mat sl_heightMap, sl_colorMap, sl_traversMap;

@@ -580,10 +580,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.93979615
+      Pitch: 0.304796666
       Target Frame: zed_camera_center
       Value: Orbit (rviz)
-      Yaw: 3.13040805
+      Yaw: 0.505405962
     Saved:
       - Angle: -1.57079637
         Class: rviz/TopDownOrtho
