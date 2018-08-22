@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>zed_wrapper</name>
+  <version>1.0.0</version>
+  <description>zed_wrapper is a ROS wrapper for the <a href="http://www.stereolabs.com/developers/">ZED library</a>
+    for interfacing with the ZED camera.
+  </description>
+<maintainer email="developers@stereolabs.com">STEREOLABS</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>  
+  
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>rosconsole</depend>
+  <depend>sensor_msgs</depend>
+  <depend>stereo_msgs</depend>
+  <depend>opencv3</depend>
+  <depend>image_transport</depend>
+  <depend>dynamic_reconfigure</depend>
+  <depend>nodelet</depend>
+  
+  <build_depend>urdf</build_depend>
+  <build_depend>message_generation</build_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
+  
+  <export>
+    <nodelet plugin="${prefix}/nodelet_plugins.xml" />
+  </export>
+</package>

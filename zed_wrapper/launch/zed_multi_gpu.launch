@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2018, STEREOLABS.
+
+All rights reserved.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<launch>
+
+    <arg name="pose_frame"           default="map" />
+    <arg name="camera_model"         default="1" /> <!-- 0=ZED, 1=ZEDM-->
+    <arg name="serial_number"        default="0" />
+    <arg name="verbose"              default="true" />
+
+    <arg name="resolution"           default="2" /> <!--0=RESOLUTION_HD2K, 1=RESOLUTION_HD1080, 2=RESOLUTION_HD720, 3=RESOLUTION_VGA -->
+    <arg name="frame_rate"           default="30" />
+    <!-- RESOLUTION_HD2K   -> 2208*1242, available framerates: 15 fps.
+         RESOLUTION_HD1080 -> 1920*1080, available framerates: 15, 30 fps.
+         RESOLUTION_HD720  -> 1280*720,  available framerates: 15, 30, 60 fps.
+         RESOLUTION_VGA    -> 672*376,   available framerates: 15, 30, 60, 100 fps. -->
+
+
+    <arg name="zed_id1"               default="0" />
+    <arg name="zed_id2"               default="1" />
+
+    <!-- First ZED camera on GPU 0 -->
+    <group ns="zed_GPU0">
+        <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+            <arg name="zed_id"                value="$(arg zed_id1)" />
+            <!-- Set GPU -->
+            <arg name="gpu_id"                value="0" />            
+
+            <arg name="pose_frame"          value="$(arg pose_frame)" />
+            <arg name="camera_model"        value="$(arg camera_model)" />
+            <arg name="serial_number"       default="$(arg serial_number)" />
+            <arg name="resolution"          default="$(arg resolution)" />
+            <arg name="frame_rate"          default="$(arg frame_rate)" />
+            <arg name="verbose"             default="$(arg verbose)" />
+        </include>
+    </group>
+
+    <!-- Second ZED camera on GPU 1 -->
+    <group ns="zed_GPU1">
+        <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+            <arg name="zed_id"                value="$(arg zed_id2)" />
+            <!-- Set GPU -->
+            <arg name="gpu_id"                value="1" />
+
+            <arg name="pose_frame"          value="$(arg pose_frame)" />
+            <arg name="camera_model"        value="$(arg camera_model)" />
+            <arg name="serial_number"       default="$(arg serial_number)" />
+            <arg name="resolution"          default="$(arg resolution)" />
+            <arg name="frame_rate"          default="$(arg frame_rate)" />
+            <arg name="verbose"             default="$(arg verbose)" />
+        </include>
+    </group>
+
+</launch>
