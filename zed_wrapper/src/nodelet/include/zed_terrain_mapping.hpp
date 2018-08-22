@@ -169,7 +169,6 @@ namespace zed_wrapper {
         ros::Publisher mPubLocalHeightMap;
         ros::Publisher mPubLocalHeightCloud;
         ros::Publisher mPubLocalHeightMrk;
-        ros::Publisher mPubLocalHeightMrks;
         ros::Publisher mPubLocalCostMap;
         ros::Publisher mPubLocalOccupGrid;
         ros::Publisher mPubGlobalHeightMap;

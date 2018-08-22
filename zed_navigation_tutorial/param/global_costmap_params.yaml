@@ -6,11 +6,23 @@ global_costmap:
     static_map:             true
     transform_tolerance:    10.0
     plugins:
+        - {name: glob_occupancy_layer,         type: "costmap_2d::StaticLayer"}
         - {name: glob_height_layer,            type: "costmap_2d::StaticLayer"}
-        - {name: glob_traversability_layer,    type: "costmap_2d::StaticLayer"}
+        - {name: glob_traversability_layer,    type: "costmap_2d::StaticLayer"}        
+
+    glob_occupancy_layer:
+        enabled:                true
+        map_topic:              zed/map/glob_map_occupancy
+        first_map_only:         false
+        unknown_cost_value:     -1
+        lethal_cost_threshold:  100
+        subscribe_to_updates:   false
+        track_unknown_space:    true
+        use_maximum:            false     
+        trinary_costmap:        true
 
     glob_height_layer:
-        enabled:                true
+        enabled:                false
         map_topic:              zed/map/glob_map_heightmap
         first_map_only:         false
         unknown_cost_value:     -1
@@ -21,7 +33,7 @@ global_costmap:
         trinary_costmap:        false       
 
     glob_traversability_layer:
-        enabled:                true
+        enabled:                false
         map_topic:              zed/map/glob_map_costmap
         first_map_only:         false
         unknown_cost_value:     -1

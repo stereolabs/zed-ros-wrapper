@@ -44,7 +44,6 @@ namespace zed_wrapper {
         string loc_height_map_topic     = "map/loc_map_heightmap";
         string loc_height_cloud_topic   = "map/loc_map_height_cloud";
         string loc_height_marker_topic  = "map/loc_map_height_cubes";
-        string loc_height_markers_topic = "map/loc_map_height_boxes";
         string loc_cost_map_topic       = "map/loc_map_costmap";
         string loc_occup_grid_topic     = "map/loc_map_occupancy";
         string glob_height_map_topic    = "map/glob_map_heightmap";
@@ -66,8 +65,6 @@ namespace zed_wrapper {
         ROS_INFO_STREAM("Advertised on topic " << loc_height_cloud_topic);
         mPubLocalHeightMrk = mNh.advertise<visualization_msgs::Marker>(loc_height_marker_topic, 1); // local height cubes
         ROS_INFO_STREAM("Advertised on topic " << loc_height_marker_topic);
-        mPubLocalHeightMrks = mNh.advertise<visualization_msgs::MarkerArray>(loc_height_markers_topic, 1); // local height boxes
-        ROS_INFO_STREAM("Advertised on topic " << loc_height_markers_topic);
         mPubLocalCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_cost_map_topic, 1); // local cost map
         ROS_INFO_STREAM("Advertised on topic " << loc_cost_map_topic);
         mPubLocalOccupGrid = mNh.advertise<nav_msgs::OccupancyGrid>(loc_occup_grid_topic, 1); // local occupancy grid
@@ -212,10 +209,9 @@ namespace zed_wrapper {
         uint32_t costSub = mPubLocalCostMap.getNumSubscribers();
         uint32_t cloudSub = mPubLocalHeightCloud.getNumSubscribers();
         uint32_t mrkSub = mPubLocalHeightMrk.getNumSubscribers();
-        uint32_t mrksSub = mPubLocalHeightMrks.getNumSubscribers();
         uint32_t occGrPub = mPubLocalOccupGrid.getNumSubscribers();
 
-        uint32_t run = heightSub + costSub + cloudSub + mrkSub + mrksSub + occGrPub;
+        uint32_t run = heightSub + costSub + cloudSub + mrkSub + occGrPub;
 
         if (run > 0) {
             if (mZed->retrieveTerrainAsync(mTerrain) == sl::SUCCESS) {
@@ -313,7 +309,6 @@ namespace zed_wrapper {
         uint32_t costSub = mPubLocalCostMap.getNumSubscribers();
         uint32_t cloudSub = mPubLocalHeightCloud.getNumSubscribers();
         uint32_t mrkSub = mPubLocalHeightMrk.getNumSubscribers();
-        uint32_t mrksSub = mPubLocalHeightMrks.getNumSubscribers();
         uint32_t occGrPub = mPubLocalOccupGrid.getNumSubscribers();
 
         // Map sizes
@@ -413,9 +408,6 @@ namespace zed_wrapper {
             marker.action = visualization_msgs::Marker::MODIFY;
         }
 
-        // Height MarkerArray
-        visualization_msgs::MarkerArray markers;
-
         #pragma omp parallel for
         for (int k = 0; k < chunks.size(); k++) {
             //ROS_DEBUG("*** NEW CHUNK parsing ***");
@@ -458,12 +450,14 @@ namespace zed_wrapper {
 
                 uint32_t mapIdx = u + v * mapCols;
 
-                if (mapIdx >= totCell) {
+                if (mapIdx >= totCell ||
+                    u >= mapCols ||
+                    v >= mapRows) {
                     ROS_DEBUG_STREAM("[Local map] Cell OUT OF RANGE: [" << u << "," << v << "] -> " << mapIdx);
                     continue;
                 }
 
-                // Trinaty Occupancy Grid
+                // Trinary Occupancy Grid
                 if (occGrPub > 0) {
                     int8_t val = static_cast<int8_t>(chunk.at(sl::OCCUPANCY, i));
                     mLocOccupGridMsg.data.at(mapIdx) = val;
@@ -475,7 +469,7 @@ namespace zed_wrapper {
                     mLocCostMapMsg.data.at(mapIdx) = cost;
                 }
 
-                if (cloudSub > 0 || heightSub > 0 || mrkSub > 0 || mrksSub > 0) {
+                if (cloudSub > 0 || heightSub > 0 || mrkSub > 0) {
                     float height = chunk.at(sl::ELEVATION, i);
                     int8_t heightAbs = static_cast<int8_t>(fabs(round(height / mMapMaxHeight) * 100));
 
@@ -484,7 +478,7 @@ namespace zed_wrapper {
                         mLocHeightMapMsg.data.at(mapIdx) = heightAbs;
                     }
 
-                    if (cloudSub > 0 || mrkSub > 0 || mrksSub > 0) {
+                    if (cloudSub > 0 || mrkSub > 0) {
                         float color_f = static_cast<float>(chunk.at(sl::COLOR, i));
                         sl::float3 color = sl_tools::depackColor3f(color_f);
 
@@ -528,34 +522,7 @@ namespace zed_wrapper {
                             }
                         }
 
-                        // Parallelepipeds
-                        if (mrksSub > 0 && fabs(height) > 0) {
-                            visualization_msgs::Marker heightBox;
-                            heightBox.header.frame_id = mMapFrameId;
-                            heightBox.header.stamp = t;
-                            heightBox.ns = "height_boxes";
-                            heightBox.id = mapIdx;
-                            heightBox.type = visualization_msgs::Marker::CUBE;
-                            heightBox.pose.position.x = ym + (mTerrainMapRes / 2);  // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                            heightBox.pose.position.y = -xm  + (mTerrainMapRes / 2); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                            heightBox.pose.position.z = height / 2;
-                            heightBox.pose.orientation.x = 0.0;
-                            heightBox.pose.orientation.y = 0.0;
-                            heightBox.pose.orientation.z = 0.0;
-                            heightBox.pose.orientation.w = 1.0;
-                            heightBox.scale.x = mTerrainMapRes;
-                            heightBox.scale.y = mTerrainMapRes;
-                            heightBox.scale.z = height;
-                            heightBox.color.a = 1.0;
-                            heightBox.color.r = color.r;
-                            heightBox.color.g = color.g;
-                            heightBox.color.b = color.b;
-                            heightBox.action = visualization_msgs::Marker::MODIFY;
-                            heightBox.lifetime = ros::Duration(1.0 / mLocalTerrainPubRate);
 
-                            #pragma omp critical
-                            markers.markers.push_back(heightBox);
-                        }
                     }
                 }
             }
@@ -581,10 +548,6 @@ namespace zed_wrapper {
 
         if (mrkSub > 0) {
             mPubLocalHeightMrk.publish(marker);
-        }
-
-        if (mrksSub > 0) {
-            mPubLocalHeightMrks.publish(markers);
         }
     }
 
@@ -700,7 +663,6 @@ namespace zed_wrapper {
 
                 float height = std::numeric_limits<float>::quiet_NaN();
                 int heightNorm = -1, costNorm = -1, occupancy = -1; // If cell is not valid the current value must be replaced with -1
-
 
                 if (chunk.isCellValid(i)) { // Leave the value to its default: -1
                     height = chunk.at(sl::ELEVATION, i);
@@ -825,7 +787,7 @@ namespace zed_wrapper {
             mPubGlobalCostMap.publish(mGlobCostMapMsg);
         }
 
-        if (occGrPub) {
+        if (occGrPub > 0) {
             mPubGlobalOccupGrid.publish(mGlobOccupGridMsg);
         }
 
@@ -874,12 +836,13 @@ namespace zed_wrapper {
         uint32_t costMapSub = mPubGlobalCostMap.getNumSubscribers();
         uint32_t cloudSub = mPubGlobalHeightCloud.getNumSubscribers();
         uint32_t mrkSub = mPubGlobalHeightMrk.getNumSubscribers();
+        uint32_t occGridSub = mPubGlobalOccupGrid.getNumSubscribers();
 
         uint32_t heightUpdSub = mPubGlobalHeightMapUpd.getNumSubscribers();
         uint32_t costUpdSub = mPubGlobalCostMapUpd.getNumSubscribers();
 
         uint32_t run = heightImgSub + colorImgSub + costImgSub + heightMapSub + costMapSub + cloudSub + mrkSub +
-                       heightUpdSub + costUpdSub;
+                       heightUpdSub + costUpdSub + occGridSub;
 
         if (run > 0) {
             sl::Mat sl_heightMap, sl_colorMap, sl_traversMap;
