@@ -17,6 +17,10 @@ The tutorial is mainly directed to ground robots and uses the [Turtlebot2](https
 - [Turtlebot2](https://www.turtlebot.com/turtlebot2/) tutorial robotic platform
 
 ### Execution
+- Bringup the TurtleBot2 robot:
+
+  `$ roslaunch turtlebot_bringup minimal.launch --screen`
+  
 - Start the ZED SDK and the mapping (SLAM) using the command
 
   `$ roslaunch zed_navigation_tutorial zed_navigation_demo.launch`
@@ -24,14 +28,13 @@ The tutorial is mainly directed to ground robots and uses the [Turtlebot2](https
   The ZED nodelet is started as in the "zed_nodelet_example" to generate a "/zed/virt_scan" topic that can be used to easily detect obstacles.
   
   The [`move_base`](http://wiki.ros.org/move_base) node is also started to initialize the ROS Navigation interface.
+  
 - Start the visualization interface using the command
 
   `$ roslaunch zed_navigation_tutorial zed_display_navigation.launch`
   
   we suggest to execute this command on another machine on the same local network since simoultaneous visualization and mapping on the same system require a huge amount of computational power.
-- Bringup the robot and start the navigation:
 
-  `$ roslaunch turtlebot_bringup minimal.launch --screen`
 - To set a **goal** to be reached by the robot on Rviz select `2D nav goal` on the upper toolbar and click on a point of the 3D view to set the final position and orientation
 
   [TODO add image]
