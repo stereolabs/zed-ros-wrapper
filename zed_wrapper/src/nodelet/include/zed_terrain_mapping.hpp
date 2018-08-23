@@ -166,22 +166,28 @@ namespace zed_wrapper {
         ros::NodeHandle mNhNs;
 
         // Publishers
-        ros::Publisher mPubLocalHeightMap;
-        ros::Publisher mPubLocalHeightCloud;
-        ros::Publisher mPubLocalHeightMrk;
-        ros::Publisher mPubLocalCostMap;
-        ros::Publisher mPubLocalOccupGrid;
-        ros::Publisher mPubGlobalHeightMap;
-        ros::Publisher mPubGlobalHeightMapUpd;
-        ros::Publisher mPubGlobalHeightCloud;
-        ros::Publisher mPubGlobalHeightMrk;
-        ros::Publisher mPubGlobalCostMap;
-        ros::Publisher mPubGlobalCostMapUpd;
-        ros::Publisher mPubGlobalOccGridUpd;
-        ros::Publisher mPubGlobalOccupGrid;
-        ros::Publisher mPubGlobalHeightMapImg;
-        ros::Publisher mPubGlobalColorMapImg;
-        ros::Publisher mPubGlobalCostMapImg;
+        ros::Publisher mPubLocalHeightMap;          // Local Height Map publisher
+        ros::Publisher mPubLocalHeightCloud;        // Local Height Pointcloud publisher
+        ros::Publisher mPubLocalHeightMrk;          // Local Height Cubes publisher
+        ros::Publisher mPubLocalCostMap;            // Local Costmap publisher
+        ros::Publisher mPubLocalInflatedOccupGrid;  // Local Inflated occupancy grid publisher (thresholded costmap)
+        ros::Publisher mPubLocalDynObstaclesMap;       // Local Dynamic Obstacles
+
+        ros::Publisher mPubGlobalHeightMap;         // Global Height Map publisher
+
+        ros::Publisher mPubGlobalHeightCloud;       // Global Height Pointcloud publisher
+        ros::Publisher mPubGlobalHeightMrk;         // Global Height Cubes publisher
+        ros::Publisher mPubGlobalCostMap;           // Global Costmap publisher
+        ros::Publisher mPubGlobalInflatedOccupGrid; // Global Inflated occupancy grid publisher (thresholded costmap)
+
+        //ros::Publisher mPubGlobalHeightMapUpd;
+        //ros::Publisher mPubGlobalCostMapUpd;
+        //ros::Publisher mPubGlobalOccGridUpd;
+
+        ros::Publisher mPubGlobalHeightMapImg;      // Global Height Map Image publisher
+        ros::Publisher mPubGlobalColorMapImg;       // Global Height Map Image publisher
+        ros::Publisher mPubGlobalCostMapImg;        // Global Height Map Image publisher
+
 
         // Frames
         std::string mMapFrameId;
@@ -213,11 +219,12 @@ namespace zed_wrapper {
         sensor_msgs::PointCloud2 mLocalHeightPointcloudMsg;
         sensor_msgs::PointCloud2 mGlobalHeightPointcloudMsg;
         nav_msgs::OccupancyGrid mLocHeightMapMsg;
-        nav_msgs::OccupancyGrid mLocOccupGridMsg;
+        nav_msgs::OccupancyGrid mLocInflatedOccupGridMsg;
         nav_msgs::OccupancyGrid mLocCostMapMsg;
+        nav_msgs::OccupancyGrid mLocDynObstaclesMsg;
         nav_msgs::OccupancyGrid mGlobHeightMapMsg;
         nav_msgs::OccupancyGrid mGlobCostMapMsg;
-        nav_msgs::OccupancyGrid mGlobOccupGridMsg;
+        nav_msgs::OccupancyGrid mGlobInflatedOccupGridMsg;
 
         // Services
         ros::ServiceServer mSrvGetStaticMap;
