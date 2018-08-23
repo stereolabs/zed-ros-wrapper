@@ -957,17 +957,15 @@ namespace zed_wrapper {
             mPointcloudMsg.is_bigendian = false;
             mPointcloudMsg.is_dense = false;
 
+            mPointcloudMsg.width = mMatWidth;
+            mPointcloudMsg.height = mMatHeight;
+
             sensor_msgs::PointCloud2Modifier modifier(mPointcloudMsg);
             modifier.setPointCloud2Fields(4,
                                           "x", 1, sensor_msgs::PointField::FLOAT32,
                                           "y", 1, sensor_msgs::PointField::FLOAT32,
                                           "z", 1, sensor_msgs::PointField::FLOAT32,
                                           "rgb", 1, sensor_msgs::PointField::FLOAT32);
-
-            modifier.resize(ptsCount);
-
-            mPointcloudMsg.width = mMatWidth;
-            mPointcloudMsg.height = mMatHeight;
         }
 
         sl::Vector4<float>* cpu_cloud = mCloud.getPtr<sl::float4>();
@@ -1251,12 +1249,12 @@ namespace zed_wrapper {
                 mMapPath[mPathMaxCount - 1] = mapPose;
                 mOdomPath[mPathMaxCount - 1] = odomPose;
             } else {
-                NODELET_DEBUG_STREAM("Path vectors adding last available poses");
+                //NODELET_DEBUG_STREAM("Path vectors adding last available poses");
                 mMapPath.push_back(mapPose);
                 mOdomPath.push_back(odomPose);
             }
         } else {
-            NODELET_DEBUG_STREAM("No limit path vectors adding last available poses");
+            //NODELET_DEBUG_STREAM("No limit path vectors, adding last available poses");
             mMapPath.push_back(mapPose);
             mOdomPath.push_back(odomPose);
         }
