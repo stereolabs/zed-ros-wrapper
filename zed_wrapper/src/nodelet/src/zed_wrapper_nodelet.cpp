@@ -930,17 +930,15 @@ namespace zed_wrapper {
             mPointcloudMsg.is_bigendian = false;
             mPointcloudMsg.is_dense = false;
 
+            mPointcloudMsg.width = matWidth;
+            mPointcloudMsg.height = matHeight;
+
             sensor_msgs::PointCloud2Modifier modifier(mPointcloudMsg);
             modifier.setPointCloud2Fields(4,
                                           "x", 1, sensor_msgs::PointField::FLOAT32,
                                           "y", 1, sensor_msgs::PointField::FLOAT32,
                                           "z", 1, sensor_msgs::PointField::FLOAT32,
                                           "rgb", 1, sensor_msgs::PointField::FLOAT32);
-
-            modifier.resize(ptsCount);
-
-            mPointcloudMsg.width = matWidth;
-            mPointcloudMsg.height = matHeight;
         }
 
         sl::Vector4<float>* cpu_cloud = cloud.getPtr<sl::float4>();
