@@ -51,7 +51,7 @@ namespace zed_wrapper {
         //string glob_height_map_updates_topic = glob_height_map_topic + "_updates";
         string glob_height_cloud_topic  = "map/glob_map_height_cloud";
         string glob_height_marker_topic = "map/glob_map_height_cubes";
-        string glob_occup_grid_topic      = "map/glob_map_occupancy";
+        string glob_occup_grid_topic    = "map/glob_map_occupancy";
         //string glob_occup_grid_updates_topic  = glob_occup_grid_topic + "_updates";
         string glob_cost_map_topic      = "map/glob_map_costmap";
         //string glob_cost_map_updates_topic  = glob_cost_map_topic + "_updates";
@@ -263,6 +263,8 @@ namespace zed_wrapper {
                 // Process the robot surrounding chunks
                 float camX = cam_to_map.getOrigin().x();
                 float camY = cam_to_map.getOrigin().y();
+                float camZ = cam_to_map.getOrigin().z();
+
                 chunks = mTerrain.getSurroundingValidChunks(-camY, camX, mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
 
                 ROS_DEBUG_STREAM(" ********************** Camera Position: " << camX << "," << camY);
@@ -299,7 +301,7 @@ namespace zed_wrapper {
                     }
 
                     mLocMapMutex.lock();
-                    publishLocalMaps(camX, camY, minX, minY, maxX, maxY, chunks, sl_tools::slTime2Ros(t));
+                    publishLocalMaps(camX, camY, camZ, minX, minY, maxX, maxY, chunks, sl_tools::slTime2Ros(t));
                     mLocMapMutex.unlock();
                 }
             } else {
@@ -311,7 +313,7 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDTerrainMapping::publishLocalMaps(float camX, float camY, float minX, float minY, float maxX, float maxY,
+    void ZEDTerrainMapping::publishLocalMaps(float camX, float camY, float camZ, float minX, float minY, float maxX, float maxY,
             std::vector<sl::HashKey>& chunks,
             ros::Time t) {
         // Subscribers count
@@ -494,11 +496,16 @@ namespace zed_wrapper {
 
                 if (cloudSub > 0 || heightSub > 0 || mrkSub > 0) {
                     float height = chunk.at(sl::ELEVATION, i);
-                    int8_t heightAbs = static_cast<int8_t>(fabs(round(height / mMapMaxHeight) * 100));
+                    float heightNorm = fabs(height / (camZ + mMapMaxHeight));
+                    if (heightNorm > 1.0f) {
+                        heightNorm = 1.0f;
+                    }
+
+                    int8_t heightScaled = static_cast<int8_t>(round(heightNorm * 100.0f));
 
                     // Height Map
                     if (heightSub > 0) {
-                        mLocHeightMapMsg.data.at(mapIdx) = heightAbs;
+                        mLocHeightMapMsg.data.at(mapIdx) = heightScaled;
                     }
 
                     if (cloudSub > 0 || mrkSub > 0) {
@@ -576,7 +583,7 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDTerrainMapping::publishGlobalMaps(std::vector<sl::HashKey>& chunks, ros::Time t) {
+    void ZEDTerrainMapping::publishGlobalMaps(float camZ, std::vector<sl::HashKey>& chunks, ros::Time t) {
         // Subscribers count
         uint32_t heightSub      = mPubGlobalHeightMap.getNumSubscribers();
         uint32_t costSub        = mPubGlobalCostMap.getNumSubscribers();
@@ -690,21 +697,24 @@ namespace zed_wrapper {
             for (unsigned int i = 0; i < cellCount; i++) {
 
                 float height = std::numeric_limits<float>::quiet_NaN();
-                int heightNorm = -1, costNorm = -1, occupancy = -1; // If cell is not valid the current value must be replaced with -1
+                int costScaled = -1, occupancy = -1; // If cell is not valid the current value must be replaced with -1
+                int8_t heightScaled = -1;
 
                 if (chunk.isCellValid(i)) { // Leave the value to its default: -1
                     height = chunk.at(sl::ELEVATION, i);
-                    heightNorm = static_cast<int8_t>(fabs(round(height / mMapMaxHeight) * 100));
-                    costNorm = static_cast<int8_t>(chunk.at(sl::TRAVERSABILITY_COST, i) * 100);
+                    float heightNorm = fabs(height / (camZ + mMapMaxHeight));
+                    if (heightNorm > 1.0f) {
+                        heightNorm = 1.0f;
+                    }
+                    heightScaled = static_cast<int8_t>(round(heightNorm * 100.0f));
+
+                    costScaled = static_cast<uint8_t>(chunk.at(sl::TRAVERSABILITY_COST, i) * 100);
+
                     occupancy = static_cast<int8_t>(chunk.at(sl::OCCUPANCY, i));
 
-                    if (!isfinite(heightNorm)) {
-                        heightNorm = -1;
-                        height = std::numeric_limits<float>::quiet_NaN();
-                    }
-
-                    if (!isfinite(heightNorm)) {
-                        costNorm = -1;
+                    if (!isfinite(height)) {
+                        heightScaled = -1;
+                        costScaled = -1;
                         height = std::numeric_limits<float>::quiet_NaN();
                     }
                 }
@@ -740,8 +750,8 @@ namespace zed_wrapper {
                 }
 
                 //ROS_DEBUG_STREAM("Cell: [" << u << "," << v << "] -> " << mapIdx);
-                mGlobHeightMapMsg.data.at(mapIdx) = heightNorm;
-                mGlobCostMapMsg.data.at(mapIdx) = costNorm;
+                mGlobHeightMapMsg.data.at(mapIdx) = heightScaled;
+                mGlobCostMapMsg.data.at(mapIdx) = costScaled;
                 mGlobInflatedOccupGridMsg.data.at(mapIdx) = occupancy;
 
                 if (cloudSub > 0 || mrkSub > 0) {
@@ -888,6 +898,26 @@ namespace zed_wrapper {
                 mZed->requestTerrainAsync();
                 mTerrainMutex.unlock();
 
+                // Camera position in map frame
+                // Look up the transformation from base frame to map link
+                tf2::Transform cam_to_map;
+                try {
+                    // Save the transformation from base to frame
+                    geometry_msgs::TransformStamped c2m =
+                        mTfBuffer->lookupTransform(mMapFrameId, mCameraFrameId,  ros::Time(0));
+                    // Get the TF2 transformation
+                    tf2::fromMsg(c2m.transform, cam_to_map);
+                } catch (tf2::TransformException& ex) {
+                    ROS_WARN_THROTTLE(
+                        10.0, "The tf from '%s' to '%s' does not seem to be available. "
+                        "IMU TF not published!",
+                        mCameraFrameId.c_str(), mMapFrameId.c_str());
+                    ROS_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+                    return;
+                }
+
+                float camZ = cam_to_map.getOrigin().z();
+
                 // Chunks list
                 std::vector<sl::HashKey> chunks;
 
@@ -972,7 +1002,7 @@ namespace zed_wrapper {
                     }
 
                     // Publish global map
-                    publishGlobalMaps(chunks, sl_tools::slTime2Ros(mLastGlobMapTimestamp));
+                    publishGlobalMaps(camZ, chunks, sl_tools::slTime2Ros(mLastGlobMapTimestamp));
 
                     mGlobMapMutex.unlock();
                 } else {

@@ -109,13 +109,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="terrain_mapping"           value="true" />
         <param name="loc_terrain_pub_rate"      value="5.0" />
         <param name="glob_terrain_pub_rate"     value="1.0" />
-        <param name="mapping_agent_step"        value="0.05" />
-        <param name="mapping_agent_slope"       value="20.0" />
+        <param name="mapping_agent_step"        value="0.2" />
+        <param name="mapping_agent_slope"       value="30.0" />
         <param name="mapping_agent_radius"      value="0.18" />
         <param name="mapping_agent_height"      value="0.8" />
-        <param name="mapping_agent_roughness"   value="0.05" />
+        <param name="mapping_agent_roughness"   value="0.3" />
         <param name="mapping_max_depth"         value="3.5" />
-        <param name="mapping_max_height"        value="0.5" />
+        <param name="mapping_max_height"        value="0.7" />
         <param name="mapping_height_resol"      value="0.03" />
         <param name="mapping_local_circular"    value="false" />
         <param name="mapping_local_size"        value="3.0" />

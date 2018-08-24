@@ -9,8 +9,9 @@ Panels:
         - /TF1/Frames1
         - /Camera1/Visibility1
         - /Odometry1/Covariance1/Position1
-        - /Local Maps1
+        - /Local Maps1/L. Map1
         - /Local Maps1/L. Height Cubes1/Namespaces1
+        - /Global Maps1/G. Map1
       Splitter Ratio: 0.5
     Tree Height: 438
   - Class: rviz/Selection
@@ -373,7 +374,7 @@ Visualization Manager:
           Unreliable: false
           Use Timestamp: false
           Value: false
-        - Alpha: 0.300000012
+        - Alpha: 0.5
           Class: rviz/Map
           Color Scheme: raw
           Draw Behind: false
@@ -387,13 +388,13 @@ Visualization Manager:
           Class: rviz/Map
           Color Scheme: map
           Draw Behind: false
-          Enabled: false
+          Enabled: true
           Name: L. Height Map
           Topic: /zed/map/loc_map_heightmap
           Unreliable: true
           Use Timestamp: true
-          Value: false
-        - Alpha: 0.300000012
+          Value: true
+        - Alpha: 0.5
           Class: rviz/Map
           Color Scheme: costmap
           Draw Behind: false
@@ -445,7 +446,7 @@ Visualization Manager:
       Name: Local Maps
     - Class: rviz/Group
       Displays:
-        - Alpha: 0.300000012
+        - Alpha: 0.699999988
           Class: rviz/Map
           Color Scheme: map
           Draw Behind: true
@@ -459,22 +460,22 @@ Visualization Manager:
           Class: rviz/Map
           Color Scheme: map
           Draw Behind: false
-          Enabled: false
+          Enabled: true
           Name: G. Height Map
           Topic: /zed/map/glob_map_heightmap
           Unreliable: false
           Use Timestamp: false
-          Value: false
+          Value: true
         - Alpha: 0.5
           Class: rviz/Map
           Color Scheme: costmap
           Draw Behind: false
-          Enabled: false
+          Enabled: true
           Name: G. Cost Map
           Topic: /zed/map/glob_map_costmap
           Unreliable: true
           Use Timestamp: true
-          Value: false
+          Value: true
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -576,25 +577,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 19.6315842
+      Distance: 18.5249958
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.64790225
-        Y: -0.873637199
-        Z: -0.667467833
+        X: 5.223279
+        Y: 0.465160728
+        Z: 0.471362025
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.934796333
+      Pitch: 1.56979632
       Target Frame: zed_camera_center
       Value: Orbit (rviz)
-      Yaw: 3.21359444
+      Yaw: 3.16359377
     Saved:
       - Angle: -1.57079637
         Class: rviz/TopDownOrtho

@@ -27,13 +27,13 @@ A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
     <!-- ZED Mapping -->
     <arg name="loc_terrain_pub_rate"      default="5.0" />
     <arg name="glob_terrain_pub_rate"     default="1.0" />
-    <arg name="mapping_agent_step"        default="0.05" />
-    <arg name="mapping_agent_slope"       default="20.0" />
+    <arg name="mapping_agent_step"        default="0.2" />
+    <arg name="mapping_agent_slope"       default="30.0" />
     <arg name="mapping_agent_radius"      default="0.25" />
     <arg name="mapping_agent_height"      default="0.8" />
-    <arg name="mapping_agent_roughness"   default="0.05" />
+    <arg name="mapping_agent_roughness"   default="0.3" />
     <arg name="mapping_max_depth"         default="3.5" />
-    <arg name="mapping_max_height"        default="0.75" />
+    <arg name="mapping_max_height"        default="0.7" />
     <arg name="mapping_height_resol"      default="0.02" />
     <arg name="mapping_local_circular"    default="false" />
     <arg name="mapping_local_size"        default="3.0" />

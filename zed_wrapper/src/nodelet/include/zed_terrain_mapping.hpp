@@ -97,7 +97,7 @@ namespace zed_wrapper {
          * \param mrkSub : Height markers array subscribers count
          * \param t : timestamp
          */
-        void publishLocalMaps(float camX, float camY, float minX, float minY, float maxX,
+        void publishLocalMaps(float camX, float camY, float camZ, float minX, float minY, float maxX,
                               float maxY, std::vector<sl::HashKey>& chunks,
                               ros::Time t);
 
@@ -111,7 +111,7 @@ namespace zed_wrapper {
          * \param costUpdSub : Cost map updates subscribers count
          * \param t : timestamp
          */
-        void publishGlobalMaps(std::vector<sl::HashKey>& chunks,  ros::Time t);
+        void publishGlobalMaps(float camZ, std::vector<sl::HashKey>& chunks,  ros::Time t);
 
         /* \brief Callback to handle new global maps subscription.
          * \param e : the ros::TimerEvent binded to the callback
