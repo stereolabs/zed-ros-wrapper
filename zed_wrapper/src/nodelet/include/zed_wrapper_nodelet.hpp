@@ -267,8 +267,8 @@ namespace zed_wrapper {
         //ros::Publisher mPubClock;
 
         // Timers
-        ros::Timer mPubImuTimer;
-        ros::Timer mPubPathTimer;
+        ros::Timer mImuTimer;
+        ros::Timer mPathTimer;
 
         // Services
         ros::ServiceServer mSrvSetInitPose;

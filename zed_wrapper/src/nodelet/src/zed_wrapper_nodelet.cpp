@@ -355,6 +355,7 @@ namespace zed_wrapper {
         mZedParams.sdk_gpu_id = mGpuId;
         mZedParams.depth_stabilization = mDepthStabilization;
         mZedParams.camera_image_flip = mCameraFlip;
+
         sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
 
         while (err != sl::SUCCESS) {
@@ -485,8 +486,8 @@ namespace zed_wrapper {
             mPubMapPath = mNh.advertise<nav_msgs::Path>(map_path_topic, 1, true);
             NODELET_INFO_STREAM("Advertised on topic " << map_path_topic);
             
-            mPubPathTimer = mNhNs.createTimer(ros::Duration(1.0 / mPathPubRate),
-                                              &ZEDWrapperNodelet::pathPubCallback, this);
+            mPathTimer = mNhNs.createTimer(ros::Duration(1.0 / mPathPubRate),
+                                           &ZEDWrapperNodelet::pathPubCallback, this);
 
             if (mPathMaxCount != -1) {
                 NODELET_DEBUG_STREAM("Path vectors reserved " << mPathMaxCount << " poses.");
@@ -514,8 +515,8 @@ namespace zed_wrapper {
             NODELET_INFO_STREAM("Advertised on topic " << imu_topic_raw << " @ "
                                 << mImuPubRate << " Hz");
             mLastFrameTime = ros::Time::now();
-            mPubImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
-                                             &ZEDWrapperNodelet::imuPubCallback, this);
+            mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
+                                          &ZEDWrapperNodelet::imuPubCallback, this);
         } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
             NODELET_WARN_STREAM(
                 "'imu_pub_rate' set to "
