@@ -41,3 +41,5 @@ The tutorial is mainly directed to ground robots and uses the [Turtlebot2](https
 
 
 [More](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
+
+https://husarion.com/tutorials/ros-tutorials/6-slam-navigation/
