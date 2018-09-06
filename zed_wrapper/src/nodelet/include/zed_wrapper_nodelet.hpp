@@ -169,8 +169,8 @@ namespace zed_wrapper {
          * \param left_frame_id : the id of the reference frame of the left camera
          * \param right_frame_id : the id of the reference frame of the right camera
          */
-        void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr mLeftCamInfoMsg,
-                         sensor_msgs::CameraInfoPtr mRightCamInfoMsg,
+        void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg,
+                         sensor_msgs::CameraInfoPtr rightCamInfoMsg,
                          string leftFrameId, string rightFrameId,
                          bool rawParam = false);
 
@@ -239,25 +239,25 @@ namespace zed_wrapper {
         bool mStopNode;
 
         // Publishers
-        image_transport::Publisher mPubRgb;
-        image_transport::Publisher mPubRawRgb;
-        image_transport::Publisher mPubLeft;
-        image_transport::Publisher mPubRawLeft;
-        image_transport::Publisher mPubRight;
-        image_transport::Publisher mPubRawRight;
-        image_transport::Publisher mPubDepth;
-        image_transport::Publisher mPubConfImg;
+        image_transport::Publisher mPubRgb; //
+        image_transport::Publisher mPubRawRgb; //
+        image_transport::Publisher mPubLeft; //
+        image_transport::Publisher mPubRawLeft; //
+        image_transport::Publisher mPubRight; //
+        image_transport::Publisher mPubRawRight; //
+        image_transport::Publisher mPubDepth; //
+        image_transport::Publisher mPubConfImg; //
 
-        ros::Publisher mPubConfMap;
-        ros::Publisher mPubDisparity;
+        ros::Publisher mPubConfMap; //
+        ros::Publisher mPubDisparity; //
         ros::Publisher mPubCloud;
-        ros::Publisher mPubRgbCamInfo;
-        ros::Publisher mPubLeftCamInfo;
-        ros::Publisher mPubRightCamInfo;
-        ros::Publisher mPubRgbCamInfoRaw;
-        ros::Publisher mPubLeftCamInfoRaw;
-        ros::Publisher mPubRightCamInfoRaw;
-        ros::Publisher mPubDepthCamInfo;
+        ros::Publisher mPubRgbCamInfo; //
+        ros::Publisher mPubLeftCamInfo; //
+        ros::Publisher mPubRightCamInfo; //
+        ros::Publisher mPubRgbCamInfoRaw; //
+        ros::Publisher mPubLeftCamInfoRaw; //
+        ros::Publisher mPubRightCamInfoRaw; //
+        ros::Publisher mPubDepthCamInfo; //
         ros::Publisher mPubPose;
         ros::Publisher mPubOdom;
         ros::Publisher mPubOdomPath;
@@ -383,7 +383,6 @@ namespace zed_wrapper {
         // flags
         bool mTriggerAutoExposure;
         bool mComputeDepth;
-        bool mGrabbing = false;
         bool mOpenniDepthMode; // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
         bool mPoseSmoothing;
         bool mSpatialMemory;

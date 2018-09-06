@@ -189,15 +189,14 @@ namespace zed_wrapper {
         string rgb_raw_topic = "rgb/" + img_raw_topic;
         string rgb_cam_info_topic = "rgb/camera_info";
         string rgb_cam_info_raw_topic = "rgb/camera_info_raw";
+        
         string depth_topic = "depth/";
-
         if (mOpenniDepthMode) {
             NODELET_INFO_STREAM("Openni depth mode activated");
             depth_topic += "depth_raw_registered";
         } else {
             depth_topic += "depth_registered";
         }
-
         string depth_cam_info_topic = "depth/camera_info";
         string disparity_topic = "disparity/disparity_image";
         string point_cloud_topic = "point_cloud/cloud_registered";
@@ -748,7 +747,7 @@ namespace zed_wrapper {
                                 << "). Using Identity");
             mInitialPoseSl.setIdentity();
             mOdom2MapTransf.setIdentity();
-            mOdom2MapTransf.setIdentity();
+            mBase2OdomTransf.setIdentity();
         } else {
             set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
                      mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
@@ -800,18 +799,7 @@ namespace zed_wrapper {
         // Publish odometry message
         mPubOdom.publish(odom);
     }
-
-    void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t) {
-        geometry_msgs::TransformStamped transformStamped;
-        transformStamped.header.stamp = t;
-        transformStamped.header.frame_id = mOdometryFrameId;
-        transformStamped.child_frame_id = mBaseFrameId;
-        // conversion from Tranform to message
-        transformStamped.transform = tf2::toMsg(odomTransf);
-        // Publish transformation
-        mTransformOdomBroadcaster.sendTransform(transformStamped);
-    }
-
+    
     void ZEDWrapperNodelet::publishPose(ros::Time t) {
         tf2::Transform base_pose;
         base_pose.setIdentity();
@@ -865,6 +853,17 @@ namespace zed_wrapper {
 
         // Publish pose stamped message
         mPubPose.publish(pose);
+    }
+    
+    void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t) {
+        geometry_msgs::TransformStamped transformStamped;
+        transformStamped.header.stamp = t;
+        transformStamped.header.frame_id = mOdometryFrameId;
+        transformStamped.child_frame_id = mBaseFrameId;
+        // conversion from Tranform to message
+        transformStamped.transform = tf2::toMsg(odomTransf);
+        // Publish transformation
+        mTransformOdomBroadcaster.sendTransform(transformStamped);
     }
 
     void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time t) {
@@ -995,10 +994,9 @@ namespace zed_wrapper {
         seq++;
     }
 
-    void ZEDWrapperNodelet::fillCamInfo(
-        sl::Camera& zed, sensor_msgs::CameraInfoPtr left_cam_info_msg,
-        sensor_msgs::CameraInfoPtr right_cam_info_msg, string leftFrameId,
-        string rightFrameId, bool rawParam /*= false*/) {
+    void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg,
+                                        sensor_msgs::CameraInfoPtr rightCamInfoMsg, string leftFrameId,
+                                        string rightFrameId, bool rawParam /*= false*/) {
         sl::CalibrationParameters zedParam;
 
         if (rawParam) {
@@ -1010,41 +1008,41 @@ namespace zed_wrapper {
         }
 
         float baseline = zedParam.T[0];
-        left_cam_info_msg->distortion_model =
+        leftCamInfoMsg->distortion_model =
             sensor_msgs::distortion_models::PLUMB_BOB;
-        right_cam_info_msg->distortion_model =
+        rightCamInfoMsg->distortion_model =
             sensor_msgs::distortion_models::PLUMB_BOB;
-        left_cam_info_msg->D.resize(5);
-        right_cam_info_msg->D.resize(5);
-        left_cam_info_msg->D[0] = zedParam.left_cam.disto[0];   // k1
-        left_cam_info_msg->D[1] = zedParam.left_cam.disto[1];   // k2
-        left_cam_info_msg->D[2] = zedParam.left_cam.disto[4];   // k3
-        left_cam_info_msg->D[3] = zedParam.left_cam.disto[2];   // p1
-        left_cam_info_msg->D[4] = zedParam.left_cam.disto[3];   // p2
-        right_cam_info_msg->D[0] = zedParam.right_cam.disto[0]; // k1
-        right_cam_info_msg->D[1] = zedParam.right_cam.disto[1]; // k2
-        right_cam_info_msg->D[2] = zedParam.right_cam.disto[4]; // k3
-        right_cam_info_msg->D[3] = zedParam.right_cam.disto[2]; // p1
-        right_cam_info_msg->D[4] = zedParam.right_cam.disto[3]; // p2
-        left_cam_info_msg->K.fill(0.0);
-        right_cam_info_msg->K.fill(0.0);
-        left_cam_info_msg->K[0] = static_cast<double>(zedParam.left_cam.fx);
-        left_cam_info_msg->K[2] = static_cast<double>(zedParam.left_cam.cx);
-        left_cam_info_msg->K[4] = static_cast<double>(zedParam.left_cam.fy);
-        left_cam_info_msg->K[5] = static_cast<double>(zedParam.left_cam.cy);
-        left_cam_info_msg->K[8] = 1.0;
-        right_cam_info_msg->K[0] = static_cast<double>(zedParam.right_cam.fx);
-        right_cam_info_msg->K[2] = static_cast<double>(zedParam.right_cam.cx);
-        right_cam_info_msg->K[4] = static_cast<double>(zedParam.right_cam.fy);
-        right_cam_info_msg->K[5] = static_cast<double>(zedParam.right_cam.cy);
-        right_cam_info_msg->K[8] = 1.0;
-        left_cam_info_msg->R.fill(0.0);
-        right_cam_info_msg->R.fill(0.0);
+        leftCamInfoMsg->D.resize(5);
+        rightCamInfoMsg->D.resize(5);
+        leftCamInfoMsg->D[0] = zedParam.left_cam.disto[0];   // k1
+        leftCamInfoMsg->D[1] = zedParam.left_cam.disto[1];   // k2
+        leftCamInfoMsg->D[2] = zedParam.left_cam.disto[4];   // k3
+        leftCamInfoMsg->D[3] = zedParam.left_cam.disto[2];   // p1
+        leftCamInfoMsg->D[4] = zedParam.left_cam.disto[3];   // p2
+        rightCamInfoMsg->D[0] = zedParam.right_cam.disto[0]; // k1
+        rightCamInfoMsg->D[1] = zedParam.right_cam.disto[1]; // k2
+        rightCamInfoMsg->D[2] = zedParam.right_cam.disto[4]; // k3
+        rightCamInfoMsg->D[3] = zedParam.right_cam.disto[2]; // p1
+        rightCamInfoMsg->D[4] = zedParam.right_cam.disto[3]; // p2
+        leftCamInfoMsg->K.fill(0.0);
+        rightCamInfoMsg->K.fill(0.0);
+        leftCamInfoMsg->K[0] = static_cast<double>(zedParam.left_cam.fx);
+        leftCamInfoMsg->K[2] = static_cast<double>(zedParam.left_cam.cx);
+        leftCamInfoMsg->K[4] = static_cast<double>(zedParam.left_cam.fy);
+        leftCamInfoMsg->K[5] = static_cast<double>(zedParam.left_cam.cy);
+        leftCamInfoMsg->K[8] = 1.0;
+        rightCamInfoMsg->K[0] = static_cast<double>(zedParam.right_cam.fx);
+        rightCamInfoMsg->K[2] = static_cast<double>(zedParam.right_cam.cx);
+        rightCamInfoMsg->K[4] = static_cast<double>(zedParam.right_cam.fy);
+        rightCamInfoMsg->K[5] = static_cast<double>(zedParam.right_cam.cy);
+        rightCamInfoMsg->K[8] = 1.0;
+        leftCamInfoMsg->R.fill(0.0);
+        rightCamInfoMsg->R.fill(0.0);
 
         for (size_t i = 0; i < 3; i++) {
             // identity
-            right_cam_info_msg->R[i + i * 3] = 1;
-            left_cam_info_msg->R[i + i * 3] = 1;
+            rightCamInfoMsg->R[i + i * 3] = 1;
+            leftCamInfoMsg->R[i + i * 3] = 1;
         }
 
         if (rawParam) {
@@ -1052,28 +1050,28 @@ namespace zed_wrapper {
             float* p = (float*)(R_.data);
 
             for (size_t i = 0; i < 9; i++) {
-                right_cam_info_msg->R[i] = static_cast<double>(p[i]);
+                rightCamInfoMsg->R[i] = static_cast<double>(p[i]);
             }
         }
 
-        left_cam_info_msg->P.fill(0.0);
-        right_cam_info_msg->P.fill(0.0);
-        left_cam_info_msg->P[0] = static_cast<double>(zedParam.left_cam.fx);
-        left_cam_info_msg->P[2] = static_cast<double>(zedParam.left_cam.cx);
-        left_cam_info_msg->P[5] = static_cast<double>(zedParam.left_cam.fy);
-        left_cam_info_msg->P[6] = static_cast<double>(zedParam.left_cam.cy);
-        left_cam_info_msg->P[10] = 1.0;
+        leftCamInfoMsg->P.fill(0.0);
+        rightCamInfoMsg->P.fill(0.0);
+        leftCamInfoMsg->P[0] = static_cast<double>(zedParam.left_cam.fx);
+        leftCamInfoMsg->P[2] = static_cast<double>(zedParam.left_cam.cx);
+        leftCamInfoMsg->P[5] = static_cast<double>(zedParam.left_cam.fy);
+        leftCamInfoMsg->P[6] = static_cast<double>(zedParam.left_cam.cy);
+        leftCamInfoMsg->P[10] = 1.0;
         // http://docs.ros.org/api/sensor_msgs/html/msg/CameraInfo.html
-        right_cam_info_msg->P[3] = static_cast<double>(-1 * zedParam.left_cam.fx * baseline);
-        right_cam_info_msg->P[0] = static_cast<double>(zedParam.right_cam.fx);
-        right_cam_info_msg->P[2] = static_cast<double>(zedParam.right_cam.cx);
-        right_cam_info_msg->P[5] = static_cast<double>(zedParam.right_cam.fy);
-        right_cam_info_msg->P[6] = static_cast<double>(zedParam.right_cam.cy);
-        right_cam_info_msg->P[10] = 1.0;
-        left_cam_info_msg->width = right_cam_info_msg->width = static_cast<uint32_t>(mMatWidth);
-        left_cam_info_msg->height = right_cam_info_msg->height = static_cast<uint32_t>(mMatHeight);
-        left_cam_info_msg->header.frame_id = leftFrameId;
-        right_cam_info_msg->header.frame_id = rightFrameId;
+        rightCamInfoMsg->P[3] = static_cast<double>(-1 * zedParam.left_cam.fx * baseline);
+        rightCamInfoMsg->P[0] = static_cast<double>(zedParam.right_cam.fx);
+        rightCamInfoMsg->P[2] = static_cast<double>(zedParam.right_cam.cx);
+        rightCamInfoMsg->P[5] = static_cast<double>(zedParam.right_cam.fy);
+        rightCamInfoMsg->P[6] = static_cast<double>(zedParam.right_cam.cy);
+        rightCamInfoMsg->P[10] = 1.0;
+        leftCamInfoMsg->width = rightCamInfoMsg->width = static_cast<uint32_t>(mMatWidth);
+        leftCamInfoMsg->height = rightCamInfoMsg->height = static_cast<uint32_t>(mMatHeight);
+        leftCamInfoMsg->header.frame_id = leftFrameId;
+        rightCamInfoMsg->header.frame_id = rightFrameId;
     }
 
     void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config,
@@ -1167,8 +1165,8 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::pathPubCallback(const ros::TimerEvent& e) {
-        uint32_t mapSub = mPubMapPath.getNumSubscribers();
-        uint32_t odomSub = mPubOdomPath.getNumSubscribers();
+        uint32_t mapPathSub = mPubMapPath.getNumSubscribers();
+        uint32_t odomPathSub = mPubOdomPath.getNumSubscribers();
 
         tf2::Transform base_to_odom;
         base_to_odom.setIdentity();
@@ -1260,7 +1258,7 @@ namespace zed_wrapper {
             mOdomPath.push_back(odomPose);
         }
 
-        if (mapSub > 0 &&  mPublishMapTf) {
+        if (mapPathSub > 0 &&  mPublishMapTf) {
             nav_msgs::Path mapPath;
             mapPath.header.frame_id = mMapFrameId;
             mapPath.header.stamp = mLastFrameTime;
@@ -1269,7 +1267,7 @@ namespace zed_wrapper {
             mPubMapPath.publish(mapPath);
         }
 
-        if (odomSub > 0) {
+        if (odomPathSub > 0) {
             nav_msgs::Path odomPath;
             odomPath.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
             odomPath.header.stamp = mLastFrameTime;
@@ -1452,8 +1450,7 @@ namespace zed_wrapper {
         mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
         sl::RuntimeParameters runParams;
         runParams.sensing_mode = static_cast<sl::SENSING_MODE>(mCamSensingMode);
-        sl::Mat leftZEDMat, rightZEDMat, depthZEDMat, disparityZEDMat, confImgZEDMat,
-        confMapZEDMat;
+        sl::Mat leftZEDMat, rightZEDMat, depthZEDMat, disparityZEDMat, confImgZEDMat, confMapZEDMat;
 
         // Main loop
         while (mNhNs.ok()) {
@@ -1513,8 +1510,6 @@ namespace zed_wrapper {
                     t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
                 }
 
-                mGrabbing = true;
-
                 if (mComputeDepth) {
                     int actual_confidence = mZed.getConfidenceThreshold();
 
@@ -1534,7 +1529,6 @@ namespace zed_wrapper {
                 }
 
                 grab_status = mZed.grab(runParams); // Ask to not compute the depth
-                mGrabbing = false;
 
                 // cout << toString(grab_status) << endl;
                 if (grab_status != sl::ERROR_CODE::SUCCESS) {
@@ -1730,6 +1724,7 @@ namespace zed_wrapper {
                 }
 
                 mCamDataMutex.unlock();
+                
                 // Transform from base to sensor
                 tf2::Transform sensor_to_base_transf;
 
