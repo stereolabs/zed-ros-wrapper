@@ -7,8 +7,9 @@
 
 
 /**
- * Subscriber callbacks
+ * Subscriber callbacks. The argument of the callback is a constant pointer to the received message
  */
+
 void imageRgbRawCallback(const sensor_msgs::Image::ConstPtr& msg) {
     ROS_INFO("RGB RAW image received from ZED - Size: %dx%d", msg->width, msg->height);
 }
@@ -71,12 +72,12 @@ int main(int argc, char** argv) {
      * is the number of messages that will be buffered up before beginning to throw
      * away the oldest ones.
      */
-    ros::Subscriber subRgbRaw  = n.subscribe("/zed/rgb/image_raw_color", 10, imageRgbRawCallback);
-    ros::Subscriber subRgbRect = n.subscribe("/zed/rgb/image_rect_color", 10, imageRgbRectCallback);
+    ros::Subscriber subRgbRaw    = n.subscribe("/zed/rgb/image_raw_color", 10, imageRgbRawCallback);
+    ros::Subscriber subRgbRect   = n.subscribe("/zed/rgb/image_rect_color", 10, imageRgbRectCallback);
     ros::Subscriber subRightRaw  = n.subscribe("/zed/right/image_raw_color", 10, imageRightRawCallback);
     ros::Subscriber subRightRect = n.subscribe("/zed/right/image_rect_color", 10, imageRightRectCallback);
-    ros::Subscriber subLeftRaw  = n.subscribe("/zed/left/image_raw_color", 10, imageLeftRawCallback);
-    ros::Subscriber subLeftRect = n.subscribe("/zed/left/image_rect_color", 10, imageLeftRectCallback);
+    ros::Subscriber subLeftRaw   = n.subscribe("/zed/left/image_raw_color", 10, imageLeftRawCallback);
+    ros::Subscriber subLeftRect  = n.subscribe("/zed/left/image_rect_color", 10, imageLeftRectCallback);
 
     /**
      * ros::spin() will enter a loop, pumping callbacks.  With this version, all
