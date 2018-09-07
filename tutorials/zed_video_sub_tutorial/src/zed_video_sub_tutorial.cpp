@@ -15,7 +15,7 @@ void imageRightRectifiedCallback(const sensor_msgs::Image::ConstPtr& msg) {
     ROS_INFO("Right Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
 }
 
-void imageLeftRectCifiedallback(const sensor_msgs::Image::ConstPtr& msg) {
+void imageLeftRectifiedCallback(const sensor_msgs::Image::ConstPtr& msg) {
     ROS_INFO("Left Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
 }
 

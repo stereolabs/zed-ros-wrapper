@@ -2,36 +2,29 @@
 #include <sensor_msgs/Image.h>
 
 /**
- * This tutorial demonstrates simple receipt of ZED image messages over the ROS system.
+ * This tutorial demonstrates simple receipt of ZED depth messages over the ROS system.
  */
 
 
 /**
- * Subscriber callbacks. The argument of the callback is a constant pointer to the received message
+ * Subscriber callback
  */
 
-void imageRgbRawCallback(const sensor_msgs::Image::ConstPtr& msg) {
-    ROS_INFO("RGB RAW image received from ZED - Size: %dx%d", msg->width, msg->height);
-}
+void depthCallback(const sensor_msgs::Image::ConstPtr& msg) {
 
-void imageRgbRectCallback(const sensor_msgs::Image::ConstPtr& msg) {
-    ROS_INFO("RGB Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
-}
+    // Get a pointer to the depth values casting the data
+    // pointer to floating point
+    float* depths = (float*)(&msg->data[0]);
 
-void imageRightRawCallback(const sensor_msgs::Image::ConstPtr& msg) {
-    ROS_INFO("Right RAW image received from ZED - Size: %dx%d", msg->width, msg->height);
-}
+    // Image coordinates of the center pixel
+    int u = msg->width / 2;
+    int v = msg->height / 2;
 
-void imageRightRectCallback(const sensor_msgs::Image::ConstPtr& msg) {
-    ROS_INFO("Right Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
-}
+    // Linear index of the center pixel
+    int centerIdx = u + msg->width * v;
 
-void imageLeftRawCallback(const sensor_msgs::Image::ConstPtr& msg) {
-    ROS_INFO("Left RAW image received from ZED - Size: %dx%d", msg->width, msg->height);
-}
-
-void imageLeftRectCallback(const sensor_msgs::Image::ConstPtr& msg) {
-    ROS_INFO("Left Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
+    // Output the measure
+    ROS_INFO("Center distance : %g m", depths[centerIdx]);
 }
 
 /**
@@ -72,12 +65,8 @@ int main(int argc, char** argv) {
      * is the number of messages that will be buffered up before beginning to throw
      * away the oldest ones.
      */
-    ros::Subscriber subRgbRaw    = n.subscribe("/zed/rgb/image_raw_color", 10, imageRgbRawCallback);
-    ros::Subscriber subRgbRect   = n.subscribe("/zed/rgb/image_rect_color", 10, imageRgbRectCallback);
-    ros::Subscriber subRightRaw  = n.subscribe("/zed/right/image_raw_color", 10, imageRightRawCallback);
-    ros::Subscriber subRightRect = n.subscribe("/zed/right/image_rect_color", 10, imageRightRectCallback);
-    ros::Subscriber subLeftRaw   = n.subscribe("/zed/left/image_raw_color", 10, imageLeftRawCallback);
-    ros::Subscriber subLeftRect  = n.subscribe("/zed/left/image_rect_color", 10, imageLeftRectCallback);
+    ros::Subscriber subDepth    = n.subscribe("/zed/depth/depth_registered", 10, depthCallback);
+
 
     /**
      * ros::spin() will enter a loop, pumping callbacks.  With this version, all
