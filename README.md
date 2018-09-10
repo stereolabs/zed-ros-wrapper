@@ -2,6 +2,8 @@
 
 This package lets you use the ZED stereo camera with ROS. It outputs the camera left and right images, depth map, point cloud, pose information and supports the use of multiple ZED cameras.
 
+[More information](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
+
 ## Getting started
 
 - First, download the latest version of the ZED SDK on [stereolabs.com](https://www.stereolabs.com/developers/)
@@ -70,6 +72,4 @@ A few tutorials are provided to understand how to use the ZED node in the ROS en
 
 - Video subscribing : See [zed_video_sub_tutorial](./tutorials/zed_video_sub_tutorial)
 - Depth subscribing : See [zed_depth_sub_tutorial](./tutorials/zed_depth_sub_tutorial)
-
-
-[More](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
+- Positional Tracking subscribing : See [zed_tracking_sub_tutorial](./tutorials/zed_tracking_sub_tutorial)
