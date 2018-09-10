@@ -19,25 +19,29 @@ Virtual 2D laser scan rendered in Rviz. You can see the projection of the virtua
 Virtual 2D laser scan rendered in Rviz over the 3D depth cloud. You can see the projection of the virtual laser scan on the RGB image on the left
 ![Virtual laser scan rendered in Rviz on the Depthcloud](images/laserscan-depthcloud.png)
 
-[More](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
-
 ## The launch file explained
 The launch file executes three main operations:
 
 1. Runs the Nodelet manager
 2. Load the ZED nodelet
-3. Load the DepthImageToLaserScanNodelet nodelet
+3. Load the `depthimage_to_laserscan` nodelet
 
 To run the Nodelet Manager we use the following line instruction:
+
 ```<node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen" />```
+
 the Nodelet Manager is the process that loads the ZED and the depthimage_to_laserscan nodelets and that allows them to us intra-process communication to pass elaboration data. 
 
 The "variable" `nodelet_manager_name` is defined here:
+
 ```<arg name="nodelet_manager_name" default="zed_nodelet_manager" />```
 
 The ZED nodelet is loaded using its own nodelet launch file:
+
 ```<include file="$(find zed_wrapper)/launch/zed_camera_nodelet.launch">```
+
 called passing the "variable" `nodelet_manager_name` as parameter:
+
 ```<arg name="nodelet_manager_name" value="$(arg nodelet_manager_name)" />```
 
 The `DepthImageToLaserScanNodelet` nodelet is loaded with the following commands:
@@ -50,13 +54,16 @@ The `DepthImageToLaserScanNodelet` nodelet is loaded with the following commands
         </node>
 ```
 
-it is really important to noticed these two lines:
+it is really important to notice these two lines:
+
 ```<param name="output_frame_id" value="$(arg left_camera_frame)"/>```
+
 ```<remap from="image" to="$(arg depth_topic)"/>```
 
-The first line tells to the `DepthImageToLaserScanNodelet` nodelet which is the frame name of the virtual scan message.
-The second line tells to the `DepthImageToLaserScanNodelet` nodelet which is the depth image topic to use to extract the information to generate the virtual laser scan. 
+The first line tells to the `depthimage_to_laserscan` nodelet which is the frame name of the virtual scan message.
 
-For the description of the other parameters please refer to the [`depthimage_to_laserscan` package documentation](http://wiki.ros.org/depthimage_to_laserscan)
+The second line tells to the `depthimage_to_laserscan` nodelet which is the depth image topic to use to extract the information to generate the virtual laser scan. 
+
+For the description of the other parameters please refer to the [documentation of the `depthimage_to_laserscan` package](http://wiki.ros.org/depthimage_to_laserscan)
 
 
