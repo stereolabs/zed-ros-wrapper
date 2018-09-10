@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="nodelet_manager_name" default="zed_nodelet_manager" />
 
     <group ns="zed">
-	<!-- Nodelet Manager -->
+	    <!-- Nodelet Manager -->
         <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen" />
 
         <!-- ZED wrapper as nodelet -->
