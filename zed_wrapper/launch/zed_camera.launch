@@ -127,7 +127,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="confidence_img_topic"      value="confidence/confidence_image" />
         <param name="confidence_map_topic"      value="confidence/confidence_map" />
 
-        <param name="pose_topic"                value="map" />
+        <param name="pose_topic"                value="pose" />
         <param name="odometry_topic"            value="odom" />
 
         <param name="init_odom_with_imu"        value="true" /> <!-- only used with ZED mini -->
