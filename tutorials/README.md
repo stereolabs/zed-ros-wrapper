@@ -1,4 +1,4 @@
-![](../images/logo_stereolabs.svg | width=100)
+![](../images/Picto+STEREOLABS_Black.png)
 
 # Tutorials
 A series of tutorials are provided to better understand how to use the ZED node in the ROS environment :

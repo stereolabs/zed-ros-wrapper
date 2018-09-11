@@ -1,4 +1,4 @@
-![](../images/logo_stereolabs.svg | width=100)
+![](../images/Picto+STEREOLABS_Black.png)
 
 # Stereolabs ZED Camera - ROS Integration
 
