@@ -11,6 +11,6 @@ A series of tutorials are provided to better understand how to use the ZED node 
 
 For a complete explanation of the tutorials please refer to the Stereolabs ZED online documentation:
 
-- [Video](https://docs.stereolabs.com/integrations/ros//)
+- [Video](https://docs.stereolabs.com/integrations/ros/video/)
 - [Depth](https://docs.stereolabs.com/integrations/ros/depth_sensing/)
 - [Positional Tracking](https://docs.stereolabs.com/integrations/ros/positional_tracking/)
