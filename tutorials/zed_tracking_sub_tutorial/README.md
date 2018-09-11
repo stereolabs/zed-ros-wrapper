@@ -1,3 +1,5 @@
+![](../../images/logo_stereolabs.svg)
+
 # Positional Tracking tutorial
 
 In this tutorial you will learn how to write a simple node that subscribes to messages of type
