@@ -1,3 +1,5 @@
+![](../images/logo_stereolabs.svg)
+
 # Stereolabs ZED Camera - ROS Display example
 
 This package lets you visualize in the RViz application all the possible information that can be acquired using a ZED camera.
