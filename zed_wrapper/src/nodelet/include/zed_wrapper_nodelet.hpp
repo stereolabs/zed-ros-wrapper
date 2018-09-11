@@ -306,6 +306,7 @@ namespace zed_wrapper {
         std::string svoFilepath;
         double imuPubRate;
         bool verbose;
+        bool mSvoMode = false;
 
         // IMU time
         ros::Time imuTime;
