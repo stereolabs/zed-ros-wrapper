@@ -1263,7 +1263,7 @@ namespace zed_wrapper {
         } else {
             t_old = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
         }
-        ros::Time old_t = t_old;
+        ros::Time old_t = ros::Time::now();
 
         sl::ERROR_CODE grab_status;
         trackingActivated = false;

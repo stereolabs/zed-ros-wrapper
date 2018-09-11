@@ -1,3 +1,5 @@
+![](../images/logo_stereolabs.svg | width=100)
+
 # Launch Files
 
 Launch files provide a convenient way to start up multiple nodes and a master, as well as setting parameters.

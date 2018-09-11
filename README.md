@@ -1,4 +1,4 @@
-![](./images/logo_stereolabs.svg)
+![](./images/logo_stereolabs.svg | width=100)
 # Stereolabs ZED Camera - ROS Integration
 
 This package lets you use the ZED stereo camera with ROS. It outputs the camera left and right images, depth map, point cloud, pose information and supports the use of multiple ZED cameras.

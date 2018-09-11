@@ -1,4 +1,4 @@
-![](../images/logo_stereolabs.svg)
+![](../images/logo_stereolabs.svg | width=100)
 
 # Stereolabs ZED Camera - ROS Integration
 
