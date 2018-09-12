@@ -742,8 +742,15 @@ namespace zed_wrapper {
         trackParams.enable_spatial_memory = mSpatialMemory;
         NODELET_INFO_STREAM("Spatial Memory : " << trackParams.enable_spatial_memory);
         trackParams.initial_world_transform = mInitialPoseSl;
-        trackParams.set_floor_as_origin = mFloorAlignment;
-        NODELET_INFO_STREAM("Floor Alignment : " << trackParams.set_floor_as_origin);
+
+        if (mFloorAlignment &&
+            ((ZED_SDK_MAJOR_VERSION < 2) || (ZED_SDK_MAJOR_VERSION == 2 && ZED_SDK_MINOR_VERSION < 6))) {
+            NODELET_WARN("Floor Alignment is available starting from SDK v2.6");
+        } else {
+            trackParams.set_floor_as_origin = mFloorAlignment;
+            NODELET_INFO_STREAM("Floor Alignment : " << trackParams.set_floor_as_origin);
+        }
+
         mZed.enableTracking(trackParams);
         mTrackingActivated = true;
         NODELET_INFO("Tracking ENABLED");
