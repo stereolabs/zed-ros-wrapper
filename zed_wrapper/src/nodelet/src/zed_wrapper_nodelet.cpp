@@ -631,10 +631,15 @@ namespace zed_wrapper {
         // ROS pose
         tf2::Quaternion q;
         q.setRPY(rr, pr, yr);
-        tf2::Vector3 orig(xt, yt, zt);
-        mBase2OdomTransf.setOrigin(orig);
-        mBase2OdomTransf.setRotation(q);
+        //tf2::Vector3 orig(xt, yt, zt);
+        //        mBase2OdomTransf.setOrigin(orig);
+        //        mBase2OdomTransf.setRotation(q);
+        //        mOdom2MapTransf.setIdentity();
+
+        mBase2OdomTransf.setIdentity();
+        mBase2OdomTransf.setIdentity();
         mOdom2MapTransf.setIdentity();
+
         // SL pose
         sl::float4 q_vec;
         q_vec[0] = q.x();
@@ -1707,7 +1712,7 @@ namespace zed_wrapper {
                             publishOdom(mBase2OdomTransf, t);
                             mTrackingReady = true;
                         } else {
-                            NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << static_cast<int>(status));
+                            NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(status));
                         }
                     }
                 }
@@ -1719,11 +1724,18 @@ namespace zed_wrapper {
                     static sl::TRACKING_STATE oldStatus;
                     sl::TRACKING_STATE status = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME_WORLD);
 
+                    sl::Translation translation = mLastZedPose.getTranslation();
+                    sl::Orientation quat = mLastZedPose.getOrientation();
+
+                    NODELET_DEBUG("POSE [%s] - %.2f,%.2f,%.2f %.2f,%.2f,%.2f,%.2f",
+                                  sl::toString(status).c_str(),
+                                  translation(mIdxX), translation(mIdxY), translation(mIdxZ),
+                                  quat(mIdxX), quat(mIdxY), quat(mIdxZ), quat(3));
+
                     if (status == sl::TRACKING_STATE_OK || status == sl::TRACKING_STATE_SEARCHING /*|| status == sl::TRACKING_STATE_FPS_TOO_LOW*/) {
                         // Transform ZED pose in TF2 Transformation
                         geometry_msgs::Transform sens2mapTransf;
-                        sl::Translation translation = mLastZedPose.getTranslation();
-                        sl::Orientation quat = mLastZedPose.getOrientation();
+
                         sens2mapTransf.translation.x = mSignX * translation(mIdxX);
                         sens2mapTransf.translation.y = mSignY * translation(mIdxY);
                         sens2mapTransf.translation.z = mSignZ * translation(mIdxZ);
