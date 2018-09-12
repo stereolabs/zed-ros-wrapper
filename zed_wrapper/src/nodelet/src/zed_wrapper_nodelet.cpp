@@ -709,14 +709,8 @@ namespace zed_wrapper {
         mNhNs.getParam("pose_smoothing", mPoseSmoothing);
         mNhNs.getParam("spatial_memory", mSpatialMemory);
         mNhNs.getParam("floor_alignment", mFloorAlignment);
-
-        if (mZedRealCamModel == sl::MODEL_ZED_M) {
-            mNhNs.getParam("init_odom_with_imu", mInitOdomWithPose);
-            NODELET_INFO_STREAM(
-                "Init Odometry with first IMU data : " << mInitOdomWithPose);
-        } else {
-            mInitOdomWithPose = false;
-        }
+        mNhNs.getParam("init_odom_with_imu", mInitOdomWithPose);
+        NODELET_INFO_STREAM("Init Odometry with first valid pose data : " << mInitOdomWithPose);
 
         if (mInitialTrackPose.size() != 6) {
             NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialTrackPose.size()
@@ -1754,6 +1748,9 @@ namespace zed_wrapper {
                         }
 
                         if (initOdom || mResetOdom) {
+
+                            ROS_INFO("Odometry aligned to last tracking pose");
+
                             // Propagate Odom transform in time
                             mBase2OdomTransf = base_to_map_transform;
                             base_to_map_transform.setIdentity();

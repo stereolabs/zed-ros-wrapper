@@ -9,6 +9,7 @@ Panels:
         - /TF1/Frames1
         - /Video1/Camera view1
         - /Video1/Camera view1/Visibility1
+        - /Depth1
         - /Depth1/DepthCloud1
       Splitter Ratio: 0.5
     Tree Height: 485
@@ -98,8 +99,6 @@ Visualization Manager:
       Frame Timeout: 5
       Frames:
         All Enabled: false
-        imu_link:
-          Value: true
         map:
           Value: true
         odom:
@@ -116,15 +115,13 @@ Visualization Manager:
           Value: false
       Marker Scale: 0.5
       Name: TF
-      Show Arrows: false
+      Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
         map:
           odom:
             zed_camera_center:
-              imu_link:
-                {}
               zed_left_camera_frame:
                 zed_left_camera_optical_frame:
                   {}
@@ -165,7 +162,6 @@ Visualization Manager:
             TF: true
             Value: true
             Video:
-              Camera view: true
               Left camera: true
               Right camera: true
               Value: true
@@ -258,7 +254,7 @@ Visualization Manager:
             Occlusion Time-Out: 30
             Value: false
           Position Transformer: XYZ
-          Queue Size: 2
+          Queue Size: 1
           Selectable: true
           Size (Pixels): 1
           Style: Points
@@ -451,25 +447,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.35755372
+      Distance: 18.398035
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.763631225
-        Y: 1.1376406
-        Z: 0.689015388
+        X: -0.646270275
+        Y: 1.53709924
+        Z: -0.526653945
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.0447975472
+      Pitch: 0.289797693
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.85410023
+      Yaw: 1.33909941
     Saved: ~
 Window Geometry:
   Camera view:
