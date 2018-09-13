@@ -636,7 +636,7 @@ namespace zed_wrapper {
         int num = 1; // for endianness detection
         imgMessage.is_bigendian = !(*(char*)&num == 1);
 
-        imgMessage.step = img.getStepBytes(); // TODO CHECK
+        imgMessage.step = img.getStepBytes();
 
         size_t size = imgMessage.step * imgMessage.height;
         imgMessage.data.resize(size);
@@ -895,18 +895,44 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::publishDepth(sl::Mat depth, ros::Time t) {
 
-        // TODO OPENNI CONVERSION
+        if (!openniDepthMode) {
+            pubDepth.publish(imageToROSmsg(depth, depthOptFrameId, t));
+            return;
+        }
 
-        /*string encoding;
-        if (openniDepthMode) {
-            depth *= 1000.0f;
-            depth.convertTo(depth, CV_16UC1); // in mm, rounded
-            encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-        } else {
-            encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-        }*/
+        // OPENNI CONVERSION
+        sensor_msgs::ImagePtr depthMessage = boost::make_shared<sensor_msgs::Image>();
 
-        pubDepth.publish(imageToROSmsg(depth, depthOptFrameId, t));
+        depthMessage->header.stamp = t;
+        depthMessage->header.frame_id = depthOptFrameId;
+        depthMessage->height = depth.getHeight();
+        depthMessage->width = depth.getWidth();
+
+        int num = 1; // for endianness detection
+        depthMessage->is_bigendian = !(*(char*)&num == 1);
+
+        depthMessage->step = depthMessage->width * sizeof(uint16_t);
+        depthMessage->encoding = sensor_msgs::image_encodings::MONO16;
+
+        size_t size = depthMessage->step * depthMessage->height;
+        depthMessage->data.resize(size);
+
+        uint16_t* data = (uint16_t*)(&depthMessage->data[0]);
+
+#pragma parallel for
+        for (int y = 0; y < depth.getHeight(); y++) {
+#pragma parallel for
+            for (int x = 0; x < depth.getWidth(); x++) {
+                sl::float1 value;
+                depth.getValue<sl::float1>(x, y, &value);
+                value *= 1000.0f;
+
+                int idx = x + y * depthMessage->width;
+                data[idx] = static_cast<uint16_t>(std::round(value)); // in mm, rounded
+            }
+        }
+
+        pubDepth.publish(depthMessage);
     }
 
     void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t) {
@@ -1444,8 +1470,6 @@ namespace zed_wrapper {
                     zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, matWidth,
                                       matHeight);
 
-                    //cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
-
                     if (left_SubNumber > 0) {
                         publishCamInfo(leftCamInfoMsg, pubLeftCamInfo, t);
                         publishImage(leftZEDMat, pubLeft, leftCamOptFrameId, t);
@@ -1463,8 +1487,6 @@ namespace zed_wrapper {
                     zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU,
                                       matWidth, matHeight);
 
-                    //cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
-
                     if (left_raw_SubNumber > 0) {
                         publishCamInfo(leftCamInfoRawMsg, pubLeftCamInfoRaw, t);
                         publishImage(leftZEDMat, pubRawLeft, leftCamOptFrameId, t);
@@ -1481,8 +1503,6 @@ namespace zed_wrapper {
                     zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU, matWidth,
                                       matHeight);
 
-                    //cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
-
                     publishCamInfo(rightCamInfoMsg, pubRightCamInfo, t);
                     publishImage(rightZEDMat, pubRight, rightCamOptFrameId, t);
                 }
@@ -1492,8 +1512,6 @@ namespace zed_wrapper {
                     // Retrieve RGBA Right image
                     zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU,
                                       matWidth, matHeight);
-
-                    //cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
 
                     publishCamInfo(rightCamInfoRawMsg, pubRightCamInfoRaw, t);
                     publishImage(rightZEDMat, pubRawRight, rightCamOptFrameId, t);
@@ -1531,8 +1549,6 @@ namespace zed_wrapper {
                 if (conf_img_SubNumber > 0) {
                     zed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE, sl::MEM_CPU,
                                       matWidth, matHeight);
-
-                    //cv::cvtColor(sl_tools::toCVMat(confImgZEDMat), confImRGB, CV_RGBA2RGB);
 
                     publishImage(confImgZEDMat, pubConfImg, confidenceOptFrameId, t);
                 }

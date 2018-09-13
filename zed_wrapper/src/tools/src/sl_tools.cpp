@@ -50,7 +50,6 @@ namespace sl_tools {
     std::vector<float>  convertRodrigues(sl::float3 r) {
         float theta = sqrt(r.x * r.x + r.y * r.y + r.z * r.z);
 
-        //cv::Mat R = cv::Mat::eye(3, 3, CV_32F);
         std::vector<float> R = {1.0f, 0.0f, 0.0f,
                                 0.0f, 1.0f, 0.0f,
                                 0.0f, 0.0f, 1.0f
@@ -66,7 +65,6 @@ namespace sl_tools {
 
             r *= itheta;
 
-            //cv::Mat rrt = cv::Mat::eye(3, 3, CV_32F);
             std::vector<float> rrt = {1.0f, 0.0f, 0.0f,
                                       0.0f, 1.0f, 0.0f,
                                       0.0f, 0.0f, 1.0f
@@ -83,7 +81,6 @@ namespace sl_tools {
             p[7] = r.y * r.z;
             p[8] = r.z * r.z;
 
-            //cv::Mat r_x = cv::Mat::eye(3, 3, CV_32F);
             std::vector<float> r_x = {1.0f, 0.0f, 0.0f,
                                       0.0f, 1.0f, 0.0f,
                                       0.0f, 0.0f, 1.0f
@@ -108,7 +105,6 @@ namespace sl_tools {
             sl::Matrix3f sl_rrt(rrt.data());
             sl::Matrix3f sl_r_x(r_x.data());
 
-            //R = c * cv::Mat::eye(3, 3, CV_32F) + c1 * rrt + s * r_x;
             sl_R = eye * c + sl_rrt * c1 + sl_r_x * s;
 
             R[0] = sl_R.r00;

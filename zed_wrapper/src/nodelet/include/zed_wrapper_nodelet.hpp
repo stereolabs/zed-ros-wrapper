@@ -114,7 +114,7 @@ namespace zed_wrapper {
          */
         void publishImuFrame(tf2::Transform baseTransform);
 
-        /* \brief Publish a cv::Mat image with a ros Publisher
+        /* \brief Publish a sl::Mat image with a ros Publisher
          * \param img : the image to publish
          * \param pub_img : the publisher object to use (different image publishers exist)
          * \param img_frame_id : the id of the reference frame of the image (different image frames exist)
@@ -122,13 +122,13 @@ namespace zed_wrapper {
          */
         void publishImage(sl::Mat img, image_transport::Publisher& pubImg, string imgFrameId, ros::Time t);
 
-        /* \brief Publish a cv::Mat depth image with a ros Publisher
+        /* \brief Publish a sl::Mat depth image with a ros Publisher
          * \param depth : the depth image to publish
          * \param t : the ros::Time to stamp the depth image
          */
         void publishDepth(sl::Mat depth, ros::Time t);
 
-        /* \brief Publish a cv::Mat confidence image with a ros Publisher
+        /* \brief Publish a sl::Mat confidence image with a ros Publisher
          * \param conf : the confidence image to publish
          * \param t : the ros::Time to stamp the depth image
          */
@@ -147,7 +147,7 @@ namespace zed_wrapper {
          */
         void publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg, ros::Publisher pubCamInfo, ros::Time t);
 
-        /* \brief Publish a cv::Mat disparity image with a ros Publisher
+        /* \brief Publish a sl::Mat disparity image with a ros Publisher
          * \param disparity : the disparity image to publish
          * \param t : the ros::Time to stamp the depth image
          */
