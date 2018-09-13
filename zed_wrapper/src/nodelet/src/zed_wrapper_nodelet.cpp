@@ -900,7 +900,7 @@ namespace zed_wrapper {
             return;
         }
 
-        // OPENNI CONVERSION
+        // OPENNI CONVERSION (meter -> millimeters - float32 -> uint16)
         sensor_msgs::ImagePtr depthMessage = boost::make_shared<sensor_msgs::Image>();
 
         depthMessage->header.stamp = t;
@@ -919,17 +919,14 @@ namespace zed_wrapper {
 
         uint16_t* data = (uint16_t*)(&depthMessage->data[0]);
 
-#pragma parallel for
-        for (int y = 0; y < depth.getHeight(); y++) {
-#pragma parallel for
-            for (int x = 0; x < depth.getWidth(); x++) {
-                sl::float1 value;
-                depth.getValue<sl::float1>(x, y, &value);
-                value *= 1000.0f;
+        int dataSize = depthMessage->width * depthMessage->height;
+        sl::float1* depthDataPtr = depth.getPtr<sl::float1>();
 
-                int idx = x + y * depthMessage->width;
-                data[idx] = static_cast<uint16_t>(std::round(value)); // in mm, rounded
-            }
+#pragma parallel for
+        for (int i = 0; i < dataSize; i++) {
+            sl::float1 value = depthDataPtr[i];
+            value *= 1000.0f;
+            data[i] = static_cast<uint16_t>(std::round(value)); // in mm, rounded
         }
 
         pubDepth.publish(depthMessage);
@@ -1531,15 +1528,12 @@ namespace zed_wrapper {
                                         matWidth, matHeight);
 
                     // Need to flip sign, but cause of this is not sure
+                    int dataSize = disparityZEDMat.getWidth() * disparityZEDMat.getHeight();
+                    sl::float1* dispDataPtr = disparityZEDMat.getPtr<sl::float1>();
+
 #pragma parallel for
-                    for (int y = 0; y < disparityZEDMat.getHeight(); y++) {
-#pragma parallel for
-                        for (int x = 0; x < disparityZEDMat.getWidth(); x++) {
-                            sl::float1 value;
-                            disparityZEDMat.getValue<sl::float1>(x, y, &value);
-                            value *= -1.0f;
-                            disparityZEDMat.setValue<sl::float1>(x, y, value);
-                        }
+                    for (int i = 0; i < dataSize; i++) {
+                        dispDataPtr[i] *=  -1.0f;
                     }
 
                     publishDisparity(disparityZEDMat, t);
