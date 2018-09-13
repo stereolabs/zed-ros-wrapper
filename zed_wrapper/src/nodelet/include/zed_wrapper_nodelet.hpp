@@ -69,7 +69,7 @@ namespace zed_wrapper {
          * \param frameId : the id of the reference frame of the image
          * \param t : the ros::Time to stamp the image
          */
-        static sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img, const std::string encodingType, std::string frameId, ros::Time t);
+        static sensor_msgs::ImagePtr imageToROSmsg(sl::Mat img, std::string frameId, ros::Time t);
 
       private:
         /* \brief Initialization function called by the Nodelet base class
@@ -122,19 +122,19 @@ namespace zed_wrapper {
          * \param img_frame_id : the id of the reference frame of the image (different image frames exist)
          * \param t : the ros::Time to stamp the image
          */
-        void publishImage(cv::Mat img, image_transport::Publisher& pubImg, string imgFrameId, ros::Time t);
+        void publishImage(sl::Mat img, image_transport::Publisher& pubImg, string imgFrameId, ros::Time t);
 
         /* \brief Publish a cv::Mat depth image with a ros Publisher
          * \param depth : the depth image to publish
          * \param t : the ros::Time to stamp the depth image
          */
-        void publishDepth(cv::Mat depth, ros::Time t);
+        void publishDepth(sl::Mat depth, ros::Time t);
 
         /* \brief Publish a cv::Mat confidence image with a ros Publisher
          * \param conf : the confidence image to publish
          * \param t : the ros::Time to stamp the depth image
          */
-        void publishConf(cv::Mat conf, ros::Time t);
+        void publishConf(sl::Mat conf, ros::Time t);
 
         /* \brief Publish a pointCloud with a ros Publisher
          * \param width : the width of the point cloud
@@ -153,7 +153,7 @@ namespace zed_wrapper {
          * \param disparity : the disparity image to publish
          * \param t : the ros::Time to stamp the depth image
          */
-        void publishDisparity(cv::Mat disparity, ros::Time t);
+        void publishDisparity(sl::Mat disparity, ros::Time t);
 
         /* \brief Get the information of the ZED cameras and store them in an information message
          * \param zed : the sl::zed::Camera* pointer to an instance

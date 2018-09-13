@@ -625,35 +625,63 @@ namespace zed_wrapper {
         }
     }
 
-    sensor_msgs::ImagePtr
-    ZEDWrapperNodelet::imageToROSmsg(cv::Mat img, const std::string encodingType,
-                                     std::string frameId, ros::Time t) {
+    sensor_msgs::ImagePtr ZEDWrapperNodelet::imageToROSmsg(sl::Mat img, std::string frameId, ros::Time t) {
+
         sensor_msgs::ImagePtr ptr = boost::make_shared<sensor_msgs::Image>();
         sensor_msgs::Image& imgMessage = *ptr;
+
         imgMessage.header.stamp = t;
         imgMessage.header.frame_id = frameId;
-        imgMessage.height = img.rows;
-        imgMessage.width = img.cols;
-        imgMessage.encoding = encodingType;
+        imgMessage.height = img.getHeight();
+        imgMessage.width = img.getWidth();
+
         int num = 1; // for endianness detection
         imgMessage.is_bigendian = !(*(char*)&num == 1);
-        imgMessage.step = img.cols * img.elemSize();
-        size_t size = imgMessage.step * img.rows;
+
+        imgMessage.step = img.getStepBytes(); // TODO CHECK
+
+        size_t size = imgMessage.step * imgMessage.height;
         imgMessage.data.resize(size);
 
-        if (img.isContinuous()) {
-            memcpy((char*)(&imgMessage.data[0]), img.data, size);
-        } else {
-            uchar* opencvData = img.data;
-            uchar* rosData = (uchar*)(&imgMessage.data[0]);
+        sl::MAT_TYPE dataType = img.getDataType();
 
-            #pragma omp parallel for
-            for (unsigned int i = 0; i < img.rows; i++) {
-                memcpy(rosData, opencvData, imgMessage.step);
-                rosData += imgMessage.step;
-                opencvData += img.step;
-            }
+        switch (dataType) {
+        case sl::MAT_TYPE_32F_C1: /**< float 1 channel.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float1>(), size);
+            break;
+        case sl::MAT_TYPE_32F_C2: /**< float 2 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC2;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float2>(), size);
+            break;
+        case sl::MAT_TYPE_32F_C3: /**< float 3 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC3;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float3>(), size);
+            break;
+        case sl::MAT_TYPE_32F_C4: /**< float 4 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC4;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float4>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C1: /**< unsigned char 1 channel.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::MONO8;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar1>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C2: /**< unsigned char 2 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_8UC2;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar2>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C3: /**< unsigned char 3 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::BGR8;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar3>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C4: /**< unsigned char 4 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::BGRA8;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar4>(), size);
+            break;
         }
+
+
+
         return ptr;
     }
 
@@ -861,31 +889,34 @@ namespace zed_wrapper {
         transformImuBroadcaster.sendTransform(transformStamped);
     }
 
-    void ZEDWrapperNodelet::publishImage(cv::Mat img,
+    void ZEDWrapperNodelet::publishImage(sl::Mat img,
                                          image_transport::Publisher& pubImg,
                                          string imgFrameId, ros::Time t) {
-        pubImg.publish(
-            imageToROSmsg(img, sensor_msgs::image_encodings::BGR8, imgFrameId, t));
+        pubImg.publish(imageToROSmsg(img, imgFrameId, t));
     }
 
-    void ZEDWrapperNodelet::publishDepth(cv::Mat depth, ros::Time t) {
-        string encoding;
+    void ZEDWrapperNodelet::publishDepth(sl::Mat depth, ros::Time t) {
+
+        // TODO OPENNI CONVERSION
+
+        /*string encoding;
         if (openniDepthMode) {
             depth *= 1000.0f;
             depth.convertTo(depth, CV_16UC1); // in mm, rounded
             encoding = sensor_msgs::image_encodings::TYPE_16UC1;
         } else {
             encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-        }
+        }*/
 
-        pubDepth.publish(imageToROSmsg(depth, encoding, depthOptFrameId, t));
+        pubDepth.publish(imageToROSmsg(depth, depthOptFrameId, t));
     }
 
-    void ZEDWrapperNodelet::publishDisparity(cv::Mat disparity, ros::Time t) {
+    void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t) {
+
         sl::CameraInformation zedParam =
             zed.getCameraInformation(sl::Resolution(matWidth, matHeight));
-        sensor_msgs::ImagePtr disparity_image = imageToROSmsg(
-                disparity, sensor_msgs::image_encodings::TYPE_32FC1, disparityFrameId, t);
+
+        sensor_msgs::ImagePtr disparity_image = imageToROSmsg(disparity, disparityFrameId, t);
 
         stereo_msgs::DisparityImage msg;
         msg.image = *disparity_image;
@@ -1393,8 +1424,7 @@ namespace zed_wrapper {
                 }
 
                 // Time update
-                old_t =
-                    sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+                old_t = sl_tools::slTime2Ros(zed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
 
                 if (autoExposure) {
                     // getCameraSettings() can't check status of auto exposure
@@ -1423,14 +1453,16 @@ namespace zed_wrapper {
                     // Retrieve RGBA Left image
                     zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, matWidth,
                                       matHeight);
-                    cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
+
+                    //cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
+
                     if (left_SubNumber > 0) {
                         publishCamInfo(leftCamInfoMsg, pubLeftCamInfo, t);
-                        publishImage(leftImRGB, pubLeft, leftCamOptFrameId, t);
+                        publishImage(leftZEDMat, pubLeft, leftCamOptFrameId, t);
                     }
                     if (rgb_SubNumber > 0) {
                         publishCamInfo(rgbCamInfoMsg, pubRgbCamInfo, t);
-                        publishImage(leftImRGB, pubRgb, depthOptFrameId,
+                        publishImage(leftZEDMat, pubRgb, depthOptFrameId,
                                      t); // rgb is the left image
                     }
                 }
@@ -1440,14 +1472,16 @@ namespace zed_wrapper {
                     // Retrieve RGBA Left image
                     zed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU,
                                       matWidth, matHeight);
-                    cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
+
+                    //cv::cvtColor(sl_tools::toCVMat(leftZEDMat), leftImRGB, CV_RGBA2RGB);
+
                     if (left_raw_SubNumber > 0) {
                         publishCamInfo(leftCamInfoRawMsg, pubLeftCamInfoRaw, t);
-                        publishImage(leftImRGB, pubRawLeft, leftCamOptFrameId, t);
+                        publishImage(leftZEDMat, pubRawLeft, leftCamOptFrameId, t);
                     }
                     if (rgb_raw_SubNumber > 0) {
                         publishCamInfo(rgbCamInfoRawMsg, pubRgbCamInfoRaw, t);
-                        publishImage(leftImRGB, pubRawRgb, depthOptFrameId, t);
+                        publishImage(leftZEDMat, pubRawRgb, depthOptFrameId, t);
                     }
                 }
 
@@ -1456,9 +1490,11 @@ namespace zed_wrapper {
                     // Retrieve RGBA Right image
                     zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU, matWidth,
                                       matHeight);
-                    cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
+
+                    //cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
+
                     publishCamInfo(rightCamInfoMsg, pubRightCamInfo, t);
-                    publishImage(rightImRGB, pubRight, rightCamOptFrameId, t);
+                    publishImage(rightZEDMat, pubRight, rightCamOptFrameId, t);
                 }
 
                 // Publish the right image if someone has subscribed to
@@ -1466,9 +1502,11 @@ namespace zed_wrapper {
                     // Retrieve RGBA Right image
                     zed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU,
                                       matWidth, matHeight);
-                    cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
+
+                    //cv::cvtColor(sl_tools::toCVMat(rightZEDMat), rightImRGB, CV_RGBA2RGB);
+
                     publishCamInfo(rightCamInfoRawMsg, pubRightCamInfoRaw, t);
-                    publishImage(rightImRGB, pubRawRight, rightCamOptFrameId, t);
+                    publishImage(rightZEDMat, pubRawRight, rightCamOptFrameId, t);
                 }
 
                 // Publish the depth image if someone has subscribed to
@@ -1476,34 +1514,49 @@ namespace zed_wrapper {
                     zed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH, sl::MEM_CPU,
                                         matWidth, matHeight);
                     publishCamInfo(depthCamInfoMsg, pubDepthCamInfo, t);
-                    publishDepth(sl_tools::toCVMat(depthZEDMat), t); // in meters
+                    publishDepth(depthZEDMat, t);
                 }
 
                 // Publish the disparity image if someone has subscribed to
                 if (disparity_SubNumber > 0) {
                     zed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY, sl::MEM_CPU,
                                         matWidth, matHeight);
+
                     // Need to flip sign, but cause of this is not sure
-                    cv::Mat disparity = sl_tools::toCVMat(disparityZEDMat) * -1.0;
-                    publishDisparity(disparity, t);
+                    //cv::Mat disparity = sl_tools::toCVMat(disparityZEDMat) * -1.0;
+
+#pragma parallel for
+                    for (int y = 0; y < disparityZEDMat.getHeight(); y++) {
+#pragma parallel for
+                        for (int x = 0; x < disparityZEDMat.getWidth(); x++) {
+                            sl::float1 value;
+                            disparityZEDMat.getValue<sl::float1>(x, y, &value);
+                            value *= -1.0f;
+                            disparityZEDMat.setValue<sl::float1>(x, y, value);
+                        }
+                    }
+
+                    publishDisparity(disparityZEDMat, t);
                 }
 
                 // Publish the confidence image if someone has subscribed to
                 if (conf_img_SubNumber > 0) {
                     zed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE, sl::MEM_CPU,
                                       matWidth, matHeight);
-                    cv::cvtColor(sl_tools::toCVMat(confImgZEDMat), confImRGB, CV_RGBA2RGB);
-                    publishImage(confImRGB, pubConfImg, confidenceOptFrameId, t);
+
+                    //cv::cvtColor(sl_tools::toCVMat(confImgZEDMat), confImRGB, CV_RGBA2RGB);
+
+                    publishImage(confImgZEDMat, pubConfImg, confidenceOptFrameId, t);
                 }
 
                 // Publish the confidence map if someone has subscribed to
                 if (conf_map_SubNumber > 0) {
                     zed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE, sl::MEM_CPU,
                                         matWidth, matHeight);
-                    confMapFloat = sl_tools::toCVMat(confMapZEDMat);
-                    pubConfMap.publish(imageToROSmsg(
-                                           confMapFloat, sensor_msgs::image_encodings::TYPE_32FC1,
-                                           confidenceOptFrameId, t));
+
+                    //confMapFloat = sl_tools::toCVMat(confMapZEDMat);
+
+                    pubConfMap.publish(imageToROSmsg(confMapZEDMat, confidenceOptFrameId, t));
                 }
 
                 // Publish the point cloud if someone has subscribed to

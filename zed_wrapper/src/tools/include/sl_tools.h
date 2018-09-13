@@ -38,11 +38,6 @@ namespace sl_tools {
     */
     sl::DeviceProperties getZEDFromSN(unsigned int serial_number);
 
-    /* \brief Convert an sl:Mat to a cv::Mat
-    * \param mat : the sl::Mat to convert
-    */
-    cv::Mat toCVMat(sl::Mat& mat);
-
     cv::Mat convertRodrigues(sl::float3 r);
 
     /* \brief Test if a file exist
