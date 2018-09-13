@@ -42,8 +42,6 @@
 #include <zed_wrapper/set_initial_pose.h>
 #include <zed_wrapper/reset_odometry.h>
 
-#include <opencv2/core/core.hpp>
-
 #include <mutex>
 #include <thread>
 #include <condition_variable>
@@ -69,7 +67,7 @@ namespace zed_wrapper {
          * \param frameId : the id of the reference frame of the image
          * \param t : the ros::Time to stamp the image
          */
-        static sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img, const std::string encodingType, std::string frameId, ros::Time t);
+        static sensor_msgs::ImagePtr imageToROSmsg(sl::Mat img, std::string frameId, ros::Time t);
 
       private:
         /* \brief Initialization function called by the Nodelet base class
@@ -116,25 +114,25 @@ namespace zed_wrapper {
          */
         void publishImuFrame(tf2::Transform baseTransform);
 
-        /* \brief Publish a cv::Mat image with a ros Publisher
+        /* \brief Publish a sl::Mat image with a ros Publisher
          * \param img : the image to publish
          * \param pub_img : the publisher object to use (different image publishers exist)
          * \param img_frame_id : the id of the reference frame of the image (different image frames exist)
          * \param t : the ros::Time to stamp the image
          */
-        void publishImage(cv::Mat img, image_transport::Publisher& pubImg, string imgFrameId, ros::Time t);
+        void publishImage(sl::Mat img, image_transport::Publisher& pubImg, string imgFrameId, ros::Time t);
 
-        /* \brief Publish a cv::Mat depth image with a ros Publisher
+        /* \brief Publish a sl::Mat depth image with a ros Publisher
          * \param depth : the depth image to publish
          * \param t : the ros::Time to stamp the depth image
          */
-        void publishDepth(cv::Mat depth, ros::Time t);
+        void publishDepth(sl::Mat depth, ros::Time t);
 
-        /* \brief Publish a cv::Mat confidence image with a ros Publisher
+        /* \brief Publish a sl::Mat confidence image with a ros Publisher
          * \param conf : the confidence image to publish
          * \param t : the ros::Time to stamp the depth image
          */
-        void publishConf(cv::Mat conf, ros::Time t);
+        void publishConf(sl::Mat conf, ros::Time t);
 
         /* \brief Publish a pointCloud with a ros Publisher
          * \param width : the width of the point cloud
@@ -149,11 +147,11 @@ namespace zed_wrapper {
          */
         void publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg, ros::Publisher pubCamInfo, ros::Time t);
 
-        /* \brief Publish a cv::Mat disparity image with a ros Publisher
+        /* \brief Publish a sl::Mat disparity image with a ros Publisher
          * \param disparity : the disparity image to publish
          * \param t : the ros::Time to stamp the depth image
          */
-        void publishDisparity(cv::Mat disparity, ros::Time t);
+        void publishDisparity(sl::Mat disparity, ros::Time t);
 
         /* \brief Get the information of the ZED cameras and store them in an information message
          * \param zed : the sl::zed::Camera* pointer to an instance
@@ -344,10 +342,6 @@ namespace zed_wrapper {
         int camHeight;
         int matWidth;
         int matHeight;
-        cv::Mat leftImRGB;
-        cv::Mat rightImRGB;
-        cv::Mat confImRGB;
-        cv::Mat confMapFloat;
 
         // Mutex
         std::mutex dataMutex;

@@ -17,7 +17,6 @@
   <depend>rosconsole</depend>
   <depend>sensor_msgs</depend>
   <depend>stereo_msgs</depend>
-  <depend>opencv3</depend>
   <depend>image_transport</depend>
   <depend>dynamic_reconfigure</depend>
   <depend>nodelet</depend>

@@ -29,72 +29,48 @@ namespace sl_tools {
     int checkCameraReady(unsigned int serial_number) {
         int id = -1;
         auto f = sl::Camera::getDeviceList();
-        for (auto &it : f)
-            if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::CAMERA_STATE_AVAILABLE)
+        for (auto& it : f)
+            if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::CAMERA_STATE_AVAILABLE) {
                 id = it.id;
+            }
         return id;
     }
 
     sl::DeviceProperties getZEDFromSN(unsigned int serial_number) {
         sl::DeviceProperties prop;
         auto f = sl::Camera::getDeviceList();
-        for (auto &it : f) {
-            if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::CAMERA_STATE_AVAILABLE)
+        for (auto& it : f) {
+            if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::CAMERA_STATE_AVAILABLE) {
                 prop = it;
+            }
         }
         return prop;
     }
 
-    cv::Mat toCVMat(sl::Mat &mat) {
-        if (mat.getMemoryType() == sl::MEM_GPU)
-            mat.updateCPUfromGPU();
+    std::vector<float>  convertRodrigues(sl::float3 r) {
+        float theta = sqrt(r.x * r.x + r.y * r.y + r.z * r.z);
 
-        int cvType;
-        switch (mat.getDataType()) {
-            case sl::MAT_TYPE_32F_C1:
-                cvType = CV_32FC1;
-                break;
-            case sl::MAT_TYPE_32F_C2:
-                cvType = CV_32FC2;
-                break;
-            case sl::MAT_TYPE_32F_C3:
-                cvType = CV_32FC3;
-                break;
-            case sl::MAT_TYPE_32F_C4:
-                cvType = CV_32FC4;
-                break;
-            case sl::MAT_TYPE_8U_C1:
-                cvType = CV_8UC1;
-                break;
-            case sl::MAT_TYPE_8U_C2:
-                cvType = CV_8UC2;
-                break;
-            case sl::MAT_TYPE_8U_C3:
-                cvType = CV_8UC3;
-                break;
-            case sl::MAT_TYPE_8U_C4:
-                cvType = CV_8UC4;
-                break;
-        }
-        return cv::Mat((int) mat.getHeight(), (int) mat.getWidth(), cvType, mat.getPtr<sl::uchar1>(sl::MEM_CPU), mat.getStepBytes(sl::MEM_CPU));
-    }
-
-    cv::Mat convertRodrigues(sl::float3 r) {
-        double theta = sqrt(r.x * r.x + r.y * r.y + r.z * r.z);
-        cv::Mat R = cv::Mat::eye(3, 3, CV_32F);
+        std::vector<float> R = {1.0f, 0.0f, 0.0f,
+                                0.0f, 1.0f, 0.0f,
+                                0.0f, 0.0f, 1.0f
+                               };
 
         if (theta < DBL_EPSILON) {
             return R;
         } else {
-            double c = cos(theta);
-            double s = sin(theta);
-            double c1 = 1. - c;
-            double itheta = theta ? 1. / theta : 0.;
+            float c = cos(theta);
+            float s = sin(theta);
+            float c1 = 1.f - c;
+            float itheta = theta ? 1.f / theta : 0.f;
 
             r *= itheta;
 
-            cv::Mat rrt = cv::Mat::eye(3, 3, CV_32F);
-            float* p = (float*) rrt.data;
+            std::vector<float> rrt = {1.0f, 0.0f, 0.0f,
+                                      0.0f, 1.0f, 0.0f,
+                                      0.0f, 0.0f, 1.0f
+                                     };
+
+            float* p = rrt.data();
             p[0] = r.x * r.x;
             p[1] = r.x * r.y;
             p[2] = r.x * r.z;
@@ -105,8 +81,11 @@ namespace sl_tools {
             p[7] = r.y * r.z;
             p[8] = r.z * r.z;
 
-            cv::Mat r_x = cv::Mat::eye(3, 3, CV_32F);
-            p = (float*) r_x.data;
+            std::vector<float> r_x = {1.0f, 0.0f, 0.0f,
+                                      0.0f, 1.0f, 0.0f,
+                                      0.0f, 0.0f, 1.0f
+                                     };
+            p = r_x.data();
             p[0] = 0;
             p[1] = -r.z;
             p[2] = r.y;
@@ -118,8 +97,27 @@ namespace sl_tools {
             p[8] = 0;
 
             // R = cos(theta)*I + (1 - cos(theta))*r*rT + sin(theta)*[r_x]
-            R = c * cv::Mat::eye(3, 3, CV_32F) + c1 * rrt + s*r_x;
+
+            sl::Matrix3f eye;
+            eye.setIdentity();
+
+            sl::Matrix3f sl_R(R.data());
+            sl::Matrix3f sl_rrt(rrt.data());
+            sl::Matrix3f sl_r_x(r_x.data());
+
+            sl_R = eye * c + sl_rrt * c1 + sl_r_x * s;
+
+            R[0] = sl_R.r00;
+            R[1] = sl_R.r01;
+            R[2] = sl_R.r02;
+            R[3] = sl_R.r10;
+            R[4] = sl_R.r11;
+            R[5] = sl_R.r12;
+            R[6] = sl_R.r20;
+            R[7] = sl_R.r21;
+            R[8] = sl_R.r22;
         }
+
         return R;
     }
 
@@ -128,39 +126,38 @@ namespace sl_tools {
         return (stat(name.c_str(), &buffer) == 0);
     }
 
-    std::string getSDKVersion( int& major, int& minor, int& sub_minor) {
+    std::string getSDKVersion(int& major, int& minor, int& sub_minor) {
         std::string ver = sl::Camera::getSDKVersion().c_str();
 
         std::vector<std::string> strings;
         std::istringstream f(ver);
-        std::string s;    
+        std::string s;
         
         while (getline(f, s, '.')) {
             strings.push_back(s);
-        }   
+        }
 
         major = 0;
         minor = 0;
         sub_minor = 0;
 
-        switch( strings.size() )
-        {
-            case 3:
-                sub_minor = std::stoi(strings[2]);
+        switch (strings.size()) {
+        case 3:
+            sub_minor = std::stoi(strings[2]);
 
-            case 2:
-                minor = std::stoi(strings[1]);
+        case 2:
+            minor = std::stoi(strings[1]);
 
-            case 1:
-                major = std::stoi(strings[0]);
+        case 1:
+            major = std::stoi(strings[0]);
         }
 
         return ver;
     }
 
     ros::Time slTime2Ros(sl::timeStamp t) {
-        uint32_t sec  = static_cast<uint32_t>(t/1000000000);
-        uint32_t nsec = static_cast<uint32_t>(t%1000000000);
+        uint32_t sec  = static_cast<uint32_t>(t / 1000000000);
+        uint32_t nsec = static_cast<uint32_t>(t % 1000000000);
         return ros::Time(sec, nsec);
     }
 
