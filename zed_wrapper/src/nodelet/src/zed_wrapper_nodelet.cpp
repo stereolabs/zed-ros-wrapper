@@ -168,10 +168,6 @@ namespace zed_wrapper {
                             << (publishTf ? "TRUE" : "FALSE") << "]");
         NODELET_INFO_STREAM("Camera Flip [" << (cameraFlip ? "TRUE" : "FALSE") << "]");
 
-        // Status of odometry TF
-        // NODELET_INFO_STREAM("Publish " << odometry_frame_id << " [" << (publish_tf
-        // ? "TRUE" : "FALSE") << "]");
-
         std::string img_topic = "image_rect_color";
         std::string img_raw_topic = "image_raw_color";
 
@@ -454,27 +450,20 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Advertized on topic " << point_cloud_topic);
 
         // Camera info publishers
-        pubRgbCamInfo =
-            nh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_topic, 1); // rgb
+        pubRgbCamInfo = nh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_topic, 1); // rgb
         NODELET_INFO_STREAM("Advertized on topic " << rgb_cam_info_topic);
-        pubLeftCamInfo =
-            nh.advertise<sensor_msgs::CameraInfo>(left_cam_info_topic, 1); // left
+        pubLeftCamInfo = nh.advertise<sensor_msgs::CameraInfo>(left_cam_info_topic, 1); // left
         NODELET_INFO_STREAM("Advertized on topic " << left_cam_info_topic);
-        pubRightCamInfo =
-            nh.advertise<sensor_msgs::CameraInfo>(right_cam_info_topic, 1); // right
+        pubRightCamInfo = nh.advertise<sensor_msgs::CameraInfo>(right_cam_info_topic, 1); // right
         NODELET_INFO_STREAM("Advertized on topic " << right_cam_info_topic);
-        pubDepthCamInfo =
-            nh.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); // depth
+        pubDepthCamInfo = nh.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); // depth
         NODELET_INFO_STREAM("Advertized on topic " << depth_cam_info_topic);
         // Raw
-        pubRgbCamInfoRaw = nh.advertise<sensor_msgs::CameraInfo>(
-                               rgb_cam_info_raw_topic, 1); // raw rgb
+        pubRgbCamInfoRaw = nh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_raw_topic, 1);  // raw rgb
         NODELET_INFO_STREAM("Advertized on topic " << rgb_cam_info_raw_topic);
-        pubLeftCamInfoRaw = nh.advertise<sensor_msgs::CameraInfo>(
-                                left_cam_info_raw_topic, 1); // raw left
+        pubLeftCamInfoRaw = nh.advertise<sensor_msgs::CameraInfo>(left_cam_info_raw_topic, 1);  // raw left
         NODELET_INFO_STREAM("Advertized on topic " << left_cam_info_raw_topic);
-        pubRightCamInfoRaw = nh.advertise<sensor_msgs::CameraInfo>(
-                                 right_cam_info_raw_topic, 1); // raw right
+        pubRightCamInfoRaw = nh.advertise<sensor_msgs::CameraInfo>(right_cam_info_raw_topic, 1);  // raw right
         NODELET_INFO_STREAM("Advertized on topic " << right_cam_info_raw_topic);
 
         // Odometry and Map publisher
@@ -486,12 +475,10 @@ namespace zed_wrapper {
         // Imu publisher
         if (imuPubRate > 0 && realCamModel == sl::MODEL_ZED_M) {
             pubImu = nh.advertise<sensor_msgs::Imu>(imu_topic, 500);
-            NODELET_INFO_STREAM("Advertized on topic " << imu_topic << " @ "
-                                << imuPubRate << " Hz");
+            NODELET_INFO_STREAM("Advertized on topic " << imu_topic << " @ " << imuPubRate << " Hz");
 
             pubImuRaw = nh.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
-            NODELET_INFO_STREAM("Advertized on topic " << imu_topic_raw << " @ "
-                                << imuPubRate << " Hz");
+            NODELET_INFO_STREAM("Advertized on topic " << imu_topic_raw << " @ "  << imuPubRate << " Hz");
 
             imuTime = ros::Time::now();
             pubImuTimer = nhNs.createTimer(ros::Duration(1.0 / imuPubRate),
@@ -504,12 +491,9 @@ namespace zed_wrapper {
         }
 
         // Service
-        srvSetInitPose = nh.advertiseService("set_initial_pose",
-                                             &ZEDWrapperNodelet::on_set_pose, this);
-        srvResetOdometry = nh.advertiseService(
-                               "reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
-        srvResetTracking = nh.advertiseService(
-                               "reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
+        srvSetInitPose = nh.advertiseService("set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this);
+        srvResetOdometry = nh.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
+        srvResetTracking = nh.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
 
         // Start Pointcloud thread
         mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread, this);
@@ -1548,8 +1532,6 @@ namespace zed_wrapper {
                     zed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE, sl::MEM_CPU,
                                         matWidth, matHeight);
 
-                    //confMapFloat = sl_tools::toCVMat(confMapZEDMat);
-
                     pubConfMap.publish(imageToROSmsg(confMapZEDMat, confidenceOptFrameId, t));
                 }
 
@@ -1594,11 +1576,8 @@ namespace zed_wrapper {
                 }
 
                 // Publish the odometry if someone has subscribed to
-                if (pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 ||
-                    depth_SubNumber >
-
-
-                    0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
+                if (pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0 ||
+                    imu_SubNumber > 0 || imu_RawSubNumber > 0) {
                     if (!initOdomWithPose) {
                         sl::Pose deltaOdom;
                         zed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
@@ -1635,8 +1614,8 @@ namespace zed_wrapper {
                 }
 
                 // Publish the zed camera pose if someone has subscribed to
-                if (pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 ||
-                    depth_SubNumber > 0 || imu_SubNumber > 0 || imu_RawSubNumber > 0) {
+                if (pose_SubNumber > 0 || odom_SubNumber > 0 || cloud_SubNumber > 0 || depth_SubNumber > 0 ||
+                    imu_SubNumber > 0 || imu_RawSubNumber > 0) {
                     sl::Pose zed_pose; // Sensor to Map transform
                     zed.getPosition(zed_pose, sl::REFERENCE_FRAME_WORLD);
 
