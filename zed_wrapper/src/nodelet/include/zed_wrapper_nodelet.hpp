@@ -88,9 +88,10 @@ namespace zed_wrapper {
         /* \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
          * \param base2odomTransf : Transformation representing the camera pose
          * from base frame to odom frame
+         * \param slPose : latest odom pose from ZED SDK
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdom(tf2::Transform base2odomTransf, ros::Time t);
+        void publishOdom(tf2::Transform base2odomTransf, sl::Pose& slPose, ros::Time t);
 
         /* \brief Publish the pose of the camera in "Map" frame as a transformation
          * \param baseTransform : Transformation representing the camera pose from
@@ -255,6 +256,7 @@ namespace zed_wrapper {
         ros::Publisher mPubRightCamInfoRaw; //
         ros::Publisher mPubDepthCamInfo; //
         ros::Publisher mPubPose;
+        ros::Publisher mPubPoseCov;
         ros::Publisher mPubOdom;
         ros::Publisher mPubOdomPath;
         ros::Publisher mPubMapPath;

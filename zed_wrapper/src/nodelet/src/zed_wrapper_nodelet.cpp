@@ -193,6 +193,7 @@ namespace zed_wrapper {
         string conf_img_topic = "confidence/confidence_image";
         string conf_map_topic = "confidence/confidence_map";
         string pose_topic = "pose";
+        string pose_cov_topic = "pose_with_covariance";
         string odometry_topic = "odom";
         string odom_path_topic = "path_odom";
         string map_path_topic = "path_map";
@@ -465,6 +466,8 @@ namespace zed_wrapper {
         // Odometry and Map publisher
         mPubPose = mNh.advertise<geometry_msgs::PoseStamped>(pose_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << pose_topic);
+        mPubPoseCov = mNh.advertise<geometry_msgs::PoseWithCovarianceStamped>(pose_cov_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << pose_cov_topic);
         mPubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
         
@@ -755,7 +758,7 @@ namespace zed_wrapper {
         NODELET_INFO("Tracking ENABLED");
     }
 
-    void ZEDWrapperNodelet::publishOdom(tf2::Transform base2odomTransf, ros::Time t) {
+    void ZEDWrapperNodelet::publishOdom(tf2::Transform base2odomTransf, sl::Pose& slPose, ros::Time t) {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
         odom.header.frame_id = mOdometryFrameId; // odom_frame
@@ -770,6 +773,18 @@ namespace zed_wrapper {
         odom.pose.pose.orientation.y = base2odom.rotation.y;
         odom.pose.pose.orientation.z = base2odom.rotation.z;
         odom.pose.pose.orientation.w = base2odom.rotation.w;
+
+        // >>>>> Odometry pose covariance if available
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
+        if (!mSpatialMemory) {
+            for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
+                // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
+                odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+            }
+        }
+#endif
+        // <<<<< Odometry pose covariance if available
+
         // Publish odometry message
         mPubOdom.publish(odom);
     }
@@ -810,25 +825,56 @@ namespace zed_wrapper {
             }
         }
 
-        geometry_msgs::PoseStamped pose;
+        std_msgs::Header header;
+        header.stamp = mLastFrameTime;
+        header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
 
-        pose.header.stamp = mLastFrameTime;
-        pose.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2frame = tf2::toMsg(base_pose);
-        // Add all value in Pose message
-        pose.pose.position.x = base2frame.translation.x;
-        pose.pose.position.y = base2frame.translation.y;
-        pose.pose.position.z = base2frame.translation.z;
-        pose.pose.orientation.x = base2frame.rotation.x;
-        pose.pose.orientation.y = base2frame.rotation.y;
-        pose.pose.orientation.z = base2frame.rotation.z;
-        pose.pose.orientation.w = base2frame.rotation.w;
 
-        // Publish pose stamped message
-        mPubPose.publish(pose);
+        // Add all value in Pose message
+        geometry_msgs::Pose pose;
+        pose.position.x = base2frame.translation.x;
+        pose.position.y = base2frame.translation.y;
+        pose.position.z = base2frame.translation.z;
+        pose.orientation.x = base2frame.rotation.x;
+        pose.orientation.y = base2frame.rotation.y;
+        pose.orientation.z = base2frame.rotation.z;
+        pose.orientation.w = base2frame.rotation.w;
+
+        if (mPubPose.getNumSubscribers() > 0) {
+
+            geometry_msgs::PoseStamped poseNoCov;
+
+            poseNoCov.header = header;
+            poseNoCov.pose = pose;
+
+            // Publish pose stamped message
+            mPubPose.publish(poseNoCov);
+        }
+
+        if (mPubPoseCov.getNumSubscribers() > 0) {
+            geometry_msgs::PoseWithCovarianceStamped poseCov;
+
+            poseCov.header = header;
+            poseCov.pose.pose = pose;
+
+            // >>>>> Odometry pose covariance if available
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
+            if (!mSpatialMemory) {
+                for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
+                    // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
+                    poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+                }
+            }
+#endif
+            // <<<<< Odometry pose covariance if available
+
+            // Publish pose with covariance stamped message
+            mPubPoseCov.publish(poseCov);
+        }
     }
-    
+
     void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t) {
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = t;
@@ -1404,6 +1450,7 @@ namespace zed_wrapper {
             uint32_t disparitySubnumber = mPubDisparity.getNumSubscribers();
             uint32_t cloudSubnumber = mPubCloud.getNumSubscribers();
             uint32_t poseSubnumber = mPubPose.getNumSubscribers();
+            uint32_t poseCovSubnumber = mPubPoseCov.getNumSubscribers();
             uint32_t odomSubnumber = mPubOdom.getNumSubscribers();
             uint32_t confImgSubnumber = mPubConfImg.getNumSubscribers();
             uint32_t confMapSubnumber = mPubConfMap.getNumSubscribers();
@@ -1413,7 +1460,7 @@ namespace zed_wrapper {
             bool runLoop = ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
                              leftRawSubnumber + rightSubnumber + rightRawSubnumber +
                              depthSubnumber + disparitySubnumber + cloudSubnumber +
-                             poseSubnumber + odomSubnumber + confImgSubnumber +
+                             poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
                              confMapSubnumber + imuSubnumber + imuRawsubnumber + pathSubNumber) > 0);
 
             runParams.enable_point_cloud = false;
@@ -1424,12 +1471,12 @@ namespace zed_wrapper {
 
             // Run the loop only if there is some subscribers
             if (runLoop) {
-                bool startTracking = (mDepthStabilization || poseSubnumber > 0 || odomSubnumber > 0 ||
-                                      cloudSubnumber > 0 || depthSubnumber > 0 || pathSubNumber > 0);
+                bool startTracking = (mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
+                                      odomSubnumber > 0 || cloudSubnumber > 0 || depthSubnumber > 0 || pathSubNumber > 0);
 
                 if ((startTracking) && !mTrackingActivated) { // Start the tracking
                     start_tracking();
-                } else if (!mDepthStabilization && poseSubnumber == 0 &&
+                } else if (!mDepthStabilization && poseSubnumber == 0 && poseCovSubnumber == 0 &&
                            odomSubnumber == 0 &&
                            mTrackingActivated) { // Stop the tracking
                     mZed.disableTracking();
@@ -1438,7 +1485,7 @@ namespace zed_wrapper {
 
                 // Detect if one of the subscriber need to have the depth information
                 mComputeDepth = ((depthSubnumber + disparitySubnumber + cloudSubnumber +
-                                  poseSubnumber + odomSubnumber + confImgSubnumber +
+                                  poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
                                   confMapSubnumber) > 0);
 
                 // Timestamp
@@ -1515,7 +1562,8 @@ namespace zed_wrapper {
 
                         mTrackingActivated = false;
 
-                        startTracking = mDepthStabilization || poseSubnumber > 0 || odomSubnumber > 0;
+                        startTracking = mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
+                                        odomSubnumber > 0;
 
                         if (startTracking) {  // Start the tracking
                             start_tracking();
@@ -1661,7 +1709,7 @@ namespace zed_wrapper {
                 }
 
                 mCamDataMutex.unlock();
-                
+
                 // Transform from base to sensor
                 tf2::Transform sensor_to_base_transf;
 
@@ -1680,9 +1728,9 @@ namespace zed_wrapper {
                     NODELET_DEBUG("Transform error: %s", ex.what());
                     sensor_to_base_transf.setIdentity();
                 }
-
+                
                 // Publish the odometry if someone has subscribed to
-                if (poseSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
+                if (poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
                     depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0 || pathSubNumber > 0) {
                     if (!mInitOdomWithPose) {
                         sl::Pose deltaOdom;
@@ -1709,7 +1757,7 @@ namespace zed_wrapper {
                             // Propagate Odom transform in time
                             mBase2OdomTransf = mBase2OdomTransf * deltaOdomTf_base;
                             // Publish odometry message
-                            publishOdom(mBase2OdomTransf, t);
+                            publishOdom(mBase2OdomTransf, deltaOdom, t);
                             mTrackingReady = true;
                         } else {
                             NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(status));
@@ -1718,7 +1766,7 @@ namespace zed_wrapper {
                 }
 
                 // Publish the zed camera pose if someone has subscribed to
-                if (poseSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
+                if (poseSubnumber > 0 || odomSubnumber > 0 || poseCovSubnumber > 0 || cloudSubnumber > 0 ||
                     depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0 || pathSubNumber > 0) {
 
                     static sl::TRACKING_STATE oldStatus;
@@ -1769,7 +1817,7 @@ namespace zed_wrapper {
 
                             if (odomSubnumber > 0) {
                                 // Publish odometry message
-                                publishOdom(mBase2OdomTransf, t);
+                                publishOdom(mBase2OdomTransf, mLastZedPose, t);
                             }
 
                             mInitOdomWithPose = false;
@@ -1789,6 +1837,8 @@ namespace zed_wrapper {
 
                     oldStatus = status;
                 }
+
+
 
                 // Publish pose tf only if enabled
                 if (mPublishTf) {
