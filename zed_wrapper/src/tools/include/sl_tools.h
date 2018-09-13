@@ -23,7 +23,6 @@
 
 #include <string>
 #include <sl/Camera.hpp>
-#include <opencv2/core/core.hpp>
 #include <ros/time.h>
 
 namespace sl_tools {
@@ -38,7 +37,7 @@ namespace sl_tools {
     */
     sl::DeviceProperties getZEDFromSN(unsigned int serial_number);
 
-    cv::Mat convertRodrigues(sl::float3 r);
+    std::vector<float> convertRodrigues(sl::float3 r);
 
     /* \brief Test if a file exist
     * \param name : the path to the file

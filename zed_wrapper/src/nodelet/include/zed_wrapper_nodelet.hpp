@@ -42,8 +42,6 @@
 #include <zed_wrapper/set_initial_pose.h>
 #include <zed_wrapper/reset_odometry.h>
 
-#include <opencv2/core/core.hpp>
-
 #include <mutex>
 #include <thread>
 #include <condition_variable>
@@ -344,10 +342,6 @@ namespace zed_wrapper {
         int camHeight;
         int matWidth;
         int matHeight;
-        cv::Mat leftImRGB;
-        cv::Mat rightImRGB;
-        cv::Mat confImRGB;
-        cv::Mat confMapFloat;
 
         // Mutex
         std::mutex dataMutex;

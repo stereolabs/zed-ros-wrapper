@@ -20,8 +20,6 @@
 #include "zed_wrapper_nodelet.hpp"
 #include "sl_tools.h"
 
-#include <opencv2/imgproc/imgproc.hpp>
-
 #ifndef NDEBUG
 #include <ros/console.h>
 #endif
@@ -1053,8 +1051,8 @@ namespace zed_wrapper {
         }
 
         if (rawParam) {
-            cv::Mat R_ = sl_tools::convertRodrigues(zedParam.R);
-            float* p = (float*)R_.data;
+            std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
+            float* p = R_.data();
             for (int i = 0; i < 9; i++) {
                 right_cam_info_msg->R[i] = p[i];
             }
@@ -1291,20 +1289,12 @@ namespace zed_wrapper {
         matHeight = static_cast<int>(camHeight * matResizeFactor);
         NODELET_DEBUG_STREAM("Data Mat size : " << matWidth << "x" << matHeight);
 
-        cv::Size cvSize(matWidth, matWidth);
-        leftImRGB = cv::Mat(cvSize, CV_8UC3);
-        rightImRGB = cv::Mat(cvSize, CV_8UC3);
-        confImRGB = cv::Mat(cvSize, CV_8UC3);
-        confMapFloat = cv::Mat(cvSize, CV_32FC1);
-
         // Create and fill the camera information messages
         fillCamInfo(zed, leftCamInfoMsg, rightCamInfoMsg, leftCamOptFrameId,
                     rightCamOptFrameId);
         fillCamInfo(zed, leftCamInfoRawMsg, rightCamInfoRawMsg, leftCamOptFrameId,
                     rightCamOptFrameId, true);
-        rgbCamInfoMsg = depthCamInfoMsg = leftCamInfoMsg; // the reference camera is
-        // the Left one (next to the
-        // ZED logo)
+        rgbCamInfoMsg = depthCamInfoMsg = leftCamInfoMsg;
         rgbCamInfoRawMsg = leftCamInfoRawMsg;
 
         sl::RuntimeParameters runParams;
@@ -1523,8 +1513,6 @@ namespace zed_wrapper {
                                         matWidth, matHeight);
 
                     // Need to flip sign, but cause of this is not sure
-                    //cv::Mat disparity = sl_tools::toCVMat(disparityZEDMat) * -1.0;
-
 #pragma parallel for
                     for (int y = 0; y < disparityZEDMat.getHeight(); y++) {
 #pragma parallel for
