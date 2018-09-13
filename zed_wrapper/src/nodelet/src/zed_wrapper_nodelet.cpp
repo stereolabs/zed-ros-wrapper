@@ -922,11 +922,8 @@ namespace zed_wrapper {
         int dataSize = depthMessage->width * depthMessage->height;
         sl::float1* depthDataPtr = depth.getPtr<sl::float1>();
 
-#pragma parallel for
         for (int i = 0; i < dataSize; i++) {
-            sl::float1 value = depthDataPtr[i];
-            value *= 1000.0f;
-            data[i] = static_cast<uint16_t>(std::round(value)); // in mm, rounded
+            *(data++) = static_cast<uint16_t>(std::round(*(depthDataPtr++) * 1000));    // in mm, rounded
         }
 
         pubDepth.publish(depthMessage);
@@ -1531,9 +1528,8 @@ namespace zed_wrapper {
                     int dataSize = disparityZEDMat.getWidth() * disparityZEDMat.getHeight();
                     sl::float1* dispDataPtr = disparityZEDMat.getPtr<sl::float1>();
 
-#pragma parallel for
                     for (int i = 0; i < dataSize; i++) {
-                        dispDataPtr[i] *=  -1.0f;
+                        *(dispDataPtr++) *= -1.0f;
                     }
 
                     publishDisparity(disparityZEDMat, t);
