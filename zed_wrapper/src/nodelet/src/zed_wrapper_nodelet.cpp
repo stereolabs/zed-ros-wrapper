@@ -218,6 +218,7 @@ namespace zed_wrapper {
         mNhNs.getParam("confidence_map_topic", conf_map_topic);
         mNhNs.getParam("point_cloud_topic", point_cloud_topic);
         mNhNs.getParam("pose_topic", pose_topic);
+        pose_cov_topic = pose_topic + "_with_covariance";
         mNhNs.getParam("odometry_topic", odometry_topic);
         mNhNs.getParam("imu_topic", imu_topic);
         mNhNs.getParam("imu_topic_raw", imu_topic_raw);
