@@ -17,6 +17,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////
+
 #include "zed_wrapper_nodelet.hpp"
 
 #ifndef NDEBUG

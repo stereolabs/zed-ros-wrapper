@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>zed_wrapper</name>
-  <version>1.0.0</version>
+  <version>2.6.0</version>
   <description>zed_wrapper is a ROS wrapper for the <a href="http://www.stereolabs.com/developers/">ZED library</a>
     for interfacing with the ZED camera.
   </description>
