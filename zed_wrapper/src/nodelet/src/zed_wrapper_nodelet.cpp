@@ -1153,6 +1153,7 @@ namespace zed_wrapper {
             mMatWidth = static_cast<size_t>(mCamWidth * mCamMatResizeFactor);
             mMatHeight = static_cast<size_t>(mCamHeight * mCamMatResizeFactor);
             NODELET_DEBUG_STREAM("Data Mat size : " << mMatWidth << "x" << mMatHeight);
+
             // Update Camera Info
             fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId,
                         mRightCamOptFrameId);

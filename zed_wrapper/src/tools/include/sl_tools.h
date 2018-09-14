@@ -57,7 +57,7 @@ namespace sl_tools {
      */
     ros::Time slTime2Ros(sl::timeStamp t);
 
-    /* \brief Image to ros message conversion
+    /* \brief sl::Mat to ros message conversion
      * \param img : the image to publish
      * \param frameId : the id of the reference frame of the image
      * \param t : the ros::Time to stamp the image
