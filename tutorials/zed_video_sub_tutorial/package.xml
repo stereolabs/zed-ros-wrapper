@@ -4,7 +4,7 @@
   <description>
     This package is a tutorial showing how to subscribe to ZED Video streams
   </description>
-  <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
+  <maintainer email="support at stereolabs.com">STEREOLABS</maintainer>
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
