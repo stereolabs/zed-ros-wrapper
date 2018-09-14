@@ -5,7 +5,7 @@
   <description>zed_wrapper is a ROS wrapper for the <a href="http://www.stereolabs.com/developers/">ZED library</a>
     for interfacing with the ZED camera.
   </description>
-  <maintainer email="support at stereolabs.com">STEREOLABS</maintainer>
+  <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>  
