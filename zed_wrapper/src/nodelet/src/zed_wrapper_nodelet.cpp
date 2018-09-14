@@ -19,8 +19,6 @@
 ///////////////////////////////////////////////////////////////////////////
 #include "zed_wrapper_nodelet.hpp"
 
-#include <opencv2/imgproc/imgproc.hpp>
-
 #ifndef NDEBUG
 #include <ros/console.h>
 #endif
@@ -162,7 +160,8 @@ namespace zed_wrapper {
         // Status of odometry TF
         NODELET_INFO_STREAM("Broadcasting " << mOdometryFrameId << " [" << (mPublishTf ? "TRUE" : "FALSE") << "]");
         // Status of map TF
-        NODELET_INFO_STREAM("Broadcasting " << mMapFrameId << " [" << ((mPublishTf && mPublishMapTf) ? "TRUE" : "FALSE") << "]");
+        NODELET_INFO_STREAM("Broadcasting " << mMapFrameId << " [" << ((mPublishTf &&
+                            mPublishMapTf) ? "TRUE" : "FALSE") << "]");
 
         std::string img_topic = "image_rect_color";
         std::string img_raw_topic = "image_raw_color";
@@ -909,32 +908,55 @@ namespace zed_wrapper {
         mTransformImuBroadcaster.sendTransform(transformStamped);
     }
 
-    void ZEDWrapperNodelet::publishImage(cv::Mat img,
+    void ZEDWrapperNodelet::publishImage(sl::Mat img,
                                          image_transport::Publisher& pubImg,
                                          string imgFrameId, ros::Time t) {
-        pubImg.publish(
-            sl_tools::imageToROSmsg(img, sensor_msgs::image_encodings::BGR8, imgFrameId, t));
+        pubImg.publish(sl_tools::imageToROSmsg(img, imgFrameId, t));
     }
 
-    void ZEDWrapperNodelet::publishDepth(cv::Mat depth, ros::Time t) {
-        string encoding;
+    void ZEDWrapperNodelet::publishDepth(sl::Mat depth, ros::Time t) {
 
-        if (mOpenniDepthMode) {
-            depth *= 1000.0f;
-            depth.convertTo(depth, CV_16UC1); // in mm, rounded
-            encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-        } else {
-            encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+        if (!mOpenniDepthMode) {
+            mPubDepth.publish(sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t));
+            return;
         }
 
-        mPubDepth.publish(sl_tools::imageToROSmsg(depth, encoding, mDepthOptFrameId, t));
+        // OPENNI CONVERSION (meter -> millimeters - float32 -> uint16)
+        sensor_msgs::ImagePtr depthMessage = boost::make_shared<sensor_msgs::Image>();
+
+        depthMessage->header.stamp = t;
+        depthMessage->header.frame_id = mDepthOptFrameId;
+        depthMessage->height = depth.getHeight();
+        depthMessage->width = depth.getWidth();
+
+        int num = 1; // for endianness detection
+        depthMessage->is_bigendian = !(*(char*)&num == 1);
+
+        depthMessage->step = depthMessage->width * sizeof(uint16_t);
+        depthMessage->encoding = sensor_msgs::image_encodings::MONO16;
+
+        size_t size = depthMessage->step * depthMessage->height;
+        depthMessage->data.resize(size);
+
+        uint16_t* data = (uint16_t*)(&depthMessage->data[0]);
+
+        int dataSize = depthMessage->width * depthMessage->height;
+        sl::float1* depthDataPtr = depth.getPtr<sl::float1>();
+
+        for (int i = 0; i < dataSize; i++) {
+            *(data++) = static_cast<uint16_t>(std::round(*(depthDataPtr++) * 1000));    // in mm, rounded
+        }
+
+        mPubDepth.publish(depthMessage);
     }
 
-    void ZEDWrapperNodelet::publishDisparity(cv::Mat disparity, ros::Time t) {
+    void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t) {
+
         sl::CameraInformation zedParam =
             mZed.getCameraInformation(sl::Resolution(mMatWidth, mMatHeight));
-        sensor_msgs::ImagePtr disparity_image = sl_tools::imageToROSmsg(
-                disparity, sensor_msgs::image_encodings::TYPE_32FC1, mDisparityFrameId, t);
+
+        sensor_msgs::ImagePtr disparity_image = sl_tools::imageToROSmsg(disparity, mDisparityFrameId, t);
+
         stereo_msgs::DisparityImage msg;
         msg.image = *disparity_image;
         msg.header = msg.image.header;
@@ -1067,11 +1089,10 @@ namespace zed_wrapper {
         }
 
         if (rawParam) {
-            cv::Mat R_ = sl_tools::convertRodrigues(zedParam.R);
-            float* p = (float*)(R_.data);
-
-            for (size_t i = 0; i < 9; i++) {
-                rightCamInfoMsg->R[i] = static_cast<double>(p[i]);
+            std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
+            float* p = R_.data();
+            for (int i = 0; i < 9; i++) {
+                rightCamInfoMsg->R[i] = p[i];
             }
         }
 
@@ -1420,11 +1441,7 @@ namespace zed_wrapper {
         mMatWidth = static_cast<int>(mCamWidth * mCamMatResizeFactor);
         mMatHeight = static_cast<int>(mCamHeight * mCamMatResizeFactor);
         NODELET_DEBUG_STREAM("Data Mat size : " << mMatWidth << "x" << mMatHeight);
-        cv::Size cvSize(mMatWidth, mMatWidth);
-        mCvLeftImRGB = cv::Mat(cvSize, CV_8UC3);
-        mCvRightImRGB = cv::Mat(cvSize, CV_8UC3);
-        mCvConfImRGB = cv::Mat(cvSize, CV_8UC3);
-        mCvConfMapFloat = cv::Mat(cvSize, CV_32FC1);
+
         // Create and fill the camera information messages
         fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId,
                     mRightCamOptFrameId);
@@ -1611,16 +1628,15 @@ namespace zed_wrapper {
                 if (leftSubnumber > 0 || rgbSubnumber > 0) {
                     // Retrieve RGBA Left image
                     mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, mMatWidth, mMatHeight);
-                    cv::cvtColor(sl_tools::toCVMat(leftZEDMat), mCvLeftImRGB, CV_RGBA2RGB);
 
                     if (leftSubnumber > 0) {
                         publishCamInfo(mLeftCamInfoMsg, mPubLeftCamInfo, t);
-                        publishImage(mCvLeftImRGB, mPubLeft, mLeftCamOptFrameId, t);
+                        publishImage(leftZEDMat, mPubLeft, mLeftCamOptFrameId, t);
                     }
 
                     if (rgbSubnumber > 0) {
                         publishCamInfo(mRgbCamInfoMsg, mPubRgbCamInfo, t);
-                        publishImage(mCvLeftImRGB, mPubRgb, mDepthOptFrameId, t); // rgb is the left image
+                        publishImage(leftZEDMat, mPubRgb, mDepthOptFrameId, t); // rgb is the left image
                     }
                 }
 
@@ -1628,16 +1644,15 @@ namespace zed_wrapper {
                 if (leftRawSubnumber > 0 || rgbRawSubnumber > 0) {
                     // Retrieve RGBA Left image
                     mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU, mMatWidth, mMatHeight);
-                    cv::cvtColor(sl_tools::toCVMat(leftZEDMat), mCvLeftImRGB, CV_RGBA2RGB);
 
                     if (leftRawSubnumber > 0) {
                         publishCamInfo(mLeftCamInfoRawMsg, mPubLeftCamInfoRaw, t);
-                        publishImage(mCvLeftImRGB, mPubRawLeft, mLeftCamOptFrameId, t);
+                        publishImage(leftZEDMat, mPubRawLeft, mLeftCamOptFrameId, t);
                     }
 
                     if (rgbRawSubnumber > 0) {
                         publishCamInfo(mRgbCamInfoRawMsg, mPubRgbCamInfoRaw, t);
-                        publishImage(mCvLeftImRGB, mPubRawRgb, mDepthOptFrameId, t);
+                        publishImage(leftZEDMat, mPubRawRgb, mDepthOptFrameId, t);
                     }
                 }
 
@@ -1645,49 +1660,46 @@ namespace zed_wrapper {
                 if (rightSubnumber > 0) {
                     // Retrieve RGBA Right image
                     mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU, mMatWidth, mMatHeight);
-                    cv::cvtColor(sl_tools::toCVMat(rightZEDMat), mCvRightImRGB, CV_RGBA2RGB);
+
                     publishCamInfo(mRightCamInfoMsg, mPubRightCamInfo, t);
-                    publishImage(mCvRightImRGB, mPubRight, mRightCamOptFrameId, t);
+                    publishImage(rightZEDMat, mPubRight, mRightCamOptFrameId, t);
                 }
 
                 // Publish the right image if someone has subscribed to
                 if (rightRawSubnumber > 0) {
                     // Retrieve RGBA Right image
                     mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU, mMatWidth, mMatHeight);
-                    cv::cvtColor(sl_tools::toCVMat(rightZEDMat), mCvRightImRGB, CV_RGBA2RGB);
+
                     publishCamInfo(mRightCamInfoRawMsg, mPubRightCamInfoRaw, t);
-                    publishImage(mCvRightImRGB, mPubRawRight, mRightCamOptFrameId, t);
+                    publishImage(rightZEDMat, mPubRawRight, mRightCamOptFrameId, t);
                 }
 
                 // Publish the depth image if someone has subscribed to
                 if (depthSubnumber > 0 || disparitySubnumber > 0) {
                     mZed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH, sl::MEM_CPU, mMatWidth, mMatHeight);
                     publishCamInfo(mDepthCamInfoMsg, mPubDepthCamInfo, t);
-                    publishDepth(sl_tools::toCVMat(depthZEDMat), t); // in meters
+                    publishDepth(depthZEDMat, t); // in meters
                 }
 
                 // Publish the disparity image if someone has subscribed to
                 if (disparitySubnumber > 0) {
                     mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY, sl::MEM_CPU, mMatWidth, mMatHeight);
                     // Need to flip sign, but cause of this is not sure
-                    cv::Mat disparity = sl_tools::toCVMat(disparityZEDMat) * -1.0;
-                    publishDisparity(disparity, t);
+                    publishDisparity(disparityZEDMat, t);
                 }
 
                 // Publish the confidence image if someone has subscribed to
                 if (confImgSubnumber > 0) {
                     mZed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE, sl::MEM_CPU, mMatWidth, mMatHeight);
-                    cv::cvtColor(sl_tools::toCVMat(confImgZEDMat), mCvConfImRGB, CV_RGBA2RGB);
-                    publishImage(mCvConfImRGB, mPubConfImg, mConfidenceOptFrameId, t);
+                    publishImage(confImgZEDMat, mPubConfImg, mConfidenceOptFrameId, t);
                 }
 
                 // Publish the confidence map if someone has subscribed to
                 if (confMapSubnumber > 0) {
                     mZed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE, sl::MEM_CPU, mMatWidth, mMatHeight);
-                    mCvConfMapFloat = sl_tools::toCVMat(confMapZEDMat);
-                    mPubConfMap.publish(sl_tools::imageToROSmsg(
-                                            mCvConfMapFloat, sensor_msgs::image_encodings::TYPE_32FC1,
-                                            mConfidenceOptFrameId, t));
+
+
+                    mPubConfMap.publish(sl_tools::imageToROSmsg(confMapZEDMat, mConfidenceOptFrameId, t));
                 }
 
                 // Publish the point cloud if someone has subscribed to
@@ -1737,7 +1749,8 @@ namespace zed_wrapper {
                         sl::Pose deltaOdom;
                         sl::TRACKING_STATE status = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
 
-                        if (status == sl::TRACKING_STATE_OK || status == sl::TRACKING_STATE_SEARCHING || status == sl::TRACKING_STATE_FPS_TOO_LOW) {
+                        if (status == sl::TRACKING_STATE_OK || status == sl::TRACKING_STATE_SEARCHING ||
+                            status == sl::TRACKING_STATE_FPS_TOO_LOW) {
                             // Transform ZED delta odom pose in TF2 Transformation
                             geometry_msgs::Transform deltaTransf;
                             sl::Translation translation = deltaOdom.getTranslation();
@@ -1781,7 +1794,8 @@ namespace zed_wrapper {
                                   translation(mIdxX), translation(mIdxY), translation(mIdxZ),
                                   quat(mIdxX), quat(mIdxY), quat(mIdxZ), quat(3));
 
-                    if (status == sl::TRACKING_STATE_OK || status == sl::TRACKING_STATE_SEARCHING /*|| status == sl::TRACKING_STATE_FPS_TOO_LOW*/) {
+                    if (status == sl::TRACKING_STATE_OK ||
+                        status == sl::TRACKING_STATE_SEARCHING /*|| status == sl::TRACKING_STATE_FPS_TOO_LOW*/) {
                         // Transform ZED pose in TF2 Transformation
                         geometry_msgs::Transform sens2mapTransf;
 

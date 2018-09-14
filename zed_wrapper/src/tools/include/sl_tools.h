@@ -21,7 +21,6 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-#include <opencv2/core/core.hpp>
 #include <ros/time.h>
 #include <sensor_msgs/Image.h>
 #include <sl/Camera.hpp>
@@ -39,12 +38,7 @@ namespace sl_tools {
     */
     sl::DeviceProperties getZEDFromSN(unsigned int serial_number);
 
-    /* \brief Convert an sl:Mat to a cv::Mat
-    * \param mat : the sl::Mat to convert
-    */
-    cv::Mat toCVMat(sl::Mat& mat);
-
-    cv::Mat convertRodrigues(sl::float3 r);
+    std::vector<float> convertRodrigues(sl::float3 r);
 
     /* \brief Test if a file exist
     * \param name : the path to the file
@@ -65,13 +59,10 @@ namespace sl_tools {
 
     /* \brief Image to ros message conversion
      * \param img : the image to publish
-     * \param encodingType : the sensor_msgs::image_encodings encoding type
      * \param frameId : the id of the reference frame of the image
      * \param t : the ros::Time to stamp the image
      */
-    sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img,
-                                        const std::string encodingType,
-                                        std::string frameId, ros::Time t);
+    sensor_msgs::ImagePtr imageToROSmsg(sl::Mat img, std::string frameId, ros::Time t);
 
 
 } // namespace
