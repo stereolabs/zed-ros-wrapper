@@ -718,7 +718,7 @@ namespace zed_wrapper {
         mNhNs.getParam("pose_smoothing", mPoseSmoothing);
         mNhNs.getParam("spatial_memory", mSpatialMemory);
         mNhNs.getParam("floor_alignment", mFloorAlignment);
-        mNhNs.getParam("init_odom_with_imu", mInitOdomWithPose);
+        mNhNs.getParam("init_odom_with_first_valid_pose", mInitOdomWithPose);
         NODELET_INFO_STREAM("Init Odometry with first valid pose data : " << mInitOdomWithPose);
 
         if (mInitialTrackPose.size() != 6) {
