@@ -1385,7 +1385,7 @@ namespace zed_wrapper {
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
 
-                    if ((t - old_t).toSec() > 5) {
+                    if ((ros::Time::now() - old_t).toSec() > 5) {
                         zed.close();
 
                         NODELET_INFO("Re-opening the ZED");
@@ -1399,7 +1399,7 @@ namespace zed_wrapper {
                             }
 
                             int id = sl_tools::checkCameraReady(serial_number);
-                            if (id > 0) {
+                            if (id >= 0) {
                                 param.camera_linux_id = id;
                                 err = zed.open(param); // Try to initialize the ZED
                                 NODELET_INFO_STREAM(toString(err));
