@@ -340,7 +340,8 @@ namespace zed_wrapper {
         bool mFloorAlignment = false;
 
         // Last frame time
-        ros::Time mLastFrameTime;
+        ros::Time mPrevFrameTimestamp;
+        ros::Time mFrameTimestamp;
 
         //Tracking variables
         sl::Pose mLastZedPose; // Sensor to Map transform
@@ -384,6 +385,7 @@ namespace zed_wrapper {
         int mMatHeight;
 
         // Thread Sync
+        std::mutex mCloseZedMutex;
         std::mutex mCamDataMutex;
         std::mutex mPcMutex;
         std::condition_variable mPcDataReadyCondVar;

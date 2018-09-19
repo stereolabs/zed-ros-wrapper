@@ -278,7 +278,11 @@ namespace zed_wrapper {
                     // Ctrl+C check
                     if (!mNhNs.ok()) {
                         mStopNode = true; // Stops other threads
+
+                        std::lock_guard<std::mutex> lock(mCloseZedMutex);
+                        NODELET_DEBUG("Closing ZED");
                         mZed.close();
+
                         NODELET_DEBUG("ZED pool thread finished");
                         return;
                     }
@@ -356,7 +360,11 @@ namespace zed_wrapper {
 
             if (!mNhNs.ok()) {
                 mStopNode = true; // Stops other threads
+
+                std::lock_guard<std::mutex> lock(mCloseZedMutex);
+                NODELET_DEBUG("Closing ZED");
                 mZed.close();
+
                 NODELET_DEBUG("ZED pool thread finished");
                 return;
             }
@@ -499,7 +507,7 @@ namespace zed_wrapper {
             mPubImuRaw = mNh.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
             NODELET_INFO_STREAM("Advertised on topic " << imu_topic_raw << " @ "
                                 << mImuPubRate << " Hz");
-            mLastFrameTime = ros::Time::now();
+            mFrameTimestamp = ros::Time::now();
             mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
                                           &ZEDWrapperNodelet::imuPubCallback, this);
         } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
@@ -827,7 +835,7 @@ namespace zed_wrapper {
         }
 
         std_msgs::Header header;
-        header.stamp = mLastFrameTime;
+        header.stamp = mFrameTimestamp;
         header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
 
         // conversion from Tranform to message
@@ -1219,7 +1227,7 @@ namespace zed_wrapper {
         geometry_msgs::PoseStamped odomPose;
         geometry_msgs::PoseStamped mapPose;
 
-        odomPose.header.stamp = mLastFrameTime;
+        odomPose.header.stamp = mFrameTimestamp;
         odomPose.header.frame_id = mOdometryFrameId; // odom_frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2odom = tf2::toMsg(base_to_odom);
@@ -1233,7 +1241,7 @@ namespace zed_wrapper {
         odomPose.pose.orientation.w = base2odom.rotation.w;
 
         if (mPublishMapTf) {
-            mapPose.header.stamp = mLastFrameTime;
+            mapPose.header.stamp = mFrameTimestamp;
             mapPose.header.frame_id = mMapFrameId; // map_frame
             // conversion from Tranform to message
             geometry_msgs::Transform base2map = tf2::toMsg(base_to_map);
@@ -1270,7 +1278,7 @@ namespace zed_wrapper {
         if (mapPathSub > 0 &&  mPublishMapTf) {
             nav_msgs::Path mapPath;
             mapPath.header.frame_id = mMapFrameId;
-            mapPath.header.stamp = mLastFrameTime;
+            mapPath.header.stamp = mFrameTimestamp;
             mapPath.poses = mMapPath;
 
             mPubMapPath.publish(mapPath);
@@ -1279,7 +1287,7 @@ namespace zed_wrapper {
         if (odomPathSub > 0) {
             nav_msgs::Path odomPath;
             odomPath.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
-            odomPath.header.stamp = mLastFrameTime;
+            odomPath.header.stamp = mFrameTimestamp;
             odomPath.poses = mOdomPath;
 
             mPubOdomPath.publish(odomPath);
@@ -1288,6 +1296,12 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
+
+        std::lock_guard<std::mutex> lock(mCloseZedMutex);
+        if (!mZed.isOpened()) {
+            return;
+        }
+
         uint32_t imu_SubNumber = mPubImu.getNumSubscribers();
         uint32_t imu_RawSubNumber = mPubImuRaw.getNumSubscribers();
 
@@ -1307,7 +1321,7 @@ namespace zed_wrapper {
 
         if (imu_SubNumber > 0) {
             sensor_msgs::Imu imu_msg;
-            imu_msg.header.stamp = mLastFrameTime; // t;
+            imu_msg.header.stamp = mFrameTimestamp; // t;
             imu_msg.header.frame_id = mImuFrameId;
             imu_msg.orientation.x = mSignX * imu_data.getOrientation()[mIdxX];
             imu_msg.orientation.y = mSignY * imu_data.getOrientation()[mIdxY];
@@ -1346,7 +1360,7 @@ namespace zed_wrapper {
 
         if (imu_RawSubNumber > 0) {
             sensor_msgs::Imu imu_raw_msg;
-            imu_raw_msg.header.stamp = mLastFrameTime; // t;
+            imu_raw_msg.header.stamp = mFrameTimestamp; // t;
             imu_raw_msg.header.frame_id = mImuFrameId;
             imu_raw_msg.angular_velocity.x = mSignX * imu_data.angular_velocity[mIdxX];
             imu_raw_msg.angular_velocity.y = mSignY * imu_data.angular_velocity[mIdxY];
@@ -1418,22 +1432,22 @@ namespace zed_wrapper {
             imu_pose.setRotation(delta_q);
             // Note, the frame is published, but its values will only change if someone
             // has subscribed to IMU
-            publishImuFrame(imu_pose, mLastFrameTime); // publish the imu Frame
+            publishImuFrame(imu_pose, mFrameTimestamp); // publish the imu Frame
         }
     }
 
     void ZEDWrapperNodelet::device_poll_thread_func() {
         ros::Rate loop_rate(mCamFrameRate);
 
-        ros::Time t_old;
+        // Timestamp initialization
         if (mSvoMode) {
-            t_old = ros::Time::now();
+            mFrameTimestamp = ros::Time::now();
         } else {
-            t_old = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+            mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
         }
-        ros::Time old_t = t_old;
 
-        mLastFrameTime = old_t;
+        mPrevFrameTimestamp = mFrameTimestamp;
+
         sl::ERROR_CODE grab_status;
         mTrackingActivated = false;
         // Get the parameters of the ZED images
@@ -1508,14 +1522,6 @@ namespace zed_wrapper {
                                   poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
                                   confMapSubnumber) > 0);
 
-                // Timestamp
-                ros::Time t;
-                if (mSvoMode) {
-                    t = ros::Time::now();
-                } else {
-                    t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
-                }
-
                 if (mComputeDepth) {
                     int actual_confidence = mZed.getConfidenceThreshold();
 
@@ -1554,22 +1560,28 @@ namespace zed_wrapper {
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
 
-                    if ((t - old_t).toSec() > 5 && !mSvoMode) {
+                    if ((ros::Time::now() - mPrevFrameTimestamp).toSec() > 5 && !mSvoMode) {
+                        mCloseZedMutex.lock();
                         mZed.close();
-                        NODELET_INFO("Re-opening the ZED");
+                        mCloseZedMutex.unlock();
+
                         sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
 
                         while (err != sl::SUCCESS) {
                             if (!mNhNs.ok()) {
                                 mStopNode = true;
+
+                                std::lock_guard<std::mutex> lock(mCloseZedMutex);
+                                NODELET_DEBUG("Closing ZED");
                                 mZed.close();
+
                                 NODELET_DEBUG("ZED pool thread finished");
                                 return;
                             }
 
                             int id = sl_tools::checkCameraReady(mZedSerialNumber);
 
-                            if (id > 0) {
+                            if (id >= 0) {
                                 mZedParams.camera_linux_id = id;
                                 err = mZed.open(mZedParams); // Try to initialize the ZED
                                 NODELET_INFO_STREAM(toString(err));
@@ -1593,14 +1605,14 @@ namespace zed_wrapper {
                     continue;
                 }
 
-                // Time update
-                ros::Time t_old;
+                mPrevFrameTimestamp = mFrameTimestamp;
+
+                // Timestamp
                 if (mSvoMode) {
-                    t_old = ros::Time::now();
+                    mFrameTimestamp = ros::Time::now();
                 } else {
-                    t_old = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+                    mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
                 }
-                old_t = t_old;
 
                 if (mCamAutoExposure) {
                     // getCameraSettings() can't check status of auto exposure
@@ -1632,13 +1644,13 @@ namespace zed_wrapper {
                     mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, mMatWidth, mMatHeight);
 
                     if (leftSubnumber > 0) {
-                        publishCamInfo(mLeftCamInfoMsg, mPubLeftCamInfo, t);
-                        publishImage(leftZEDMat, mPubLeft, mLeftCamOptFrameId, t);
+                        publishCamInfo(mLeftCamInfoMsg, mPubLeftCamInfo, mFrameTimestamp);
+                        publishImage(leftZEDMat, mPubLeft, mLeftCamOptFrameId, mFrameTimestamp);
                     }
 
                     if (rgbSubnumber > 0) {
-                        publishCamInfo(mRgbCamInfoMsg, mPubRgbCamInfo, t);
-                        publishImage(leftZEDMat, mPubRgb, mDepthOptFrameId, t); // rgb is the left image
+                        publishCamInfo(mRgbCamInfoMsg, mPubRgbCamInfo, mFrameTimestamp);
+                        publishImage(leftZEDMat, mPubRgb, mDepthOptFrameId, mFrameTimestamp); // rgb is the left image
                     }
                 }
 
@@ -1648,13 +1660,13 @@ namespace zed_wrapper {
                     mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU, mMatWidth, mMatHeight);
 
                     if (leftRawSubnumber > 0) {
-                        publishCamInfo(mLeftCamInfoRawMsg, mPubLeftCamInfoRaw, t);
-                        publishImage(leftZEDMat, mPubRawLeft, mLeftCamOptFrameId, t);
+                        publishCamInfo(mLeftCamInfoRawMsg, mPubLeftCamInfoRaw, mFrameTimestamp);
+                        publishImage(leftZEDMat, mPubRawLeft, mLeftCamOptFrameId, mFrameTimestamp);
                     }
 
                     if (rgbRawSubnumber > 0) {
-                        publishCamInfo(mRgbCamInfoRawMsg, mPubRgbCamInfoRaw, t);
-                        publishImage(leftZEDMat, mPubRawRgb, mDepthOptFrameId, t);
+                        publishCamInfo(mRgbCamInfoRawMsg, mPubRgbCamInfoRaw, mFrameTimestamp);
+                        publishImage(leftZEDMat, mPubRawRgb, mDepthOptFrameId, mFrameTimestamp);
                     }
                 }
 
@@ -1663,8 +1675,8 @@ namespace zed_wrapper {
                     // Retrieve RGBA Right image
                     mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU, mMatWidth, mMatHeight);
 
-                    publishCamInfo(mRightCamInfoMsg, mPubRightCamInfo, t);
-                    publishImage(rightZEDMat, mPubRight, mRightCamOptFrameId, t);
+                    publishCamInfo(mRightCamInfoMsg, mPubRightCamInfo, mFrameTimestamp);
+                    publishImage(rightZEDMat, mPubRight, mRightCamOptFrameId, mFrameTimestamp);
                 }
 
                 // Publish the right image if someone has subscribed to
@@ -1672,28 +1684,28 @@ namespace zed_wrapper {
                     // Retrieve RGBA Right image
                     mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU, mMatWidth, mMatHeight);
 
-                    publishCamInfo(mRightCamInfoRawMsg, mPubRightCamInfoRaw, t);
-                    publishImage(rightZEDMat, mPubRawRight, mRightCamOptFrameId, t);
+                    publishCamInfo(mRightCamInfoRawMsg, mPubRightCamInfoRaw, mFrameTimestamp);
+                    publishImage(rightZEDMat, mPubRawRight, mRightCamOptFrameId, mFrameTimestamp);
                 }
 
                 // Publish the depth image if someone has subscribed to
                 if (depthSubnumber > 0 || disparitySubnumber > 0) {
                     mZed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH, sl::MEM_CPU, mMatWidth, mMatHeight);
-                    publishCamInfo(mDepthCamInfoMsg, mPubDepthCamInfo, t);
-                    publishDepth(depthZEDMat, t); // in meters
+                    publishCamInfo(mDepthCamInfoMsg, mPubDepthCamInfo, mFrameTimestamp);
+                    publishDepth(depthZEDMat, mFrameTimestamp); // in meters
                 }
 
                 // Publish the disparity image if someone has subscribed to
                 if (disparitySubnumber > 0) {
                     mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY, sl::MEM_CPU, mMatWidth, mMatHeight);
                     // Need to flip sign, but cause of this is not sure
-                    publishDisparity(disparityZEDMat, t);
+                    publishDisparity(disparityZEDMat, mFrameTimestamp);
                 }
 
                 // Publish the confidence image if someone has subscribed to
                 if (confImgSubnumber > 0) {
                     mZed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE, sl::MEM_CPU, mMatWidth, mMatHeight);
-                    publishImage(confImgZEDMat, mPubConfImg, mConfidenceOptFrameId, t);
+                    publishImage(confImgZEDMat, mPubConfImg, mConfidenceOptFrameId, mFrameTimestamp);
                 }
 
                 // Publish the confidence map if someone has subscribed to
@@ -1701,7 +1713,7 @@ namespace zed_wrapper {
                     mZed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE, sl::MEM_CPU, mMatWidth, mMatHeight);
 
 
-                    mPubConfMap.publish(sl_tools::imageToROSmsg(confMapZEDMat, mConfidenceOptFrameId, t));
+                    mPubConfMap.publish(sl_tools::imageToROSmsg(confMapZEDMat, mConfidenceOptFrameId, mFrameTimestamp));
                 }
 
                 // Publish the point cloud if someone has subscribed to
@@ -1714,7 +1726,7 @@ namespace zed_wrapper {
                         mZed.retrieveMeasure(mCloud, sl::MEASURE_XYZBGRA, sl::MEM_CPU, mMatWidth, mMatHeight);
 
                         mPointCloudFrameId = mDepthFrameId;
-                        mPointCloudTime = t;
+                        mPointCloudTime = mFrameTimestamp;
 
                         // Signal Pointcloud thread that a new pointcloud is ready
                         mPcDataReady = true;
@@ -1732,7 +1744,7 @@ namespace zed_wrapper {
                 try {
                     // Save the transformation from base to frame
                     geometry_msgs::TransformStamped s2b =
-                        mTfBuffer->lookupTransform(mBaseFrameId, mDepthFrameId, t);
+                        mTfBuffer->lookupTransform(mBaseFrameId, mDepthFrameId, mFrameTimestamp);
                     // Get the TF2 transformation
                     tf2::fromMsg(s2b.transform, sensor_to_base_transf);
                 } catch (tf2::TransformException& ex) {
@@ -1773,7 +1785,7 @@ namespace zed_wrapper {
                             // Propagate Odom transform in time
                             mBase2OdomTransf = mBase2OdomTransf * deltaOdomTf_base;
                             // Publish odometry message
-                            publishOdom(mBase2OdomTransf, deltaOdom, t);
+                            publishOdom(mBase2OdomTransf, deltaOdom, mFrameTimestamp);
                             mTrackingReady = true;
                         } else {
                             NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(status));
@@ -1834,7 +1846,7 @@ namespace zed_wrapper {
 
                             if (odomSubnumber > 0) {
                                 // Publish odometry message
-                                publishOdom(mBase2OdomTransf, mLastZedPose, t);
+                                publishOdom(mBase2OdomTransf, mLastZedPose, mFrameTimestamp);
                             }
 
                             mInitOdomWithPose = false;
@@ -1846,7 +1858,7 @@ namespace zed_wrapper {
                         }
 
                         // Publish Pose message
-                        publishPose(t);
+                        publishPose(mFrameTimestamp);
                         mTrackingReady = true;
                     } else {
                         NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << static_cast<int>(status));
@@ -1855,19 +1867,16 @@ namespace zed_wrapper {
                     oldStatus = status;
                 }
 
-
-
                 // Publish pose tf only if enabled
                 if (mPublishTf) {
                     // Note, the frame is published, but its values will only change if
                     // someone has subscribed to odom
-                    publishOdomFrame(mBase2OdomTransf, t); // publish the base Frame in odometry frame
+                    publishOdomFrame(mBase2OdomTransf, mFrameTimestamp); // publish the base Frame in odometry frame
                     if (mPublishMapTf) {
                         // Note, the frame is published, but its values will only change if
                         // someone has subscribed to map
-                        publishPoseFrame(mOdom2MapTransf, t); // publish the odometry Frame in map frame
+                        publishPoseFrame(mOdom2MapTransf, mFrameTimestamp); // publish the odometry Frame in map frame
                     }
-                    mLastFrameTime = t;
                 }
 
                 static int rateWarnCount = 0;
@@ -1903,10 +1912,10 @@ namespace zed_wrapper {
                         t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
                     }
 
-                    publishOdomFrame(mBase2OdomTransf, t); // publish the base Frame in odometry frame
+                    publishOdomFrame(mBase2OdomTransf, mFrameTimestamp); // publish the base Frame in odometry frame
 
                     if (mPublishMapTf) {
-                        publishPoseFrame(mOdom2MapTransf, t); // publish the odometry Frame in map frame
+                        publishPoseFrame(mOdom2MapTransf, mFrameTimestamp); // publish the odometry Frame in map frame
                     }
                 }
 
@@ -1917,6 +1926,9 @@ namespace zed_wrapper {
         } // while loop
 
         mStopNode = true; // Stops other threads
+
+        std::lock_guard<std::mutex> lock(mCloseZedMutex);
+        NODELET_DEBUG("Closing ZED");
         mZed.close();
 
         NODELET_DEBUG("ZED pool thread finished");
