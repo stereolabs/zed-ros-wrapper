@@ -11,11 +11,9 @@ Panels:
         - /Video1/Camera view1/Visibility1
         - /Depth1/DepthCloud1
         - /Pose1
-        - /Pose1/Odometry1
         - /Pose1/Odometry1/Covariance1
         - /Pose1/Odometry1/Covariance1/Position1
         - /Pose1/Odometry1/Covariance1/Orientation1
-        - /Pose1/Pose1
         - /Pose1/PoseWithCovariance1
         - /Pose1/PoseWithCovariance1/Covariance1
         - /Pose1/PoseWithCovariance1/Covariance1/Position1
@@ -110,8 +108,6 @@ Visualization Manager:
         All Enabled: false
         imu_link:
           Value: true
-        map:
-          Value: true
         odom:
           Value: true
         zed_camera_center:
@@ -130,17 +126,16 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          odom:
-            zed_camera_center:
-              imu_link:
+        odom:
+          zed_camera_center:
+            imu_link:
+              {}
+            zed_left_camera_frame:
+              zed_left_camera_optical_frame:
                 {}
-              zed_left_camera_frame:
-                zed_left_camera_optical_frame:
-                  {}
-              zed_right_camera_frame:
-                zed_right_camera_optical_frame:
-                  {}
+            zed_right_camera_frame:
+              zed_right_camera_optical_frame:
+                {}
       Update Interval: 0
       Value: true
     - Class: rviz/Group
@@ -320,7 +315,7 @@ Visualization Manager:
           Buffer Length: 1
           Class: rviz/Path
           Color: 255; 25; 0
-          Enabled: false
+          Enabled: true
           Head Diameter: 0.0299999993
           Head Length: 0.0199999996
           Length: 0.300000012
@@ -338,7 +333,7 @@ Visualization Manager:
           Shaft Length: 0.0500000007
           Topic: /zed/path_odom
           Unreliable: true
-          Value: false
+          Value: true
         - Angle Tolerance: 0
           Class: rviz/Odometry
           Covariance:
@@ -377,7 +372,7 @@ Visualization Manager:
           Buffer Length: 1
           Class: rviz/Path
           Color: 25; 255; 0
-          Enabled: false
+          Enabled: true
           Head Diameter: 0.0299999993
           Head Length: 0.0199999996
           Length: 0.300000012
@@ -395,7 +390,7 @@ Visualization Manager:
           Shaft Length: 0.0500000007
           Topic: /zed/path_map
           Unreliable: true
-          Value: false
+          Value: true
         - Alpha: 1
           Axes Length: 1
           Axes Radius: 0.100000001
@@ -470,7 +465,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: map
+    Fixed Frame: odom
     Frame Rate: 60
   Name: root
   Tools:
@@ -491,25 +486,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.48717809
+      Distance: 1.64165437
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.149202153
-        Y: -0.131090492
-        Z: 0.699279904
+        X: -0.146052256
+        Y: -0.190351665
+        Z: 0.792743862
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.465398431
+      Pitch: 0.525398433
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.965398073
+      Yaw: 1.14039791
     Saved: ~
 Window Geometry:
   Camera view:

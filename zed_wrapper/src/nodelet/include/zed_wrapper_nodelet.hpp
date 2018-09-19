@@ -212,6 +212,10 @@ namespace zed_wrapper {
          */
         void set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
 
+        /* \brief Utility to initialize the most used transforms
+         */
+        void initTransforms();
+
         /* \bried Start tracking loading the parameters from param server
          */
         void start_tracking();
@@ -353,6 +357,7 @@ namespace zed_wrapper {
         // TF Transforms
         tf2::Transform mOdom2MapTransf;
         tf2::Transform mBase2OdomTransf;
+        tf2::Transform mSensor2BaseTransf;
 
         // Zed object
         sl::InitParameters mZedParams;
