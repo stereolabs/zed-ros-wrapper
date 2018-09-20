@@ -795,7 +795,7 @@ namespace zed_wrapper {
     void ZEDWrapperNodelet::publishOdom(tf2::Transform base2odomTransf, sl::Pose& slPose, ros::Time t) {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
-        odom.header.frame_id = mOdometryFrameId;
+        odom.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
         odom.child_frame_id = mBaseFrameId;      // camera_frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2odom = tf2::toMsg(base2odomTransf);
@@ -1251,7 +1251,7 @@ namespace zed_wrapper {
         geometry_msgs::PoseStamped mapPose;
 
         odomPose.header.stamp = mFrameTimestamp;
-        odomPose.header.frame_id = mOdometryFrameId;
+        odomPose.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2odom = tf2::toMsg(base_to_odom);
         // Add all value in Pose message

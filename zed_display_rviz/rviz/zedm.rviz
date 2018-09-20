@@ -108,6 +108,8 @@ Visualization Manager:
         All Enabled: false
         imu_link:
           Value: true
+        map:
+          Value: true
         odom:
           Value: true
         zed_camera_center:
@@ -126,16 +128,17 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        odom:
-          zed_camera_center:
-            imu_link:
-              {}
-            zed_left_camera_frame:
-              zed_left_camera_optical_frame:
+        map:
+          odom:
+            zed_camera_center:
+              imu_link:
                 {}
-            zed_right_camera_frame:
-              zed_right_camera_optical_frame:
-                {}
+              zed_left_camera_frame:
+                zed_left_camera_optical_frame:
+                  {}
+              zed_right_camera_frame:
+                zed_right_camera_optical_frame:
+                  {}
       Update Interval: 0
       Value: true
     - Class: rviz/Group
@@ -396,7 +399,7 @@ Visualization Manager:
           Axes Radius: 0.100000001
           Class: rviz/Pose
           Color: 0; 255; 0
-          Enabled: false
+          Enabled: true
           Head Length: 0.100000001
           Head Radius: 0.0500000007
           Name: Pose
@@ -405,7 +408,7 @@ Visualization Manager:
           Shape: Arrow
           Topic: /zed/pose
           Unreliable: false
-          Value: false
+          Value: true
         - Alpha: 1
           Axes Length: 1
           Axes Radius: 0.100000001
@@ -426,7 +429,7 @@ Visualization Manager:
               Scale: 100
               Value: true
             Value: true
-          Enabled: true
+          Enabled: false
           Head Length: 0.100000001
           Head Radius: 0.0500000007
           Name: PoseWithCovariance
@@ -435,7 +438,7 @@ Visualization Manager:
           Shape: Arrow
           Topic: /zed/pose_with_covariance
           Unreliable: false
-          Value: true
+          Value: false
         - Acceleration properties:
             Acc. vector alpha: 1
             Acc. vector color: 255; 0; 0
@@ -465,7 +468,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: odom
+    Fixed Frame: map
     Frame Rate: 60
   Name: root
   Tools:
@@ -486,25 +489,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.64165437
+      Distance: 1.97160459
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.146052256
-        Y: -0.190351665
-        Z: 0.792743862
+        X: -0.156546906
+        Y: -0.1158977
+        Z: 0.691972911
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.525398433
+      Pitch: 1.04539788
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.14039791
+      Yaw: 3.37540507
     Saved: ~
 Window Geometry:
   Camera view:
