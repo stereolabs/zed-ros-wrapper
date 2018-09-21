@@ -382,6 +382,7 @@ namespace zed_wrapper {
         bool mSpatialMemory;
         bool mInitOdomWithPose;
         bool mResetOdom = false;
+        bool mPublishPoseCovariance = true;
 
         // Mat
         int mCamWidth;

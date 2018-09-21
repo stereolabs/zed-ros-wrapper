@@ -144,6 +144,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <param name="path_pub_rate"             value="2" />
         <param name="path_max_count"            value="-1" /> <!-- use "-1" for no limits -->
+
+        <param name="publish_pose_covariance"   value="false" />
     </node>
 
     <!-- ROS URDF description of the ZED -->

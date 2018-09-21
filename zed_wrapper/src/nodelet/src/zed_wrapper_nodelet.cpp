@@ -132,6 +132,8 @@ namespace zed_wrapper {
 
         mNhNs.getParam("camera_model", mZedUserCamModel);
 
+        mNhNs.getParam("publish_pose_covariance", mPublishPoseCovariance);
+
         // Publish odometry tf
         mNhNs.param<bool>("publish_tf", mPublishTf, true);
         mNhNs.param<bool>("publish_map_tf", mPublishMapTf, true);
@@ -476,8 +478,10 @@ namespace zed_wrapper {
         // Odometry and Map publisher
         mPubPose = mNh.advertise<geometry_msgs::PoseStamped>(pose_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << pose_topic);
-        mPubPoseCov = mNh.advertise<geometry_msgs::PoseWithCovarianceStamped>(pose_cov_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << pose_cov_topic);
+        if (mPublishPoseCovariance) {
+            mPubPoseCov = mNh.advertise<geometry_msgs::PoseWithCovarianceStamped>(pose_cov_topic, 1);
+            NODELET_INFO_STREAM("Advertised on topic " << pose_cov_topic);
+        }
         mPubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
         
@@ -517,12 +521,12 @@ namespace zed_wrapper {
                 << mImuPubRate << " Hz"
                 << " but ZED camera model does not support IMU data publishing.");
         }
-
+        
         // Services
         mSrvSetInitPose = mNh.advertiseService("set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this);
         mSrvResetOdometry = mNh.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
         mSrvResetTracking = mNh.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
-        
+
         // Start Pointcloud thread
         mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
 
@@ -810,7 +814,7 @@ namespace zed_wrapper {
 
         // >>>>> Odometry pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
-        if (!mSpatialMemory) {
+        if (!mSpatialMemory && mPublishPoseCovariance) {
             for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
                 // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
                 odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
@@ -822,7 +826,7 @@ namespace zed_wrapper {
         // Publish odometry message
         mPubOdom.publish(odom);
     }
-    
+
     void ZEDWrapperNodelet::publishPose(ros::Time t) {
         tf2::Transform base_pose;
         base_pose.setIdentity();
@@ -887,25 +891,27 @@ namespace zed_wrapper {
             mPubPose.publish(poseNoCov);
         }
 
-        if (mPubPoseCov.getNumSubscribers() > 0) {
-            geometry_msgs::PoseWithCovarianceStamped poseCov;
+        if (mPublishPoseCovariance) {
+            if (mPubPoseCov.getNumSubscribers() > 0) {
+                geometry_msgs::PoseWithCovarianceStamped poseCov;
 
-            poseCov.header = header;
-            poseCov.pose.pose = pose;
+                poseCov.header = header;
+                poseCov.pose.pose = pose;
 
-            // >>>>> Odometry pose covariance if available
+                // >>>>> Odometry pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
-            if (!mSpatialMemory) {
-                for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
-                    // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
-                    poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+                if (!mSpatialMemory) {
+                    for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
+                        // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
+                        poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+                    }
                 }
-            }
 #endif
-            // <<<<< Odometry pose covariance if available
+                // <<<<< Odometry pose covariance if available
 
-            // Publish pose with covariance stamped message
-            mPubPoseCov.publish(poseCov);
+                // Publish pose with covariance stamped message
+                mPubPoseCov.publish(poseCov);
+            }
         }
     }
 
