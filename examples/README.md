@@ -1,5 +1,3 @@
-![](../images/Picto+STEREOLABS_Black.png)
-
 # Examples
 How to use the ZED ROS node with other ROS packages
 

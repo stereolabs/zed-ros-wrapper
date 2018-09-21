@@ -1,5 +1,3 @@
-![](../../images/Picto+STEREOLABS_Black.png)
-
 # Stereolabs ZED Camera - ROS Nodelet example
 
 `zed_nodelet_example` is a ROS package to illustrate how to load the `ZEDWrapperNodelet` with an external nodelet manager and use the intraprocess communication to generate a virtual laser scan thanks to the nodelet `depthimage_to_laserscan`

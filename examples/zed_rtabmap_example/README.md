@@ -1,5 +1,3 @@
-![](../../images/Picto+STEREOLABS_Black.png)
-
 # Stereolabs ZED Camera - RTAB-map example
 
 This package shows how to use the ZED Wrapper with [RTAB-map](http://introlab.github.io/rtabmap/)

@@ -1,5 +1,3 @@
-![](../../images/Picto+STEREOLABS_Black.png)
-
 # Positional Tracking tutorial
 
 In this tutorial you will learn how to write a simple node that subscribes to messages of type
