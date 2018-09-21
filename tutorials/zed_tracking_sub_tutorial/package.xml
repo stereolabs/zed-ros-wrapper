@@ -4,8 +4,9 @@
   <description>
     This package is a tutorial showing how to subscribe to ZED positional tracking data streams
   </description>
+
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
-  <license>BSD</license>
+  <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
 
