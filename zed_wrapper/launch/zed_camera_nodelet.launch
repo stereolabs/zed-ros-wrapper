@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <!-- Definition coordinate frames -->
     <arg name="publish_tf"                    default="true" />
+    <arg name="publish_map_tf"                default="true" />
     <arg name="pose_frame"                    default="map" />
     <arg name="odometry_frame"                default="odom" />
     <arg name="base_frame"                    default="zed_camera_center" />
@@ -64,6 +65,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- publish pose frame -->
         <param name="publish_tf"            value="$(arg publish_tf)" />
+        <param name="publish_map_tf"        value="$(arg publish_map_tf)" />
 
         <!-- flip camera -->
         <param name="camera_flip"           value="$(arg camera_flip)" />
@@ -94,12 +96,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="openni_depth_mode"     value="0" />
         <param name="gpu_id"                value="$(arg gpu_id)" />
         <param name="confidence"            value="100" />
+        <param name="max_depth"             value="10.0" />
         <param name="gain"                  value="100" />
         <param name="exposure"              value="100" />
         <param name="auto_exposure"         value="true" />
         <param name="depth_stabilization"   value="1" />
         <param name="pose_smoothing"        value="false" />
         <param name="spatial_memory"        value="true" />
+        <param name="floor_alignment"       value="true" />
 
         <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>
 
@@ -128,16 +132,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="confidence_img_topic"      value="confidence/confidence_image" />
         <param name="confidence_map_topic"      value="confidence/confidence_map" />
 
-        <param name="pose_topic"                value="map" />
+        <param name="pose_topic"                value="pose" />
         <param name="odometry_topic"            value="odom" />
 
-        <param name="init_odom_with_imu"        value="true" /> <!-- only used with ZED mini -->
+        <param name="init_odom_with_first_valid_pose"        value="true" /> <!-- only used with ZED mini -->
 
         <param name="imu_topic"                 value="imu/data" /> <!-- only used with ZED M -->
         <param name="imu_topic_raw"             value="imu/data_raw" /> <!-- only used with ZED M -->
 
         <param name="imu_pub_rate"              value="500.0" /> <!-- only used with ZED M -->
 
+        <param name="path_pub_rate"             value="2" />
+        <param name="path_max_count"            value="-1" /> <!-- use "-1" for no limits -->
+
+        <param name="publish_pose_covariance"   value="false" />
     </node>
 
     <!-- ROS URDF description of the ZED -->

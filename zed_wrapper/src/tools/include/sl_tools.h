@@ -21,9 +21,10 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-#include <string>
-#include <sl/Camera.hpp>
 #include <ros/time.h>
+#include <sensor_msgs/Image.h>
+#include <sl/Camera.hpp>
+#include <string>
 
 namespace sl_tools {
 
@@ -56,18 +57,14 @@ namespace sl_tools {
      */
     ros::Time slTime2Ros(sl::timeStamp t);
 
-    inline sl::uchar4 depackColor4(float colorIn) {
-        sl::uchar4 out;
-        uint32_t color_uint = *(uint32_t*) & colorIn;
-        unsigned char* color_uchar = (unsigned char*) &color_uint;
-        for (int c = 0; c < 3; c++) {
-            out[c] = static_cast<unsigned char>(color_uchar[c]);
-        }
-        out.w = 255;
-        return out;
-    }
+    /* \brief sl::Mat to ros message conversion
+     * \param img : the image to publish
+     * \param frameId : the id of the reference frame of the image
+     * \param t : the ros::Time to stamp the image
+     */
+    sensor_msgs::ImagePtr imageToROSmsg(sl::Mat img, std::string frameId, ros::Time t);
 
-    
+
 } // namespace
 
 #endif // SL_TOOLS_H

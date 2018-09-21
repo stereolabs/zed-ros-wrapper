@@ -1,6 +1,10 @@
+![](./images/Picto+STEREOLABS_Black.png)
+
 # Stereolabs ZED Camera - ROS Integration
 
 This package lets you use the ZED stereo camera with ROS. It outputs the camera left and right images, depth map, point cloud, pose information and supports the use of multiple ZED cameras.
+
+[More information](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
 
 ## Getting started
 
@@ -25,7 +29,6 @@ The zed_ros_wrapper is a catkin package. It depends on the following ROS package
    - rosconsole
    - sensor_msgs
    - stereo_msgs
-   - opencv3
    - image_transport
    - dynamic_reconfigure
    - urdf
@@ -57,12 +60,17 @@ To launch the wrapper without Rviz, use:
 
     $ roslaunch zed_wrapper zed.launch serial_number:=1010 #replace 1010 with the actual SN
 
-### Modules
+### Examples
 
-Alongside the wrapper itself and the Rviz display, a few other modules are provided to interface the ZED with other ROS packages :
+Alongside the wrapper itself and the Rviz display, a few examples are provided to interface the ZED with other ROS packages :
 
-- [RTAB-Map](http://introlab.github.io/rtabmap/) : See [zed_rtabmap_example](./zed_rtabmap_example)
-- ROS Nodelet, `depthimage_to_laserscan` : See [zed_nodelet_example](./zed_nodelet_example)
+- [RTAB-Map](http://introlab.github.io/rtabmap/) : See [zed_rtabmap_example](./examples/zed_rtabmap_example)
+- ROS Nodelet, `depthimage_to_laserscan` : See [zed_nodelet_example](./examples/zed_nodelet_example)
 
+### Tutorials
 
-[More](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
+A few tutorials are provided to understand how to use the ZED node in the ROS environment :
+
+- Video subscribing : See [zed_video_sub_tutorial](./tutorials/zed_video_sub_tutorial)
+- Depth subscribing : See [zed_depth_sub_tutorial](./tutorials/zed_depth_sub_tutorial)
+- Positional Tracking subscribing : See [zed_tracking_sub_tutorial](./tutorials/zed_tracking_sub_tutorial)

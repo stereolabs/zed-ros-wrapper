@@ -20,30 +20,40 @@
 
 #include "sl_tools.h"
 
+#include <sstream>
 #include <sys/stat.h>
 #include <vector>
-#include <sstream>
+
+#include <sensor_msgs/image_encodings.h>
+
+#include <boost/make_shared.hpp>
 
 namespace sl_tools {
 
     int checkCameraReady(unsigned int serial_number) {
         int id = -1;
         auto f = sl::Camera::getDeviceList();
+
         for (auto& it : f)
-            if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::CAMERA_STATE_AVAILABLE) {
+            if (it.serial_number == serial_number &&
+                it.camera_state == sl::CAMERA_STATE::CAMERA_STATE_AVAILABLE) {
                 id = it.id;
             }
+
         return id;
     }
 
     sl::DeviceProperties getZEDFromSN(unsigned int serial_number) {
         sl::DeviceProperties prop;
         auto f = sl::Camera::getDeviceList();
+
         for (auto& it : f) {
-            if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::CAMERA_STATE_AVAILABLE) {
+            if (it.serial_number == serial_number &&
+                it.camera_state == sl::CAMERA_STATE::CAMERA_STATE_AVAILABLE) {
                 prop = it;
             }
         }
+
         return prop;
     }
 
@@ -121,6 +131,7 @@ namespace sl_tools {
         return R;
     }
 
+
     bool file_exist(const std::string& name) {
         struct stat buffer;
         return (stat(name.c_str(), &buffer) == 0);
@@ -128,11 +139,10 @@ namespace sl_tools {
 
     std::string getSDKVersion(int& major, int& minor, int& sub_minor) {
         std::string ver = sl::Camera::getSDKVersion().c_str();
-
         std::vector<std::string> strings;
         std::istringstream f(ver);
         std::string s;
-        
+
         while (getline(f, s, '.')) {
             strings.push_back(s);
         }
@@ -156,9 +166,67 @@ namespace sl_tools {
     }
 
     ros::Time slTime2Ros(sl::timeStamp t) {
-        uint32_t sec  = static_cast<uint32_t>(t / 1000000000);
+        uint32_t sec = static_cast<uint32_t>(t / 1000000000);
         uint32_t nsec = static_cast<uint32_t>(t % 1000000000);
         return ros::Time(sec, nsec);
+    }
+
+    sensor_msgs::ImagePtr imageToROSmsg(sl::Mat img, std::string frameId, ros::Time t) {
+
+        sensor_msgs::ImagePtr ptr = boost::make_shared<sensor_msgs::Image>();
+        sensor_msgs::Image& imgMessage = *ptr;
+
+        imgMessage.header.stamp = t;
+        imgMessage.header.frame_id = frameId;
+        imgMessage.height = img.getHeight();
+        imgMessage.width = img.getWidth();
+
+        int num = 1; // for endianness detection
+        imgMessage.is_bigendian = !(*(char*)&num == 1);
+
+        imgMessage.step = img.getStepBytes();
+
+        size_t size = imgMessage.step * imgMessage.height;
+        imgMessage.data.resize(size);
+
+        sl::MAT_TYPE dataType = img.getDataType();
+
+        switch (dataType) {
+        case sl::MAT_TYPE_32F_C1: /**< float 1 channel.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float1>(), size);
+            break;
+        case sl::MAT_TYPE_32F_C2: /**< float 2 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC2;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float2>(), size);
+            break;
+        case sl::MAT_TYPE_32F_C3: /**< float 3 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC3;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float3>(), size);
+            break;
+        case sl::MAT_TYPE_32F_C4: /**< float 4 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC4;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float4>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C1: /**< unsigned char 1 channel.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::MONO8;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar1>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C2: /**< unsigned char 2 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_8UC2;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar2>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C3: /**< unsigned char 3 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::BGR8;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar3>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C4: /**< unsigned char 4 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::BGRA8;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar4>(), size);
+            break;
+        }
+
+        return ptr;
     }
 
 } // namespace
