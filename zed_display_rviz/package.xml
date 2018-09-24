@@ -5,8 +5,9 @@
   <description>
     "zed_display" is a ROS package to visualize in Rviz the information from the "zed_wrapper" node
   </description>
+
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
-  <license>BSD</license>
+  <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>  
 

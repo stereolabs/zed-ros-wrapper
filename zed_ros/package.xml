@@ -5,7 +5,7 @@
   <description>Stereolabs zed-ros-wrapper support meta package</description>
 
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
-  <license>BSD</license>
+  <license>MIT</license>
 
   <url type="website">http://stereolabs.com/rc_visard</url>
   <url type="repository">https://github.com/stereolabs/zed-ros-wrapper</url>
