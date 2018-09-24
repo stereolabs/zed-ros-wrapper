@@ -1019,10 +1019,10 @@ namespace zed_wrapper {
                         continue;
                     }
                 }
-
-                publishPointCloud();
-                mPcDataReady = false;
             }
+
+            publishPointCloud();
+            mPcDataReady = false;
         }
 
         NODELET_DEBUG("Pointcloud thread finished");
@@ -1758,9 +1758,8 @@ namespace zed_wrapper {
                         mPointCloudTime = mFrameTimestamp;
 
                         // Signal Pointcloud thread that a new pointcloud is ready
-                        mPcDataReady = true;
-
                         mPcDataReadyCondVar.notify_one();
+                        mPcDataReady = true;
                     }
                 }
 
