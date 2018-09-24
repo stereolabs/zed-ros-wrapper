@@ -1012,6 +1012,7 @@ namespace zed_wrapper {
         while (!mStopNode) {
             while (!mPcDataReady) {  // loop to avoid spurious wakeups
                 if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
+                    ROS_DEBUG("No pointcloud available");
                     // Check thread stopping
                     if (mStopNode) {
                         return;
@@ -1019,10 +1020,11 @@ namespace zed_wrapper {
                         continue;
                     }
                 }
-
-                publishPointCloud();
-                mPcDataReady = false;
             }
+
+            ROS_DEBUG("Publishing pointcloud");
+            publishPointCloud();
+            mPcDataReady = false;
         }
 
         NODELET_DEBUG("Pointcloud thread finished");
@@ -1757,10 +1759,11 @@ namespace zed_wrapper {
                         mPointCloudFrameId = mDepthFrameId;
                         mPointCloudTime = mFrameTimestamp;
 
-                        // Signal Pointcloud thread that a new pointcloud is ready
-                        mPcDataReady = true;
+                        ROS_DEBUG("New pointcloud available");
 
+                        // Signal Pointcloud thread that a new pointcloud is ready
                         mPcDataReadyCondVar.notify_one();
+                        mPcDataReady = true;
                     }
                 }
 
