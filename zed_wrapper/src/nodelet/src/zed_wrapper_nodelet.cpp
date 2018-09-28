@@ -32,6 +32,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <stereo_msgs/DisparityImage.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using namespace std;
@@ -750,13 +751,13 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::start_tracking() {
-        NODELET_INFO_STREAM("Starting Tracking");
+        NODELET_INFO_STREAM("*** Starting Positional Tracking ***");
         mNhNs.getParam("odometry_DB", mOdometryDb);
         mNhNs.getParam("pose_smoothing", mPoseSmoothing);
         mNhNs.getParam("spatial_memory", mSpatialMemory);
         mNhNs.getParam("floor_alignment", mFloorAlignment);
         mNhNs.getParam("init_odom_with_first_valid_pose", mInitOdomWithPose);
-        NODELET_INFO_STREAM("Init Odometry with first valid pose data : " << mInitOdomWithPose);
+        NODELET_INFO_STREAM("Init Odometry with first valid pose data : " << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
 
         if (mInitialTrackPose.size() != 6) {
             NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialTrackPose.size()
@@ -778,9 +779,9 @@ namespace zed_wrapper {
         sl::TrackingParameters trackParams;
         trackParams.area_file_path = mOdometryDb.c_str();
         trackParams.enable_pose_smoothing = mPoseSmoothing;
-        NODELET_INFO_STREAM("Pose Smoothing : " << trackParams.enable_pose_smoothing);
+        NODELET_INFO_STREAM("Pose Smoothing : " << (trackParams.enable_pose_smoothing ? "ENABLED" : "DISABLED"));
         trackParams.enable_spatial_memory = mSpatialMemory;
-        NODELET_INFO_STREAM("Spatial Memory : " << trackParams.enable_spatial_memory);
+        NODELET_INFO_STREAM("Spatial Memory : " << (trackParams.enable_spatial_memory ? "ENABLED" : "DISABLED"));
         trackParams.initial_world_transform = mInitialPoseSl;
 
         if (mFloorAlignment &&
@@ -788,7 +789,7 @@ namespace zed_wrapper {
             NODELET_WARN("Floor Alignment is available starting from SDK v2.6");
         } else {
             trackParams.set_floor_as_origin = mFloorAlignment;
-            NODELET_INFO_STREAM("Floor Alignment : " << trackParams.set_floor_as_origin);
+            NODELET_INFO_STREAM("Floor Alignment : " << (trackParams.set_floor_as_origin ? "ENABLED" : "DISABLED"));
         }
 
         mZed.enableTracking(trackParams);
@@ -1801,7 +1802,10 @@ namespace zed_wrapper {
                         } else {
                             NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(status));
                         }
+                    } else if (mFloorAlignment) {
+                        NODELET_WARN_THROTTLE(5.0, "Odometry will be published as soon as the floor as been detected for the first time");
                     }
+
                 }
 
                 // Publish the zed camera pose if someone has subscribed to
