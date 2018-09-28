@@ -789,7 +789,7 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Floor Alignment : " << (trackParams.set_floor_as_origin ? "ENABLED" : "DISABLED"));
 #else
         if (mFloorAlignment)  {
-            NODELET_WARN("Floor Alignment is available starting from SDK v2.6");
+            NODELET_WARN("Floor Alignment is available with ZED SDK >= v2.6");
         }
 #endif
 
