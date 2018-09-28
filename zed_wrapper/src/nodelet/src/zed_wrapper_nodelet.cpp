@@ -32,6 +32,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <stereo_msgs/DisparityImage.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using namespace std;
@@ -788,7 +789,7 @@ namespace zed_wrapper {
             NODELET_WARN("Floor Alignment is available starting from SDK v2.6");
         } else {
             trackParams.set_floor_as_origin = mFloorAlignment;
-            NODELET_INFO_STREAM("Floor Alignment : " << trackParams.set_floor_as_origin);
+            NODELET_INFO_STREAM("Floor Alignment : " << trackParams.set_floor_as_origin ? "ENABLED" : "DISABLED");
         }
 
         mZed.enableTracking(trackParams);
