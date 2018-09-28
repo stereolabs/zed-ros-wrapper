@@ -219,7 +219,7 @@ Visualization Manager:
           Color: 255; 255; 255
           Color Transformer: RGB8
           Decay Time: 0
-          Enabled: true
+          Enabled: false
           Invert Rainbow: false
           Max Color: 255; 255; 255
           Max Intensity: 4096
@@ -236,7 +236,7 @@ Visualization Manager:
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
-          Value: true
+          Value: false
         - Alpha: 1
           Auto Size:
             Auto Size Factor: 1
@@ -256,7 +256,7 @@ Visualization Manager:
           Decay Time: 0
           Depth Map Topic: /zed/depth/depth_registered
           Depth Map Transport Hint: raw
-          Enabled: false
+          Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
           Max Intensity: 4096
@@ -274,7 +274,7 @@ Visualization Manager:
           Topic Filter: true
           Use Fixed Frame: true
           Use rainbow: true
-          Value: false
+          Value: true
         - Class: rviz/Image
           Enabled: false
           Image Topic: /zed/depth/depth_registered
@@ -497,18 +497,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.156546906
-        Y: -0.1158977
-        Z: 0.691972911
+        X: 0.00557371555
+        Y: 0.107659221
+        Z: 0.396509618
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.0653978884
+      Pitch: 0.0153978756
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.65540528
+      Yaw: 2.37040448
     Saved: ~
 Window Geometry:
   Camera view:
