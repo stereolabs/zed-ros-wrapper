@@ -1057,11 +1057,16 @@ namespace zed_wrapper {
                                           "rgb", 1, sensor_msgs::PointField::FLOAT32);
         }
 
-        sl::Vector4<float>* cpu_cloud = mCloud.getPtr<sl::float4>();
+
 
         // Data copy
+        sl::Vector4<float>* cpu_cloud = mCloud.getPtr<sl::float4>();
         float* ptCloudPtr = (float*)(&mPointcloudMsg.data[0]);
 
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=5) )
+        memcpy(ptCloudPtr, (float*)cpu_cloud,
+               4 * ptsCount * sizeof(float)); // We can do a direct memcpy since data organization is the same
+#else
         #pragma omp parallel for
         for (size_t i = 0; i < ptsCount; ++i) {
             ptCloudPtr[i * 4 + 0] = mSignX * cpu_cloud[i][mIdxX];
@@ -1069,6 +1074,7 @@ namespace zed_wrapper {
             ptCloudPtr[i * 4 + 2] = mSignZ * cpu_cloud[i][mIdxZ];
             ptCloudPtr[i * 4 + 3] = cpu_cloud[i][3];
         }
+#endif
 
         // Pointcloud publishing
         mPubCloud.publish(mPointcloudMsg);
