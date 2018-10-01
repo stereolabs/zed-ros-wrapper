@@ -39,6 +39,10 @@ using namespace std;
 
 namespace zed_wrapper {
 
+#ifndef DEG2RAD
+#define DEG2RAD 0.017453293
+#endif
+
     ZEDWrapperNodelet::ZEDWrapperNodelet() : Nodelet() {}
 
     ZEDWrapperNodelet::~ZEDWrapperNodelet() {
@@ -1358,9 +1362,9 @@ namespace zed_wrapper {
             imu_msg.orientation.y = mSignY * imu_data.getOrientation()[mIdxY];
             imu_msg.orientation.z = mSignZ * imu_data.getOrientation()[mIdxZ];
             imu_msg.orientation.w = imu_data.getOrientation()[3];
-            imu_msg.angular_velocity.x = mSignX * imu_data.angular_velocity[mIdxX];
-            imu_msg.angular_velocity.y = mSignY * imu_data.angular_velocity[mIdxY];
-            imu_msg.angular_velocity.z = mSignZ * imu_data.angular_velocity[mIdxZ];
+            imu_msg.angular_velocity.x = mSignX * imu_data.angular_velocity[mIdxX] * DEG2RAD;
+            imu_msg.angular_velocity.y = mSignY * imu_data.angular_velocity[mIdxY] * DEG2RAD;
+            imu_msg.angular_velocity.z = mSignZ * imu_data.angular_velocity[mIdxZ] * DEG2RAD;
             imu_msg.linear_acceleration.x = mSignX * imu_data.linear_acceleration[mIdxX];
             imu_msg.linear_acceleration.y = mSignY * imu_data.linear_acceleration[mIdxY];
             imu_msg.linear_acceleration.z = mSignZ * imu_data.linear_acceleration[mIdxZ];
@@ -1393,9 +1397,9 @@ namespace zed_wrapper {
             sensor_msgs::Imu imu_raw_msg;
             imu_raw_msg.header.stamp = mFrameTimestamp; // t;
             imu_raw_msg.header.frame_id = mImuFrameId;
-            imu_raw_msg.angular_velocity.x = mSignX * imu_data.angular_velocity[mIdxX];
-            imu_raw_msg.angular_velocity.y = mSignY * imu_data.angular_velocity[mIdxY];
-            imu_raw_msg.angular_velocity.z = mSignZ * imu_data.angular_velocity[mIdxZ];
+            imu_raw_msg.angular_velocity.x = mSignX * imu_data.angular_velocity[mIdxX] * DEG2RAD;
+            imu_raw_msg.angular_velocity.y = mSignY * imu_data.angular_velocity[mIdxY] * DEG2RAD;
+            imu_raw_msg.angular_velocity.z = mSignZ * imu_data.angular_velocity[mIdxZ] * DEG2RAD;
             imu_raw_msg.linear_acceleration.x =
                 mSignX * imu_data.linear_acceleration[mIdxX];
             imu_raw_msg.linear_acceleration.y =
