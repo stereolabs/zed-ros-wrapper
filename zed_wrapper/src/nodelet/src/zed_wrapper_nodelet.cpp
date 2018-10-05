@@ -1375,7 +1375,7 @@ namespace zed_wrapper {
             imu_msg.linear_acceleration.y = mSignY * imu_data.linear_acceleration[mIdxY];
             imu_msg.linear_acceleration.z = mSignZ * imu_data.linear_acceleration[mIdxZ];
 
-            for (int i = 0; i < 3; i += 3) {
+            for (int i = 0; i < 3; ++i) {
                 imu_msg.orientation_covariance[i * 3 + 0] =
                     imu_data.orientation_covariance.r[i * 3 + mIdxX];
                 imu_msg.orientation_covariance[i * 3 + 1] =
@@ -1413,7 +1413,7 @@ namespace zed_wrapper {
             imu_raw_msg.linear_acceleration.z =
                 mSignZ * imu_data.linear_acceleration[mIdxZ];
 
-            for (int i = 0; i < 3; i += 3) {
+            for (int i = 0; i < 3; ++i) {
                 imu_raw_msg.linear_acceleration_covariance[i * 3 + 0] =
                     imu_data.linear_acceleration_convariance.r[i * 3 + mIdxX];
                 imu_raw_msg.linear_acceleration_covariance[i * 3 + 1] =
