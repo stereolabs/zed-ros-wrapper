@@ -1388,7 +1388,7 @@ namespace zed_wrapper {
                 } else {
                     r = mIdxZ;
                 }
-
+              
                 imu_msg.orientation_covariance[i * 3 + 0] =
                     imu_data.orientation_covariance.r[r * 3 + mIdxX] * DEG2RAD * DEG2RAD;
                 imu_msg.orientation_covariance[i * 3 + 1] =
@@ -1438,7 +1438,7 @@ namespace zed_wrapper {
                 } else {
                     r = mIdxZ;
                 }
-
+              
                 imu_raw_msg.linear_acceleration_covariance[i * 3 + 0] =
                     imu_data.linear_acceleration_convariance.r[r * 3 + mIdxX];
                 imu_raw_msg.linear_acceleration_covariance[i * 3 + 1] =
