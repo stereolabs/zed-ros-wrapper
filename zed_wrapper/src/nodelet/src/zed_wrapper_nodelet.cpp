@@ -1379,26 +1379,36 @@ namespace zed_wrapper {
             imu_msg.linear_acceleration.z = mSignZ * imu_data.linear_acceleration[mIdxZ];
 
             for (int i = 0; i < 3; ++i) {
+
+                int r = 0;
+                if (i == 0) {
+                    r = mIdxX;
+                } else if (i == 1) {
+                    r = mIdxY;
+                } else {
+                    r = mIdxZ;
+                }
+
                 imu_msg.orientation_covariance[i * 3 + 0] =
-                    imu_data.orientation_covariance.r[i * 3 + mIdxX] * DEG2RAD * DEG2RAD;
+                    imu_data.orientation_covariance.r[r * 3 + mIdxX] * DEG2RAD * DEG2RAD;
                 imu_msg.orientation_covariance[i * 3 + 1] =
-                    imu_data.orientation_covariance.r[i * 3 + mIdxY] * DEG2RAD * DEG2RAD;
+                    imu_data.orientation_covariance.r[r * 3 + mIdxY] * DEG2RAD * DEG2RAD;
                 imu_msg.orientation_covariance[i * 3 + 2] =
-                    imu_data.orientation_covariance.r[i * 3 + mIdxZ] * DEG2RAD * DEG2RAD;
+                    imu_data.orientation_covariance.r[r * 3 + mIdxZ] * DEG2RAD * DEG2RAD;
 
                 imu_msg.linear_acceleration_covariance[i * 3 + 0] =
-                    imu_data.linear_acceleration_convariance.r[i * 3 + mIdxX];
+                    imu_data.linear_acceleration_convariance.r[r * 3 + mIdxX];
                 imu_msg.linear_acceleration_covariance[i * 3 + 1] =
-                    imu_data.linear_acceleration_convariance.r[i * 3 + mIdxY];
+                    imu_data.linear_acceleration_convariance.r[r * 3 + mIdxY];
                 imu_msg.linear_acceleration_covariance[i * 3 + 2] =
-                    imu_data.linear_acceleration_convariance.r[i * 3 + mIdxZ];
+                    imu_data.linear_acceleration_convariance.r[r * 3 + mIdxZ];
 
                 imu_msg.angular_velocity_covariance[i * 3 + 0] =
-                    imu_data.angular_velocity_convariance.r[i * 3 + mIdxX] * DEG2RAD * DEG2RAD;
+                    imu_data.angular_velocity_convariance.r[r * 3 + mIdxX] * DEG2RAD * DEG2RAD;
                 imu_msg.angular_velocity_covariance[i * 3 + 1] =
-                    imu_data.angular_velocity_convariance.r[i * 3 + mIdxY] * DEG2RAD * DEG2RAD;
+                    imu_data.angular_velocity_convariance.r[r * 3 + mIdxY] * DEG2RAD * DEG2RAD;
                 imu_msg.angular_velocity_covariance[i * 3 + 2] =
-                    imu_data.angular_velocity_convariance.r[i * 3 + mIdxZ] * DEG2RAD * DEG2RAD;
+                    imu_data.angular_velocity_convariance.r[r * 3 + mIdxZ] * DEG2RAD * DEG2RAD;
             }
 
             mPubImu.publish(imu_msg);
@@ -1419,18 +1429,28 @@ namespace zed_wrapper {
                 mSignZ * imu_data.linear_acceleration[mIdxZ];
 
             for (int i = 0; i < 3; ++i) {
+
+                int r = 0;
+                if (i == 0) {
+                    r = mIdxX;
+                } else if (i == 1) {
+                    r = mIdxY;
+                } else {
+                    r = mIdxZ;
+                }
+
                 imu_raw_msg.linear_acceleration_covariance[i * 3 + 0] =
-                    imu_data.linear_acceleration_convariance.r[i * 3 + mIdxX];
+                    imu_data.linear_acceleration_convariance.r[r * 3 + mIdxX];
                 imu_raw_msg.linear_acceleration_covariance[i * 3 + 1] =
-                    imu_data.linear_acceleration_convariance.r[i * 3 + mIdxY];
+                    imu_data.linear_acceleration_convariance.r[r * 3 + mIdxY];
                 imu_raw_msg.linear_acceleration_covariance[i * 3 + 2] =
-                    imu_data.linear_acceleration_convariance.r[i * 3 + mIdxZ];
+                    imu_data.linear_acceleration_convariance.r[r * 3 + mIdxZ];
                 imu_raw_msg.angular_velocity_covariance[i * 3 + 0] =
-                    imu_data.angular_velocity_convariance.r[i * 3 + mIdxX] * DEG2RAD * DEG2RAD;
+                    imu_data.angular_velocity_convariance.r[r * 3 + mIdxX] * DEG2RAD * DEG2RAD;
                 imu_raw_msg.angular_velocity_covariance[i * 3 + 1] =
-                    imu_data.angular_velocity_convariance.r[i * 3 + mIdxY] * DEG2RAD * DEG2RAD;
+                    imu_data.angular_velocity_convariance.r[r * 3 + mIdxY] * DEG2RAD * DEG2RAD;
                 imu_raw_msg.angular_velocity_covariance[i * 3 + 2] =
-                    imu_data.angular_velocity_convariance.r[i * 3 + mIdxZ] * DEG2RAD * DEG2RAD;
+                    imu_data.angular_velocity_convariance.r[r * 3 + mIdxZ] * DEG2RAD * DEG2RAD;
             }
 
             imu_raw_msg.orientation_covariance[0] =
