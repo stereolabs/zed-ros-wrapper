@@ -186,7 +186,7 @@ namespace zed_wrapper {
         string rgb_raw_topic = "rgb/" + img_raw_topic;
         string rgb_cam_info_topic = "rgb/camera_info";
         string rgb_cam_info_raw_topic = "rgb/camera_info_raw";
-        
+
         string depth_topic = "depth/";
         if (mOpenniDepthMode) {
             NODELET_INFO_STREAM("Openni depth mode activated");
@@ -489,14 +489,14 @@ namespace zed_wrapper {
         }
         mPubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
-        
+
         // Camera Path
         if (mPathPubRate > 0) {
             mPubOdomPath = mNh.advertise<nav_msgs::Path>(odom_path_topic, 1, true);
             NODELET_INFO_STREAM("Advertised on topic " << odom_path_topic);
             mPubMapPath = mNh.advertise<nav_msgs::Path>(map_path_topic, 1, true);
             NODELET_INFO_STREAM("Advertised on topic " << map_path_topic);
-            
+
             mPathTimer = mNhNs.createTimer(ros::Duration(1.0 / mPathPubRate),
                                            &ZEDWrapperNodelet::pathPubCallback, this);
 
@@ -507,6 +507,8 @@ namespace zed_wrapper {
 
                 NODELET_DEBUG_STREAM("Path vector sizes: " << mOdomPath.size() << " " << mMapPath.size());
             }
+        } else {
+            NODELET_INFO_STREAM("Path topics not published -> mPathPubRate: " << mPathPubRate);
         }
 
         // Imu publisher
@@ -526,7 +528,7 @@ namespace zed_wrapper {
                 << mImuPubRate << " Hz"
                 << " but ZED camera model does not support IMU data publishing.");
         }
-        
+
         // Services
         mSrvSetInitPose = mNh.advertiseService("set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this);
         mSrvResetOdometry = mNh.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
@@ -852,7 +854,7 @@ namespace zed_wrapper {
                     mBaseFrameId.c_str(), mMapFrameId.c_str());
                 NODELET_DEBUG("Transform error: %s", ex.what());
             }
-        } else {
+        } else if (mPublishTf) {
             // Look up the transformation from base frame to odom frame
             try {
                 // Save the transformation from base to frame
@@ -873,18 +875,32 @@ namespace zed_wrapper {
         header.stamp = mFrameTimestamp;
         header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
 
-        // conversion from Tranform to message
-        geometry_msgs::Transform base2frame = tf2::toMsg(base_pose);
-
-        // Add all value in Pose message
         geometry_msgs::Pose pose;
-        pose.position.x = base2frame.translation.x;
-        pose.position.y = base2frame.translation.y;
-        pose.position.z = base2frame.translation.z;
-        pose.orientation.x = base2frame.rotation.x;
-        pose.orientation.y = base2frame.rotation.y;
-        pose.orientation.z = base2frame.rotation.z;
-        pose.orientation.w = base2frame.rotation.w;
+
+        if (mPublishTf) {
+            // conversion from Tranform to message
+            geometry_msgs::Transform base2frame = tf2::toMsg(base_pose);
+
+            // Add all value in Pose message
+            pose.position.x = base2frame.translation.x;
+            pose.position.y = base2frame.translation.y;
+            pose.position.z = base2frame.translation.z;
+            pose.orientation.x = base2frame.rotation.x;
+            pose.orientation.y = base2frame.rotation.y;
+            pose.orientation.z = base2frame.rotation.z;
+            pose.orientation.w = base2frame.rotation.w;
+        } else {
+            sl::Translation translation = mLastZedPose.getTranslation();
+            sl::Orientation quat = mLastZedPose.getOrientation();
+
+            pose.position.x = mSignX * translation(mIdxX);
+            pose.position.y = mSignY * translation(mIdxY);
+            pose.position.z = mSignZ * translation(mIdxZ);
+            pose.orientation.x = mSignX * quat(mIdxX);
+            pose.orientation.y = mSignY * quat(mIdxY);
+            pose.orientation.z = mSignZ * quat(mIdxZ);
+            pose.orientation.w = quat(3);
+        }
 
         if (mPubPose.getNumSubscribers() > 0) {
 
@@ -1234,18 +1250,20 @@ namespace zed_wrapper {
         base_to_map.setIdentity();
 
         // Look up the transformation from base frame to odom
-        try {
-            // Save the transformation from base to frame
-            geometry_msgs::TransformStamped b2o =
-                mTfBuffer->lookupTransform(mOdometryFrameId, mBaseFrameId, ros::Time(0));
-            // Get the TF2 transformation
-            tf2::fromMsg(b2o.transform, base_to_odom);
-        } catch (tf2::TransformException& ex) {
-            NODELET_WARN_THROTTLE(
-                10.0, "The tf from '%s' to '%s' does not seem to be available, "
-                "will assume it as identity!",
-                mBaseFrameId.c_str(), mOdometryFrameId.c_str());
-            NODELET_DEBUG("Transform error: %s", ex.what());
+        if (mPublishTf) {
+            try {
+                // Save the transformation from base to frame
+                geometry_msgs::TransformStamped b2o =
+                    mTfBuffer->lookupTransform(mOdometryFrameId, mBaseFrameId, ros::Time(0));
+                // Get the TF2 transformation
+                tf2::fromMsg(b2o.transform, base_to_odom);
+            } catch (tf2::TransformException& ex) {
+                NODELET_WARN_THROTTLE(
+                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
+                    "will assume it as identity!",
+                    mBaseFrameId.c_str(), mOdometryFrameId.c_str());
+                NODELET_DEBUG("Transform error: %s", ex.what());
+            }
         }
 
         if (mPublishMapTf) {
@@ -1388,7 +1406,7 @@ namespace zed_wrapper {
                 } else {
                     r = mIdxZ;
                 }
-              
+
                 imu_msg.orientation_covariance[i * 3 + 0] =
                     imu_data.orientation_covariance.r[r * 3 + mIdxX] * DEG2RAD * DEG2RAD;
                 imu_msg.orientation_covariance[i * 3 + 1] =
@@ -1438,7 +1456,7 @@ namespace zed_wrapper {
                 } else {
                     r = mIdxZ;
                 }
-              
+
                 imu_raw_msg.linear_acceleration_covariance[i * 3 + 0] =
                     imu_data.linear_acceleration_convariance.r[r * 3 + mIdxX];
                 imu_raw_msg.linear_acceleration_covariance[i * 3 + 1] =
@@ -1803,7 +1821,7 @@ namespace zed_wrapper {
                 mCamDataMutex.unlock();
 
 
-                
+
                 // Publish the odometry if someone has subscribed to
                 if (poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
                     depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0 || pathSubNumber > 0) {
@@ -1811,12 +1829,18 @@ namespace zed_wrapper {
                         sl::Pose deltaOdom;
                         sl::TRACKING_STATE status = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
 
+                        sl::Translation translation = deltaOdom.getTranslation();
+                        sl::Orientation quat = deltaOdom.getOrientation();
+
+                        NODELET_DEBUG("delta ODOM [%s] - %.2f,%.2f,%.2f %.2f,%.2f,%.2f,%.2f",
+                                      sl::toString(status).c_str(),
+                                      translation(mIdxX), translation(mIdxY), translation(mIdxZ),
+                                      quat(mIdxX), quat(mIdxY), quat(mIdxZ), quat(3));
+
                         if (status == sl::TRACKING_STATE_OK || status == sl::TRACKING_STATE_SEARCHING ||
                             status == sl::TRACKING_STATE_FPS_TOO_LOW) {
                             // Transform ZED delta odom pose in TF2 Transformation
                             geometry_msgs::Transform deltaTransf;
-                            sl::Translation translation = deltaOdom.getTranslation();
-                            sl::Orientation quat = deltaOdom.getOrientation();
                             deltaTransf.translation.x = mSignX * translation(mIdxX);
                             deltaTransf.translation.y = mSignY * translation(mIdxY);
                             deltaTransf.translation.z = mSignZ * translation(mIdxZ);
