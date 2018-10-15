@@ -44,8 +44,6 @@
 #include <zed_wrapper/set_initial_pose.h>
 #include <zed_wrapper/reset_odometry.h>
 
-#include <opencv2/core/core.hpp>
-
 #include <mutex>
 #include <thread>
 #include <condition_variable>
@@ -92,9 +90,10 @@ namespace zed_wrapper {
         /* \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
          * \param base2odomTransf : Transformation representing the camera pose
          * from base frame to odom frame
+         * \param slPose : latest odom pose from ZED SDK
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdom(tf2::Transform base2odomTransf, ros::Time t);
+        void publishOdom(tf2::Transform base2odomTransf, sl::Pose& slPose, ros::Time t);
 
         /* \brief Publish the pose of the camera in "Map" frame as a transformation
          * \param baseTransform : Transformation representing the camera pose from
@@ -118,7 +117,7 @@ namespace zed_wrapper {
          */
         void publishImuFrame(tf2::Transform imuTransform, ros::Time t);
 
-        /* \brief Publish a cv::Mat image with a ros Publisher
+        /* \brief Publish a sl::Mat image with a ros Publisher
          * \param img : the image to publish
          * \param pub_img : the publisher object to use (different image publishers
          * exist)
@@ -126,20 +125,19 @@ namespace zed_wrapper {
          * image frames exist)
          * \param t : the ros::Time to stamp the image
          */
-        void publishImage(cv::Mat img, image_transport::Publisher& pubImg,
-                          string imgFrameId, ros::Time t);
+        void publishImage(sl::Mat img, image_transport::Publisher& pubImg, string imgFrameId, ros::Time t);
 
-        /* \brief Publish a cv::Mat depth image with a ros Publisher
+        /* \brief Publish a sl::Mat depth image with a ros Publisher
          * \param depth : the depth image to publish
          * \param t : the ros::Time to stamp the depth image
          */
-        void publishDepth(cv::Mat depth, ros::Time t);
+        void publishDepth(sl::Mat depth, ros::Time t);
 
-        /* \brief Publish a cv::Mat confidence image with a ros Publisher
+        /* \brief Publish a sl::Mat confidence image with a ros Publisher
          * \param conf : the confidence image to publish
          * \param t : the ros::Time to stamp the depth image
          */
-        void publishConf(cv::Mat conf, ros::Time t);
+        void publishConf(sl::Mat conf, ros::Time t);
 
         /* \brief Publish a pointCloud with a ros Publisher
          */
@@ -153,11 +151,11 @@ namespace zed_wrapper {
         void publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg,
                             ros::Publisher pubCamInfo, ros::Time t);
 
-        /* \brief Publish a cv::Mat disparity image with a ros Publisher
+        /* \brief Publish a sl::Mat disparity image with a ros Publisher
          * \param disparity : the disparity image to publish
          * \param t : the ros::Time to stamp the depth image
          */
-        void publishDisparity(cv::Mat disparity, ros::Time t);
+        void publishDisparity(sl::Mat disparity, ros::Time t);
 
         /* \brief Get the information of the ZED cameras and store them in an
          * information message
@@ -218,6 +216,10 @@ namespace zed_wrapper {
          */
         void set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
 
+        /* \brief Utility to initialize the most used transforms
+         */
+        void initTransforms();
+
         /* \bried Start tracking loading the parameters from param server
          */
         void start_tracking();
@@ -259,16 +261,16 @@ namespace zed_wrapper {
         ros::Publisher mPubRightCamInfoRaw; //
         ros::Publisher mPubDepthCamInfo; //
         ros::Publisher mPubPose;
+        ros::Publisher mPubPoseCov;
         ros::Publisher mPubOdom;
         ros::Publisher mPubOdomPath;
         ros::Publisher mPubMapPath;
         ros::Publisher mPubImu;
         ros::Publisher mPubImuRaw;
-        //ros::Publisher mPubClock;
 
         // Timers
-        ros::Timer mImuTimer;
-        ros::Timer mPathTimer;
+        ros::Timer mPubImuTimer;
+        ros::Timer mPubPathTimer;
 
         // Services
         ros::ServiceServer mSrvSetInitPose;
@@ -352,7 +354,8 @@ namespace zed_wrapper {
 #endif
 
         // Last frame time
-        ros::Time mLastFrameTime;
+        ros::Time mPrevFrameTimestamp;
+        ros::Time mFrameTimestamp;
 
         //Tracking variables
         sl::Pose mLastZedPose; // Sensor to Map transform
@@ -364,6 +367,7 @@ namespace zed_wrapper {
         // TF Transforms
         tf2::Transform mOdom2MapTransf;
         tf2::Transform mBase2OdomTransf;
+        tf2::Transform mSensor2BaseTransf;
 
         // Zed object
         sl::InitParameters mZedParams;
@@ -383,23 +387,22 @@ namespace zed_wrapper {
         // flags
         bool mTriggerAutoExposure;
         bool mComputeDepth;
+        bool mGrabbing = false;
         bool mOpenniDepthMode; // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
         bool mPoseSmoothing;
         bool mSpatialMemory;
         bool mInitOdomWithPose;
         bool mResetOdom = false;
+        bool mPublishPoseCovariance = true;
 
-        // OpenCV Mat
+        // Mat
         int mCamWidth;
         int mCamHeight;
         int mMatWidth;
         int mMatHeight;
-        cv::Mat mCvLeftImRGB;
-        cv::Mat mCvRightImRGB;
-        cv::Mat mCvConfImRGB;
-        cv::Mat mCvConfMapFloat;
 
         // Thread Sync
+        std::mutex mCloseZedMutex;
         std::mutex mCamDataMutex;
         std::mutex mPcMutex;
         std::condition_variable mPcDataReadyCondVar;

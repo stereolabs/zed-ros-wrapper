@@ -24,6 +24,8 @@
 #include <sys/stat.h>
 #include <vector>
 
+#include <sensor_msgs/image_encodings.h>
+
 #include <boost/make_shared.hpp>
 
 namespace sl_tools {
@@ -55,83 +57,32 @@ namespace sl_tools {
         return prop;
     }
 
-    cv::Mat toCVMat(sl::Mat& mat) {
-        if (mat.getMemoryType() == sl::MEM_GPU) {
-            mat.updateCPUfromGPU();
-        }
 
-        int cvType;
+    std::vector<float>  convertRodrigues(sl::float3 r) {
+        float theta = sqrt(r.x * r.x + r.y * r.y + r.z * r.z);
 
-        switch (mat.getDataType()) {
-        case sl::MAT_TYPE_32F_C1:
-            cvType = CV_32FC1;
-            break;
-
-        case sl::MAT_TYPE_32F_C2:
-            cvType = CV_32FC2;
-            break;
-
-        case sl::MAT_TYPE_32F_C3:
-            cvType = CV_32FC3;
-            break;
-
-        case sl::MAT_TYPE_32F_C4:
-            cvType = CV_32FC4;
-            break;
-#ifdef TERRAIN_MAPPING
-        case sl::MAT_TYPE_16U_C1:
-            cvType = CV_16UC1;
-            break;
-
-        case sl::MAT_TYPE_16U_C2:
-            cvType = CV_16UC2;
-            break;
-
-        case sl::MAT_TYPE_16U_C3:
-            cvType = CV_16UC3;
-            break;
-
-        case sl::MAT_TYPE_16U_C4:
-            cvType = CV_16UC4;
-            break;
-#endif
-
-        case sl::MAT_TYPE_8U_C1:
-            cvType = CV_8UC1;
-            break;
-
-        case sl::MAT_TYPE_8U_C2:
-            cvType = CV_8UC2;
-            break;
-
-        case sl::MAT_TYPE_8U_C3:
-            cvType = CV_8UC3;
-            break;
-
-        case sl::MAT_TYPE_8U_C4:
-            cvType = CV_8UC4;
-            break;
-        }
-
-        return cv::Mat((int)mat.getHeight(), (int)mat.getWidth(), cvType,
-                       mat.getPtr<sl::uchar1>(sl::MEM_CPU),
-                       mat.getStepBytes(sl::MEM_CPU));
-    }
-
-    cv::Mat convertRodrigues(sl::float3 r) {
-        double theta = sqrt(r.x * r.x + r.y * r.y + r.z * r.z);
-        cv::Mat R = cv::Mat::eye(3, 3, CV_32F);
+        std::vector<float> R = {1.0f, 0.0f, 0.0f,
+                                0.0f, 1.0f, 0.0f,
+                                0.0f, 0.0f, 1.0f
+                               };
 
         if (theta < DBL_EPSILON) {
             return R;
         } else {
-            double c = cos(theta);
-            double s = sin(theta);
-            double c1 = 1. - c;
-            double itheta = theta ? 1. / theta : 0.;
+            float c = cos(theta);
+            float s = sin(theta);
+            float c1 = 1.f - c;
+            float itheta = theta ? 1.f / theta : 0.f;
+
             r *= itheta;
-            cv::Mat rrt = cv::Mat::eye(3, 3, CV_32F);
-            float* p = (float*)rrt.data;
+
+            std::vector<float> rrt = {1.0f, 0.0f, 0.0f,
+                                      0.0f, 1.0f, 0.0f,
+                                      0.0f, 0.0f, 1.0f
+                                     };
+
+            float* p = rrt.data();
+
             p[0] = r.x * r.x;
             p[1] = r.x * r.y;
             p[2] = r.x * r.z;
@@ -141,8 +92,13 @@ namespace sl_tools {
             p[6] = r.x * r.z;
             p[7] = r.y * r.z;
             p[8] = r.z * r.z;
-            cv::Mat r_x = cv::Mat::eye(3, 3, CV_32F);
-            p = (float*)r_x.data;
+
+
+            std::vector<float> r_x = {1.0f, 0.0f, 0.0f,
+                                      0.0f, 1.0f, 0.0f,
+                                      0.0f, 0.0f, 1.0f
+                                     };
+            p = r_x.data();
             p[0] = 0;
             p[1] = -r.z;
             p[2] = r.y;
@@ -153,11 +109,30 @@ namespace sl_tools {
             p[7] = r.x;
             p[8] = 0;
             // R = cos(theta)*I + (1 - cos(theta))*r*rT + sin(theta)*[r_x]
-            R = c * cv::Mat::eye(3, 3, CV_32F) + c1 * rrt + s * r_x;
+
+            sl::Matrix3f eye;
+            eye.setIdentity();
+
+            sl::Matrix3f sl_R(R.data());
+            sl::Matrix3f sl_rrt(rrt.data());
+            sl::Matrix3f sl_r_x(r_x.data());
+
+            sl_R = eye * c + sl_rrt * c1 + sl_r_x * s;
+
+            R[0] = sl_R.r00;
+            R[1] = sl_R.r01;
+            R[2] = sl_R.r02;
+            R[3] = sl_R.r10;
+            R[4] = sl_R.r11;
+            R[5] = sl_R.r12;
+            R[6] = sl_R.r20;
+            R[7] = sl_R.r21;
+            R[8] = sl_R.r22;
         }
 
         return R;
     }
+
 
     bool file_exist(const std::string& name) {
         struct stat buffer;
@@ -198,33 +173,59 @@ namespace sl_tools {
         return ros::Time(sec, nsec);
     }
 
-    sensor_msgs::ImagePtr imageToROSmsg(cv::Mat img, const std::string encodingType,
-                                        std::string frameId, ros::Time t) {
+    sensor_msgs::ImagePtr imageToROSmsg(sl::Mat img, std::string frameId, ros::Time t) {
+
         sensor_msgs::ImagePtr ptr = boost::make_shared<sensor_msgs::Image>();
         sensor_msgs::Image& imgMessage = *ptr;
+
         imgMessage.header.stamp = t;
         imgMessage.header.frame_id = frameId;
-        imgMessage.height = static_cast<unsigned int>(img.rows);
-        imgMessage.width = static_cast<unsigned int>(img.cols);
-        imgMessage.encoding = encodingType;
+        imgMessage.height = img.getHeight();
+        imgMessage.width = img.getWidth();
+
         int num = 1; // for endianness detection
         imgMessage.is_bigendian = !(*(char*)&num == 1);
-        imgMessage.step = static_cast<unsigned int>(img.step);
-        size_t size = imgMessage.step * img.rows;
+
+        imgMessage.step = img.getStepBytes();
+
+        size_t size = imgMessage.step * imgMessage.height;
         imgMessage.data.resize(size);
 
-        if (img.isContinuous()) {
-            memcpy((char*)(&imgMessage.data[0]), img.data, size);
-        } else {
-            uchar* opencvData = img.data;
-            uchar* rosData = (uchar*)(&imgMessage.data[0]);
+        sl::MAT_TYPE dataType = img.getDataType();
 
-            #pragma omp parallel for
-            for (unsigned int i = 0; i < img.rows; i++) {
-                memcpy(rosData, opencvData, imgMessage.step);
-                rosData += imgMessage.step;
-                opencvData += img.step;
-            }
+        switch (dataType) {
+        case sl::MAT_TYPE_32F_C1: /**< float 1 channel.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float1>(), size);
+            break;
+        case sl::MAT_TYPE_32F_C2: /**< float 2 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC2;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float2>(), size);
+            break;
+        case sl::MAT_TYPE_32F_C3: /**< float 3 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC3;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float3>(), size);
+            break;
+        case sl::MAT_TYPE_32F_C4: /**< float 4 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC4;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float4>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C1: /**< unsigned char 1 channel.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::MONO8;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar1>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C2: /**< unsigned char 2 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_8UC2;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar2>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C3: /**< unsigned char 3 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::BGR8;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar3>(), size);
+            break;
+        case sl::MAT_TYPE_8U_C4: /**< unsigned char 4 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::BGRA8;
+            memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar4>(), size);
+            break;
         }
 
         return ptr;

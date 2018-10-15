@@ -1,0 +1,8 @@
+image: stereolabs/zed:ubuntu1604-cuda9.0-zed2.6-ros
+
+build:
+  stage: build
+  before_script: 
+    - cp $(pwd)/* /home/ros/src/ -Rf
+  script: 
+    - cd /home/ros/ ; source "/opt/ros/kinetic/setup.bash"; catkin_make

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>zed_ros</name>
+  <version>2.6.0</version>
+  <description>Stereolabs zed-ros-wrapper support meta package</description>
+
+  <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
+  <license>MIT</license>
+
+  <url type="website">http://stereolabs.com/rc_visard</url>
+  <url type="repository">https://github.com/stereolabs/zed-ros-wrapper</url>
+  <url type="bugtracker">https://github.com/stereolabs/zed-ros-wrapper/issues</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>zed_wrapper</exec_depend>
+  <exec_depend>zed_display_rviz</exec_depend>
+
+  <export>
+    <metapackage />
+  </export>
+</package>
