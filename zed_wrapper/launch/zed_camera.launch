@@ -65,7 +65,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="publish_tf"            value="$(arg publish_tf)" />
         <param name="publish_map_tf"        value="$(arg publish_map_tf)" />
 
-
         <!-- flip camera -->
         <param name="camera_flip"           value="$(arg camera_flip)" />
 
