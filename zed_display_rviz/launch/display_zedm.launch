@@ -21,7 +21,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
     <!-- Launch ZED camera wrapper -->
     <include file="$(find zed_wrapper)/launch/zed.launch">
-        <arg name="camera_model"        value="1" /> <!-- 0=ZED, 1=ZEDM-->
+        <arg name="camera_model"        value="zedm" />
         <arg name="svo_file"            value="$(arg svo_file)" />
     </include>
   

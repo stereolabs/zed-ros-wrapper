@@ -43,7 +43,7 @@ To launch ZED node, use:
 
     $ roslaunch zed_wrapper zed.launch
 
-**Note**: Remember to change the parameter `camera_model` to `0` if you are using a **ZED** or to `1` if you are using a **ZED Mini**
+**Note**: Remember to change the parameter `camera_model` to `zed` if you are using a **ZED** or to `zedm` if you are using a **ZED Mini**
 
  To select the ZED from its serial number
 

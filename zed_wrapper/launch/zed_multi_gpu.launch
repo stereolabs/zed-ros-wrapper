@@ -19,7 +19,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <launch>
 
     <arg name="pose_frame"           default="map" />
-    <arg name="camera_model"         default="1" /> <!-- 0=ZED, 1=ZEDM-->
+    <arg name="camera_model"         default="zedm" /> <!-- ZED: zed, ZEDm: zedm-->
     <arg name="serial_number"        default="0" />
     <arg name="verbose"              default="true" />
 

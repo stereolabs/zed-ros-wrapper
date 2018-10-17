@@ -144,7 +144,14 @@ namespace zed_wrapper {
             mZedSerialNumber = static_cast<int>(tmp_sn);
         }
 
-        mNhNs.getParam("camera_model", mZedUserCamModel);
+        std::string cam_model_str;
+        mNhNs.getParam("camera_model", cam_model_str);
+
+        if (cam_model_str == "zed") {
+            mZedUserCamModel = 0;
+        } else {
+            mZedUserCamModel = 1;
+        }
 
         mNhNs.getParam("publish_pose_covariance", mPublishPoseCovariance);
 
@@ -395,14 +402,14 @@ namespace zed_wrapper {
 
             if (mZedUserCamModel != 0) {
                 NODELET_WARN("Camera model does not match user parameter. Please modify "
-                             "the value of the parameter 'camera_model' to 0");
+                             "the value of the parameter 'camera_model' to 'zed'");
             }
         } else if (mZedRealCamModel == sl::MODEL_ZED_M) {
             camModelStr = "ZED M";
 
             if (mZedUserCamModel != 1) {
                 NODELET_WARN("Camera model does not match user parameter. Please modify "
-                             "the value of the parameter 'camera_model' to 1");
+                             "the value of the parameter 'camera_model' to 'zedm'");
             }
         }
 
@@ -778,8 +785,8 @@ namespace zed_wrapper {
         mNhNs.getParam("odometry_DB", mOdometryDb);
         mNhNs.getParam("pose_smoothing", mPoseSmoothing);
         mNhNs.getParam("spatial_memory", mSpatialMemory);
-#ifdef TERRAIN_MAPPING
         mNhNs.getParam("floor_alignment", mFloorAlignment);
+#ifdef TERRAIN_MAPPING
         if (mTerrainMap && !mFloorAlignment) {
             NODELET_INFO_STREAM("Floor Alignment required by Terrain Mapping algorithm");
             mFloorAlignment = true;

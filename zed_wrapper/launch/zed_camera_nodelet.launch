@@ -19,7 +19,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <launch>
     <arg name="nodelet_manager_name"  default="zed_nodelet_manager" />
 
-    <arg name="camera_model"          default="0" /> <!-- 0=ZED, 1=ZEDM-->
+    <arg name="camera_model"          default="zed" /> <!-- ZED: zed, ZEDm: zedm-->
     <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
     <arg name="zed_id"                default="0" />
     <!-- If a ZED SN is given, zed_id is ignored and the wrapper will specifically look for the ZED with the corresponding serial number -->
@@ -195,8 +195,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <!-- ROS URDF description of the ZED -->
     <group if="$(arg publish_urdf)">
-        <param if="$(arg camera_model)" name="zed_description" textfile="$(find zed_wrapper)/urdf/zedm.urdf" />
-        <param unless="$(arg camera_model)" name="zed_description" textfile="$(find zed_wrapper)/urdf/zed.urdf" />
+        <param name="zed_description" textfile="$(find zed_wrapper)/urdf/$(arg camera_model).urdf" />
         <node name="zed_state_publisher" pkg="robot_state_publisher" type="state_publisher">
             <remap from="robot_description" to="zed_description" />
         </node>
