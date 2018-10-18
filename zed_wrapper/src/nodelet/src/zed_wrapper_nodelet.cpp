@@ -98,7 +98,7 @@ namespace zed_wrapper {
         mNh = getMTNodeHandle();
         mNhNs = getMTPrivateNodeHandle();
         // Set  default coordinate frames
-        mNhNs.param<std::string>("world_frame", mMapFrameId, "map");
+        mNhNs.param<std::string>("world_frame", mWorldFrameId, "map");
         mNhNs.param<std::string>("map_frame", mMapFrameId, "map");
         mNhNs.param<std::string>("odom_frame", mOdometryFrameId, "odom");
         mNhNs.param<std::string>("base_frame", mBaseFrameId, "base_link");
