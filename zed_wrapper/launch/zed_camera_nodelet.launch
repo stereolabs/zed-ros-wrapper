@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="left_camera_optical_frame"     default="zed_left_camera_optical_frame" />
     <arg name="right_camera_frame"            default="zed_right_camera_frame" />
     <arg name="right_camera_optical_frame"    default="zed_right_camera_optical_frame" />
-    <arg name="imu_frame"                     default="imu_link" /> <!-- only used with ZED M -->
+    <arg name="imu_frame"                     default="zed_imu_link" /> <!-- only used with ZED M -->
 
     <arg name="initial_pose"                  default="[0.0,0.0,0.0, 0.0,0.0,0.0]" /> <!-- X, Y, Z, (meter) R, P, Y, (radians)-->
 
@@ -58,7 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="left_camera_optical_frame"       default="zed_left_camera_optical_frame" />
     <arg name="right_camera_frame"              default="zed_right_camera_frame" />
     <arg name="right_camera_optical_frame"      default="zed_right_camera_optical_frame" />
-    <arg name="imu_frame"                       default="imu_link" /> <!-- only used with ZED M -->
+    <arg name="imu_frame"                       default="zed_imu_link" /> <!-- only used with ZED M -->
 
     <arg name="initial_pose"                    default="[0.0,0.0,0.0, 0.0,0.0,0.0]" /> <!-- X, Y, Z, (meter) R, P, Y, (radians)-->
 

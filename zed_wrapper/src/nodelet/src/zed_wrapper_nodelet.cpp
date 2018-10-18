@@ -102,7 +102,7 @@ namespace zed_wrapper {
         mNhNs.param<std::string>("odometry_frame", mOdometryFrameId, "odom");
         mNhNs.param<std::string>("base_frame", mBaseFrameId, "base_link");
         mNhNs.param<std::string>("camera_frame", mCameraFrameId, "zed_camera_center");
-        mNhNs.param<std::string>("imu_frame", mImuFrameId, "imu_link");
+        mNhNs.param<std::string>("imu_frame", mImuFrameId, "zed_imu_link");
         mNhNs.param<std::string>("left_camera_frame", mLeftCamFrameId,
                                  "left_camera_frame");
         mNhNs.param<std::string>("left_camera_optical_frame", mLeftCamOptFrameId,
@@ -546,6 +546,18 @@ namespace zed_wrapper {
             mFrameTimestamp = ros::Time::now();
             mPubImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
                                              &ZEDWrapperNodelet::imuPubCallback, this);
+
+#ifndef NDEBUG
+            sl::CameraInformation zedParam = mZed.getCameraInformation();
+            sl::Transform imuTransf = zedParam.camera_imu_transform;
+
+            sl::Translation imuPos = imuTransf.getTranslation();
+            sl::float3 imuOrient = imuTransf.getEulerAngles(true);
+
+            NODELET_DEBUG_STREAM("IMU POSITION [x,y,z]: " << imuPos.x  << ", " << imuPos.y  << ", " << imuPos.z);
+            NODELET_DEBUG_STREAM("IMU ORIENTATION [r,p,y]: " << imuOrient[0]  << ", " << imuOrient[1]  << ", " << imuOrient[2]);
+#endif
+
         } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
             NODELET_WARN_STREAM(
                 "'imu_pub_rate' set to "
