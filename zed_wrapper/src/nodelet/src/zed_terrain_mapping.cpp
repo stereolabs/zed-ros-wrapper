@@ -31,8 +31,9 @@ namespace zed_wrapper {
     bool ZEDTerrainMapping::init() {
 
         // Frame names
-        mNhNs.param<std::string>("pose_frame", mMapFrameId, "map");
-        mNhNs.param<std::string>("odometry_frame", mOdometryFrameId, "odom");
+        mNhNs.param<std::string>("world_frame", mWorldFrameId, "map");
+        mNhNs.param<std::string>("map_frame", mMapFrameId, "map");
+        mNhNs.param<std::string>("odom_frame", mOdometryFrameId, "odom");
         mNhNs.param<std::string>("base_frame", mBaseFrameId, "base_link");
         mNhNs.param<std::string>("camera_frame", mCameraFrameId, "zed_camera_center");
 
@@ -69,7 +70,8 @@ namespace zed_wrapper {
         ROS_INFO_STREAM("Advertised on topic " << loc_height_marker_topic);
         mPubLocalCostMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_cost_map_topic, 1); // local cost map
         ROS_INFO_STREAM("Advertised on topic " << loc_cost_map_topic);
-        mPubLocalDynObstaclesMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_obstacles_map_topic, 1); // local dynamic obstacles map
+        mPubLocalDynObstaclesMap = mNh.advertise<nav_msgs::OccupancyGrid>(loc_obstacles_map_topic,
+                                   1); // local dynamic obstacles map
         ROS_INFO_STREAM("Advertised on topic " << loc_obstacles_map_topic);
         mPubLocalInflatedOccupGrid = mNh.advertise<nav_msgs::OccupancyGrid>(loc_occup_grid_topic, 1); // local occupancy grid
         ROS_INFO_STREAM("Advertised on topic " << loc_occup_grid_topic);
@@ -157,7 +159,8 @@ namespace zed_wrapper {
                                          mMapAgentStep, mMapAgentSlope, mMapAgentRadius,
                                          mMapAgentHeight, mMapAgentRoughness);
 
-        sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution = static_cast<sl::TerrainMappingParameters::GRID_RESOLUTION>(mMapResolIdx);
+        sl::TerrainMappingParameters::GRID_RESOLUTION grid_resolution =
+            static_cast<sl::TerrainMappingParameters::GRID_RESOLUTION>(mMapResolIdx);
         mTerrainMapRes = terrainParams.setGridResolution(grid_resolution);
 
         ROS_INFO_STREAM("Terrain Grid Resolution " << mTerrainMapRes << "m");
@@ -245,14 +248,14 @@ namespace zed_wrapper {
                 try {
                     // Save the transformation from base to frame
                     geometry_msgs::TransformStamped c2m =
-                        mTfBuffer->lookupTransform(mMapFrameId, mCameraFrameId,  ros::Time(0));
+                        mTfBuffer->lookupTransform(mWorldFrameId, mCameraFrameId,  ros::Time(0));
                     // Get the TF2 transformation
                     tf2::fromMsg(c2m.transform, cam_to_map);
                 } catch (tf2::TransformException& ex) {
                     ROS_WARN_THROTTLE(
                         10.0, "The tf from '%s' to '%s' does not seem to be available. "
                         "IMU TF not published!",
-                        mCameraFrameId.c_str(), mMapFrameId.c_str());
+                        mCameraFrameId.c_str(), mWorldFrameId.c_str());
                     ROS_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
                     return;
                 }
@@ -265,7 +268,8 @@ namespace zed_wrapper {
                 float camY = cam_to_map.getOrigin().y();
                 float camZ = cam_to_map.getOrigin().z();
 
-                chunks = mTerrain.getSurroundingValidChunks(-camY, camX, mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                chunks = mTerrain.getSurroundingValidChunks(-camY, camX,
+                         mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
 
                 ROS_DEBUG_STREAM(" ********************** Camera Position: " << camX << "," << camY);
 
@@ -313,7 +317,8 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDTerrainMapping::publishLocalMaps(float camX, float camY, float camZ, float minX, float minY, float maxX, float maxY,
+    void ZEDTerrainMapping::publishLocalMaps(float camX, float camY, float camZ, float minX, float minY, float maxX,
+            float maxY,
             std::vector<sl::HashKey>& chunks,
             ros::Time t) {
         // Subscribers count
@@ -325,12 +330,16 @@ namespace zed_wrapper {
         uint32_t dynObsSub = mPubLocalDynObstaclesMap.getNumSubscribers();
 
         // Map sizes
-        float mapMinX = (minY > (camX - mMapLocalSize / 2.0f)) ? minY : (camX - mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-        float mapMaxX = (maxY < (camX + mMapLocalSize / 2.0f)) ? maxY : (camX + mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        float mapMinX = (minY > (camX - mMapLocalSize / 2.0f)) ? minY : (camX - mMapLocalSize /
+                        2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        float mapMaxX = (maxY < (camX + mMapLocalSize / 2.0f)) ? maxY : (camX + mMapLocalSize /
+                        2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
         //float mapMinX = (minX > (camX-mMapLocalRadius))?minX:(camX-mMapLocalRadius);
         //float mapMaxX = (maxX < (camX+mMapLocalRadius))?maxX:(camX+mMapLocalRadius);
-        float mapMinY = (-maxX > (camY - mMapLocalSize / 2.0f)) ? -maxX : (camY - mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-        float mapMaxY = (-minX < (camY + mMapLocalSize / 2.0f)) ? -minX : (camY + mMapLocalSize / 2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        float mapMinY = (-maxX > (camY - mMapLocalSize / 2.0f)) ? -maxX : (camY - mMapLocalSize /
+                        2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+        float mapMaxY = (-minX < (camY + mMapLocalSize / 2.0f)) ? -minX : (camY + mMapLocalSize /
+                        2.0f); // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
         //float mapMinY = (minY > (camY-mMapLocalRadius))?minY:(camY-mMapLocalRadius);
         //float mapMaxY = (maxY < (camY+mMapLocalRadius))?maxY:(camY+mMapLocalRadius);
 
@@ -350,7 +359,7 @@ namespace zed_wrapper {
         int ptsCount = mapRows * mapCols;
         mLocalHeightPointcloudMsg.header.stamp = t;
         if (mLocalHeightPointcloudMsg.width != mapCols || mLocalHeightPointcloudMsg.height != mapRows) {
-            mLocalHeightPointcloudMsg.header.frame_id = mMapFrameId; // Set the header values of the ROS message
+            mLocalHeightPointcloudMsg.header.frame_id = mWorldFrameId; // Set the header values of the ROS message
             mLocalHeightPointcloudMsg.is_bigendian = false;
             mLocalHeightPointcloudMsg.is_dense = false;
 
@@ -383,32 +392,32 @@ namespace zed_wrapper {
 
         // Height Map Message as OccupancyGrid
         mLocHeightMapMsg.info = mapInfo;
-        mLocHeightMapMsg.header.frame_id = mMapFrameId;
+        mLocHeightMapMsg.header.frame_id = mWorldFrameId;
         mLocHeightMapMsg.header.stamp = t;
         mLocHeightMapMsg.data = std::vector<int8_t>(totCell, -1);
 
         // Cost Map Message as OccupancyGrid
         mLocCostMapMsg.info = mapInfo;
-        mLocCostMapMsg.header.frame_id = mMapFrameId;
+        mLocCostMapMsg.header.frame_id = mWorldFrameId;
         mLocCostMapMsg.header.stamp = t;
         mLocCostMapMsg.data = std::vector<int8_t>(totCell, -1);
 
         // Trinary Occupancy Grid
         mLocInflatedOccupGridMsg.info = mapInfo;
-        mLocInflatedOccupGridMsg.header.frame_id = mMapFrameId;
+        mLocInflatedOccupGridMsg.header.frame_id = mWorldFrameId;
         mLocInflatedOccupGridMsg.header.stamp = t;
         mLocInflatedOccupGridMsg.data = std::vector<int8_t>(totCell, -1);
 
         // Obstacles Map
         mLocDynObstaclesMsg.info = mapInfo;
-        mLocDynObstaclesMsg.header.frame_id = mMapFrameId;
+        mLocDynObstaclesMsg.header.frame_id = mWorldFrameId;
         mLocDynObstaclesMsg.header.stamp = t;
         mLocDynObstaclesMsg.data = std::vector<int8_t>(totCell, -1);
 
         // Height Marker
         visualization_msgs::Marker marker;
         if (mrkSub) {
-            marker.header.frame_id = mMapFrameId;
+            marker.header.frame_id = mWorldFrameId;
             marker.header.stamp = t;
             marker.ns = "height_cubes";
             marker.id = 0;
@@ -462,8 +471,10 @@ namespace zed_wrapper {
                 }
 
                 // (xm,ym) to ROS map index
-                uint32_t u = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes));    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
-                uint32_t v = static_cast<uint32_t>(round((-xm - mapMinY) / mTerrainMapRes));   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                uint32_t u = static_cast<uint32_t>(round((ym - mapMinX) /
+                                                   mTerrainMapRes));    // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
+                uint32_t v = static_cast<uint32_t>(round((-xm - mapMinY) /
+                                                   mTerrainMapRes));   // REMEMBER X & Y ARE SWITCHED AT SDK LEVEL
                 //uint32_t u = static_cast<uint32_t>(round((xm - mapMinY) / mTerrainMapRes));
                 //uint32_t v = static_cast<uint32_t>(round((ym - mapMinX) / mTerrainMapRes));
 
@@ -614,7 +625,7 @@ namespace zed_wrapper {
         // Height Marker
         visualization_msgs::Marker marker;
         if (mrkSub) {
-            marker.header.frame_id = mMapFrameId;
+            marker.header.frame_id = mWorldFrameId;
             marker.header.stamp = t;
             marker.ns = "height_cubes";
             marker.id = 0;
@@ -904,14 +915,14 @@ namespace zed_wrapper {
                 try {
                     // Save the transformation from base to frame
                     geometry_msgs::TransformStamped c2m =
-                        mTfBuffer->lookupTransform(mMapFrameId, mCameraFrameId,  ros::Time(0));
+                        mTfBuffer->lookupTransform(mWorldFrameId, mCameraFrameId,  ros::Time(0));
                     // Get the TF2 transformation
                     tf2::fromMsg(c2m.transform, cam_to_map);
                 } catch (tf2::TransformException& ex) {
                     ROS_WARN_THROTTLE(
                         10.0, "The tf from '%s' to '%s' does not seem to be available. "
                         "IMU TF not published!",
-                        mCameraFrameId.c_str(), mMapFrameId.c_str());
+                        mCameraFrameId.c_str(), mWorldFrameId.c_str());
                     ROS_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
                     return;
                 }
@@ -1019,7 +1030,7 @@ namespace zed_wrapper {
                         cv_heightMap = sl_tools::toCVMat(sl_heightMap);
                         mPubGlobalHeightMapImg.publish(
                             sl_tools::imageToROSmsg(cv_heightMap, sensor_msgs::image_encodings::TYPE_32FC1,
-                                                    mMapFrameId, sl_tools::slTime2Ros(mLastGlobMapTimestamp)));
+                                                    mWorldFrameId, sl_tools::slTime2Ros(mLastGlobMapTimestamp)));
                     }
                 }
 
@@ -1032,7 +1043,7 @@ namespace zed_wrapper {
                         cv_colorMap = sl_tools::toCVMat(sl_colorMap);
                         mPubGlobalColorMapImg.publish(sl_tools::imageToROSmsg(
                                                           cv_colorMap, sensor_msgs::image_encodings::TYPE_8UC4,
-                                                          mMapFrameId, sl_tools::slTime2Ros(mLastGlobMapTimestamp)));
+                                                          mWorldFrameId, sl_tools::slTime2Ros(mLastGlobMapTimestamp)));
                     }
                 }
 
@@ -1045,7 +1056,7 @@ namespace zed_wrapper {
                         cv_traversMap = sl_tools::toCVMat(sl_traversMap);
                         mPubGlobalCostMapImg.publish(sl_tools::imageToROSmsg(
                                                          cv_traversMap, sensor_msgs::image_encodings::TYPE_16UC1,
-                                                         mMapFrameId, sl_tools::slTime2Ros(mLastGlobMapTimestamp)));
+                                                         mWorldFrameId, sl_tools::slTime2Ros(mLastGlobMapTimestamp)));
                     }
                 }
 
@@ -1077,9 +1088,9 @@ namespace zed_wrapper {
         mapInfo.origin.orientation.w = 1.0;
 
         // Maps
-        mGlobHeightMapMsg.header.frame_id = mMapFrameId;
-        mGlobCostMapMsg.header.frame_id = mMapFrameId;
-        mGlobInflatedOccupGridMsg.header.frame_id = mMapFrameId;
+        mGlobHeightMapMsg.header.frame_id = mWorldFrameId;
+        mGlobCostMapMsg.header.frame_id = mWorldFrameId;
+        mGlobInflatedOccupGridMsg.header.frame_id = mWorldFrameId;
         mGlobHeightMapMsg.info = mapInfo;
         mGlobCostMapMsg.info = mapInfo;
         mGlobInflatedOccupGridMsg.info = mapInfo;
@@ -1093,7 +1104,7 @@ namespace zed_wrapper {
 
         // Height Pointcloud
         if (mGlobalHeightPointcloudMsg.width != mapCols || mGlobalHeightPointcloudMsg.height != mapRows) {
-            mGlobalHeightPointcloudMsg.header.frame_id = mMapFrameId; // Set the header values of the ROS message
+            mGlobalHeightPointcloudMsg.header.frame_id = mWorldFrameId; // Set the header values of the ROS message
             mGlobalHeightPointcloudMsg.is_bigendian = false;
             mGlobalHeightPointcloudMsg.is_dense = false;
 

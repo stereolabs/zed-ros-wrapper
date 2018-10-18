@@ -98,8 +98,9 @@ namespace zed_wrapper {
         mNh = getMTNodeHandle();
         mNhNs = getMTPrivateNodeHandle();
         // Set  default coordinate frames
-        mNhNs.param<std::string>("pose_frame", mMapFrameId, "map");
-        mNhNs.param<std::string>("odometry_frame", mOdometryFrameId, "odom");
+        mNhNs.param<std::string>("world_frame", mMapFrameId, "map");
+        mNhNs.param<std::string>("map_frame", mMapFrameId, "map");
+        mNhNs.param<std::string>("odom_frame", mOdometryFrameId, "odom");
         mNhNs.param<std::string>("base_frame", mBaseFrameId, "base_link");
         mNhNs.param<std::string>("camera_frame", mCameraFrameId, "zed_camera_center");
         mNhNs.param<std::string>("imu_frame", mImuFrameId, "zed_imu_link");
@@ -165,8 +166,9 @@ namespace zed_wrapper {
         }
 
         // Print order frames
-        NODELET_INFO_STREAM("pose_frame \t\t   -> " << mMapFrameId);
-        NODELET_INFO_STREAM("odometry_frame \t\t   -> " << mOdometryFrameId);
+        NODELET_INFO_STREAM("world_frame \t\t   -> " << mWorldFrameId);
+        NODELET_INFO_STREAM("map_frame \t\t   -> " << mMapFrameId);
+        NODELET_INFO_STREAM("odom_frame \t\t   -> " << mOdometryFrameId);
         NODELET_INFO_STREAM("base_frame \t\t   -> " << mBaseFrameId);
         NODELET_INFO_STREAM("camera_frame \t\t   -> " << mCameraFrameId);
         NODELET_INFO_STREAM("imu_link \t\t   -> " << mImuFrameId);
@@ -857,7 +859,7 @@ namespace zed_wrapper {
     void ZEDWrapperNodelet::publishOdom(tf2::Transform base2odomTransf, sl::Pose& slPose, ros::Time t) {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
-        odom.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
+        odom.header.frame_id = mWorldFrameId;
         odom.child_frame_id = mBaseFrameId;      // camera_frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2odom = tf2::toMsg(base2odomTransf);
@@ -889,68 +891,38 @@ namespace zed_wrapper {
         tf2::Transform base_pose;
         base_pose.setIdentity();
 
-        if (mPublishMapTf) {
-            // Look up the transformation from base frame to map
-            try {
-                // Save the transformation from base to frame
-                geometry_msgs::TransformStamped b2m =
-                    mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
-                // Get the TF2 transformation
-                tf2::fromMsg(b2m.transform, base_pose);
-            } catch (tf2::TransformException& ex) {
-                NODELET_WARN_THROTTLE(
-                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
-                    "will assume it as identity!",
-                    mBaseFrameId.c_str(), mMapFrameId.c_str());
-                NODELET_DEBUG("Transform error: %s", ex.what());
-            }
-        } else if (mPublishTf) {
-            // Look up the transformation from base frame to odom frame
-            try {
-                // Save the transformation from base to frame
-                geometry_msgs::TransformStamped b2o =
-                    mTfBuffer->lookupTransform(mOdometryFrameId, mBaseFrameId, ros::Time(0));
-                // Get the TF2 transformation
-                tf2::fromMsg(b2o.transform, base_pose);
-            } catch (tf2::TransformException& ex) {
-                NODELET_WARN_THROTTLE(
-                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
-                    "will assume it as identity!",
-                    mBaseFrameId.c_str(), mOdometryFrameId.c_str());
-                NODELET_DEBUG("Transform error: %s", ex.what());
-            }
+        // Look up the transformation from base frame to world
+        try {
+            // Save the transformation from base to world
+            geometry_msgs::TransformStamped b2w =
+                mTfBuffer->lookupTransform(mWorldFrameId, mBaseFrameId, ros::Time(0));
+            // Get the TF2 transformation
+            tf2::fromMsg(b2w.transform, base_pose);
+        } catch (tf2::TransformException& ex) {
+            NODELET_WARN_THROTTLE(
+                10.0, "The tf from '%s' to '%s' does not seem to be available. Pose is not published.",
+                mBaseFrameId.c_str(), mWorldFrameId.c_str());
+            NODELET_DEBUG("Transform error: %s", ex.what());
+            return;
         }
 
         std_msgs::Header header;
         header.stamp = mFrameTimestamp;
-        header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
+        header.frame_id = mWorldFrameId;
 
         geometry_msgs::Pose pose;
 
-        if (mPublishTf) {
-            // conversion from Tranform to message
-            geometry_msgs::Transform base2frame = tf2::toMsg(base_pose);
+        // conversion from Tranform to message
+        geometry_msgs::Transform base2world = tf2::toMsg(base_pose);
 
-            // Add all value in Pose message
-            pose.position.x = base2frame.translation.x;
-            pose.position.y = base2frame.translation.y;
-            pose.position.z = base2frame.translation.z;
-            pose.orientation.x = base2frame.rotation.x;
-            pose.orientation.y = base2frame.rotation.y;
-            pose.orientation.z = base2frame.rotation.z;
-            pose.orientation.w = base2frame.rotation.w;
-        } else {
-            sl::Translation translation = mLastZedPose.getTranslation();
-            sl::Orientation quat = mLastZedPose.getOrientation();
-
-            pose.position.x = mSignX * translation(mIdxX);
-            pose.position.y = mSignY * translation(mIdxY);
-            pose.position.z = mSignZ * translation(mIdxZ);
-            pose.orientation.x = mSignX * quat(mIdxX);
-            pose.orientation.y = mSignY * quat(mIdxY);
-            pose.orientation.z = mSignZ * quat(mIdxZ);
-            pose.orientation.w = quat(3);
-        }
+        // Add all value in Pose message
+        pose.position.x = base2world.translation.x;
+        pose.position.y = base2world.translation.y;
+        pose.position.z = base2world.translation.z;
+        pose.orientation.x = base2world.rotation.x;
+        pose.orientation.y = base2world.rotation.y;
+        pose.orientation.z = base2world.rotation.z;
+        pose.orientation.w = base2world.rotation.w;
 
         if (mPubPose.getNumSubscribers() > 0) {
 
@@ -998,7 +970,7 @@ namespace zed_wrapper {
         mTransformOdomBroadcaster.sendTransform(transformStamped);
     }
 
-    void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time t) {
+    void ZEDWrapperNodelet::publishMapFrame(tf2::Transform baseTransform, ros::Time t) {
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = t;
         transformStamped.header.frame_id = mMapFrameId;
@@ -1319,7 +1291,7 @@ namespace zed_wrapper {
         if (mPublishMapTf) {
             // Look up the transformation from base frame to map
             try {
-                // Save the transformation from base to frame
+                // Save the transformation from base to map
                 geometry_msgs::TransformStamped b2m =
                     mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
                 // Get the TF2 transformation
@@ -1337,7 +1309,7 @@ namespace zed_wrapper {
         geometry_msgs::PoseStamped mapPose;
 
         odomPose.header.stamp = mFrameTimestamp;
-        odomPose.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
+        odomPose.header.frame_id = mWorldFrameId;
         // conversion from Tranform to message
         geometry_msgs::Transform base2odom = tf2::toMsg(base_to_odom);
         // Add all value in Pose message
@@ -1351,7 +1323,7 @@ namespace zed_wrapper {
 
         if (mPublishMapTf) {
             mapPose.header.stamp = mFrameTimestamp;
-            mapPose.header.frame_id = mMapFrameId; // map_frame
+            mapPose.header.frame_id = mWorldFrameId;
             // conversion from Tranform to message
             geometry_msgs::Transform base2map = tf2::toMsg(base_to_map);
             // Add all value in Pose message
@@ -1386,7 +1358,7 @@ namespace zed_wrapper {
 
         if (mapPathSub > 0 &&  mPublishMapTf) {
             nav_msgs::Path mapPath;
-            mapPath.header.frame_id = mMapFrameId;
+            mapPath.header.frame_id = mWorldFrameId;
             mapPath.header.stamp = mFrameTimestamp;
             mapPath.poses = mMapPath;
 
@@ -1395,13 +1367,12 @@ namespace zed_wrapper {
 
         if (odomPathSub > 0) {
             nav_msgs::Path odomPath;
-            odomPath.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
+            odomPath.header.frame_id = mWorldFrameId;
             odomPath.header.stamp = mFrameTimestamp;
             odomPath.poses = mOdomPath;
 
             mPubOdomPath.publish(odomPath);
         }
-
     }
 
     void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
@@ -1529,24 +1500,21 @@ namespace zed_wrapper {
 
         // Publish IMU tf only if enabled
         if (mPublishTf) {
-            // Camera to pose transform from TF buffer
-            tf2::Transform cam_to_pose;
+            // Camera to world transform from TF buffer
+            tf2::Transform cam_to_world;
 
-            std::string poseFrame;
             // Look up the transformation from base frame to map link
             try {
-                poseFrame = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
-
                 // Save the transformation from base to frame
-                geometry_msgs::TransformStamped c2p =
-                    mTfBuffer->lookupTransform(poseFrame, mCameraFrameId, ros::Time(0));
+                geometry_msgs::TransformStamped c2w =
+                    mTfBuffer->lookupTransform(mWorldFrameId, mCameraFrameId, ros::Time(0));
                 // Get the TF2 transformation
-                tf2::fromMsg(c2p.transform, cam_to_pose);
+                tf2::fromMsg(c2w.transform, cam_to_world);
             } catch (tf2::TransformException& ex) {
                 NODELET_WARN_THROTTLE(
                     10.0, "The tf from '%s' to '%s' does not seem to be available. "
                     "IMU TF not published!",
-                    mCameraFrameId.c_str(), mMapFrameId.c_str());
+                    mCameraFrameId.c_str(), mWorldFrameId.c_str());
                 NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
                 return;
             }
@@ -1558,7 +1526,7 @@ namespace zed_wrapper {
             imu_q.setZ(mSignZ * imu_data.getOrientation()[mIdxZ]);
             imu_q.setW(imu_data.getOrientation()[3]);
             // Pose Quaternion from ZED Camera
-            tf2::Quaternion map_q = cam_to_pose.getRotation();
+            tf2::Quaternion map_q = cam_to_world.getRotation();
             // Difference between IMU and ZED Quaternion
             tf2::Quaternion delta_q = imu_q * map_q.inverse();
             tf2::Transform imu_pose;
@@ -1997,7 +1965,7 @@ namespace zed_wrapper {
                     if (mPublishMapTf) {
                         // Note, the frame is published, but its values will only change if
                         // someone has subscribed to map
-                        publishPoseFrame(mOdom2MapTransf, mFrameTimestamp); // publish the odometry Frame in map frame
+                        publishMapFrame(mOdom2MapTransf, mFrameTimestamp); // publish the odometry Frame in map frame
                     }
                 }
 
@@ -2037,7 +2005,7 @@ namespace zed_wrapper {
                     publishOdomFrame(mBase2OdomTransf, mFrameTimestamp); // publish the base Frame in odometry frame
 
                     if (mPublishMapTf) {
-                        publishPoseFrame(mOdom2MapTransf, mFrameTimestamp); // publish the odometry Frame in map frame
+                        publishMapFrame(mOdom2MapTransf, mFrameTimestamp); // publish the odometry Frame in map frame
                     }
                 }
 

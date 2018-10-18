@@ -17,8 +17,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
-
-    <arg name="pose_frame"           default="map" />
+    <arg name="world_frame"          default="map" />
+    <arg name="map_frame"            default="map" />
+    <arg name="odom_frame"           default="odom" />
     <arg name="camera_model"         default="zedm" /> <!-- ZED: zed, ZEDm: zedm-->
     <arg name="serial_number"        default="0" />
     <arg name="verbose"              default="true" />
@@ -41,7 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <!-- Set GPU -->
             <arg name="gpu_id"                value="0" />            
 
-            <arg name="pose_frame"          value="$(arg pose_frame)" />
+            <arg name="world_frame"         value="$(arg world_frame)" />
+            <arg name="map_frame"           value="$(arg map_frame)" />
+            <arg name="odom_frame"          value="$(arg odom_frame)" />
             <arg name="camera_model"        value="$(arg camera_model)" />
             <arg name="serial_number"       default="$(arg serial_number)" />
             <arg name="resolution"          default="$(arg resolution)" />
@@ -57,7 +60,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <!-- Set GPU -->
             <arg name="gpu_id"                value="1" />
 
-            <arg name="pose_frame"          value="$(arg pose_frame)" />
+            <arg name="world_frame"         value="$(arg world_frame)" />
+            <arg name="map_frame"           value="$(arg map_frame)" />
+            <arg name="odom_frame"          value="$(arg odom_frame)" />
             <arg name="camera_model"        value="$(arg camera_model)" />
             <arg name="serial_number"       default="$(arg serial_number)" />
             <arg name="resolution"          default="$(arg resolution)" />

@@ -30,21 +30,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          RESOLUTION_VGA    -> 672*376,   available framerates: 15, 30, 60, 100 fps. -->
 
     <!-- Coordinate frame -->
-    <arg name="pose_frame"           default="map" />
-    <arg name="odometry_frame"       default="odom" />
+    <arg name="world_frame"          default="map" />
+    <arg name="map_frame"            default="map" />
+    <arg name="odom_frame"       default="odom" />
     <arg name="odometry_topic"       default="odom" />
 
     <group ns="zed">
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
             <arg name="svo_file"            value="$(arg svo_file)" />
-            <arg name="pose_frame"          value="$(arg pose_frame)" />
-            <arg name="odometry_frame"      value="$(arg odometry_frame)" />
+            <arg name="world_frame"         value="$(arg world_frame)" />
+            <arg name="map_frame"           value="$(arg map_frame)" />
+            <arg name="odom_frame"      value="$(arg odom_frame)" />
             <arg name="odometry_topic"      value="$(arg odometry_topic)" />
             <arg name="camera_model"        value="$(arg camera_model)" />
-            <arg name="serial_number"       default="$(arg serial_number)" /> 
-            <arg name="resolution"          default="$(arg resolution)" />
-            <arg name="frame_rate"          default="$(arg frame_rate)" />
-            <arg name="verbose"             default="$(arg verbose)" />
+            <arg name="serial_number"       value="$(arg serial_number)" />
+            <arg name="resolution"          value="$(arg resolution)" />
+            <arg name="frame_rate"          value="$(arg frame_rate)" />
+            <arg name="verbose"             value="$(arg verbose)" />
         </include>
     </group>
 </launch>

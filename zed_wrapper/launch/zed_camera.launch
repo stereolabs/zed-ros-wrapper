@@ -37,8 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Definition coordinate frames -->
     <arg name="publish_tf"                    default="true" />
     <arg name="publish_map_tf"                default="true" />
-    <arg name="pose_frame"                    default="map" />
-    <arg name="odometry_frame"                default="odom" />
+    <arg name="world_frame"                   default="map" />
+    <arg name="map_frame"                     default="map" />
+    <arg name="odom_frame"                default="odom" />
     <arg name="base_frame"                    default="base_link" />
     <arg name="camera_frame"                  default="zed_camera_center" />
     <arg name="left_camera_frame"             default="zed_left_camera_frame" />
@@ -59,6 +60,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="depth_cam_info_topic"          default="depth/camera_info" />
     <arg name="odometry_topic"                default="odom" />
 
+    <arg name="publish_pose_covariance"       default="false" />
+
     <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
 
         <param name="camera_model"          value="$(arg camera_model)" />
@@ -71,8 +74,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="camera_flip"           value="$(arg camera_flip)" />
 
         <!-- Configuration frame camera -->    
-        <param name="pose_frame"                    value="$(arg pose_frame)" />
-        <param name="odometry_frame"                value="$(arg odometry_frame)" />
+        <param name="world_frame"                   value="$(arg world_frame)" />
+        <param name="map_frame"                     value="$(arg map_frame)" />
+        <param name="odom_frame"                value="$(arg odom_frame)" />
         <param name="base_frame"                    value="$(arg base_frame)" />
         <param name="left_camera_frame"             value="$(arg left_camera_frame)" />
         <param name="left_camera_optical_frame"     value="$(arg left_camera_optical_frame)" />
@@ -164,7 +168,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="path_pub_rate"             value="2" />
         <param name="path_max_count"            value="-1" /> <!-- use "-1" for no limits -->
 
-        <param name="publish_pose_covariance"   value="false" />
+        <param name="publish_pose_covariance"   value="$(arg publish_pose_covariance)" />
     </node>
 
     <!-- ROS URDF description of the ZED -->

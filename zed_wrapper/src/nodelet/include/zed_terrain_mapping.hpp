@@ -190,6 +190,7 @@ namespace zed_wrapper {
 
 
         // Frames
+        std::string mWorldFrameId;
         std::string mMapFrameId;
         std::string mOdometryFrameId;
         std::string mBaseFrameId;

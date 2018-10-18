@@ -29,12 +29,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          RESOLUTION_HD720  -> 1280*720,  available framerates: 15, 30, 60 fps.
          RESOLUTION_VGA    -> 672*376,   available framerates: 15, 30, 60, 100 fps. -->
 
-    <arg name="publish_tf"                    default="false" />
-    <arg name="publish_map_tf"                default="false" />
-    <arg name="publish_urdf"                  default="true" />
+    <arg name="publish_tf"                  default="false" />
+    <arg name="publish_map_tf"              default="false" />
+    <arg name="publish_urdf"                default="true" />
 
-    <arg name="pose_frame"                    default="odom" />
-    <arg name="odometry_frame"                default="odom" />
+    <arg name="world_frame"                 default="map" />
+    <arg name="map_frame"                   default="map" />
+    <arg name="odom_frame"                  default="odom" />
 
     <group ns="zed">
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
@@ -47,8 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <arg name="publish_tf"          value="$(arg publish_tf)" />
             <arg name="publish_map_tf"      value="$(arg publish_map_tf)" />
             <arg name="publish_urdf"        value="$(arg publish_urdf)" />
-            <arg name="pose_frame"          value="$(arg pose_frame)" />
-            <arg name="odometry_frame"      value="$(arg odometry_frame)" />
+            <arg name="world_frame"         value="$(arg world_frame)" />
+            <arg name="map_frame"           value="$(arg map_frame)" />
+            <arg name="odom_frame"          value="$(arg odom_frame)" />
         </include>
     </group>
 </launch>

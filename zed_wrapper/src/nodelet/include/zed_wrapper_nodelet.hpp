@@ -100,7 +100,7 @@ namespace zed_wrapper {
          * odom frame to map frame
          * \param t : the ros::Time to stamp the image
          */
-        void publishPoseFrame(tf2::Transform baseTransform, ros::Time t);
+        void publishMapFrame(tf2::Transform baseTransform, ros::Time t);
 
         /* \brief Publish the odometry of the camera in "Odom" frame as a
          * transformation
@@ -307,6 +307,7 @@ namespace zed_wrapper {
         std::string mCloudFrameId;
         std::string mPointCloudFrameId;
 
+        std::string mWorldFrameId;
         std::string mMapFrameId;
         std::string mOdometryFrameId;
         std::string mBaseFrameId;

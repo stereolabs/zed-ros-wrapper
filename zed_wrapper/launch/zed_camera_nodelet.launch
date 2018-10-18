@@ -39,8 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Definition coordinate frames -->
     <arg name="publish_tf"                    default="true" />
     <arg name="publish_map_tf"                default="true" />
-    <arg name="pose_frame"                    default="map" />
-    <arg name="odometry_frame"                default="odom" />
+    <arg name="world_frame"                   default="map" />
+    <arg name="map_frame"                     default="map" />
+    <arg name="odom_frame"                default="odom" />
     <arg name="base_frame"                    default="zed_camera_center" />
     <arg name="left_camera_frame"             default="zed_left_camera_frame" />
     <arg name="left_camera_optical_frame"     default="zed_left_camera_optical_frame" />
@@ -50,8 +51,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <arg name="initial_pose"                  default="[0.0,0.0,0.0, 0.0,0.0,0.0]" /> <!-- X, Y, Z, (meter) R, P, Y, (radians)-->
 
-    <arg name="pose_frame"                      default="map" />
-    <arg name="odometry_frame"                  default="odom" />
+    <arg name="world_frame"                     default="map" />
+    <arg name="map_frame"                       default="map" />
+    <arg name="odom_frame"                  default="odom" />
     <arg name="base_frame"                      default="base_link" />
     <arg name="camera_frame"                    default="zed_camera_center" />
     <arg name="left_camera_frame"               default="zed_left_camera_frame" />
@@ -99,8 +101,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="camera_flip"           value="$(arg camera_flip)" />
 
         <!-- Configuration frame camera -->
-        <param name="pose_frame"                    value="$(arg pose_frame)" />
-        <param name="odometry_frame"                value="$(arg odometry_frame)" />
+        <param name="world_frame"                   value="$(arg world_frame)" />
+        <param name="map_frame"                     value="$(arg map_frame)" />
+        <param name="odom_frame"                value="$(arg odom_frame)" />
         <param name="base_frame"                    value="$(arg base_frame)" />
         <param name="left_camera_frame"             value="$(arg left_camera_frame)" />
         <param name="left_camera_optical_frame"     value="$(arg left_camera_optical_frame)" />
