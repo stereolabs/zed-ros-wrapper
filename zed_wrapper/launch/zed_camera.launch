@@ -62,6 +62,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <arg name="publish_pose_covariance"       default="false" />
 
+    <!-- ROS URDF description of the ZED -->
+    <group if="$(arg publish_urdf)">
+        <param name="zed_description" textfile="$(find zed_wrapper)/urdf/$(arg camera_model).urdf" />
+        <node name="zed_state_publisher" pkg="robot_state_publisher" type="state_publisher">
+            <remap from="robot_description" to="zed_description" />
+        </node>
+    </group>
+
     <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
 
         <param name="camera_model"          value="$(arg camera_model)" />
@@ -170,13 +178,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <param name="publish_pose_covariance"   value="$(arg publish_pose_covariance)" />
     </node>
-
-    <!-- ROS URDF description of the ZED -->
-    <group if="$(arg publish_urdf)">
-        <param name="zed_description" textfile="$(find zed_wrapper)/urdf/$(arg camera_model).urdf" />
-        <node name="zed_state_publisher" pkg="robot_state_publisher" type="state_publisher">
-            <remap from="robot_description" to="zed_description" />
-        </node>
-    </group>
-        
 </launch>

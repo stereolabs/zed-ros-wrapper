@@ -220,11 +220,14 @@ namespace zed_wrapper {
          */
         void initTransforms();
 
+        /* \brief Utility to retrieve the static transform from Base to Depth Sensor
+         *        from static TF
+         */
+        bool getSens2BaseTransform();
+
         /* \bried Start tracking loading the parameters from param server
          */
         void start_tracking();
-
-
 
       private:
         // SDK version
@@ -368,7 +371,10 @@ namespace zed_wrapper {
         // TF Transforms
         tf2::Transform mOdom2MapTransf;
         tf2::Transform mBase2OdomTransf;
+        tf2::Transform mBase2MapTransf;
         tf2::Transform mSensor2BaseTransf;
+
+        bool mSensor2BaseTransfValid = false;
 
         // Zed object
         sl::InitParameters mZedParams;
