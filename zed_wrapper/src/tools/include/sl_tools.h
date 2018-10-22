@@ -26,11 +26,11 @@
 #include <sl/Camera.hpp>
 #include <string>
 
-#if ZED_SDK_MAJOR_VERSION>=2
-#if ZED_SDK_MINOR_VERSION>=8 // TODO put to 8 when SDK v2.8 will be available
-#define TERRAIN_MAPPING 1
-#endif
-#endif
+//#if ZED_SDK_MAJOR_VERSION>=2
+//#if ZED_SDK_MINOR_VERSION>=8 // TODO put to 8 when SDK v2.8 will be available
+//#define TERRAIN_MAPPING 1
+//#endif
+//#endif
 
 
 namespace sl_tools {

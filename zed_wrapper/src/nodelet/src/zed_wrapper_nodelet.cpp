@@ -881,7 +881,7 @@ namespace zed_wrapper {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
         odom.header.frame_id = mWorldFrameId;
-        odom.child_frame_id = mBaseFrameId;      // camera_frame
+        odom.child_frame_id = mBaseFrameId;      // base frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2odom = tf2::toMsg(base2odomTransf);
         // Add all value in odometry message
@@ -898,7 +898,35 @@ namespace zed_wrapper {
                       odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w);
 
         // >>>>> Odometry pose covariance if available
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION==6))
+        if (!mSpatialMemory && mPublishPoseCovariance) {
+            for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
+                // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
+                odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+            }
+        }
+#elif ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=7)) // TODO FIX VERSION CHECK!
+
+        tf2::Matrix3x3 sens2baseRot(mSensor2BaseTransf.getRotation());
+
+        // >>>>> Linear velocities in BASE FRAME
+        tf2::Vector3 linTwist;
+        linTwist.setX(slPose.twist[0]);
+        linTwist.setY(slPose.twist[1]);
+        linTwist.setZ(slPose.twist[2]);
+
+        odom.twist.twist.linear = sens2baseRot * linTwist;
+        // <<<<< Linear velocities in BASE FRAME
+
+        // >>>>> Angular velocities in BASE FRAME
+        tf2::Vector3 angTwist;
+        angTwist.setX(slPose.twist[3]);
+        angTwist.setY(slPose.twist[4]);
+        angTwist.setZ(slPose.twist[5]);
+
+        odom.twist.twist.angular = sens2baseRot * angTwist;
+        // <<<< Angular velocities in BASE FRAME
+
         if (!mSpatialMemory && mPublishPoseCovariance) {
             for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
                 // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
@@ -911,6 +939,7 @@ namespace zed_wrapper {
         // Publish odometry message
         mPubOdom.publish(odom);
     }
+
 
     void ZEDWrapperNodelet::publishPose(ros::Time t) {
         //        tf2::Transform base_pose;
