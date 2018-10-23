@@ -951,23 +951,6 @@ namespace zed_wrapper {
 
 
     void ZEDWrapperNodelet::publishPose(ros::Time t) {
-        //        tf2::Transform base_pose;
-        //        base_pose.setIdentity();
-
-        //        // Look up the transformation from base frame to world
-        //        try {
-        //            // Save the transformation from base to world
-        //            geometry_msgs::TransformStamped b2w =
-        //                mTfBuffer->lookupTransform(mWorldFrameId, mBaseFrameId, ros::Time(0));
-        //            // Get the TF2 transformation
-        //            tf2::fromMsg(b2w.transform, base_pose);
-        //        } catch (tf2::TransformException& ex) {
-        //            NODELET_WARN_THROTTLE(
-        //                10.0, "The tf from '%s' to '%s' does not seem to be available. Pose is not published.",
-        //                mBaseFrameId.c_str(), mWorldFrameId.c_str());
-        //            NODELET_DEBUG("Transform error: %s", ex.what());
-        //            return;
-        //        }
 
         std_msgs::Header header;
         header.stamp = mFrameTimestamp;
@@ -1004,12 +987,13 @@ namespace zed_wrapper {
 
         if (mPublishPoseCovariance) {
             if (mPubPoseCov.getNumSubscribers() > 0) {
+
                 geometry_msgs::PoseWithCovarianceStamped poseCov;
 
                 poseCov.header = header;
                 poseCov.pose.pose = pose;
 
-                // >>>>> Odometry pose covariance if available
+                // >>>>> Pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
                 if (!mSpatialMemory) {
                     // >>>>> Transform from sensor to base frame
@@ -1027,9 +1011,13 @@ namespace zed_wrapper {
                     Eigen::Matrix<double, 6, 6> covInBase = sl_tools::poseCovarianceAToB(R, poseInSens, covInSens).cast<double>();
 
                     memcpy(&(poseCov.pose.covariance[0]), covInBase.data(), 36 * sizeof(double));
+                } else {
+                    ROS_WARN_THROTTLE(5.0, "Pose covariance is not available if SPATIAL MEMORY is ACTIVE");
                 }
+#else
+                ROS_WARN_THROTTLE(5.0, "Pose covariance is available starting from SDK v2.6");
 #endif
-                // <<<<< Odometry pose covariance if available
+                // <<<<< Pose covariance if available
 
                 // Publish pose with covariance stamped message
                 mPubPoseCov.publish(poseCov);
