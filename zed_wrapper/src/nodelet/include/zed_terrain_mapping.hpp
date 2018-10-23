@@ -44,7 +44,7 @@ namespace zed_wrapper {
 
     class ZEDTerrainMapping {
       public:
-        /* \brief Default constructor
+        /** \brief Default constructor
          * \param nh : node handler
          * \param nhNs : private node handler
          * \param zed : pointer to a ZED camera object
@@ -56,12 +56,12 @@ namespace zed_wrapper {
          */
         bool startTerrainMapping(sl::Transform initialPoseSl);
 
-        /* \brief Set local map type
+        /** \brief Set local map type
          * \ param circular : if True map is radial, otherwise is square
          */
         void setLocalMapType(bool circular);
 
-        /* \brief Set the size of the local map
+        /** \brief Set the size of the local map
          * \ param size : size of the local map in meters (diameter if circular)
          */
         void setLocalMapSize(double size);
@@ -69,23 +69,23 @@ namespace zed_wrapper {
       protected:
         bool init();
 
-        /* \brief Callback to handle async terrain MAPPING to generate high frequency local maps
+        /** \brief Callback to handle async terrain MAPPING to generate high frequency local maps
          * \param e : the ros::TimerEvent binded to the callback
          */
         void localTerrainCallback(const ros::TimerEvent& e);
 
-        /* \brief Callback to handle async terrain MAPPING to generate low frequency global maps
+        /** \brief Callback to handle async terrain MAPPING to generate low frequency global maps
          * \param e : the ros::TimerEvent binded to the callback
          */
         void globalTerrainCallback(const ros::TimerEvent& e);
 
-        /* \brief Initialize the ROS Map messages
+        /** \brief Initialize the ROS Map messages
          * \param map_W_m : width of the map in meters
          * \param map_H_m : height of the map in meters
          */
         void initGlobalMapMsgs(double map_W_m, double map_H_m);
 
-        /* \brief Publish local height and cost maps from updated Terrain Chunks
+        /** \brief Publish local height and cost maps from updated Terrain Chunks
          * \param minX : minimum X coordinate of the map in meters
          * \param minY : minimum Y coordinate of the map in meters
          * \param maxX : maximum X coordinate of the map in meters
@@ -101,7 +101,7 @@ namespace zed_wrapper {
                               float maxY, std::vector<sl::HashKey>& chunks,
                               ros::Time t);
 
-        /* \brief Publish global height and cost maps from updated Terrain Chunks
+        /** \brief Publish global height and cost maps from updated Terrain Chunks
          * \param chunks : updated chunks from terrain mapping
          * \param heightSub : Height map subscribers count
          * \param costSub : Cost map subscribers count
@@ -113,48 +113,48 @@ namespace zed_wrapper {
          */
         void publishGlobalMaps(float camZ, std::vector<sl::HashKey>& chunks,  ros::Time t);
 
-        /* \brief Callback to handle new global maps subscription.
+        /** \brief Callback to handle new global maps subscription.
          * \param e : the ros::TimerEvent binded to the callback
          */
         void globalMapSubscribeCallback(const ros::SingleSubscriberPublisher& pub);
 
-        /* \brief Service callback to GetMap service
+        /** \brief Service callback to GetMap service
          * server to simulate the Navigation stack `map_server` functionality
          */
         bool on_get_static_map(nav_msgs::GetMap::Request&  req,
                                nav_msgs::GetMap::Response& res);
 
-        /* \brief Service callback to GetMap service
+        /** \brief Service callback to GetMap service
          * server to request Local Height Map
          */
         bool on_get_loc_height_map(nav_msgs::GetMap::Request&  req,
                                    nav_msgs::GetMap::Response& res);
 
-        /* \brief Service callback to GetMap service
+        /** \brief Service callback to GetMap service
          * server to request Local Cost Map
          */
         bool on_get_loc_cost_map(nav_msgs::GetMap::Request&  req,
                                  nav_msgs::GetMap::Response& res);
 
-        /* \brief Service callback to GetMap service
+        /** \brief Service callback to GetMap service
          * server to request Local Occupancy Map
          */
         bool on_get_loc_occupancy(nav_msgs::GetMap::Request&  req,
                                   nav_msgs::GetMap::Response& res);
 
-        /* \brief Service callback to GetMap service
+        /** \brief Service callback to GetMap service
          * server to request Global Height Map
          */
         bool on_get_glob_height_map(nav_msgs::GetMap::Request&  req,
                                     nav_msgs::GetMap::Response& res);
 
-        /* \brief Service callback to GetMap service
+        /** \brief Service callback to GetMap service
          * server to request Global Cost Map
          */
         bool on_get_glob_cost_map(nav_msgs::GetMap::Request&  req,
                                   nav_msgs::GetMap::Response& res);
 
-        /* \brief Service callback to GetMap service
+        /** \brief Service callback to GetMap service
          * server to request Global Occupancy Map
          */
         bool on_get_glob_occupancy(nav_msgs::GetMap::Request&  req,

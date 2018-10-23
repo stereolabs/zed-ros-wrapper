@@ -102,7 +102,8 @@ catkin_package(
 # SOURCES
 
 set(TOOLS_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp )
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_cov_transf.cpp)
 set(NODE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_wrapper_node.cpp)
 set(NODELET_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.cpp

@@ -59,35 +59,35 @@ namespace zed_wrapper {
     class ZEDWrapperNodelet : public nodelet::Nodelet {
 
       public:
-        /* \brief Default constructor
+        /** \brief Default constructor
          */
         ZEDWrapperNodelet();
 
-        /* \brief \ref ZEDWrapperNodelet destructor
+        /** \brief \ref ZEDWrapperNodelet destructor
          */
         virtual ~ZEDWrapperNodelet();
 
       private:
-        /* \brief Initialization function called by the Nodelet base class
+        /** \brief Initialization function called by the Nodelet base class
          */
         virtual void onInit();
 
-        /* \brief ZED camera polling thread function
+        /** \brief ZED camera polling thread function
          */
         void device_poll_thread_func();
 
-        /* \brief Pointcloud publishing function
+        /** \brief Pointcloud publishing function
          */
         void pointcloud_thread_func();
 
       protected:
 
-        /* \brief Publish the pose of the camera in "Map" frame with a ros Publisher
+        /** \brief Publish the pose of the camera in "Map" frame with a ros Publisher
          * \param t : the ros::Time to stamp the image
          */
         void publishPose(ros::Time t);
 
-        /* \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
+        /** \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
          * \param base2odomTransf : Transformation representing the camera pose
          * from base frame to odom frame
          * \param slPose : latest odom pose from ZED SDK
@@ -95,14 +95,14 @@ namespace zed_wrapper {
          */
         void publishOdom(tf2::Transform base2odomTransf, sl::Pose& slPose, ros::Time t);
 
-        /* \brief Publish the pose of the camera in "Map" frame as a transformation
+        /** \brief Publish the pose of the camera in "Map" frame as a transformation
          * \param baseTransform : Transformation representing the camera pose from
          * odom frame to map frame
          * \param t : the ros::Time to stamp the image
          */
         void publishMapFrame(tf2::Transform baseTransform, ros::Time t);
 
-        /* \brief Publish the odometry of the camera in "Odom" frame as a
+        /** \brief Publish the odometry of the camera in "Odom" frame as a
          * transformation
          * \param odomTransf : Transformation representing the camera pose from
          * base frame to odom frame
@@ -110,14 +110,14 @@ namespace zed_wrapper {
          */
         void publishOdomFrame(tf2::Transform odomTransf, ros::Time t);
 
-        /* \brief Publish the pose of the imu in "Odom" frame as a transformation
+        /** \brief Publish the pose of the imu in "Odom" frame as a transformation
          * \param imuTransform : Transformation representing the imu pose from base
          * frame to odom framevoid
          * \param t : the ros::Time to stamp the image
          */
         void publishImuFrame(tf2::Transform imuTransform, ros::Time t);
 
-        /* \brief Publish a sl::Mat image with a ros Publisher
+        /** \brief Publish a sl::Mat image with a ros Publisher
          * \param img : the image to publish
          * \param pub_img : the publisher object to use (different image publishers
          * exist)
@@ -127,23 +127,23 @@ namespace zed_wrapper {
          */
         void publishImage(sl::Mat img, image_transport::Publisher& pubImg, string imgFrameId, ros::Time t);
 
-        /* \brief Publish a sl::Mat depth image with a ros Publisher
+        /** \brief Publish a sl::Mat depth image with a ros Publisher
          * \param depth : the depth image to publish
          * \param t : the ros::Time to stamp the depth image
          */
         void publishDepth(sl::Mat depth, ros::Time t);
 
-        /* \brief Publish a sl::Mat confidence image with a ros Publisher
+        /** \brief Publish a sl::Mat confidence image with a ros Publisher
          * \param conf : the confidence image to publish
          * \param t : the ros::Time to stamp the depth image
          */
         void publishConf(sl::Mat conf, ros::Time t);
 
-        /* \brief Publish a pointCloud with a ros Publisher
+        /** \brief Publish a pointCloud with a ros Publisher
          */
         void publishPointCloud();
 
-        /* \brief Publish the informations of a camera with a ros Publisher
+        /** \brief Publish the informations of a camera with a ros Publisher
          * \param cam_info_msg : the information message to publish
          * \param pub_cam_info : the publisher object to use
          * \param t : the ros::Time to stamp the message
@@ -151,13 +151,13 @@ namespace zed_wrapper {
         void publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg,
                             ros::Publisher pubCamInfo, ros::Time t);
 
-        /* \brief Publish a sl::Mat disparity image with a ros Publisher
+        /** \brief Publish a sl::Mat disparity image with a ros Publisher
          * \param disparity : the disparity image to publish
          * \param t : the ros::Time to stamp the depth image
          */
         void publishDisparity(sl::Mat disparity, ros::Time t);
 
-        /* \brief Get the information of the ZED cameras and store them in an
+        /** \brief Get the information of the ZED cameras and store them in an
          * information message
          * \param zed : the sl::zed::Camera* pointer to an instance
          * \param left_cam_info_msg : the information message to fill with the left
@@ -177,28 +177,28 @@ namespace zed_wrapper {
          */
         void checkResolFps();
 
-        /* \brief Callback to handle dynamic reconfigure events in ROS
+        /** \brief Callback to handle dynamic reconfigure events in ROS
          */
         void dynamicReconfCallback(zed_wrapper::ZedConfig& config, uint32_t level);
 
-        /* \brief Callback to publish Path data with a ROS publisher.
+        /** \brief Callback to publish Path data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
         void pathPubCallback(const ros::TimerEvent& e);
         
-        /* \brief Callback to publish IMU raw data with a ROS publisher.
+        /** \brief Callback to publish IMU raw data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
         void imuPubCallback(const ros::TimerEvent& e);
 
-        /* \brief Service callback to reset_tracking service
+        /** \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
          * server
          */
         bool on_reset_tracking(zed_wrapper::reset_tracking::Request&  req,
                                zed_wrapper::reset_tracking::Response& res);
 
-        /* \brief Service callback to reset_odometry service
+        /** \brief Service callback to reset_odometry service
          *        Odometry is reset to clear drift and odometry frame gets the latest
          * pose
          *        from ZED tracking.
@@ -206,21 +206,21 @@ namespace zed_wrapper {
         bool on_reset_odometry(zed_wrapper::reset_odometry::Request&  req,
                                zed_wrapper::reset_odometry::Response& res);
 
-        /* \brief Service callback to set_pose service
+        /** \brief Service callback to set_pose service
          *        Tracking pose is set to the new values
          */
         bool on_set_pose(zed_wrapper::set_initial_pose::Request& req,
                          zed_wrapper::set_initial_pose::Response& res);
 
-        /* \brief Utility to initialize the pose variables
+        /** \brief Utility to initialize the pose variables
          */
         void set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
 
-        /* \brief Utility to initialize the most used transforms
+        /** \brief Utility to initialize the most used transforms
          */
         void initTransforms();
 
-        /* \brief Utility to retrieve the static transform from Base to Depth Sensor
+        /** \brief Utility to retrieve the static transform from Base to Depth Sensor
          *        from static TF
          */
         bool getSens2BaseTransform();
