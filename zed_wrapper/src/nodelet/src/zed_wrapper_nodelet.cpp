@@ -36,7 +36,7 @@
 
 #include <tf2_eigen/tf2_eigen.h>
 
-#include <eigen3/Eigen/Eigen>
+#include <Eigen/Eigen>
 #include "sophus/se3.hpp"
 
 using namespace std;
