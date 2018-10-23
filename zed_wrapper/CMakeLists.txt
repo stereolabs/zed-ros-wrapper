@@ -54,6 +54,7 @@ find_package(catkin COMPONENTS
   nodelet
   tf2_geometry_msgs
   message_generation
+  tf2_eigen
 )
 
 checkPackage("image_transport" "")
