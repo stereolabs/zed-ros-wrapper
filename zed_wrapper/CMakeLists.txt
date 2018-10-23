@@ -38,6 +38,9 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
+find_package(Eigen3)
+checkPackage("Eigen3" "Eigen3 not found, install it with `sudo apt install libeigen3-dev`")
+
 find_package(catkin COMPONENTS
   image_transport
   roscpp

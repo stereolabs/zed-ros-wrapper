@@ -34,6 +34,11 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#include <tf2_eigen/tf2_eigen.h>
+
+#include <eigen3/Eigen/Eigen>
+#include "sophus/se3.hpp"
+
 using namespace std;
 
 namespace zed_wrapper {
@@ -905,27 +910,29 @@ namespace zed_wrapper {
                 odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
             }
         }
-#elif ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=7)) // TODO FIX VERSION CHECK!
+#elif ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8)) // TODO FIX VERSION CHECK!
 
-        tf2::Matrix3x3 sens2baseRot(mSensor2BaseTransf.getRotation());
+        // >>>>> Twist in camera frame to Twist in base frame
+        Eigen::Matrix<double, 6, 1> twist_cam;
+        for (int i = 0; i < 6; i++) {
+            twist_cam << static_cast<double>(slPose.twist[i]);
+        }
 
-        // >>>>> Linear velocities in BASE FRAME
-        tf2::Vector3 linTwist;
-        linTwist.setX(slPose.twist[0]);
-        linTwist.setY(slPose.twist[1]);
-        linTwist.setZ(slPose.twist[2]);
+        Eigen::Matrix4d T_cam = Sophus::SE3d::exp(twist_cam).matrix();
+        geometry_msgs::Transform sens2base = tf2::toMsg(mSensor2BaseTransf);
+        Eigen::Matrix4d R = tf2::transformToEigen(sens2base).matrix();
+        Eigen::Matrix4d T_base = R * T_cam * R.inverse();
+        Eigen::Matrix<double, 6, 1> twist_base = Sophus::SE3d(T_base).log();
 
-        odom.twist.twist.linear = sens2baseRot * linTwist;
-        // <<<<< Linear velocities in BASE FRAME
+        odom.twist.twist.linear.x = twist_base(0, 0);
+        odom.twist.twist.linear.y = twist_base(1, 0);
+        odom.twist.twist.linear.z = twist_base(2, 0);
+        odom.twist.twist.angular.x = twist_base(3, 0);
+        odom.twist.twist.angular.y = twist_base(4, 0);
+        odom.twist.twist.angular.z = twist_base(5, 0);
+        // <<<<< Twist in camera frame to Twist in base frame
 
-        // >>>>> Angular velocities in BASE FRAME
-        tf2::Vector3 angTwist;
-        angTwist.setX(slPose.twist[3]);
-        angTwist.setY(slPose.twist[4]);
-        angTwist.setZ(slPose.twist[5]);
 
-        odom.twist.twist.angular = sens2baseRot * angTwist;
-        // <<<< Angular velocities in BASE FRAME
 
         if (!mSpatialMemory && mPublishPoseCovariance) {
             for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
@@ -1995,6 +2002,7 @@ namespace zed_wrapper {
 
                             // Propagate Odom transform in time
                             mBase2OdomTransf = mBase2MapTransf;
+                            mOdom2MapTransf.setIdentity();
 
                             if (odomSubnumber > 0) {
                                 // Publish odometry message
