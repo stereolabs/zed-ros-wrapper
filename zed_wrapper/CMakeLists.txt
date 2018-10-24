@@ -38,6 +38,9 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
+find_package(Eigen3)
+checkPackage("Eigen3" "Eigen3 not found, install it with `sudo apt install libeigen3-dev`")
+
 find_package(catkin COMPONENTS
   image_transport
   roscpp
@@ -51,6 +54,7 @@ find_package(catkin COMPONENTS
   nodelet
   tf2_geometry_msgs
   message_generation
+  tf2_eigen
 )
 
 checkPackage("image_transport" "")
@@ -98,7 +102,8 @@ catkin_package(
 # SOURCES
 
 set(TOOLS_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp )
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_twist_cov_tools.cpp)
 set(NODE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_wrapper_node.cpp)
 set(NODELET_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.cpp

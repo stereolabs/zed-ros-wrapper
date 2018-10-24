@@ -34,6 +34,13 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#include <tf2_eigen/tf2_eigen.h>
+
+#include <Eigen/Eigen>
+#include "sophus/se3.hpp"
+
+#include <sl_twist_cov_tools.h>
+
 using namespace std;
 
 namespace zed_wrapper {
@@ -881,7 +888,7 @@ namespace zed_wrapper {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
         odom.header.frame_id = mWorldFrameId;
-        odom.child_frame_id = mBaseFrameId;      // camera_frame
+        odom.child_frame_id = mBaseFrameId;      // base frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2odom = tf2::toMsg(base2odomTransf);
         // Add all value in odometry message
@@ -898,38 +905,81 @@ namespace zed_wrapper {
                       odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w);
 
         // >>>>> Odometry pose covariance if available
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION==6))
         if (!mSpatialMemory && mPublishPoseCovariance) {
-            for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
-                // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
-                odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
-            }
+            // >>>>> Transform from sensor to base frame
+            geometry_msgs::Transform sens2base = tf2::toMsg(mSensor2BaseTransf);
+            Eigen::Matrix4f R = tf2::transformToEigen(sens2base).matrix().cast<float>();
+            // <<<<< Transform from sensor to base // >>>>> Transform from sensor to base
+
+            // Pose in sensor frame
+            Eigen::Matrix4f poseInSens(mLastZedPose.pose_data.m);
+
+            // Covariance in sensor frame
+            Eigen::Matrix<float, 6, 6> covInSens(mLastZedPose.pose_covariance);
+
+            // Conversion
+            Eigen::Matrix<double, 6, 6> covInBase = sl_tools::poseCovarianceAToB(R, poseInSens, covInSens).cast<double>();
+
+            memcpy(&(odom.pose.covariance[0]), covInBase.data(), 36 * sizeof(double));
         }
-#endif
+#elif ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8)) // TODO FIX VERSION CHECK!
+
+        // >>>>> Twist in camera frame to Twist in base frame
+        Eigen::Matrix<float, 6, 1> twist_cam(slPose.twist);
+        geometry_msgs::Transform sens2base = tf2::toMsg(mSensor2BaseTransf);
+        Eigen::Matrix4f R = tf2::transformToEigen(sens2base).matrix().cast<float>();
+
+        Eigen::Matrix<float, 6, 1> twist_base = sl_tools::twistAtoB(R, twist_cam);
+
+        odom.twist.twist.linear.x = twist_base(0, 0);
+        odom.twist.twist.linear.y = twist_base(1, 0);
+        odom.twist.twist.linear.z = twist_base(2, 0);
+        odom.twist.twist.angular.x = twist_base(3, 0);
+        odom.twist.twist.angular.y = twist_base(4, 0);
+        odom.twist.twist.angular.z = twist_base(5, 0);
+        // <<<<< Twist in camera frame to Twist in base frame
+
+        if (!mSpatialMemory && mPublishPoseCovariance) {
+
+            // >>>>> Sensor to base transform
+            geometry_msgs::Transform sens2base = tf2::toMsg(mSensor2BaseTransf);
+            Eigen::Matrix4f R = tf2::transformToEigen(sens2base).matrix().cast<float>();
+            // <<<<< Sensor to base transform
+
+            // >>>>> Pose covariance in base frame
+            // Pose in sensor frame
+            Eigen::Matrix4f poseInSens(slPose.pose_data.m);
+
+            // Covariance in sensor frame
+            Eigen::Matrix<float, 6, 6> covInSens(slPose.pose_covariance);
+
+            // Conversion
+            Eigen::Matrix<double, 6, 6> covInBase = sl_tools::poseCovarianceAToB(R, poseInSens, covInSens).cast<double>();
+
+            memcpy(&(odom.pose.covariance[0]), covInBase.data(), 36 * sizeof(double));
+            // <<<<< Pose covariance in base frame
+
+            // >>>>> Twist covariance in base frame
+
+            // Covariance in sensor frame
+            Eigen::Matrix<float, 6, 6> twistCovInSens(slPose.twist_covariance);
+
+            // Conversion
+            Eigen::Matrix<double, 6, 6> twistCovInBase = sl_tools::twistCovarianceAtoB(R, twist_cam, twistCovInSens).cast<double>();
+
+            memcpy(&(odom.twist.covariance[0]), twistCovInBase.data(), 36 * sizeof(double));
+            // <<<<< Twist covariance in base frame
+        }
         // <<<<< Odometry pose covariance if available
+#endif
 
         // Publish odometry message
         mPubOdom.publish(odom);
     }
 
-    void ZEDWrapperNodelet::publishPose(ros::Time t) {
-        //        tf2::Transform base_pose;
-        //        base_pose.setIdentity();
 
-        //        // Look up the transformation from base frame to world
-        //        try {
-        //            // Save the transformation from base to world
-        //            geometry_msgs::TransformStamped b2w =
-        //                mTfBuffer->lookupTransform(mWorldFrameId, mBaseFrameId, ros::Time(0));
-        //            // Get the TF2 transformation
-        //            tf2::fromMsg(b2w.transform, base_pose);
-        //        } catch (tf2::TransformException& ex) {
-        //            NODELET_WARN_THROTTLE(
-        //                10.0, "The tf from '%s' to '%s' does not seem to be available. Pose is not published.",
-        //                mBaseFrameId.c_str(), mWorldFrameId.c_str());
-        //            NODELET_DEBUG("Transform error: %s", ex.what());
-        //            return;
-        //        }
+    void ZEDWrapperNodelet::publishPose(ros::Time t) {
 
         std_msgs::Header header;
         header.stamp = mFrameTimestamp;
@@ -966,21 +1016,37 @@ namespace zed_wrapper {
 
         if (mPublishPoseCovariance) {
             if (mPubPoseCov.getNumSubscribers() > 0) {
+
                 geometry_msgs::PoseWithCovarianceStamped poseCov;
 
                 poseCov.header = header;
                 poseCov.pose.pose = pose;
 
-                // >>>>> Odometry pose covariance if available
+                // >>>>> Pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
                 if (!mSpatialMemory) {
-                    for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
-                        // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
-                        poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
-                    }
+                    // >>>>> Transform from sensor to base frame
+                    geometry_msgs::Transform sens2base = tf2::toMsg(mSensor2BaseTransf);
+                    Eigen::Matrix4f R = tf2::transformToEigen(sens2base).matrix().cast<float>();
+                    // <<<<< Transform from sensor to base // >>>>> Transform from sensor to base
+
+                    // Pose in sensor frame
+                    Eigen::Matrix4f poseInSens(mLastZedPose.pose_data.m);
+
+                    // Covariance in sensor frame
+                    Eigen::Matrix<float, 6, 6> covInSens(mLastZedPose.pose_covariance);
+
+                    // Conversion
+                    Eigen::Matrix<double, 6, 6> covInBase = sl_tools::poseCovarianceAToB(R, poseInSens, covInSens).cast<double>();
+
+                    memcpy(&(poseCov.pose.covariance[0]), covInBase.data(), 36 * sizeof(double));
+                } else {
+                    ROS_WARN_THROTTLE(5.0, "Pose covariance is not available if SPATIAL MEMORY is ACTIVE");
                 }
+#else
+                ROS_WARN_THROTTLE(5.0, "Pose covariance is available starting from SDK v2.6");
 #endif
-                // <<<<< Odometry pose covariance if available
+                // <<<<< Pose covariance if available
 
                 // Publish pose with covariance stamped message
                 mPubPoseCov.publish(poseCov);
@@ -1966,6 +2032,7 @@ namespace zed_wrapper {
 
                             // Propagate Odom transform in time
                             mBase2OdomTransf = mBase2MapTransf;
+                            mOdom2MapTransf.setIdentity();
 
                             if (odomSubnumber > 0) {
                                 // Publish odometry message
