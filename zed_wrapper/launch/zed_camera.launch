@@ -135,7 +135,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="mapping_cell_resol"            value="1" /> <!-- 0->LOW (0.1m); 1->MEDIUM (0.05m); 2->HIGH (0.025m) -->
 
 
-        <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>
+        <rosparam param="initial_base_pose" subst_value="True">$(arg initial_pose)</rosparam>
 
         <!-- ROS topic names -->
         <param name="rgb_topic"                     value="$(arg rgb_topic)" />

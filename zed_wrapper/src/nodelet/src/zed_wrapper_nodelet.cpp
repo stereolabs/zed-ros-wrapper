@@ -90,14 +90,14 @@ namespace zed_wrapper {
         mOdometryDb = "";
         mImuPubRate = 100.0;
         mPathPubRate = 1.0;
-        mInitialTrackPose.resize(6);
         mOpenniDepthMode = false;
         mTrackingReady = false;
 
         mTerrainMap = false;
 
+        mInitialBasePose.resize(6);
         for (size_t i = 0; i < 6; i++) {
-            mInitialTrackPose[i] = 0.0f;
+            mInitialBasePose[i] = 0.0f;
         }
 
         mCamMatResizeFactor = 1.0;
@@ -285,10 +285,7 @@ namespace zed_wrapper {
         mTfListener.reset(new tf2_ros::TransformListener(*mTfBuffer));
 
         // Initialize tf2 transformation
-        mNhNs.getParam("initial_tracking_pose", mInitialTrackPose);
-        set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
-                 mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
-
+        mNhNs.getParam("initial_base_pose", mInitialBasePose); // TODO change documentation with SDK v2.8!
 
         // Try to initialize the ZED
         if (!mSvoFilepath.empty()) {
@@ -575,7 +572,8 @@ namespace zed_wrapper {
         }
 
         // Services
-        mSrvSetInitPose = mNh.advertiseService("set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this);
+        mSrvSetInitPose = mNh.advertiseService("set_pose", &ZEDWrapperNodelet::on_set_pose,
+                                               this); // TODO Change service name in documentation
         mSrvResetOdometry = mNh.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
         mSrvResetTracking = mNh.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
 
@@ -695,14 +693,12 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::initTransforms() {
+    void ZEDWrapperNodelet::resetTransforms() {
         // >>>>> Dynamic transforms
         mBase2OdomTransf.setIdentity();
         mOdom2MapTransf.setIdentity();
         mBase2MapTransf.setIdentity();
         // <<<<< Dynamic transforms
-
-        getSens2BaseTransform();
     }
 
     bool ZEDWrapperNodelet::getSens2BaseTransform() {
@@ -743,39 +739,64 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr,
                                      float pr, float yr) {
-        // ROS pose
+
+        // Base Pose
+        tf2::Vector3 orig(xt, yt, zt);
         tf2::Quaternion q;
         q.setRPY(rr, pr, yr);
-        //tf2::Vector3 orig(xt, yt, zt);
-        //        mBase2OdomTransf.setOrigin(orig);
-        //        mBase2OdomTransf.setRotation(q);
-        //        mOdom2MapTransf.setIdentity();
 
-        initTransforms();
+        mBase2MapTransf.setOrigin(orig);
+        mBase2MapTransf.setRotation(q);
 
-        // SL pose
-        sl::float4 q_vec;
-        q_vec[0] = q.x();
-        q_vec[1] = q.y();
-        q_vec[2] = q.z();
-        q_vec[3] = q.w();
-        sl::Orientation r(q_vec);
-        mInitialPoseSl.setTranslation(sl::Translation(xt, yt, zt));
-        mInitialPoseSl.setOrientation(r);
+        NODELET_INFO("Inizial base pose: ");
+        NODELET_INFO(" * T: [%g,%g,%g]",
+                     mBase2MapTransf.getOrigin()[0], mBase2MapTransf.getOrigin()[1], mBase2MapTransf.getOrigin()[2]);
+        NODELET_INFO(" * Q: [%g,%g,%g,%g]",
+                     mBase2MapTransf.getRotation().getX(), mBase2MapTransf.getRotation().getY(),
+                     mBase2MapTransf.getRotation().getZ(), mBase2MapTransf.getRotation().getW());
+
+        getSens2BaseTransform();
+
+        tf2::Transform sens2map = mBase2MapTransf * mSensor2BaseTransf;
+
+        sl::Translation slT;
+        slT.x = sens2map.getOrigin().x();
+        slT.y = sens2map.getOrigin().y();
+        slT.z = sens2map.getOrigin().z();
+
+        sl::Orientation slO;
+        slO.ox = sens2map.getRotation().getX();
+        slO.oy = sens2map.getRotation().getY();
+        slO.oz = sens2map.getRotation().getZ();
+        slO.ow = sens2map.getRotation().getW();
+
+        mInitialPoseSl.setTranslation(slT);
+        mInitialPoseSl.setOrientation(slO);
+
+        mNhNs.getParam("init_odom_with_first_valid_pose", mInitOdomWithPose);
+
+        NODELET_INFO("Inizial ZED sensor pose: ");
+        NODELET_INFO(" * T: [%g,%g,%g]",
+                     mInitialPoseSl.getTranslation().x, mInitialPoseSl.getTranslation().y, mInitialPoseSl.getTranslation().y);
+        NODELET_INFO(" * Q: [%g,%g,%g,%g]",
+                     mInitialPoseSl.getOrientation().ox, mInitialPoseSl.getOrientation().oy,
+                     mInitialPoseSl.getOrientation().oz, mInitialPoseSl.getOrientation().ow);
     }
 
     bool ZEDWrapperNodelet::on_set_pose(
-        zed_wrapper::set_initial_pose::Request& req,
-        zed_wrapper::set_initial_pose::Response& res) {
-        mInitialTrackPose.resize(6);
-        mInitialTrackPose[0] = req.x;
-        mInitialTrackPose[1] = req.y;
-        mInitialTrackPose[2] = req.z;
-        mInitialTrackPose[3] = req.R;
-        mInitialTrackPose[4] = req.P;
-        mInitialTrackPose[5] = req.Y;
-        set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
-                 mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
+        zed_wrapper::set_pose::Request& req,
+        zed_wrapper::set_pose::Response& res) {
+        mInitialBasePose.resize(6);
+        mInitialBasePose[0] = req.x;
+        mInitialBasePose[1] = req.y;
+        mInitialBasePose[2] = req.z;
+        mInitialBasePose[3] = req.R;
+        mInitialBasePose[4] = req.P;
+        mInitialBasePose[5] = req.Y;
+
+        resetTransforms();
+        set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+                 mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
 
         if (mTrackingActivated) {
             mZed.resetTracking(mInitialPoseSl);
@@ -793,24 +814,28 @@ namespace zed_wrapper {
             return false;
         }
 
-        mNhNs.getParam("initial_tracking_pose", mInitialTrackPose);
+        mNhNs.getParam("initial_base_pose", mInitialBasePose);
 
-        if (mInitialTrackPose.size() != 6) {
-            NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialTrackPose.size()
+        if (mInitialBasePose.size() != 6) {
+            NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialBasePose.size()
                                 << "). Using Identity");
-            mInitialPoseSl.setIdentity();
 
-            initTransforms();
-        } else {
-            set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
-                     mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
+            mInitialBasePose.resize(6);
+            for (size_t i = 0; i < 6; i++) {
+                mInitialBasePose[i] = 0.0f;
+            }
         }
 
-        if (mZed.resetTracking(mInitialPoseSl) == sl::SUCCESS) {
-            return true;
+        resetTransforms();
+        set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+                 mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
+
+        if (mTrackingActivated) {
+            mZed.resetTracking(mInitialPoseSl);
         }
 
-        return false;
+        res.reset_done = true;
+        return true;
     }
 
     bool ZEDWrapperNodelet::on_reset_odometry(
@@ -837,17 +862,20 @@ namespace zed_wrapper {
         mNhNs.getParam("init_odom_with_first_valid_pose", mInitOdomWithPose);
         NODELET_INFO_STREAM("Init Odometry with first valid pose data : " << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
 
-
-        if (mInitialTrackPose.size() != 6) {
-            NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialTrackPose.size()
+        if (mInitialBasePose.size() != 6) {
+            NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialBasePose.size()
                                 << "). Using Identity");
-            mInitialPoseSl.setIdentity();
 
-            initTransforms();
-        } else {
-            set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
-                     mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
+            mInitialBasePose.resize(6);
+            for (size_t i = 0; i < 6; i++) {
+                mInitialBasePose[i] = 0.0f;
+            }
         }
+
+        resetTransforms();
+        set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+                 mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
+
 
         if (mOdometryDb != "" && !sl_tools::file_exist(mOdometryDb)) {
             mOdometryDb = "";

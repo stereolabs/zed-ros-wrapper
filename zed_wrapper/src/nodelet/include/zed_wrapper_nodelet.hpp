@@ -41,7 +41,7 @@
 
 #include <zed_wrapper/ZedConfig.h>
 #include <zed_wrapper/reset_tracking.h>
-#include <zed_wrapper/set_initial_pose.h>
+#include <zed_wrapper/set_pose.h>
 #include <zed_wrapper/reset_odometry.h>
 
 #include <mutex>
@@ -209,16 +209,16 @@ namespace zed_wrapper {
         /** \brief Service callback to set_pose service
          *        Tracking pose is set to the new values
          */
-        bool on_set_pose(zed_wrapper::set_initial_pose::Request& req,
-                         zed_wrapper::set_initial_pose::Response& res);
+        bool on_set_pose(zed_wrapper::set_pose::Request& req,
+                         zed_wrapper::set_pose::Response& res);
 
         /** \brief Utility to initialize the pose variables
          */
         void set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
 
-        /** \brief Utility to initialize the most used transforms
+        /** \brief Utility to reset the most used transforms
          */
-        void initTransforms();
+        void resetTransforms();
 
         /** \brief Utility to retrieve the static transform from Base to Depth Sensor
          *        from static TF
@@ -364,7 +364,7 @@ namespace zed_wrapper {
         //Tracking variables
         sl::Pose mLastZedPose; // Sensor to Map transform
         sl::Transform mInitialPoseSl;
-        std::vector<float> mInitialTrackPose;
+        std::vector<float> mInitialBasePose;
         std::vector<geometry_msgs::PoseStamped> mOdomPath;
         std::vector<geometry_msgs::PoseStamped> mMapPath;
 

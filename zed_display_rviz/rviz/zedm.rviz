@@ -8,7 +8,10 @@ Panels:
         - /RobotModel1/Links1
         - /TF1/Frames1
         - /Camera1/Visibility1
+        - /Odometry1
+        - /Odometry1/Covariance1
         - /Odometry1/Covariance1/Position1
+        - /Odometry1/Covariance1/Orientation1
         - /Local Maps1/L. Map1
         - /Local Maps1/L. Height Cubes1/Namespaces1
         - /Global Maps1/G. Map1
@@ -313,7 +316,7 @@ Visualization Manager:
           Color: 255; 255; 127
           Color Style: Unique
           Frame: Local
-          Offset: 1
+          Offset: 0.5
           Scale: 1
           Value: true
         Position:
@@ -577,25 +580,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 18.5249958
+      Distance: 7.57071352
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 5.223279
-        Y: 0.465160728
-        Z: 0.471362025
+        X: 4.34715748
+        Y: -1.27583897
+        Z: -1.12354541
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 1.56979632
+      Pitch: 0.164797604
       Target Frame: zed_camera_center
       Value: Orbit (rviz)
-      Yaw: 3.16359377
+      Yaw: 2.83859181
     Saved:
       - Angle: -1.57079637
         Class: rviz/TopDownOrtho
