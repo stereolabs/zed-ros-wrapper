@@ -39,7 +39,7 @@
 #include <Eigen/Eigen>
 #include "sophus/se3.hpp"
 
-#include <sl_cov_transf.h>
+#include <sl_twist_cov_tools.h>
 
 using namespace std;
 
@@ -907,24 +907,30 @@ namespace zed_wrapper {
         // >>>>> Odometry pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION==6))
         if (!mSpatialMemory && mPublishPoseCovariance) {
-            for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
-                // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
-                odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
-            }
+            // >>>>> Transform from sensor to base frame
+            geometry_msgs::Transform sens2base = tf2::toMsg(mSensor2BaseTransf);
+            Eigen::Matrix4f R = tf2::transformToEigen(sens2base).matrix().cast<float>();
+            // <<<<< Transform from sensor to base // >>>>> Transform from sensor to base
+
+            // Pose in sensor frame
+            Eigen::Matrix4f poseInSens(mLastZedPose.pose_data.m);
+
+            // Covariance in sensor frame
+            Eigen::Matrix<float, 6, 6> covInSens(mLastZedPose.pose_covariance);
+
+            // Conversion
+            Eigen::Matrix<double, 6, 6> covInBase = sl_tools::poseCovarianceAToB(R, poseInSens, covInSens).cast<double>();
+
+            memcpy(&(odom.pose.covariance[0]), covInBase.data(), 36 * sizeof(double));
         }
 #elif ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8)) // TODO FIX VERSION CHECK!
 
         // >>>>> Twist in camera frame to Twist in base frame
-        Eigen::Matrix<double, 6, 1> twist_cam;
-        for (int i = 0; i < 6; i++) {
-            twist_cam(i, 0) = static_cast<double>(slPose.twist[i]);
-        }
-
-        Eigen::Matrix4d T_cam = Sophus::SE3d::exp(twist_cam).matrix();
+        Eigen::Matrix<float, 6, 1> twist_cam(slPose.twist);
         geometry_msgs::Transform sens2base = tf2::toMsg(mSensor2BaseTransf);
-        Eigen::Matrix4d R = tf2::transformToEigen(sens2base).matrix();
-        Eigen::Matrix4d T_base = R * T_cam * R.inverse();
-        Eigen::Matrix<double, 6, 1> twist_base = Sophus::SE3d(T_base).log();
+        Eigen::Matrix4f R = tf2::transformToEigen(sens2base).matrix().cast<float>();
+
+        Eigen::Matrix<float, 6, 1> twist_base = sl_tools::twistAtoB(R, twist_cam);
 
         odom.twist.twist.linear.x = twist_base(0, 0);
         odom.twist.twist.linear.y = twist_base(1, 0);
@@ -934,16 +940,39 @@ namespace zed_wrapper {
         odom.twist.twist.angular.z = twist_base(5, 0);
         // <<<<< Twist in camera frame to Twist in base frame
 
-
-
         if (!mSpatialMemory && mPublishPoseCovariance) {
-            for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
-                // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
-                odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
-            }
+
+            // >>>>> Sensor to base transform
+            geometry_msgs::Transform sens2base = tf2::toMsg(mSensor2BaseTransf);
+            Eigen::Matrix4f R = tf2::transformToEigen(sens2base).matrix().cast<float>();
+            // <<<<< Sensor to base transform
+
+            // >>>>> Pose covariance in base frame
+            // Pose in sensor frame
+            Eigen::Matrix4f poseInSens(slPose.pose_data.m);
+
+            // Covariance in sensor frame
+            Eigen::Matrix<float, 6, 6> covInSens(slPose.pose_covariance);
+
+            // Conversion
+            Eigen::Matrix<double, 6, 6> covInBase = sl_tools::poseCovarianceAToB(R, poseInSens, covInSens).cast<double>();
+
+            memcpy(&(odom.pose.covariance[0]), covInBase.data(), 36 * sizeof(double));
+            // <<<<< Pose covariance in base frame
+
+            // >>>>> Twist covariance in base frame
+
+            // Covariance in sensor frame
+            Eigen::Matrix<float, 6, 6> twistCovInSens(slPose.twist_covariance);
+
+            // Conversion
+            Eigen::Matrix<double, 6, 6> twistCovInBase = sl_tools::twistCovarianceAtoB(R, twist_cam, twistCovInSens).cast<double>();
+
+            memcpy(&(odom.twist.covariance[0]), twistCovInBase.data(), 36 * sizeof(double));
+            // <<<<< Twist covariance in base frame
         }
-#endif
         // <<<<< Odometry pose covariance if available
+#endif
 
         // Publish odometry message
         mPubOdom.publish(odom);

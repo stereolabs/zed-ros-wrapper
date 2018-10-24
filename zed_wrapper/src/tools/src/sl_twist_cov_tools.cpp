@@ -18,7 +18,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-#include "sl_cov_transf.h"
+#include "sl_twist_cov_tools.h"
 #include "sophus/se3.hpp"
 
 namespace sl_tools {
@@ -589,6 +589,13 @@ namespace sl_tools {
 
         return J_Transform * twistCovarianceInA * J_Transform.transpose();
 
+    }
+
+    Eigen::Matrix<float, 6, 1> twistAtoB(Eigen::Matrix4f& poseAtoB, Eigen::Matrix<float, 6, 1>& twistInA) {
+        Eigen::Matrix4f T_A = Sophus::SE3f::exp(twistInA).matrix();
+
+        Eigen::Matrix4f T_B = poseAtoB * T_A * poseAtoB.inverse();
+        return Sophus::SE3f(T_B).log();
     }
 
 }

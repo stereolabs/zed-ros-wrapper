@@ -41,5 +41,11 @@ namespace sl_tools {
     Eigen::Matrix<float, 6, 6> twistCovarianceAtoB(Eigen::Matrix4f& poseAtoB, Eigen::Matrix<float, 6, 1>& twistInA,
             Eigen::Matrix<float, 6, 6>& twistCovarianceInA);
 
+    /** \brief Convert twist from frame A to frame B
+     *  \param poseAtoB : basis change from A to B
+     *  \param twistInA : twist in A basis associated with covarianceInA
+     */
+    Eigen::Matrix<float, 6, 1> twistAtoB(Eigen::Matrix4f& poseAtoB, Eigen::Matrix<float, 6, 1>& twistInA);
+
 }
 #endif
