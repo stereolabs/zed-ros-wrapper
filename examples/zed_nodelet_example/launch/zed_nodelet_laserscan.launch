@@ -17,16 +17,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
-    <arg name="svo_file" default=""/>
+    <arg name="svo_file"              default="" /> <!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
 
-    <!-- Coordinate frame -->
-    <arg name="camera_model"         default="0" /> <!-- 0=ZED, 1=ZEDM-->
+    <arg name="camera_model"         default="zedm" /> <!-- ZED: zed, ZEDm: zedm-->
     <arg name="serial_number"        default="0" />
     <arg name="verbose"              default="true" />
-
-    <arg name="left_camera_frame"    default="zed_left_camera_frame" />
-    <arg name="depth_topic"          default="depth/depth_registered" />
-
     <arg name="resolution"           default="2" /> <!--0=RESOLUTION_HD2K, 1=RESOLUTION_HD1080, 2=RESOLUTION_HD720, 3=RESOLUTION_VGA -->
     <arg name="frame_rate"           default="30" />
     <!-- RESOLUTION_HD2K   -> 2208*1242, available framerates: 15 fps.
@@ -34,21 +29,34 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          RESOLUTION_HD720  -> 1280*720,  available framerates: 15, 30, 60 fps.
          RESOLUTION_VGA    -> 672*376,   available framerates: 15, 30, 60, 100 fps. -->
 
+    <!-- Coordinate frame -->
+    <arg name="world_frame"          default="map" />
+    <arg name="map_frame"            default="map" />
+    <arg name="odom_frame"           default="odom" />
+    <arg name="odometry_topic"       default="odom" />
+    <arg name="left_camera_frame"    default="zed_left_camera_frame" />
+    <arg name="depth_topic"          default="depth/depth_registered" />
+
     <arg name="nodelet_manager_name" default="zed_nodelet_manager" />
 
     <group ns="zed">
-	    <!-- Nodelet Manager -->
+        <!-- Nodelet Manager -->
         <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen" />
 
         <!-- ZED wrapper as nodelet -->
         <include file="$(find zed_wrapper)/launch/zed_camera_nodelet.launch">
-            <arg name="svo_file"             value="$(arg svo_file)"/>
-            <arg name="nodelet_manager_name" value="$(arg nodelet_manager_name)" />
-            <arg name="camera_model"         value="$(arg camera_model)" />
-            <arg name="serial_number"        value="$(arg serial_number)" />
-            <arg name="resolution"           value="$(arg resolution)" />
-            <arg name="frame_rate"           value="$(arg frame_rate)" />
-            <arg name="verbose"              value="$(arg verbose)" />
+            <arg name="svo_file"            value="$(arg svo_file)" />
+            <arg name="world_frame"         value="$(arg world_frame)" />
+            <arg name="map_frame"           value="$(arg map_frame)" />
+            <arg name="odom_frame"          value="$(arg odom_frame)" />
+            <arg name="odometry_topic"      value="$(arg odometry_topic)" />
+            <arg name="camera_model"        value="$(arg camera_model)" />
+            <arg name="serial_number"       value="$(arg serial_number)" />
+            <arg name="resolution"          value="$(arg resolution)" />
+            <arg name="frame_rate"          value="$(arg frame_rate)" />
+            <arg name="verbose"             value="$(arg verbose)" />
+            <arg name="left_camera_frame"   value="$(arg left_camera_frame)" />
+            <arg name="depth_topic"         value="$(arg depth_topic)" />
         </include>
 
         <!-- Virtual laser scan as nodelet -->
@@ -59,6 +67,5 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
              <param name="range_min" value="0.45"/>
              <remap from="image" to="$(arg depth_topic)"/>
         </node>
-
     </group>
 </launch>

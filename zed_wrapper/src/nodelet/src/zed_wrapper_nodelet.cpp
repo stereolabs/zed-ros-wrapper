@@ -284,6 +284,8 @@ namespace zed_wrapper {
         mTfBuffer.reset(new tf2_ros::Buffer);
         mTfListener.reset(new tf2_ros::TransformListener(*mTfBuffer));
 
+        resetTransforms();
+
         // Initialize tf2 transformation
         mNhNs.getParam("initial_base_pose", mInitialBasePose); // TODO change documentation with SDK v2.8!
 

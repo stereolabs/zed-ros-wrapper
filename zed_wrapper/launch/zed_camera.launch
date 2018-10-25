@@ -31,6 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          RESOLUTION_HD720  -> 1280*720,  available framerates: 15, 30, 60 fps.
          RESOLUTION_VGA    -> 672*376,   available framerates: 15, 30, 60, 100 fps. -->
 
+    <arg name="mat_resize_factor"     default="1.0" /> <!-- "]0.0,1.0]" -->
+
     <!-- GPU ID-->
     <arg name="gpu_id"                default="-1" />
 
@@ -101,7 +103,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <param name="resolution"                    value="$(arg resolution)" />
         <param name="verbose"                       value="$(arg verbose)" />
-        <param name="mat_resize_factor"             value="1.0" /> <!-- "]0.0,1.0]" -->
+        <param name="mat_resize_factor"             value="$(arg mat_resize_factor)" />
         <param name="quality"                       value="1" />
         <param name="sensing_mode"                  value="0" />
         <param name="frame_rate"                    value="$(arg frame_rate)" />
