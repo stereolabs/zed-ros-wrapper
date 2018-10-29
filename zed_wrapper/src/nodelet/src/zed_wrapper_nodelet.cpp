@@ -255,6 +255,7 @@ namespace zed_wrapper {
         mNhNs.getParam("imu_topic", imu_topic);
         mNhNs.getParam("imu_topic_raw", imu_topic_raw);
         mNhNs.getParam("imu_pub_rate", mImuPubRate);
+        mNhNs.getParam("enable_imu_fusion", mEnableImuFusion); // TODO ADD IN THE DOCUMENTATION
         mNhNs.getParam("path_pub_rate", mPathPubRate);
         mNhNs.getParam("path_max_count", mPathMaxCount);
         if (mPathMaxCount < 2 && mPathMaxCount != -1) {
@@ -539,7 +540,7 @@ namespace zed_wrapper {
 #ifdef TERRAIN_MAPPING
             mZedMapping = new ZEDTerrainMapping(mNh, mNhNs, &mZed);
 #else
-            NODELET_WARN("Terrain Mapping is available with SDK v2.7 or later");
+            NODELET_WARN("Terrain Mapping is available with SDK v2.8 or later");
 #endif
         }
 
@@ -566,12 +567,12 @@ namespace zed_wrapper {
             NODELET_DEBUG_STREAM("IMU ORIENTATION [r,p,y]: " << imuOrient[0]  << ", " << imuOrient[1]  << ", " << imuOrient[2]);
 #endif
 
-        } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
+        } /*else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
             NODELET_WARN_STREAM(
                 "'imu_pub_rate' set to "
                 << mImuPubRate << " Hz"
                 << " but ZED camera model does not support IMU data publishing.");
-        }
+        }*/
 
         // Services
         mSrvSetInitPose = mNh.advertiseService("set_pose", &ZEDWrapperNodelet::on_set_pose,
@@ -696,10 +697,18 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::resetTransforms() {
+
+        // According to REP 105 -> http://www.ros.org/reps/rep-0105.html
+
+        // base_link -> odom -> map
+        //     |                 ^
+        //     |                 |
+        //     -------------------
+
         // >>>>> Dynamic transforms
-        mBase2OdomTransf.setIdentity();
-        mOdom2MapTransf.setIdentity();
-        mBase2MapTransf.setIdentity();
+        mBase2OdomTransf.setIdentity(); // broadcasted if `publish_tf` is true
+        mOdom2MapTransf.setIdentity();  // broadcasted if `publish_map_tf` is true
+        mBase2MapTransf.setIdentity();  // used internally, but not broadcasted
         // <<<<< Dynamic transforms
     }
 
@@ -899,6 +908,16 @@ namespace zed_wrapper {
 #else
         if (mFloorAlignment)  {
             NODELET_WARN("Floor Alignment is available with ZED SDK >= v2.6");
+        }
+#endif
+
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=7))
+        trackParams.enable_imu_fusion = mEnableImuFusion;
+        NODELET_INFO_STREAM("Visual Inertial Odometry (IMU Fusion) : " << (trackParams.enable_imu_fusion ? "ENABLED" :
+                            "DISABLED"));
+#else
+        if (!enable_imu_fusion)  {
+            NODELET_WARN("Disabling IMU fusion is available with ZED SDK >= v2.7");
         }
 #endif
 
@@ -2075,6 +2094,8 @@ namespace zed_wrapper {
                             // Transformation from map to odometry frame
                             mOdom2MapTransf =
                                 mBase2MapTransf * mBase2OdomTransf.inverse();
+
+                            // TODO check with "https://github.com/ros-planning/navigation/blob/c3f6b9a46c55d3a951e8e071808f1b373db3b04e/amcl/src/amcl_node.cpp#L1393-L1416"
                         }
 
                         // Publish Pose message

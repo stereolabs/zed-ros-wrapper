@@ -19,7 +19,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <launch>
     <arg name="svo_file"             default="" /> <!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
 
-    <arg name="camera_model"         default="zedm" /> <!-- ZED: zed, ZEDm: zedm-->
+    <arg name="camera_model"         default="zed" /> <!-- ZED: zed, ZEDm: zedm-->
     <arg name="serial_number"        default="0" />
     <arg name="verbose"              default="true" />
     <arg name="resolution"           default="2" /> <!--0=RESOLUTION_HD2K, 1=RESOLUTION_HD1080, 2=RESOLUTION_HD720, 3=RESOLUTION_VGA -->

@@ -342,6 +342,7 @@ namespace zed_wrapper {
         std::string mSvoFilepath;
         double mImuPubRate;
         double mPathPubRate;
+        bool mEnableImuFusion = true;
         int mPathMaxCount;
         bool mVerbose;
         bool mSvoMode = false;
@@ -369,9 +370,9 @@ namespace zed_wrapper {
         std::vector<geometry_msgs::PoseStamped> mMapPath;
 
         // TF Transforms
-        tf2::Transform mOdom2MapTransf;
-        tf2::Transform mBase2OdomTransf;
-        tf2::Transform mBase2MapTransf;
+        tf2::Transform mOdom2MapTransf;     // broadcasted if `publish_map_tf` is true
+        tf2::Transform mBase2OdomTransf;    // broadcasted if `publish_tf` is true
+        tf2::Transform mBase2MapTransf;     // used internally, but not broadcasted
         tf2::Transform mSensor2BaseTransf;
 
         bool mSensor2BaseTransfValid = false;
