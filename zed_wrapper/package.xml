@@ -9,6 +9,10 @@
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
   <license>MIT</license>
 
+  <url type="website">http://stereolabs.com/</url>
+  <url type="repository">https://github.com/stereolabs/zed-ros-wrapper</url>
+  <url type="bugtracker">https://github.com/stereolabs/zed-ros-wrapper/issues</url>
+
   <buildtool_depend>catkin</buildtool_depend>  
   
   <depend>tf2_ros</depend>

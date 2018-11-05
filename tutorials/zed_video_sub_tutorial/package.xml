@@ -1,12 +1,16 @@
 <package format="2">
   <name>zed_video_sub_tutorial</name>
-  <version>2.6.0</version>
+  <version>2.7.0</version>
   <description>
     This package is a tutorial showing how to subscribe to ZED Video streams
   </description>
 
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
   <license>MIT</license>
+
+  <url type="website">http://stereolabs.com/</url>
+  <url type="repository">https://github.com/stereolabs/zed-ros-wrapper</url>
+  <url type="bugtracker">https://github.com/stereolabs/zed-ros-wrapper/issues</url>
 
   <buildtool_depend>catkin</buildtool_depend>
 
