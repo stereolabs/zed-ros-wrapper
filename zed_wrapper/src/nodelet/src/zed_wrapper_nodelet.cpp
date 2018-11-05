@@ -564,7 +564,7 @@ namespace zed_wrapper {
             sl::float3 imuOrient = imuTransf.getEulerAngles(true);
 
             NODELET_DEBUG_STREAM("IMU POSITION [x,y,z]: " << imuPos.x  << ", " << imuPos.y  << ", " << imuPos.z);
-            NODELET_DEBUG_STREAM("IMU ORIENTATION [r,p,y]: " << imuOrient[0]  << ", " << imuOrient[1]  << ", " << imuOrient[2]);
+            NODELET_DEBUG_STREAM("IMU ORIENTATION [r,p,y]: " << imuOrient[0]*DEG2RAD  << ", " << imuOrient[1]*DEG2RAD  << ", " << imuOrient[2]*DEG2RAD);
 #endif
 
         } /*else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
