@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2018, STEREOLABS.
+
+All rights reserved.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<launch>
+    <arg name="zed_namespace"		    	default="zed" />
+
+    <arg name="svo_file"              	default="" /> <!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
+
+    <arg name="camera_model"         	default="1" />
+    <arg name="serial_number"        	default="0" />
+    <arg name="verbose"              	default="true" />
+    <arg name="resolution"           	default="2" /> <!--0=RESOLUTION_HD2K, 1=RESOLUTION_HD1080, 2=RESOLUTION_HD720, 3=RESOLUTION_VGA -->
+    <arg name="frame_rate"           	default="30" />
+    <!-- RESOLUTION_HD2K   -> 2208*1242, available framerates: 15 fps.
+       RESOLUTION_HD1080 -> 1920*1080, available framerates: 15, 30 fps.
+       RESOLUTION_HD720  -> 1280*720,  available framerates: 15, 30, 60 fps.
+       RESOLUTION_VGA    -> 672*376,   available framerates: 15, 30, 60, 100 fps. -->
+
+    <arg name="cam_image_topic"         default="rgb/image_rect_color" />
+    <arg name="cam_info_topic"       	default="rgb/camera_info" />
+    <arg name="camera_frame"            default="zed_left_camera_frame" />
+
+    <group ns="$(arg zed_namespace)">
+        <!-- Pre configured RVIZ -->
+        <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_ar_track_alvar_example)/rviz/zed_ar_track_alvar_example.rviz" output="screen"/>
+
+        <!-- ZED Wrapper Node-->
+        <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+          <arg name="svo_file"            	value="$(arg svo_file)" />
+          <arg name="camera_model"        	value="$(arg camera_model)" />
+          <arg name="serial_number"       	value="$(arg serial_number)" />
+          <arg name="resolution"          	value="$(arg resolution)" />
+          <arg name="frame_rate"          	value="$(arg frame_rate)" />
+          <arg name="verbose"             	value="$(arg verbose)" />
+
+          <arg name="rgb_topic"                 value="$(arg cam_image_topic)" />
+          <arg name="rgb_info_topic"       	value="$(arg cam_info_topic)" />
+          <arg name="left_camera_frame"         value="$(arg camera_frame)" />
+        </include>
+
+        <!-- ar_track_alvar Node -->
+        <arg name="marker_size" default="5.0" />
+        <arg name="max_new_marker_error" default="0.08" />
+        <arg name="max_track_error" default="0.2" />
+
+        <node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen">
+                <param name="marker_size"           type="double" value="$(arg marker_size)" />
+                <param name="max_new_marker_error"  type="double" value="$(arg max_new_marker_error)" />
+                <param name="max_track_error"       type="double" value="$(arg max_track_error)" />
+                <param name="output_frame"          type="string" value="$(arg camera_frame)" />
+
+                <remap from="camera_image"  to="$(arg cam_image_topic)" />
+                <remap from="camera_info"   to="$(arg cam_info_topic)" />
+        </node>
+    </group>
+</launch>
