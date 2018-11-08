@@ -25,10 +25,10 @@ To correctly use the ZED wrapper with the `rtabmap_ros` node we need to match th
 The values associated to the above parameters are the following:
 
 ```
-  <arg name="rgb_topic"               	default="/rgb/image_rect_color" />
-  <arg name="depth_topic"             	default="/depth/depth_registered" />
-  <arg name="camera_info_topic"       	default="/rgb/camera_info" />
-  <arg name="depth_camera_info_topic" 	default="/depth/camera_info" />
+  <arg name="rgb_topic"               	default="rgb/image_rect_color" />
+  <arg name="depth_topic"             	default="depth/depth_registered" />
+  <arg name="camera_info_topic"       	default="rgb/camera_info" />
+  <arg name="depth_camera_info_topic" 	default="depth/camera_info" />
   <arg name="camera_frame"              default="zed_camera_center" />
 ```
 
