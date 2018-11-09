@@ -36,7 +36,7 @@ To use the ZED wrapper with the `ar_track_alvar` node we need to correctly set t
 - `camera_info` -> the name of the topic of camera parameters used to correctly localize the tag in the 3D world
 - `output_frame` -> the name of the TF frame associated to the camera position
 
-It is important that the `zed_wrapper` node and the `ar_track_alvar` node use the same values for the these three parameters to be able to correctly interface.
+It is important that the `zed_wrapper` node and the `ar_track_alvar` node use the same values for these three parameters to be able to correctly communicate.
 
 The values associated to the above parameters are the following:
 
@@ -63,12 +63,12 @@ It is also important to set the correct `marker_size` in centimeters. Better if 
     <arg name="marker_size" default="5.0" />
     
 Other parameters that can be tuned:           
-* `max_new_marker_error` (double) -- A threshold determining when new markers can be detected under uncertainty
+* `max_new_marker_error` -> A threshold determining when new markers can be detected under uncertainty
+* `max_track_error` -> A threshold determining how much tracking error can be observed before an tag is considered to have disappeared
 
-    <arg name="max_new_marker_error" default="0.08" />
+Their values in the launch file:
 
-* `max_track_error` (double) -- A threshold determining how much tracking error can be observed before an tag is considered to have disappeared
-
+    <arg name="max_new_marker_error" default="0.08" />   
     <arg name="max_track_error" default="0.2" />
 
 ## Markers
