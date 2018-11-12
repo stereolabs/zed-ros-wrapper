@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>zed_ar_track_alvar_example</name>
+  <version>2.6.0</version>
+  <description>
+    "zed_ar_track_alvar_example" is a ROS package to show how to use the ROS wrapper with <a href="http://wiki.ros.org/ar_track_alvar">"ar_track_alvar"</a>
+  </description>
+
+  <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>  
+
+  <exec_depend>ar_track_alvar</exec_depend>
+  <exec_depend>ar_track_alvar_msgs</exec_depend>
+  <exec_depend>zed_wrapper</exec_depend>
+</package>
