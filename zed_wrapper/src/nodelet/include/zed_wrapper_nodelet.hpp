@@ -50,8 +50,6 @@
 #include <thread>
 #include <condition_variable>
 
-#include "csmartmean.hpp"
-
 using namespace std;
 
 namespace zed_wrapper {
