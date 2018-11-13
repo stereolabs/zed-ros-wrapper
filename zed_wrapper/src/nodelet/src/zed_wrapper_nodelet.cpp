@@ -2072,36 +2072,36 @@ namespace zed_wrapper {
 
                     double freq = 1000000. / mGrabPeriodMean_usec->getMean();
                     double freq_perc = 100.*freq / mCamFrameRate;
-                    stat.addf("Grabbing", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+                    stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
 
-                    stat.addf("Elaboration", "Mean time: %.3f sec (Exp. %.3f sec)", mElabPeriodMean_sec->getMean(), 1. / mCamFrameRate);
+                    stat.addf("Processing Time", "Mean time: %.3f sec (Exp. %.3f sec)", mElabPeriodMean_sec->getMean(), 1. / mCamFrameRate);
 
                     if (mComputeDepth) {
-                        stat.add("Depth processing", "ACTIVE");
+                        stat.add("Depth status", "ACTIVE");
 
                         if (mPcPublishing) {
                             double freq = 1000000. / mPcPeriodMean_usec->getMean();
                             double freq_perc = 100.*freq / mCamFrameRate;
-                            stat.addf("Pointcloud", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+                            stat.addf("Point Cloud", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
                         } else {
-                            stat.add("Pointcloud", "Topic not subscribed");
+                            stat.add("Point Cloud", "Topic not subscribed");
                         }
 
                         if (mFloorAlignment) {
                             if (mInitOdomWithPose) {
-                                stat.add("Floor", "NOT INITIALIZED");
+                                stat.add("Floor Detection", "NOT INITIALIZED");
                             } else {
-                                stat.add("Floor", "INITIALIZED");
+                                stat.add("Floor Detection", "INITIALIZED");
                             }
                         }
 
                         if (mTrackingActivated) {
-                            stat.addf("Tracking", "%s", sl::toString(mTrackingStatus).c_str());
+                            stat.addf("Tracking status", "%s", sl::toString(mTrackingStatus).c_str());
                         } else {
-                            stat.add("Tracking", "INACTIVE");
+                            stat.add("Tracking status", "INACTIVE");
                         }
                     } else {
-                        stat.add("Depth processing", "INACTIVE");
+                        stat.add("Depth status", "INACTIVE");
                     }
                 } else {
                     stat.summaryf(diagnostic_msgs::DiagnosticStatus::ERROR, "Camera error: %s", sl::toString(mGrabStatus).c_str());
@@ -2109,7 +2109,7 @@ namespace zed_wrapper {
 
             } else {
                 stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Waiting for data subscriber");
-                stat.add("Grabbing", "INACTIVE");
+                stat.add("Capture", "INACTIVE");
             }
 
             if (mImuPublishing) {
