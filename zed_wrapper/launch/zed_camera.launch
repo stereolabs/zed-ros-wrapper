@@ -139,6 +139,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="imu_topic"                 value="imu/data" /> <!-- only used with ZED M -->
         <param name="imu_topic_raw"             value="imu/data_raw" /> <!-- only used with ZED M -->
 
+        <param name="imu_timestamp_sync"        value="true" /> <!-- only used with ZED M -->
         <param name="imu_pub_rate"              value="800.0" /> <!-- only used with ZED M -->
 
         <param name="path_pub_rate"             value="2" />

@@ -343,6 +343,7 @@ namespace zed_wrapper {
         std::string mOdometryDb;
         std::string mSvoFilepath;
         double mImuPubRate;
+        bool mImuTimestampSync;
         double mPathPubRate;
         int mPathMaxCount;
         bool mVerbose;
@@ -351,7 +352,8 @@ namespace zed_wrapper {
         bool mTrackingActivated;
         bool mTrackingReady;
         bool mFloorAlignment = false;
-        bool mGrabActive = false; // Indicate if camera grabbing is active (at least one data subsscriber)
+        bool mGrabActive = false; // Indicate if camera grabbing is active (at least one topic subscribed)
+        sl::ERROR_CODE mConnStatus;
         sl::ERROR_CODE mGrabStatus;
         sl::TRACKING_STATE mTrackingStatus;
         bool mImuPublishing = false;
