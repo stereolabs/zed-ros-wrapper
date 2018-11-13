@@ -1394,7 +1394,7 @@ namespace zed_wrapper {
             t = ros::Time::now();
         } else {
             if (mImuTimestampSync && mGrabActive) {
-                t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
+                t = mFrameTimestamp;
             } else {
                 t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
             }
@@ -1425,7 +1425,7 @@ namespace zed_wrapper {
 
         if (imu_SubNumber > 0) {
             sensor_msgs::Imu imu_msg;
-            imu_msg.header.stamp = mFrameTimestamp; // t;
+            imu_msg.header.stamp = t;
             imu_msg.header.frame_id = mImuFrameId;
 
             imu_msg.orientation.x = mSignX * imu_data.getOrientation()[mIdxX];
