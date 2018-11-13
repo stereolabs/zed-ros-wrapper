@@ -231,7 +231,7 @@ namespace zed_wrapper {
         mNhNs.getParam("odometry_topic", odometry_topic);
         mNhNs.getParam("imu_topic", imu_topic);
         mNhNs.getParam("imu_topic_raw", imu_topic_raw);
-        mNhNs.getParam("imu_timestamp_sync", mImuTimestampSync); // TODO update documentation
+        mNhNs.getParam("imu_timestamp_sync", mImuTimestampSync);
         mNhNs.getParam("imu_pub_rate", mImuPubRate);
         mNhNs.getParam("path_pub_rate", mPathPubRate);
         mNhNs.getParam("path_max_count", mPathMaxCount);
