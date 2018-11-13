@@ -662,12 +662,11 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::initTransforms() {
-        // >>>>> Dynamic transforms
+        // Dynamic transforms
         mBase2OdomTransf.setIdentity();
         mOdom2MapTransf.setIdentity();
-        // <<<<< Dynamic transforms
 
-        // >>>>> Static transforms
+        // Static transforms
         // Sensor to Base link
         try {
             // Save the transformation from base to frame
@@ -683,7 +682,6 @@ namespace zed_wrapper {
             NODELET_DEBUG("Transform error: %s", ex.what());
             mSensor2BaseTransf.setIdentity();
         }
-        // <<<<< Static transforms
 
     }
 
@@ -831,7 +829,7 @@ namespace zed_wrapper {
         odom.pose.pose.orientation.z = base2odom.rotation.z;
         odom.pose.pose.orientation.w = base2odom.rotation.w;
 
-        // >>>>> Odometry pose covariance if available
+        // Odometry pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
         if (!mSpatialMemory && mPublishPoseCovariance) {
             for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
@@ -840,7 +838,6 @@ namespace zed_wrapper {
             }
         }
 #endif
-        // <<<<< Odometry pose covariance if available
 
         // Publish odometry message
         mPubOdom.publish(odom);
@@ -931,7 +928,7 @@ namespace zed_wrapper {
                 poseCov.header = header;
                 poseCov.pose.pose = pose;
 
-                // >>>>> Odometry pose covariance if available
+                // Odometry pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
                 if (!mSpatialMemory) {
                     for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
@@ -940,7 +937,6 @@ namespace zed_wrapper {
                     }
                 }
 #endif
-                // <<<<< Odometry pose covariance if available
 
                 // Publish pose with covariance stamped message
                 mPubPoseCov.publish(poseCov);
@@ -1062,7 +1058,7 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::publishPointCloud() {
-        // >>>>> Publish freq calculation
+        // Publish freq calculation
         static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 
@@ -1070,7 +1066,6 @@ namespace zed_wrapper {
         last_time = now;
 
         mPcPeriodMean_usec->addValue(elapsed_usec);
-        // <<<<< Publish freq calculation
 
         // Initialize Point Cloud message
         // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
@@ -1408,7 +1403,7 @@ namespace zed_wrapper {
         }
 
         if (imu_SubNumber > 0 || imu_RawSubNumber > 0) {
-            // >>>>> Publish freq calculation
+            // Publish freq calculation
             static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
             std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 
@@ -1418,7 +1413,6 @@ namespace zed_wrapper {
             mImuPeriodMean_usec->addValue(elapsed_usec);
 
             mImuPublishing = true;
-            // <<<<< Publish freq calculation
         } else {
             mImuPublishing = false;
         }
@@ -1742,7 +1736,7 @@ namespace zed_wrapper {
 
                 mPrevFrameTimestamp = mFrameTimestamp;
 
-                // >>>>> Publish freq calculation
+                // Publish freq calculation
                 static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
                 std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 
@@ -1750,7 +1744,6 @@ namespace zed_wrapper {
                 last_time = now;
 
                 mGrabPeriodMean_usec->addValue(elapsed_usec);
-                // <<<<< Publish freq calculation
 
                 // Timestamp
                 if (mSvoMode) {
