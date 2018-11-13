@@ -39,10 +39,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <arg name="pose_frame"          value="$(arg pose_frame)" />
             <arg name="odometry_frame"      value="$(arg odometry_frame)" />
             <arg name="camera_model"        value="$(arg camera_model)" />
-            <arg name="serial_number"       default="$(arg serial_number)" /> 
-            <arg name="resolution"          default="$(arg resolution)" />
-            <arg name="frame_rate"          default="$(arg frame_rate)" />
-            <arg name="verbose"             default="$(arg verbose)" />
+            <arg name="serial_number"       value="$(arg serial_number)" />
+            <arg name="resolution"          value="$(arg resolution)" />
+            <arg name="frame_rate"          value="$(arg frame_rate)" />
+            <arg name="verbose"             value="$(arg verbose)" />
         </include>
     </group>
 </launch>

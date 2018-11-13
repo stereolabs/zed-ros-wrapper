@@ -10,7 +10,7 @@ To launch the example, open a terminal and launch:
 
 Example of indoor 3D mapping using RTAB-map and ZED
 
-![Example of indoor 3D mapping](images/rtab-map.png)
+![Example of indoor 3D mapping](images/rtab-map.jpg)
 
 ## The launch file explained
 

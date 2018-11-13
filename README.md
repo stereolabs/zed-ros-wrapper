@@ -1,4 +1,4 @@
-![](./images/Picto+STEREOLABS_Black.png)
+![](./images/Picto+STEREOLABS_Black.jpg)
 
 # Stereolabs ZED Camera - ROS Integration
 
@@ -32,6 +32,7 @@ The zed_ros_wrapper is a catkin package. It depends on the following ROS package
    - image_transport
    - dynamic_reconfigure
    - urdf
+   - diagnostic_updater
 
 Open a terminal and build the package:
 
@@ -59,6 +60,12 @@ To launch the wrapper without Rviz, use:
  To select the ZED from its serial number
 
     $ roslaunch zed_wrapper zed.launch serial_number:=1010 #replace 1010 with the actual SN
+
+### Diagnostic
+The ZED node publishes diagnostic information that can be used by the robotic system using a [diagnostic_aggregator node](http://wiki.ros.org/diagnostic_aggregator).
+
+With the `rqt` plugin `Runtime monitor`, it is possible to retrieve all the diagnostic information, checking that the node 
+is working as expected.
 
 ### Examples
 

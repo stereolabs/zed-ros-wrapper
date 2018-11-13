@@ -25,6 +25,7 @@
   <depend>image_transport</depend>
   <depend>dynamic_reconfigure</depend>
   <depend>nodelet</depend>
+  <depend>diagnostic_updater</depend>
   
   <build_depend>urdf</build_depend>
   <build_depend>message_generation</build_depend>

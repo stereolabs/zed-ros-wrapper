@@ -14,10 +14,10 @@ To launch the wrapper nodelet along with the `depthimage_to_laserscan` nodelet, 
 To visualize the result of the process open Rviz, add a `LaserScan` visualization and set `/zed/scan` as `topic` parameter
 
 Virtual 2D laser scan rendered in Rviz. You can see the projection of the virtual laser scan on the RGB image on the left
-![Virtual laser scan rendered in Rviz](images/laserscan.png)
+![Virtual laser scan rendered in Rviz](images/laserscan.jpg)
 
 Virtual 2D laser scan rendered in Rviz over the 3D depth cloud. You can see the projection of the virtual laser scan on the RGB image on the left
-![Virtual laser scan rendered in Rviz on the Depthcloud](images/laserscan-depthcloud.png)
+![Virtual laser scan rendered in Rviz on the Depthcloud](images/laserscan-depthcloud.jpg)
 
 ## The launch file explained
 The launch file executes three main operations:

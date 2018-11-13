@@ -28,6 +28,7 @@ The zed_ros_wrapper is a catkin package. It depends on the following ROS package
    - image_transport
    - dynamic_reconfigure
    - urdf
+   - diagnostic_updater
 
 Open a terminal and build the package:
 
@@ -51,6 +52,31 @@ To launch ZED node, use:
 
 **Note**: replace 1010 with the actual SN
 
-If you want to use the `ZEDWrapperNodelet` with an external nodelet manager follow the `zed_nodelet_example` approach
+If you want to use the `ZEDWrapperNodelet` with an external nodelet manager follow the [`zed_nodelet_example`](https://github.com/stereolabs/zed-ros-wrapper/tree/master/examples/zed_nodelet_example) approach
+
+### Diagnostic
+The ZED node publishes diagnostic information that can be used by the robotic system using a [diagnostic_aggregator node](http://wiki.ros.org/diagnostic_aggregator).
+
+With the `rqt` plugin `Runtime monitor`, it is possible to retrieve all the diagnostic information, checking that the node is working as expected:
+
+![](../images/rqt_diagnostic.jpg)
+
+A brief explanation of each field:
+
+  -  `Component`: the name of the diagnostic component
+  -  `Message`: a brief summary of the status of the ZED node
+  -  `HardwareID`: the model of the ZED camera and its serial number
+  -  `Grabbing`: the grabbing frequency (if video or depth data are subscribed) and the percentage respect to the camera frame rate
+  -  `Elaboration`: the time in seconds spent to elaborate data and the time limit to achieve max frame rate
+  -  `Depth processing`: indicates if the depth processing is performed
+  -  `Pointcloud`: the pointcloud publishing frequency (if there is at least a subscriber) and the percentage respect to the camera frame rate
+  -  `Floor`: if the floor detection is enabled, indicates if the floor has been detected and the camera position correctly initialized
+  -  `Tracking`: indicates the status of the tracking, if enabled
+  -  `IMU`: the publishing frequency of the IMU topics, if the camera is the ZED Mini and there is at least a subscriber
+
 
 [More](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
+
+
+
+

@@ -35,6 +35,8 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#include <chrono>
+
 using namespace std;
 
 namespace zed_wrapper {
@@ -229,6 +231,7 @@ namespace zed_wrapper {
         mNhNs.getParam("odometry_topic", odometry_topic);
         mNhNs.getParam("imu_topic", imu_topic);
         mNhNs.getParam("imu_topic_raw", imu_topic_raw);
+        mNhNs.getParam("imu_timestamp_sync", mImuTimestampSync);
         mNhNs.getParam("imu_pub_rate", mImuPubRate);
         mNhNs.getParam("path_pub_rate", mPathPubRate);
         mNhNs.getParam("path_max_count", mPathMaxCount);
@@ -359,11 +362,14 @@ namespace zed_wrapper {
         mZedParams.depth_stabilization = mDepthStabilization;
         mZedParams.camera_image_flip = mCameraFlip;
 
-        sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
+        mDiagUpdater.add("ZED Diagnostic", this, &ZEDWrapperNodelet::updateDiagnostic);
+        mDiagUpdater.setHardwareID("ZED camera");
 
-        while (err != sl::SUCCESS) {
-            err = mZed.open(mZedParams);
-            NODELET_INFO_STREAM(toString(err));
+        mConnStatus = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
+
+        while (mConnStatus != sl::SUCCESS) {
+            mConnStatus = mZed.open(mZedParams);
+            NODELET_INFO_STREAM(toString(mConnStatus));
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
             if (!mNhNs.ok()) {
@@ -376,6 +382,8 @@ namespace zed_wrapper {
                 NODELET_DEBUG("ZED pool thread finished");
                 return;
             }
+
+            mDiagUpdater.update();
         }
 
         mZedRealCamModel = mZed.getCameraInformation().camera_model;
@@ -399,6 +407,8 @@ namespace zed_wrapper {
 
         NODELET_INFO_STREAM("CAMERA MODEL : " << mZedRealCamModel);
         mZedSerialNumber = mZed.getCameraInformation().serial_number;
+
+        mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
 
         // Dynamic Reconfigure parameters
         mDynRecServer = boost::make_shared<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>>();
@@ -522,6 +532,7 @@ namespace zed_wrapper {
             mFrameTimestamp = ros::Time::now();
             mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
                                           &ZEDWrapperNodelet::imuPubCallback, this);
+            mImuPeriodMean_usec.reset(new sl_tools::CSmartMean(mImuPubRate / 2));
         } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
             NODELET_WARN_STREAM(
                 "'imu_pub_rate' set to "
@@ -651,12 +662,11 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::initTransforms() {
-        // >>>>> Dynamic transforms
+        // Dynamic transforms
         mBase2OdomTransf.setIdentity();
         mOdom2MapTransf.setIdentity();
-        // <<<<< Dynamic transforms
 
-        // >>>>> Static transforms
+        // Static transforms
         // Sensor to Base link
         try {
             // Save the transformation from base to frame
@@ -672,7 +682,6 @@ namespace zed_wrapper {
             NODELET_DEBUG("Transform error: %s", ex.what());
             mSensor2BaseTransf.setIdentity();
         }
-        // <<<<< Static transforms
 
     }
 
@@ -820,7 +829,7 @@ namespace zed_wrapper {
         odom.pose.pose.orientation.z = base2odom.rotation.z;
         odom.pose.pose.orientation.w = base2odom.rotation.w;
 
-        // >>>>> Odometry pose covariance if available
+        // Odometry pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
         if (!mSpatialMemory && mPublishPoseCovariance) {
             for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
@@ -829,7 +838,6 @@ namespace zed_wrapper {
             }
         }
 #endif
-        // <<<<< Odometry pose covariance if available
 
         // Publish odometry message
         mPubOdom.publish(odom);
@@ -920,7 +928,7 @@ namespace zed_wrapper {
                 poseCov.header = header;
                 poseCov.pose.pose = pose;
 
-                // >>>>> Odometry pose covariance if available
+                // Odometry pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
                 if (!mSpatialMemory) {
                     for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
@@ -929,7 +937,6 @@ namespace zed_wrapper {
                     }
                 }
 #endif
-                // <<<<< Odometry pose covariance if available
 
                 // Publish pose with covariance stamped message
                 mPubPoseCov.publish(poseCov);
@@ -1051,6 +1058,15 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::publishPointCloud() {
+        // Publish freq calculation
+        static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+        double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
+        last_time = now;
+
+        mPcPeriodMean_usec->addValue(elapsed_usec);
+
         // Initialize Point Cloud message
         // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
@@ -1372,15 +1388,38 @@ namespace zed_wrapper {
         if (mSvoMode) {
             t = ros::Time::now();
         } else {
-            t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
+            if (mImuTimestampSync && mGrabActive) {
+                t = mFrameTimestamp;
+            } else {
+                t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
+            }
         }
 
         sl::IMUData imu_data;
-        mZed.getIMUData(imu_data, sl::TIME_REFERENCE_CURRENT);
+        if (mImuTimestampSync && mGrabActive) {
+            mZed.getIMUData(imu_data, sl::TIME_REFERENCE_IMAGE);
+        } else {
+            mZed.getIMUData(imu_data, sl::TIME_REFERENCE_CURRENT);
+        }
+
+        if (imu_SubNumber > 0 || imu_RawSubNumber > 0) {
+            // Publish freq calculation
+            static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+            std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+            double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
+            last_time = now;
+
+            mImuPeriodMean_usec->addValue(elapsed_usec);
+
+            mImuPublishing = true;
+        } else {
+            mImuPublishing = false;
+        }
 
         if (imu_SubNumber > 0) {
             sensor_msgs::Imu imu_msg;
-            imu_msg.header.stamp = mFrameTimestamp; // t;
+            imu_msg.header.stamp = t;
             imu_msg.header.frame_id = mImuFrameId;
 
             imu_msg.orientation.x = mSignX * imu_data.getOrientation()[mIdxX];
@@ -1523,6 +1562,10 @@ namespace zed_wrapper {
     void ZEDWrapperNodelet::device_poll_thread_func() {
         ros::Rate loop_rate(mCamFrameRate);
 
+        mElabPeriodMean_sec.reset(new sl_tools::CSmartMean(mCamFrameRate));
+        mGrabPeriodMean_usec.reset(new sl_tools::CSmartMean(mCamFrameRate));
+        mPcPeriodMean_usec.reset(new sl_tools::CSmartMean(mCamFrameRate));
+
         // Timestamp initialization
         if (mSvoMode) {
             mFrameTimestamp = ros::Time::now();
@@ -1532,7 +1575,6 @@ namespace zed_wrapper {
 
         mPrevFrameTimestamp = mFrameTimestamp;
 
-        sl::ERROR_CODE grab_status;
         mTrackingActivated = false;
         // Get the parameters of the ZED images
         mCamWidth = mZed.getResolution().width;
@@ -1575,11 +1617,11 @@ namespace zed_wrapper {
             uint32_t imuSubnumber = mPubImu.getNumSubscribers();
             uint32_t imuRawsubnumber = mPubImuRaw.getNumSubscribers();
             uint32_t pathSubNumber = mPubMapPath.getNumSubscribers() + mPubOdomPath.getNumSubscribers();
-            bool runLoop = ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
-                             leftRawSubnumber + rightSubnumber + rightRawSubnumber +
-                             depthSubnumber + disparitySubnumber + cloudSubnumber +
-                             poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
-                             confMapSubnumber + imuSubnumber + imuRawsubnumber + pathSubNumber) > 0);
+            mGrabActive = ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
+                            leftRawSubnumber + rightSubnumber + rightRawSubnumber +
+                            depthSubnumber + disparitySubnumber + cloudSubnumber +
+                            poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
+                            confMapSubnumber /*+ imuSubnumber + imuRawsubnumber*/ + pathSubNumber) > 0);
 
             runParams.enable_point_cloud = false;
 
@@ -1588,11 +1630,16 @@ namespace zed_wrapper {
             }
 
             // Run the loop only if there is some subscribers
-            if (runLoop) {
+            if (mGrabActive) {
                 bool startTracking = (mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
                                       odomSubnumber > 0 || cloudSubnumber > 0 || depthSubnumber > 0 || pathSubNumber > 0);
 
-                if ((startTracking) && !mTrackingActivated) { // Start the tracking
+                // Detect if one of the subscriber need to have the depth information
+                mComputeDepth = mCamQuality != sl::DEPTH_MODE_NONE && ((depthSubnumber + disparitySubnumber + cloudSubnumber +
+                                poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
+                                confMapSubnumber) > 0);
+
+                if ((startTracking) && !mTrackingActivated && mComputeDepth) { // Start the tracking
                     start_tracking();
                 } else if (!mDepthStabilization && poseSubnumber == 0 && poseCovSubnumber == 0 &&
                            odomSubnumber == 0 &&
@@ -1600,11 +1647,6 @@ namespace zed_wrapper {
                     mZed.disableTracking();
                     mTrackingActivated = false;
                 }
-
-                // Detect if one of the subscriber need to have the depth information
-                mComputeDepth = ((depthSubnumber + disparitySubnumber + cloudSubnumber +
-                                  poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
-                                  confMapSubnumber) > 0);
 
                 if (mComputeDepth) {
                     int actual_confidence = mZed.getConfidenceThreshold();
@@ -1624,15 +1666,15 @@ namespace zed_wrapper {
                     runParams.enable_depth = false;
                 }
 
-                grab_status = mZed.grab(runParams); // Ask to not compute the depth
+                mGrabStatus = mZed.grab(runParams); // Ask to not compute the depth
 
                 // cout << toString(grab_status) << endl;
-                if (grab_status != sl::ERROR_CODE::SUCCESS) {
+                if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
                     // Detect if a error occurred (for example:
                     // the zed have been disconnected) and
                     // re-initialize the ZED
-                    if (grab_status != sl::ERROR_CODE_NOT_A_NEW_FRAME) {
-                        NODELET_INFO_STREAM_ONCE(toString(grab_status));
+                    if (mGrabStatus != sl::ERROR_CODE_NOT_A_NEW_FRAME) {
+                        NODELET_INFO_STREAM_ONCE(toString(mGrabStatus));
                     }
 
                     //                    if ( mSvoMode && mPubClock.getNumSubscribers() > 0) {
@@ -1649,9 +1691,9 @@ namespace zed_wrapper {
                         mZed.close();
                         mCloseZedMutex.unlock();
 
-                        sl::ERROR_CODE err = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
+                        mConnStatus = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
 
-                        while (err != sl::SUCCESS) {
+                        while (mConnStatus != sl::SUCCESS) {
                             if (!mNhNs.ok()) {
                                 mStopNode = true;
 
@@ -1667,12 +1709,13 @@ namespace zed_wrapper {
 
                             if (id >= 0) {
                                 mZedParams.camera_linux_id = id;
-                                err = mZed.open(mZedParams); // Try to initialize the ZED
-                                NODELET_INFO_STREAM(toString(err));
+                                mConnStatus = mZed.open(mZedParams); // Try to initialize the ZED
+                                NODELET_INFO_STREAM(toString(mConnStatus));
                             } else {
                                 NODELET_INFO_STREAM("Waiting for the ZED (S/N " << mZedSerialNumber << ") to be re-connected");
                             }
 
+                            mDiagUpdater.force_update();
                             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
                         }
 
@@ -1686,10 +1729,21 @@ namespace zed_wrapper {
                         }
                     }
 
+                    mDiagUpdater.update();
+
                     continue;
                 }
 
                 mPrevFrameTimestamp = mFrameTimestamp;
+
+                // Publish freq calculation
+                static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+                std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+                double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
+                last_time = now;
+
+                mGrabPeriodMean_usec->addValue(elapsed_usec);
 
                 // Timestamp
                 if (mSvoMode) {
@@ -1815,30 +1869,31 @@ namespace zed_wrapper {
                         // Signal Pointcloud thread that a new pointcloud is ready
                         mPcDataReadyCondVar.notify_one();
                         mPcDataReady = true;
+                        mPcPublishing = true;
                     }
+                } else {
+                    mPcPublishing = false;
                 }
 
                 mCamDataMutex.unlock();
-
-
 
                 // Publish the odometry if someone has subscribed to
                 if (poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
                     depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0 || pathSubNumber > 0) {
                     if (!mInitOdomWithPose) {
                         sl::Pose deltaOdom;
-                        sl::TRACKING_STATE status = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
+                        mTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
 
                         sl::Translation translation = deltaOdom.getTranslation();
                         sl::Orientation quat = deltaOdom.getOrientation();
 
                         NODELET_DEBUG("delta ODOM [%s] - %.2f,%.2f,%.2f %.2f,%.2f,%.2f,%.2f",
-                                      sl::toString(status).c_str(),
+                                      sl::toString(mTrackingStatus).c_str(),
                                       translation(mIdxX), translation(mIdxY), translation(mIdxZ),
                                       quat(mIdxX), quat(mIdxY), quat(mIdxZ), quat(3));
 
-                        if (status == sl::TRACKING_STATE_OK || status == sl::TRACKING_STATE_SEARCHING ||
-                            status == sl::TRACKING_STATE_FPS_TOO_LOW) {
+                        if (mTrackingStatus == sl::TRACKING_STATE_OK || mTrackingStatus == sl::TRACKING_STATE_SEARCHING ||
+                            mTrackingStatus == sl::TRACKING_STATE_FPS_TOO_LOW) {
                             // Transform ZED delta odom pose in TF2 Transformation
                             geometry_msgs::Transform deltaTransf;
                             deltaTransf.translation.x = mSignX * translation(mIdxX);
@@ -1860,7 +1915,7 @@ namespace zed_wrapper {
                             publishOdom(mBase2OdomTransf, deltaOdom, mFrameTimestamp);
                             mTrackingReady = true;
                         } else {
-                            NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(status));
+                            NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(mTrackingStatus));
                         }
                     } else if (mFloorAlignment) {
                         NODELET_WARN_THROTTLE(5.0, "Odometry will be published as soon as the floor as been detected for the first time");
@@ -1954,25 +2009,21 @@ namespace zed_wrapper {
                     }
                 }
 
-                static int rateWarnCount = 0;
+                double mean = mElabPeriodMean_sec->addValue(loop_rate.cycleTime().toSec()) ;
 
                 if (!loop_rate.sleep()) {
-                    rateWarnCount++;
-
-                    if (rateWarnCount == 10) {
+                    if (mean > loop_rate.expectedCycleTime().toSec()) {
                         NODELET_DEBUG_THROTTLE(
                             1.0,
                             "Working thread is not synchronized with the Camera frame rate");
                         NODELET_DEBUG_STREAM_THROTTLE(
                             1.0, "Expected cycle time: " << loop_rate.expectedCycleTime()
                             << " - Real cycle time: "
-                            << loop_rate.cycleTime());
+                            << mean);
                         NODELET_WARN_THROTTLE(10.0, "Elaboration takes longer than requested "
                                               "by the FPS rate. Please consider to "
                                               "lower the 'frame_rate' setting.");
                     }
-                } else {
-                    rateWarnCount = 0;
                 }
             } else {
                 NODELET_DEBUG_THROTTLE(5.0, "No topics subscribed by users");
@@ -1998,6 +2049,8 @@ namespace zed_wrapper {
                     std::chrono::milliseconds(10)); // No subscribers, we just wait
                 loop_rate.reset();
             }
+
+            mDiagUpdater.update();
         } // while loop
 
         mStopNode = true; // Stops other threads
@@ -2007,5 +2060,68 @@ namespace zed_wrapper {
         mZed.close();
 
         NODELET_DEBUG("ZED pool thread finished");
+    }
+
+    void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat) {
+
+        if (mConnStatus == sl::SUCCESS) {
+            if (mGrabActive) {
+                if (mGrabStatus == sl::SUCCESS || mGrabStatus == sl::ERROR_CODE_NOT_A_NEW_FRAME) {
+
+                    stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Camera grabbing");
+
+                    double freq = 1000000. / mGrabPeriodMean_usec->getMean();
+                    double freq_perc = 100.*freq / mCamFrameRate;
+                    stat.addf("Grabbing", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+
+                    stat.addf("Elaboration", "Mean time: %.3f sec (Exp. %.3f sec)", mElabPeriodMean_sec->getMean(), 1. / mCamFrameRate);
+
+                    if (mComputeDepth) {
+                        stat.add("Depth processing", "ACTIVE");
+
+                        if (mPcPublishing) {
+                            double freq = 1000000. / mPcPeriodMean_usec->getMean();
+                            double freq_perc = 100.*freq / mCamFrameRate;
+                            stat.addf("Pointcloud", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+                        } else {
+                            stat.add("Pointcloud", "Topic not subscribed");
+                        }
+
+                        if (mFloorAlignment) {
+                            if (mInitOdomWithPose) {
+                                stat.add("Floor", "NOT INITIALIZED");
+                            } else {
+                                stat.add("Floor", "INITIALIZED");
+                            }
+                        }
+
+                        if (mTrackingActivated) {
+                            stat.addf("Tracking", "%s", sl::toString(mTrackingStatus).c_str());
+                        } else {
+                            stat.add("Tracking", "INACTIVE");
+                        }
+                    } else {
+                        stat.add("Depth processing", "INACTIVE");
+                    }
+                } else {
+                    stat.summaryf(diagnostic_msgs::DiagnosticStatus::ERROR, "Camera error: %s", sl::toString(mGrabStatus).c_str());
+                }
+
+            } else {
+                stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Waiting for data subscriber");
+                stat.add("Grabbing", "INACTIVE");
+            }
+
+            if (mImuPublishing) {
+                double freq = 1000000. / mImuPeriodMean_usec->getMean();
+                double freq_perc = 100.*freq / mImuPubRate;
+                stat.addf("IMU", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+            } else {
+                stat.add("IMU", "Topics not subscribed");
+            }
+        } else {
+            stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, sl::toString(mConnStatus).c_str());
+        }
+
     }
 } // namespace

@@ -102,8 +102,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="auto_exposure"         value="true" />
         <param name="depth_stabilization"   value="1" />
         <param name="pose_smoothing"        value="false" />
-        <param name="spatial_memory"        value="true" />
-        <param name="floor_alignment"       value="true" />
+        <param name="spatial_memory"        value="false" />
+        <param name="floor_alignment"       value="false" />
 
         <rosparam param="initial_tracking_pose" subst_value="True">$(arg initial_pose)</rosparam>
 
@@ -140,6 +140,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="imu_topic"                 value="imu/data" /> <!-- only used with ZED M -->
         <param name="imu_topic_raw"             value="imu/data_raw" /> <!-- only used with ZED M -->
 
+        <param name="imu_timestamp_sync"        value="true" /> <!-- only used with ZED M -->
         <param name="imu_pub_rate"              value="500.0" /> <!-- only used with ZED M -->
 
         <param name="path_pub_rate"             value="2" />

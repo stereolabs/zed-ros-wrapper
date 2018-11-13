@@ -49,6 +49,7 @@ find_package(catkin COMPONENTS
   nodelet
   tf2_geometry_msgs
   message_generation
+  diagnostic_updater
 )
 
 checkPackage("image_transport" "")
@@ -91,7 +92,7 @@ catkin_package(
 # SOURCES
 
 set(TOOLS_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp )
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp)
 set(NODE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_wrapper_node.cpp)
 set(NODELET_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.cpp)
 

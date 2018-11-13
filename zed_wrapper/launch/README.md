@@ -1,4 +1,4 @@
-![](../images/Picto+STEREOLABS_Black.png)
+![](../images/Picto+STEREOLABS_Black.jpg)
 
 # Launch Files
 
