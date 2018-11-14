@@ -1911,6 +1911,8 @@ namespace zed_wrapper {
                                       translation(mIdxX), translation(mIdxY), translation(mIdxZ),
                                       quat(mIdxX), quat(mIdxY), quat(mIdxZ), quat(3));
 
+                        NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(mTrackingStatus));
+
                         if (mTrackingStatus == sl::TRACKING_STATE_OK || mTrackingStatus == sl::TRACKING_STATE_SEARCHING ||
                             mTrackingStatus == sl::TRACKING_STATE_FPS_TOO_LOW) {
                             // Transform ZED delta odom pose in TF2 Transformation
@@ -1945,8 +1947,6 @@ namespace zed_wrapper {
                             // Publish odometry message
                             publishOdom(mOdom2BaseTransf, deltaOdom, mFrameTimestamp);
                             mTrackingReady = true;
-                        } else {
-                            NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(mTrackingStatus));
                         }
                     } else if (mFloorAlignment) {
                         NODELET_WARN_THROTTLE(5.0, "Odometry will be published as soon as the floor as been detected for the first time");
@@ -1959,7 +1959,7 @@ namespace zed_wrapper {
                     depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0 || pathSubNumber > 0) {
 
                     static sl::TRACKING_STATE oldStatus;
-                    sl::TRACKING_STATE status = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME_WORLD);
+                    mTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME_WORLD);
 
                     sl::Translation translation = mLastZedPose.getTranslation();
                     sl::Orientation quat = mLastZedPose.getOrientation();
@@ -1972,8 +1972,11 @@ namespace zed_wrapper {
                     //                                  translation.x, translation.y, translation.z,
                     //                                  roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
                     //#endif
-                    if (status == sl::TRACKING_STATE_OK ||
-                        status == sl::TRACKING_STATE_SEARCHING /*|| status == sl::TRACKING_STATE_FPS_TOO_LOW*/) {
+
+                    NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << sl::toString(mTrackingStatus));
+
+                    if (mTrackingStatus == sl::TRACKING_STATE_OK ||
+                        mTrackingStatus == sl::TRACKING_STATE_SEARCHING /*|| status == sl::TRACKING_STATE_FPS_TOO_LOW*/) {
                         // Transform ZED pose in TF2 Transformation
                         geometry_msgs::Transform map2sensTransf;
 
@@ -1987,16 +1990,16 @@ namespace zed_wrapper {
                         tf2::Transform map_to_sens_transf;
                         tf2::fromMsg(map2sensTransf, map_to_sens_transf);
 
-                        tf2::Transform map_to_base_transform = mSensor2BaseTransf * map_to_sens_transf; // Base position in map frame
+                        mMap2BaseTransf = mSensor2BaseTransf * map_to_sens_transf; // Base position in map frame
 
 #ifndef NDEBUG
                         double roll, pitch, yaw;
-                        tf2::Matrix3x3(map_to_base_transform.getRotation()).getRPY(roll, pitch, yaw);
+                        tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
 
                         NODELET_DEBUG("Base POSE [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
                                       mMapFrameId.c_str(), mBaseFrameId.c_str(),
-                                      map_to_base_transform.getOrigin().x(), map_to_base_transform.getOrigin().y(), map_to_base_transform.getOrigin().z(),
+                                      mMap2BaseTransf.getOrigin().x(), mMap2BaseTransf.getOrigin().y(), mMap2BaseTransf.getOrigin().z(),
                                       roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 #endif
 
@@ -2005,7 +2008,7 @@ namespace zed_wrapper {
                         if (!(mFloorAlignment)) {
                             initOdom = mInitOdomWithPose;
                         } else {
-                            initOdom = (status == sl::TRACKING_STATE_OK) & mInitOdomWithPose;
+                            initOdom = (mTrackingStatus == sl::TRACKING_STATE_OK) & mInitOdomWithPose;
                         }
 
                         if (initOdom || mResetOdom) {
@@ -2013,8 +2016,8 @@ namespace zed_wrapper {
                             ROS_INFO("Odometry aligned to last tracking pose");
 
                             // Propagate Odom transform in time
-                            mOdom2BaseTransf = map_to_base_transform;
-                            map_to_base_transform.setIdentity();
+                            mOdom2BaseTransf = mMap2BaseTransf;
+                            mMap2BaseTransf.setIdentity();
 
                             if (odomSubnumber > 0) {
                                 // Publish odometry message
@@ -2025,18 +2028,29 @@ namespace zed_wrapper {
                             mResetOdom = false;
                         } else {
                             // Transformation from map to odometry frame
-                            mMap2OdomTransf = mOdom2BaseTransf.inverse() * map_to_base_transform;
+                            mMap2OdomTransf = mMap2BaseTransf.inverse() * mOdom2BaseTransf;
+
+#ifndef NDEBUG
+                            double roll, pitch, yaw;
+                            tf2::Matrix3x3(mMap2OdomTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+
+                            NODELET_DEBUG("Diff [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                                          mMapFrameId.c_str(), mOdometryFrameId.c_str(),
+                                          mMap2OdomTransf.getOrigin().x(), mMap2OdomTransf.getOrigin().y(), mMap2OdomTransf.getOrigin().z(),
+                                          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+#endif
                         }
 
                         // Publish Pose message
                         publishPose(mFrameTimestamp);
                         mTrackingReady = true;
-                    } else {
-                        NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << static_cast<int>(status));
                     }
 
-                    oldStatus = status;
+                    oldStatus = mTrackingStatus;
                 }
+
+
 
                 // Publish pose tf only if enabled
                 if (mPublishTf) {
