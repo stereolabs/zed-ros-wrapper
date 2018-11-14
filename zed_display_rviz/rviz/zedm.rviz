@@ -6,9 +6,9 @@ Panels:
       Expanded:
         - /Global Options1
         - /RobotModel1/Links1
-        - /TF1
         - /TF1/Frames1
         - /Video1
+        - /Video1/Camera view1
         - /Video1/Camera view1/Visibility1
         - /Video1/Camera view1/Visibility1/Video1
         - /Video1/Camera view1/Visibility1/Depth1
@@ -157,9 +157,9 @@ Visualization Manager:
               Confidence image: true
               Confidence map: true
               Depth map: true
-              DepthCloud: true
+              DepthCloud: false
               PointCloud2: true
-              Value: true
+              Value: false
             Grid: true
             Pose:
               Imu: true
@@ -488,25 +488,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.86167264
+      Distance: 2.38948631
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.370546103
-        Y: -0.706243336
-        Z: -0.13050513
+        X: 0.404032081
+        Y: -0.240342453
+        Z: -0.078290835
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 1.4547962
+      Pitch: 0.234796301
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.89540553
+      Yaw: 3.08040643
     Saved: ~
 Window Geometry:
   Camera view:
