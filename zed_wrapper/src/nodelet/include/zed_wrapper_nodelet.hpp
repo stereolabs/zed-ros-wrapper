@@ -370,9 +370,9 @@ namespace zed_wrapper {
         std::vector<geometry_msgs::PoseStamped> mMapPath;
 
         // TF Transforms
-        tf2::Transform mOdom2MapTransf;
-        tf2::Transform mBase2OdomTransf;
-        tf2::Transform mSensor2BaseTransf;
+        tf2::Transform mMap2OdomTransf; // Coordinates of the odometry frame in map frame
+        tf2::Transform mOdom2BaseTransf; // Coordinates of the base in odometry frame
+        tf2::Transform mSensor2BaseTransf; // Coordinates of the base frame in sensor frame
 
         // Zed object
         sl::InitParameters mZedParams;

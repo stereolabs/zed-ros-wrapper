@@ -43,6 +43,7 @@ namespace zed_wrapper {
 
 #ifndef DEG2RAD
 #define DEG2RAD 0.017453293
+#define RAD2DEG 57.295777937
 #endif
 
     ZEDWrapperNodelet::ZEDWrapperNodelet() : Nodelet() {}
@@ -663,17 +664,29 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::initTransforms() {
         // Dynamic transforms
-        mBase2OdomTransf.setIdentity();
-        mOdom2MapTransf.setIdentity();
+        mOdom2BaseTransf.setIdentity();
+        mMap2OdomTransf.setIdentity();
 
         // Static transforms
         // Sensor to Base link
         try {
             // Save the transformation from base to frame
             geometry_msgs::TransformStamped s2b =
-                mTfBuffer->lookupTransform(mBaseFrameId, mDepthFrameId, mFrameTimestamp);
+                mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, mFrameTimestamp); // Coordinates of the base in sensor frame
             // Get the TF2 transformation
             tf2::fromMsg(s2b.transform, mSensor2BaseTransf);
+
+#ifndef NDEBUG
+            double roll, pitch, yaw;
+            tf2::Matrix3x3(mSensor2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+            NODELET_DEBUG("Sensor2Base [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                          mDepthFrameId.c_str(), mBaseFrameId.c_str(),
+                          mSensor2BaseTransf.getOrigin().x(), mSensor2BaseTransf.getOrigin().y(), mSensor2BaseTransf.getOrigin().z(),
+                          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+#endif
+
+
         } catch (tf2::TransformException& ex) {
             NODELET_WARN_THROTTLE(
                 10.0, "The tf from '%s' to '%s' does not seem to be available, "
@@ -687,25 +700,34 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr,
                                      float pr, float yr) {
-        // ROS pose
-        tf2::Quaternion q;
-        q.setRPY(rr, pr, yr);
-        //tf2::Vector3 orig(xt, yt, zt);
-        //        mBase2OdomTransf.setOrigin(orig);
-        //        mBase2OdomTransf.setRotation(q);
-        //        mOdom2MapTransf.setIdentity();
-
         initTransforms();
 
+        // Apply Base to sensor transform
+        tf2::Transform initPose;
+        tf2::Vector3 origin(xt, yt, zt);
+        initPose.setOrigin(origin);
+        tf2::Quaternion quat;
+        quat.setRPY(rr, pr, yr);
+        initPose.setRotation(quat);
+
+        initPose = initPose * mSensor2BaseTransf.inverse();
+
         // SL pose
+        sl::float3 t_vec;
+        t_vec[0] = initPose.getOrigin().x();
+        t_vec[1] = initPose.getOrigin().y();
+        t_vec[2] = initPose.getOrigin().z();
+
         sl::float4 q_vec;
-        q_vec[0] = q.x();
-        q_vec[1] = q.y();
-        q_vec[2] = q.z();
-        q_vec[3] = q.w();
-        sl::Orientation r(q_vec);
-        mInitialPoseSl.setTranslation(sl::Translation(xt, yt, zt));
-        mInitialPoseSl.setOrientation(r);
+        q_vec[0] = initPose.getRotation().x();
+        q_vec[1] = initPose.getRotation().y();
+        q_vec[2] = initPose.getRotation().z();
+        q_vec[3] = initPose.getRotation().w();
+
+        sl::Translation trasl(t_vec);
+        sl::Orientation orient(q_vec);
+        mInitialPoseSl.setTranslation(trasl);
+        mInitialPoseSl.setOrientation(orient);
     }
 
     bool ZEDWrapperNodelet::on_set_pose(
@@ -718,6 +740,7 @@ namespace zed_wrapper {
         mInitialTrackPose[3] = req.R;
         mInitialTrackPose[4] = req.P;
         mInitialTrackPose[5] = req.Y;
+
         set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
                  mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
 
@@ -743,12 +766,10 @@ namespace zed_wrapper {
             NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialTrackPose.size()
                                 << "). Using Identity");
             mInitialPoseSl.setIdentity();
-
-            initTransforms();
-        } else {
-            set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
-                     mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
         }
+
+        set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
+                 mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
 
         if (mZed.resetTracking(mInitialPoseSl) == sl::SUCCESS) {
             return true;
@@ -778,12 +799,10 @@ namespace zed_wrapper {
             NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialTrackPose.size()
                                 << "). Using Identity");
             mInitialPoseSl.setIdentity();
-
-            initTransforms();
-        } else {
-            set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
-                     mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
         }
+
+        set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
+                 mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
 
         if (mOdometryDb != "" && !sl_tools::file_exist(mOdometryDb)) {
             mOdometryDb = "";
@@ -1910,9 +1929,21 @@ namespace zed_wrapper {
                                 mSensor2BaseTransf * deltaOdomTf * mSensor2BaseTransf.inverse();
 
                             // Propagate Odom transform in time
-                            mBase2OdomTransf = mBase2OdomTransf * deltaOdomTf_base;
+                            mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
+
+#ifndef NDEBUG
+                            double roll, pitch, yaw;
+                            tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+
+                            NODELET_DEBUG("Base POSE [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                                          mOdometryFrameId.c_str(), mBaseFrameId.c_str(),
+                                          mOdom2BaseTransf.getOrigin().x(), mOdom2BaseTransf.getOrigin().y(), mOdom2BaseTransf.getOrigin().z(),
+                                          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+#endif
+
                             // Publish odometry message
-                            publishOdom(mBase2OdomTransf, deltaOdom, mFrameTimestamp);
+                            publishOdom(mOdom2BaseTransf, deltaOdom, mFrameTimestamp);
                             mTrackingReady = true;
                         } else {
                             NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(mTrackingStatus));
@@ -1932,31 +1963,42 @@ namespace zed_wrapper {
 
                     sl::Translation translation = mLastZedPose.getTranslation();
                     sl::Orientation quat = mLastZedPose.getOrientation();
+                    //#ifndef NDEBUG
+                    //                    double roll, pitch, yaw;
+                    //                    tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
 
-                    NODELET_DEBUG("POSE [%s] - %.2f,%.2f,%.2f %.2f,%.2f,%.2f,%.2f",
-                                  sl::toString(status).c_str(),
-                                  translation(mIdxX), translation(mIdxY), translation(mIdxZ),
-                                  quat(mIdxX), quat(mIdxY), quat(mIdxZ), quat(3));
-
+                    //                    NODELET_DEBUG("Sensor POSE [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
+                    //                                  mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
+                    //                                  translation.x, translation.y, translation.z,
+                    //                                  roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+                    //#endif
                     if (status == sl::TRACKING_STATE_OK ||
                         status == sl::TRACKING_STATE_SEARCHING /*|| status == sl::TRACKING_STATE_FPS_TOO_LOW*/) {
                         // Transform ZED pose in TF2 Transformation
-                        geometry_msgs::Transform sens2mapTransf;
+                        geometry_msgs::Transform map2sensTransf;
 
-                        sens2mapTransf.translation.x = mSignX * translation(mIdxX);
-                        sens2mapTransf.translation.y = mSignY * translation(mIdxY);
-                        sens2mapTransf.translation.z = mSignZ * translation(mIdxZ);
-                        sens2mapTransf.rotation.x = mSignX * quat(mIdxX);
-                        sens2mapTransf.rotation.y = mSignY * quat(mIdxY);
-                        sens2mapTransf.rotation.z = mSignZ * quat(mIdxZ);
-                        sens2mapTransf.rotation.w = quat(3);
-                        tf2::Transform sens_to_map_transf;
-                        tf2::fromMsg(sens2mapTransf, sens_to_map_transf);
-                        // Transformation from camera sensor to base frame
-                        /*tf2::Transform base_to_map_transform =
-                            sensor_to_base_transf * sens_to_map_transf * sensor_to_base_transf.inverse();*/
+                        map2sensTransf.translation.x = mSignX * translation(mIdxX);
+                        map2sensTransf.translation.y = mSignY * translation(mIdxY);
+                        map2sensTransf.translation.z = mSignZ * translation(mIdxZ);
+                        map2sensTransf.rotation.x = mSignX * quat(mIdxX);
+                        map2sensTransf.rotation.y = mSignY * quat(mIdxY);
+                        map2sensTransf.rotation.z = mSignZ * quat(mIdxZ);
+                        map2sensTransf.rotation.w = quat(3);
+                        tf2::Transform map_to_sens_transf;
+                        tf2::fromMsg(map2sensTransf, map_to_sens_transf);
 
-                        tf2::Transform base_to_map_transform = (mSensor2BaseTransf * sens_to_map_transf.inverse()).inverse();
+                        tf2::Transform map_to_base_transform = mSensor2BaseTransf * map_to_sens_transf; // Base position in map frame
+
+#ifndef NDEBUG
+                        double roll, pitch, yaw;
+                        tf2::Matrix3x3(map_to_base_transform.getRotation()).getRPY(roll, pitch, yaw);
+
+
+                        NODELET_DEBUG("Base POSE [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                                      mMapFrameId.c_str(), mBaseFrameId.c_str(),
+                                      map_to_base_transform.getOrigin().x(), map_to_base_transform.getOrigin().y(), map_to_base_transform.getOrigin().z(),
+                                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+#endif
 
                         bool initOdom = false;
 
@@ -1971,20 +2013,19 @@ namespace zed_wrapper {
                             ROS_INFO("Odometry aligned to last tracking pose");
 
                             // Propagate Odom transform in time
-                            mBase2OdomTransf = base_to_map_transform;
-                            base_to_map_transform.setIdentity();
+                            mOdom2BaseTransf = map_to_base_transform;
+                            map_to_base_transform.setIdentity();
 
                             if (odomSubnumber > 0) {
                                 // Publish odometry message
-                                publishOdom(mBase2OdomTransf, mLastZedPose, mFrameTimestamp);
+                                publishOdom(mOdom2BaseTransf, mLastZedPose, mFrameTimestamp);
                             }
 
                             mInitOdomWithPose = false;
                             mResetOdom = false;
                         } else {
                             // Transformation from map to odometry frame
-                            mOdom2MapTransf =
-                                base_to_map_transform * mBase2OdomTransf.inverse();
+                            mMap2OdomTransf = mOdom2BaseTransf.inverse() * map_to_base_transform;
                         }
 
                         // Publish Pose message
@@ -2001,11 +2042,11 @@ namespace zed_wrapper {
                 if (mPublishTf) {
                     // Note, the frame is published, but its values will only change if
                     // someone has subscribed to odom
-                    publishOdomFrame(mBase2OdomTransf, mFrameTimestamp); // publish the base Frame in odometry frame
+                    publishOdomFrame(mOdom2BaseTransf, mFrameTimestamp); // publish the base Frame in odometry frame
                     if (mPublishMapTf) {
                         // Note, the frame is published, but its values will only change if
                         // someone has subscribed to map
-                        publishPoseFrame(mOdom2MapTransf, mFrameTimestamp); // publish the odometry Frame in map frame
+                        publishPoseFrame(mMap2OdomTransf, mFrameTimestamp); // publish the odometry Frame in map frame
                     }
                 }
 
@@ -2038,10 +2079,10 @@ namespace zed_wrapper {
                         t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
                     }
 
-                    publishOdomFrame(mBase2OdomTransf, mFrameTimestamp); // publish the base Frame in odometry frame
+                    publishOdomFrame(mOdom2BaseTransf, mFrameTimestamp); // publish the base Frame in odometry frame
 
                     if (mPublishMapTf) {
-                        publishPoseFrame(mOdom2MapTransf, mFrameTimestamp); // publish the odometry Frame in map frame
+                        publishPoseFrame(mMap2OdomTransf, mFrameTimestamp); // publish the odometry Frame in map frame
                     }
                 }
 
