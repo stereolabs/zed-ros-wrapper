@@ -564,7 +564,8 @@ namespace zed_wrapper {
             sl::float3 imuOrient = imuTransf.getEulerAngles(true);
 
             NODELET_DEBUG_STREAM("IMU POSITION [x,y,z]: " << imuPos.x  << ", " << imuPos.y  << ", " << imuPos.z);
-            NODELET_DEBUG_STREAM("IMU ORIENTATION [r,p,y]: " << imuOrient[0]*DEG2RAD  << ", " << imuOrient[1]*DEG2RAD  << ", " << imuOrient[2]*DEG2RAD);
+            NODELET_DEBUG_STREAM("IMU ORIENTATION [r,p,y]: " << imuOrient[0]*DEG2RAD  << ", " << imuOrient[1]*DEG2RAD  << ", " <<
+                                 imuOrient[2]*DEG2RAD);
 #endif
 
         } /*else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
@@ -972,7 +973,7 @@ namespace zed_wrapper {
 
             memcpy(&(odom.pose.covariance[0]), covInBase.data(), 36 * sizeof(double));
         }
-#elif ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8)) // TODO FIX VERSION CHECK!
+#elif ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=9)) // TODO FIX VERSION CHECK!
 
         // >>>>> Twist in camera frame to Twist in base frame
         Eigen::Matrix<float, 6, 1> twist_cam(slPose.twist);
