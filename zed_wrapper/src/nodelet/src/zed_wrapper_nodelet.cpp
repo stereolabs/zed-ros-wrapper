@@ -867,37 +867,8 @@ namespace zed_wrapper {
         base_pose.setIdentity();
 
         if (mPublishMapTf) {
-            //            // Look up the transformation from base frame to map
-            //            try {
-            //                // Save the transformation from base to frame
-            //                geometry_msgs::TransformStamped b2m =
-            //                    mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
-            //                // Get the TF2 transformation
-            //                tf2::fromMsg(b2m.transform, base_pose);
-            //            } catch (tf2::TransformException& ex) {
-            //                NODELET_WARN_THROTTLE(
-            //                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
-            //                    "will assume it as identity!",
-            //                    mBaseFrameId.c_str(), mMapFrameId.c_str());
-            //                NODELET_DEBUG("Transform error: %s", ex.what());
-            //            }
             base_pose = mMap2BaseTransf;
         } else if (mPublishTf) {
-            //            // Look up the transformation from base frame to odom frame
-            //            try {
-            //                // Save the transformation from base to frame
-            //                geometry_msgs::TransformStamped b2o =
-            //                    mTfBuffer->lookupTransform(mOdometryFrameId, mBaseFrameId, ros::Time(0));
-            //                // Get the TF2 transformation
-            //                tf2::fromMsg(b2o.transform, base_pose);
-            //            } catch (tf2::TransformException& ex) {
-            //                NODELET_WARN_THROTTLE(
-            //                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
-            //                    "will assume it as identity!",
-            //                    mBaseFrameId.c_str(), mOdometryFrameId.c_str());
-            //                NODELET_DEBUG("Transform error: %s", ex.what());
-            //            }
-
             base_pose = mOdom2BaseTransf;
         }
 
