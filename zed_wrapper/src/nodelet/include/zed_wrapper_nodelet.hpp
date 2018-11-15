@@ -91,7 +91,7 @@ namespace zed_wrapper {
          * \param slPose : latest odom pose from ZED SDK
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdom(tf2::Transform base2odomTransf, sl::Pose& slPose, ros::Time t);
+        void publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t);
 
         /* \brief Publish the pose of the camera in "Map" frame as a transformation
          * \param baseTransform : Transformation representing the camera pose from

@@ -832,13 +832,13 @@ namespace zed_wrapper {
         NODELET_INFO("Tracking ENABLED");
     }
 
-    void ZEDWrapperNodelet::publishOdom(tf2::Transform base2odomTransf, sl::Pose& slPose, ros::Time t) {
+    void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t) {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
-        odom.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
+        odom.header.frame_id = mOdometryFrameId; // frame
         odom.child_frame_id = mBaseFrameId;      // camera_frame
         // conversion from Tranform to message
-        geometry_msgs::Transform base2odom = tf2::toMsg(base2odomTransf);
+        geometry_msgs::Transform base2odom = tf2::toMsg(odom2baseTransf);
         // Add all value in odometry message
         odom.pose.pose.position.x = base2odom.translation.x;
         odom.pose.pose.position.y = base2odom.translation.y;
@@ -867,35 +867,38 @@ namespace zed_wrapper {
         base_pose.setIdentity();
 
         if (mPublishMapTf) {
-            // Look up the transformation from base frame to map
-            try {
-                // Save the transformation from base to frame
-                geometry_msgs::TransformStamped b2m =
-                    mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
-                // Get the TF2 transformation
-                tf2::fromMsg(b2m.transform, base_pose);
-            } catch (tf2::TransformException& ex) {
-                NODELET_WARN_THROTTLE(
-                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
-                    "will assume it as identity!",
-                    mBaseFrameId.c_str(), mMapFrameId.c_str());
-                NODELET_DEBUG("Transform error: %s", ex.what());
-            }
+            //            // Look up the transformation from base frame to map
+            //            try {
+            //                // Save the transformation from base to frame
+            //                geometry_msgs::TransformStamped b2m =
+            //                    mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
+            //                // Get the TF2 transformation
+            //                tf2::fromMsg(b2m.transform, base_pose);
+            //            } catch (tf2::TransformException& ex) {
+            //                NODELET_WARN_THROTTLE(
+            //                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
+            //                    "will assume it as identity!",
+            //                    mBaseFrameId.c_str(), mMapFrameId.c_str());
+            //                NODELET_DEBUG("Transform error: %s", ex.what());
+            //            }
+            base_pose = mMap2BaseTransf;
         } else if (mPublishTf) {
-            // Look up the transformation from base frame to odom frame
-            try {
-                // Save the transformation from base to frame
-                geometry_msgs::TransformStamped b2o =
-                    mTfBuffer->lookupTransform(mOdometryFrameId, mBaseFrameId, ros::Time(0));
-                // Get the TF2 transformation
-                tf2::fromMsg(b2o.transform, base_pose);
-            } catch (tf2::TransformException& ex) {
-                NODELET_WARN_THROTTLE(
-                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
-                    "will assume it as identity!",
-                    mBaseFrameId.c_str(), mOdometryFrameId.c_str());
-                NODELET_DEBUG("Transform error: %s", ex.what());
-            }
+            //            // Look up the transformation from base frame to odom frame
+            //            try {
+            //                // Save the transformation from base to frame
+            //                geometry_msgs::TransformStamped b2o =
+            //                    mTfBuffer->lookupTransform(mOdometryFrameId, mBaseFrameId, ros::Time(0));
+            //                // Get the TF2 transformation
+            //                tf2::fromMsg(b2o.transform, base_pose);
+            //            } catch (tf2::TransformException& ex) {
+            //                NODELET_WARN_THROTTLE(
+            //                    10.0, "The tf from '%s' to '%s' does not seem to be available, "
+            //                    "will assume it as identity!",
+            //                    mBaseFrameId.c_str(), mOdometryFrameId.c_str());
+            //                NODELET_DEBUG("Transform error: %s", ex.what());
+            //            }
+
+            base_pose = mOdom2BaseTransf;
         }
 
         std_msgs::Header header;
@@ -904,30 +907,17 @@ namespace zed_wrapper {
 
         geometry_msgs::Pose pose;
 
-        if (mPublishTf) {
-            // conversion from Tranform to message
-            geometry_msgs::Transform base2frame = tf2::toMsg(base_pose);
+        // conversion from Tranform to message
+        geometry_msgs::Transform base2frame = tf2::toMsg(base_pose);
 
-            // Add all value in Pose message
-            pose.position.x = base2frame.translation.x;
-            pose.position.y = base2frame.translation.y;
-            pose.position.z = base2frame.translation.z;
-            pose.orientation.x = base2frame.rotation.x;
-            pose.orientation.y = base2frame.rotation.y;
-            pose.orientation.z = base2frame.rotation.z;
-            pose.orientation.w = base2frame.rotation.w;
-        } else {
-            sl::Translation translation = mLastZedPose.getTranslation();
-            sl::Orientation quat = mLastZedPose.getOrientation();
-
-            pose.position.x = mSignX * translation(mIdxX);
-            pose.position.y = mSignY * translation(mIdxY);
-            pose.position.z = mSignZ * translation(mIdxZ);
-            pose.orientation.x = mSignX * quat(mIdxX);
-            pose.orientation.y = mSignY * quat(mIdxY);
-            pose.orientation.z = mSignZ * quat(mIdxZ);
-            pose.orientation.w = quat(3);
-        }
+        // Add all value in Pose message
+        pose.position.x = base2frame.translation.x;
+        pose.position.y = base2frame.translation.y;
+        pose.position.z = base2frame.translation.z;
+        pose.orientation.x = base2frame.rotation.x;
+        pose.orientation.y = base2frame.rotation.y;
+        pose.orientation.z = base2frame.rotation.z;
+        pose.orientation.w = base2frame.rotation.w;
 
         if (mPubPose.getNumSubscribers() > 0) {
 
@@ -1937,8 +1927,7 @@ namespace zed_wrapper {
                             double roll, pitch, yaw;
                             tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-
-                            NODELET_DEBUG("Base POSE [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                            NODELET_DEBUG("+++ Odometry [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
                                           mOdometryFrameId.c_str(), mBaseFrameId.c_str(),
                                           mOdom2BaseTransf.getOrigin().x(), mOdom2BaseTransf.getOrigin().y(), mOdom2BaseTransf.getOrigin().z(),
                                           roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
@@ -1996,8 +1985,7 @@ namespace zed_wrapper {
                         double roll, pitch, yaw;
                         tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-
-                        NODELET_DEBUG("Base POSE [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                        NODELET_DEBUG("*** Base POSE [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
                                       mMapFrameId.c_str(), mBaseFrameId.c_str(),
                                       mMap2BaseTransf.getOrigin().x(), mMap2BaseTransf.getOrigin().y(), mMap2BaseTransf.getOrigin().z(),
                                       roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
@@ -2028,14 +2016,14 @@ namespace zed_wrapper {
                             mResetOdom = false;
                         } else {
                             // Transformation from map to odometry frame
-                            mMap2OdomTransf = mMap2BaseTransf.inverse() * mOdom2BaseTransf;
+                            //mMap2OdomTransf = mOdom2BaseTransf.inverse() * mMap2BaseTransf;
+                            mMap2OdomTransf = mMap2BaseTransf * mOdom2BaseTransf.inverse();
 
 #ifndef NDEBUG
                             double roll, pitch, yaw;
                             tf2::Matrix3x3(mMap2OdomTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-
-                            NODELET_DEBUG("Diff [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                            NODELET_DEBUG("+++ Diff [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
                                           mMapFrameId.c_str(), mOdometryFrameId.c_str(),
                                           mMap2OdomTransf.getOrigin().x(), mMap2OdomTransf.getOrigin().y(), mMap2OdomTransf.getOrigin().z(),
                                           roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
@@ -2063,6 +2051,34 @@ namespace zed_wrapper {
                         publishPoseFrame(mMap2OdomTransf, mFrameTimestamp); // publish the odometry Frame in map frame
                     }
                 }
+
+#ifndef NDEBUG
+                // Double check: map_to_pose must be equal to mMap2BaseTransf
+
+                tf2::Transform map_to_base;
+                try {
+                    // Save the transformation from base to frame
+                    geometry_msgs::TransformStamped b2m =
+                        mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
+                    // Get the TF2 transformation
+                    tf2::fromMsg(b2m.transform, map_to_base);
+                } catch (tf2::TransformException& ex) {
+                    NODELET_DEBUG("The tf from '%s' to '%s' does not seem to be available, "
+                                  "will assume it as identity!",
+                                  mMapFrameId.c_str(), mBaseFrameId.c_str());
+                    NODELET_DEBUG("Transform error: %s", ex.what());
+                }
+
+                double roll, pitch, yaw;
+                tf2::Matrix3x3(map_to_base.getRotation()).getRPY(roll, pitch, yaw);
+
+                NODELET_DEBUG("*** Check [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                              mMapFrameId.c_str(), mBaseFrameId.c_str(),
+                              map_to_base.getOrigin().x(), map_to_base.getOrigin().y(), map_to_base.getOrigin().z(),
+                              roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+
+                NODELET_DEBUG("*******************************");
+#endif
 
                 double mean = mElabPeriodMean_sec->addValue(loop_rate.cycleTime().toSec()) ;
 

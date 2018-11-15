@@ -7,7 +7,6 @@ Panels:
         - /Global Options1
         - /RobotModel1/Links1
         - /TF1/Frames1
-        - /Video1
         - /Video1/Camera view1
         - /Video1/Camera view1/Visibility1
         - /Video1/Camera view1/Visibility1/Video1
@@ -105,8 +104,6 @@ Visualization Manager:
       Frame Timeout: 5
       Frames:
         All Enabled: false
-        imu_link:
-          Value: false
         map:
           Value: true
         odom:
@@ -130,8 +127,6 @@ Visualization Manager:
         map:
           odom:
             zed_camera_center:
-              imu_link:
-                {}
               zed_left_camera_frame:
                 zed_left_camera_optical_frame:
                   {}
@@ -455,11 +450,11 @@ Visualization Manager:
             y_scale: 1
             z_scale: 1
           Class: rviz_imu_plugin/Imu
-          Enabled: true
+          Enabled: false
           Name: Imu
           Topic: /zed/imu/data
           Unreliable: false
-          Value: true
+          Value: false
           fixed_frame_orientation: true
       Enabled: true
       Name: Pose
