@@ -91,7 +91,7 @@ namespace zed_wrapper {
          * \param slPose : latest odom pose from ZED SDK
          * \param t : the ros::Time to stamp the image
          */
-        void publishOdom(tf2::Transform base2odomTransf, sl::Pose& slPose, ros::Time t);
+        void publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t);
 
         /* \brief Publish the pose of the camera in "Map" frame as a transformation
          * \param baseTransform : Transformation representing the camera pose from
@@ -370,9 +370,10 @@ namespace zed_wrapper {
         std::vector<geometry_msgs::PoseStamped> mMapPath;
 
         // TF Transforms
-        tf2::Transform mOdom2MapTransf;
-        tf2::Transform mBase2OdomTransf;
-        tf2::Transform mSensor2BaseTransf;
+        tf2::Transform mMap2OdomTransf;     // Coordinates of the odometry frame in map frame
+        tf2::Transform mOdom2BaseTransf;    // Coordinates of the base in odometry frame
+        tf2::Transform mMap2BaseTransf;     // Coordinates of the base in base frame
+        tf2::Transform mSensor2BaseTransf;  // Coordinates of the base frame in sensor frame
 
         // Zed object
         sl::InitParameters mZedParams;
