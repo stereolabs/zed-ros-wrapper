@@ -9,6 +9,10 @@
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
   <license>MIT</license>
 
+  <url type="website">http://stereolabs.com/</url>
+  <url type="repository">https://github.com/stereolabs/zed-ros-wrapper</url>
+  <url type="bugtracker">https://github.com/stereolabs/zed-ros-wrapper/issues</url>
+
   <buildtool_depend>catkin</buildtool_depend>  
   
   <depend>roscpp</depend>
@@ -24,6 +28,7 @@
   <depend>dynamic_reconfigure</depend>  
   <depend>eigen</depend>
   <depend>tf2_eigen</depend>
+  <depend>diagnostic_updater</depend>
   
   <build_depend>urdf</build_depend>
   <build_depend>message_generation</build_depend>

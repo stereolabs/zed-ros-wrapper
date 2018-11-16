@@ -55,6 +55,7 @@ find_package(catkin COMPONENTS
   tf2_geometry_msgs
   message_generation
   tf2_eigen
+  diagnostic_updater
 )
 
 checkPackage("image_transport" "")
@@ -69,6 +70,7 @@ checkPackage("tf2_ros" "")
 checkPackage("nodelet" "")
 checkPackage("tf2_geometry_msgs" "")
 checkPackage("message_generation" "")
+checkPackage("diagnostic_updater" "")
 
 add_service_files( FILES
     set_pose.srv
@@ -90,12 +92,12 @@ catkin_package(
     stereo_msgs
     nav_msgs
     map_msgs
-
     image_transport
     dynamic_reconfigure
     tf2_ros
     tf2_geometry_msgs
     message_runtime
+    diagnostic_updater
 )
 
 ###############################################################################
