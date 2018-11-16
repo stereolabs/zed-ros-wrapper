@@ -676,7 +676,7 @@ namespace zed_wrapper {
             // Get the TF2 transformation
             tf2::fromMsg(s2b.transform, mSensor2BaseTransf);
 
-#ifndef NDEBUG
+#if 0 //#ifndef NDEBUG // Enable for TF checking
             double roll, pitch, yaw;
             tf2::Matrix3x3(mSensor2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -1894,7 +1894,7 @@ namespace zed_wrapper {
                             // Propagate Odom transform in time
                             mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
 
-#ifndef NDEBUG
+#if 0 //#ifndef NDEBUG // Enable for TF checking
                             double roll, pitch, yaw;
                             tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -1923,15 +1923,16 @@ namespace zed_wrapper {
 
                     sl::Translation translation = mLastZedPose.getTranslation();
                     sl::Orientation quat = mLastZedPose.getOrientation();
-                    //#ifndef NDEBUG
-                    //                    double roll, pitch, yaw;
-                    //                    tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
 
-                    //                    NODELET_DEBUG("Sensor POSE [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
-                    //                                  mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
-                    //                                  translation.x, translation.y, translation.z,
-                    //                                  roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-                    //#endif
+#if 0 //#ifndef NDEBUG // Enable for TF checking
+                    double roll, pitch, yaw;
+                    tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
+
+                    NODELET_DEBUG("Sensor POSE [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
+                                  mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
+                                  translation.x, translation.y, translation.z,
+                                  roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+#endif
 
                     NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << sl::toString(mTrackingStatus));
 
@@ -1952,7 +1953,7 @@ namespace zed_wrapper {
 
                         mMap2BaseTransf = mSensor2BaseTransf * map_to_sens_transf; // Base position in map frame
 
-#ifndef NDEBUG
+#if 0 //#ifndef NDEBUG // Enable for TF checking
                         double roll, pitch, yaw;
                         tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -1990,7 +1991,7 @@ namespace zed_wrapper {
                             //mMap2OdomTransf = mOdom2BaseTransf.inverse() * mMap2BaseTransf;
                             mMap2OdomTransf = mMap2BaseTransf * mOdom2BaseTransf.inverse();
 
-#ifndef NDEBUG
+#if 0 //#ifndef NDEBUG // Enable for TF checking
                             double roll, pitch, yaw;
                             tf2::Matrix3x3(mMap2OdomTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -2023,7 +2024,7 @@ namespace zed_wrapper {
                     }
                 }
 
-#ifndef NDEBUG
+#if 0 //#ifndef NDEBUG // Enable for TF checking
                 // Double check: map_to_pose must be equal to mMap2BaseTransf
 
                 tf2::Transform map_to_base;
