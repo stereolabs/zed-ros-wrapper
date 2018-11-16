@@ -704,12 +704,12 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::resetTransforms() {
+    void ZEDWrapperNodelet::initTransforms() {
 
         // According to REP 105 -> http://www.ros.org/reps/rep-0105.html
 
-        // base_link -> odom -> map
-        //     |                 ^
+        // base_link <- odom <- map
+        //     ^                 |
         //     |                 |
         //     -------------------
 
@@ -730,9 +730,20 @@ namespace zed_wrapper {
         try {
             // Save the transformation from base to frame
             geometry_msgs::TransformStamped s2b =
-                mTfBuffer->lookupTransform(mBaseFrameId, mDepthFrameId, mFrameTimestamp);
+                mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, mFrameTimestamp);
             // Get the TF2 transformation
             tf2::fromMsg(s2b.transform, mSensor2BaseTransf);
+
+#if 0 //#ifndef NDEBUG // Enable for TF checking
+            double roll, pitch, yaw;
+            tf2::Matrix3x3(mSensor2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+            NODELET_DEBUG("Sensor2Base [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                          mDepthFrameId.c_str(), mBaseFrameId.c_str(),
+                          mSensor2BaseTransf.getOrigin().x(), mSensor2BaseTransf.getOrigin().y(), mSensor2BaseTransf.getOrigin().z(),
+                          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+#endif
+
         } catch (tf2::TransformException& ex) {
             NODELET_WARN_THROTTLE(
                 10.0, "The tf from '%s' to '%s' does not seem to be available, "
@@ -759,42 +770,36 @@ namespace zed_wrapper {
     void ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr,
                                      float pr, float yr) {
 
-        // Base Pose
-        tf2::Vector3 orig(xt, yt, zt);
-        tf2::Quaternion q;
-        q.setRPY(rr, pr, yr);
+        initTransforms();
 
-        mBase2MapTransf.setOrigin(orig);
-        mBase2MapTransf.setRotation(q);
+        // Apply Base to sensor transform
+        tf2::Transform initPose;
+        tf2::Vector3 origin(xt, yt, zt);
+        initPose.setOrigin(origin);
+        tf2::Quaternion quat;
+        quat.setRPY(rr, pr, yr);
+        initPose.setRotation(quat);
 
-        NODELET_INFO("Inizial base pose: ");
-        NODELET_INFO(" * T: [%g,%g,%g]",
-                     mBase2MapTransf.getOrigin()[0], mBase2MapTransf.getOrigin()[1], mBase2MapTransf.getOrigin()[2]);
-        NODELET_INFO(" * Q: [%g,%g,%g,%g]",
-                     mBase2MapTransf.getRotation().getX(), mBase2MapTransf.getRotation().getY(),
-                     mBase2MapTransf.getRotation().getZ(), mBase2MapTransf.getRotation().getW());
+        initPose = initPose * mSensor2BaseTransf.inverse();
 
-        getSens2BaseTransform();
+        // SL pose
+        sl::float3 t_vec;
+        t_vec[0] = initPose.getOrigin().x();
+        t_vec[1] = initPose.getOrigin().y();
+        t_vec[2] = initPose.getOrigin().z();
 
-        tf2::Transform sens2map = mBase2MapTransf * mSensor2BaseTransf;
+        sl::float4 q_vec;
+        q_vec[0] = initPose.getRotation().x();
+        q_vec[1] = initPose.getRotation().y();
+        q_vec[2] = initPose.getRotation().z();
+        q_vec[3] = initPose.getRotation().w();
 
-        sl::Translation slT;
-        slT.x = sens2map.getOrigin().x();
-        slT.y = sens2map.getOrigin().y();
-        slT.z = sens2map.getOrigin().z();
+        sl::Translation trasl(t_vec);
+        sl::Orientation orient(q_vec);
+        mInitialPoseSl.setTranslation(trasl);
+        mInitialPoseSl.setOrientation(orient);
 
-        sl::Orientation slO;
-        slO.ox = sens2map.getRotation().getX();
-        slO.oy = sens2map.getRotation().getY();
-        slO.oz = sens2map.getRotation().getZ();
-        slO.ow = sens2map.getRotation().getW();
-
-        mInitialPoseSl.setTranslation(slT);
-        mInitialPoseSl.setOrientation(slO);
-
-        mNhNs.getParam("init_odom_with_first_valid_pose", mInitOdomWithPose);
-
-        NODELET_INFO("Inizial ZED sensor pose: ");
+        NODELET_INFO("Inizial ZED left camera pose: ");
         NODELET_INFO(" * T: [%g,%g,%g]",
                      mInitialPoseSl.getTranslation().x, mInitialPoseSl.getTranslation().y, mInitialPoseSl.getTranslation().y);
         NODELET_INFO(" * Q: [%g,%g,%g,%g]",
@@ -805,20 +810,21 @@ namespace zed_wrapper {
     bool ZEDWrapperNodelet::on_set_pose(
         zed_wrapper::set_pose::Request& req,
         zed_wrapper::set_pose::Response& res) {
-        mInitialBasePose.resize(6);
-        mInitialBasePose[0] = req.x;
-        mInitialBasePose[1] = req.y;
-        mInitialBasePose[2] = req.z;
-        mInitialBasePose[3] = req.R;
-        mInitialBasePose[4] = req.P;
-        mInitialBasePose[5] = req.Y;
+        mInitialTrackPose.resize(6);
+        mInitialTrackPose[0] = req.x;
+        mInitialTrackPose[1] = req.y;
+        mInitialTrackPose[2] = req.z;
+        mInitialTrackPose[3] = req.R;
+        mInitialTrackPose[4] = req.P;
+        mInitialTrackPose[5] = req.Y;
 
-        resetTransforms();
-        set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
-                 mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
+        set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
+                 mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
 
         if (mTrackingActivated) {
-            mZed.resetTracking(mInitialPoseSl);
+            if (mZed.resetTracking(mInitialPoseSl) == sl::SUCCESS) {
+                return true;
+            }
         }
 
         res.done = true;
@@ -833,28 +839,22 @@ namespace zed_wrapper {
             return false;
         }
 
-        mNhNs.getParam("initial_base_pose", mInitialBasePose);
+        mNhNs.getParam("initial_tracking_pose", mInitialTrackPose);
 
-        if (mInitialBasePose.size() != 6) {
-            NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialBasePose.size()
+        if (mInitialTrackPose.size() != 6) {
+            NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialTrackPose.size()
                                 << "). Using Identity");
-
-            mInitialBasePose.resize(6);
-            for (size_t i = 0; i < 6; i++) {
-                mInitialBasePose[i] = 0.0f;
-            }
+            mInitialPoseSl.setIdentity();
         }
 
-        resetTransforms();
-        set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
-                 mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
+        set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
+                 mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
 
-        if (mTrackingActivated) {
-            mZed.resetTracking(mInitialPoseSl);
+        if (mZed.resetTracking(mInitialPoseSl) == sl::SUCCESS) {
+            return true;
         }
 
-        res.reset_done = true;
-        return true;
+        return false;
     }
 
     bool ZEDWrapperNodelet::on_reset_odometry(

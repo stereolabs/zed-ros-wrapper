@@ -222,9 +222,9 @@ namespace zed_wrapper {
          */
         void set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
 
-        /** \brief Utility to reset the most used transforms
+        /* \brief Utility to initialize the most used transforms
          */
-        void resetTransforms();
+        void initTransforms();
 
         /** \brief Utility to retrieve the static transform from Base to Depth Sensor
          *        from static TF
@@ -384,10 +384,10 @@ namespace zed_wrapper {
         std::vector<geometry_msgs::PoseStamped> mMapPath;
 
         // TF Transforms
-        tf2::Transform mOdom2MapTransf;     // broadcasted if `publish_map_tf` is true
-        tf2::Transform mBase2OdomTransf;    // broadcasted if `publish_tf` is true
-        tf2::Transform mBase2MapTransf;     // used internally, but not broadcasted
-        tf2::Transform mSensor2BaseTransf;
+        tf2::Transform mMap2OdomTransf;     // Coordinates of the odometry frame in map frame
+        tf2::Transform mOdom2BaseTransf;    // Coordinates of the base in odometry frame
+        tf2::Transform mMap2BaseTransf;     // Coordinates of the base in base frame
+        tf2::Transform mSensor2BaseTransf;  // Coordinates of the base frame in sensor frame
 
         bool mSensor2BaseTransfValid = false;
 
