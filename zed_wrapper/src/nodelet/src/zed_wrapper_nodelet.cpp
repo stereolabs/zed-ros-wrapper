@@ -735,7 +735,7 @@ namespace zed_wrapper {
             // Get the TF2 transformation
             tf2::fromMsg(s2b.transform, mSensor2BaseTransf);
 
-#ifndef NDEBUG // Enable for TF checking
+#ifndef NDEBUG
             double roll, pitch, yaw;
             tf2::Matrix3x3(mSensor2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -2040,7 +2040,7 @@ namespace zed_wrapper {
                             // Propagate Odom transform in time
                             mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
 
-#ifndef NDEBUG // Enable for TF checking
+#if 0 // #ifndef NDEBUG // Enable to check if TF tree is correct
                             double roll, pitch, yaw;
                             tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -2099,7 +2099,7 @@ namespace zed_wrapper {
 
                         mMap2BaseTransf = mSensor2BaseTransf * map_to_sens_transf; // Base position in map frame
 
-#ifndef NDEBUG // Enable for TF checking
+#if 0 // #ifndef NDEBUG // Enable to check if TF tree is correct
                         double roll, pitch, yaw;
                         tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -2137,7 +2137,7 @@ namespace zed_wrapper {
                             //mMap2OdomTransf = mOdom2BaseTransf.inverse() * mMap2BaseTransf;
                             mMap2OdomTransf = mMap2BaseTransf * mOdom2BaseTransf.inverse();
 
-#ifndef NDEBUG // Enable for TF checking
+#if 0 // #ifndef NDEBUG // Enable to check if TF tree is correct
                             double roll, pitch, yaw;
                             tf2::Matrix3x3(mMap2OdomTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -2170,8 +2170,9 @@ namespace zed_wrapper {
                     }
                 }
 
-#ifndef NDEBUG // Enable for TF checking
-                // Double check: map_to_pose must be equal to mMap2BaseTransf
+#if 0 // #ifndef NDEBUG // Enable to check if TF tree is correct
+                // Double check: map_to_base must be equal to mMap2BaseTransf
+                // This is valid only if the ZED Wrapper node is publishing the map frame and the odometry frame
 
                 tf2::Transform map_to_base;
                 try {
