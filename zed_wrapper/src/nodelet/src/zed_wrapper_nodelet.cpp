@@ -387,7 +387,7 @@ namespace zed_wrapper {
         mZedParams.depth_stabilization = mDepthStabilization;
         mZedParams.camera_image_flip = mCameraFlip;
 
-        mDiagUpdater.add("ZED Diagnostic", this, &ZEDWrapperNodelet::updateDiagnostic);
+        mDiagUpdater.add("ZED Camera", this, &ZEDWrapperNodelet::updateDiagnostic);
         mDiagUpdater.setHardwareID("ZED camera");
 
         mConnStatus = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
