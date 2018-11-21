@@ -303,6 +303,7 @@ namespace zed_wrapper {
         } else {
             mZedParams.camera_fps = mCamFrameRate;
             mZedParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
+            mZedParams.depth_minimum_distance = 0.1;
 
             if (mZedSerialNumber == 0) {
                 mZedParams.camera_linux_id = mZedId;
@@ -431,6 +432,8 @@ namespace zed_wrapper {
 
         NODELET_INFO_STREAM("CAMERA MODEL : " << mZedRealCamModel);
         mZedSerialNumber = mZed.getCameraInformation().serial_number;
+
+        mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
 
         // Dynamic Reconfigure parameters
         mDynRecServer = boost::make_shared<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>>();
@@ -1835,6 +1838,7 @@ namespace zed_wrapper {
                                 NODELET_INFO_STREAM("Waiting for the ZED (S/N " << mZedSerialNumber << ") to be re-connected");
                             }
 
+                            mDiagUpdater.force_update();
                             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
                         }
 

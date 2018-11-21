@@ -8,7 +8,6 @@ Panels:
         - /RobotModel1/Links1
         - /TF1/Frames1
         - /Camera1/Visibility1
-        - /Odometry1
         - /Odometry1/Covariance1
         - /Odometry1/Covariance1/Position1
         - /Odometry1/Covariance1/Orientation1
@@ -275,7 +274,7 @@ Visualization Manager:
       Axes Radius: 0.100000001
       Class: rviz/Pose
       Color: 25; 255; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.100000001
       Head Radius: 0.0500000007
       Name: Map Pose
@@ -284,12 +283,12 @@ Visualization Manager:
       Shape: Arrow
       Topic: /zed/pose
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
       Color: 25; 255; 50
-      Enabled: true
+      Enabled: false
       Head Diameter: 0.0199999996
       Head Length: 0.0199999996
       Length: 0.0500000007
@@ -307,7 +306,7 @@ Visualization Manager:
       Shaft Length: 0.0500000007
       Topic: /zed/path_map
       Unreliable: false
-      Value: true
+      Value: false
     - Angle Tolerance: 0
       Class: rviz/Odometry
       Covariance:
@@ -595,10 +594,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.164797604
+      Pitch: 0.124797605
       Target Frame: zed_camera_center
       Value: Orbit (rviz)
-      Yaw: 2.83859181
+      Yaw: 2.75359178
     Saved:
       - Angle: -1.57079637
         Class: rviz/TopDownOrtho
