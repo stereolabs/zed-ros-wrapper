@@ -1889,7 +1889,7 @@ namespace zed_wrapper {
                             tf2::fromMsg(deltaTransf, deltaOdomTf);
                             // delta odom from sensor to base frame
                             tf2::Transform deltaOdomTf_base =
-                                mSensor2BaseTransf * deltaOdomTf * mSensor2BaseTransf.inverse();
+                                mSensor2BaseTransf.inverse() * deltaOdomTf * mSensor2BaseTransf;
 
                             // Propagate Odom transform in time
                             mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
@@ -1951,7 +1951,7 @@ namespace zed_wrapper {
                         tf2::Transform map_to_sens_transf;
                         tf2::fromMsg(map2sensTransf, map_to_sens_transf);
 
-                        mMap2BaseTransf = mSensor2BaseTransf * map_to_sens_transf; // Base position in map frame
+                        mMap2BaseTransf = map_to_sens_transf * mSensor2BaseTransf; // Base position in map frame
 
 #if 0 //#ifndef NDEBUG // Enable for TF checking
                         double roll, pitch, yaw;
