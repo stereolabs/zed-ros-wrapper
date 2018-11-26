@@ -231,6 +231,16 @@ namespace zed_wrapper {
          */
         bool getSens2BaseTransform();
 
+        /** \brief Utility to retrieve the static transform from Camera center to Depth Sensor
+         *        from static TF
+         */
+        bool getSens2CameraTransform();
+
+        /** \brief Utility to retrieve the static transform from Base Link to Camera center
+         *        from static TF
+         */
+        bool getCamera2BaseTransform();
+
         /* \bried Start tracking loading the parameters from param server
          */
         void start_tracking();
@@ -384,12 +394,17 @@ namespace zed_wrapper {
         std::vector<geometry_msgs::PoseStamped> mMapPath;
 
         // TF Transforms
-        tf2::Transform mMap2OdomTransf;     // Coordinates of the odometry frame in map frame
-        tf2::Transform mOdom2BaseTransf;    // Coordinates of the base in odometry frame
-        tf2::Transform mMap2BaseTransf;     // Coordinates of the base in base frame
-        tf2::Transform mSensor2BaseTransf;  // Coordinates of the base frame in sensor frame
+        tf2::Transform mMap2OdomTransf;         // Coordinates of the odometry frame in map frame
+        tf2::Transform mOdom2BaseTransf;        // Coordinates of the base in odometry frame
+        tf2::Transform mMap2BaseTransf;         // Coordinates of the base in map frame
+        tf2::Transform mMap2CameraTransf;       // Coordinates of the camera in base frame
+        tf2::Transform mSensor2BaseTransf;      // Coordinates of the base frame in sensor frame
+        tf2::Transform mSensor2CameraTransf;    // Coordinates of the camera frame in sensor frame
+        tf2::Transform mCamera2BaseTransf;      // Coordinates of the base frame in camera frame
 
         bool mSensor2BaseTransfValid = false;
+        bool mSensor2CameraTransfValid = false;
+        bool mCamera2BaseTransfValid = false;
 
         // Zed object
         sl::InitParameters mZedParams;

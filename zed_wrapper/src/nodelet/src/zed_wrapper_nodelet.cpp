@@ -718,10 +718,105 @@ namespace zed_wrapper {
         //     -------------------
 
         // >>>>> Dynamic transforms
-        mOdom2BaseTransf.setIdentity(); // broadcasted if `publish_tf` is true
-        mMap2OdomTransf.setIdentity();  // broadcasted if `publish_map_tf` is true
-        mMap2BaseTransf.setIdentity();  // used internally, but not broadcasted
+        mOdom2BaseTransf.setIdentity();     // broadcasted if `publish_tf` is true
+        mMap2OdomTransf.setIdentity();      // broadcasted if `publish_map_tf` is true
+        mMap2BaseTransf.setIdentity();      // used internally, but not broadcasted
+        mMap2CameraTransf.setIdentity();    // used internally, but not broadcasted
         // <<<<< Dynamic transforms
+    }
+
+    bool ZEDWrapperNodelet::getCamera2BaseTransform() {
+        NODELET_INFO("Getting static TF from '%s' to '%s'" , mCameraFrameId.c_str(), mBaseFrameId.c_str());
+
+        mCamera2BaseTransfValid = false;
+
+        // >>>>> Static transforms
+        // Sensor to Base link
+        try {
+            // Save the transformation from camera frame to base frame
+            geometry_msgs::TransformStamped c2b =
+                mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, ros::Time(0));
+            // Get the TF2 transformation
+            tf2::fromMsg(c2b.transform, mCamera2BaseTransf);
+
+#ifndef NDEBUG
+            double roll, pitch, yaw;
+            tf2::Matrix3x3(mCamera2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+            NODELET_DEBUG("Sensor2Camera [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                          mDepthFrameId.c_str(), mCameraFrameId.c_str(),
+                          mCamera2BaseTransf.getOrigin().x(), mCamera2BaseTransf.getOrigin().y(), mCamera2BaseTransf.getOrigin().z(),
+                          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+#endif
+
+        } catch (tf2::TransformException& ex) {
+            NODELET_WARN_THROTTLE(
+                10.0, "The tf from '%s' to '%s' does not seem to be available, "
+                "will assume it as identity!",
+                mDepthFrameId.c_str(), mCameraFrameId.c_str());
+            NODELET_DEBUG("Transform error: %s", ex.what());
+            mCamera2BaseTransf.setIdentity();
+            return false;
+        }
+        // <<<<< Static transforms
+
+        NODELET_INFO("Static TF from '%s' to '%s' is valid" , mDepthFrameId.c_str(), mCameraFrameId.c_str());
+        NODELET_INFO(" * T: [%g,%g,%g]",
+                     mCamera2BaseTransf.getOrigin()[0], mCamera2BaseTransf.getOrigin()[1], mCamera2BaseTransf.getOrigin()[2]);
+        NODELET_INFO(" * Q: [%g,%g,%g,%g]",
+                     mCamera2BaseTransf.getRotation().getX(), mCamera2BaseTransf.getRotation().getY(),
+                     mCamera2BaseTransf.getRotation().getZ(), mCamera2BaseTransf.getRotation().getW());
+
+        mCamera2BaseTransfValid = true;
+
+        return true;
+    }
+
+    bool ZEDWrapperNodelet::getSens2CameraTransform() {
+        NODELET_INFO("Getting static TF from '%s' to '%s'" , mDepthFrameId.c_str(), mCameraFrameId.c_str());
+
+        mSensor2CameraTransfValid = false;
+
+        // >>>>> Static transforms
+        // Sensor to Base link
+        try {
+            // Save the transformation from base to frame
+            geometry_msgs::TransformStamped s2c =
+                mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, ros::Time(0));
+            // Get the TF2 transformation
+            tf2::fromMsg(s2c.transform, mSensor2CameraTransf);
+
+#ifndef NDEBUG
+            double roll, pitch, yaw;
+            tf2::Matrix3x3(mSensor2CameraTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+            NODELET_DEBUG("Sensor2Camera [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                          mDepthFrameId.c_str(), mCameraFrameId.c_str(),
+                          mSensor2CameraTransf.getOrigin().x(), mSensor2CameraTransf.getOrigin().y(), mSensor2CameraTransf.getOrigin().z(),
+                          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+#endif
+
+        } catch (tf2::TransformException& ex) {
+            NODELET_WARN_THROTTLE(
+                10.0, "The tf from '%s' to '%s' does not seem to be available, "
+                "will assume it as identity!",
+                mDepthFrameId.c_str(), mCameraFrameId.c_str());
+            NODELET_DEBUG("Transform error: %s", ex.what());
+            mSensor2CameraTransf.setIdentity();
+            return false;
+        }
+        // <<<<< Static transforms
+
+        NODELET_INFO("Static TF from '%s' to '%s' is valid" , mDepthFrameId.c_str(), mCameraFrameId.c_str());
+        NODELET_INFO(" * T: [%g,%g,%g]",
+                     mSensor2CameraTransf.getOrigin()[0], mSensor2CameraTransf.getOrigin()[1], mSensor2CameraTransf.getOrigin()[2]);
+        NODELET_INFO(" * Q: [%g,%g,%g,%g]",
+                     mSensor2CameraTransf.getRotation().getX(), mSensor2CameraTransf.getRotation().getY(),
+                     mSensor2CameraTransf.getRotation().getZ(), mSensor2CameraTransf.getRotation().getW());
+
+        mSensor2CameraTransfValid = true;
+
+        return true;
     }
 
     bool ZEDWrapperNodelet::getSens2BaseTransform() {
@@ -778,6 +873,14 @@ namespace zed_wrapper {
 
         if (!mSensor2BaseTransfValid) {
             getSens2BaseTransform();
+        }
+
+        if (!mSensor2CameraTransfValid) {
+            getSens2CameraTransform();
+        }
+
+        if (!mCamera2BaseTransfValid) {
+            getCamera2BaseTransform();
         }
 
         // Apply Base to sensor transform
@@ -966,7 +1069,7 @@ namespace zed_wrapper {
                       odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w);
 
         // >>>>> Odometry pose covariance if available
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION==6))
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6 && ZED_SDK_MINOR_VERSION<9))
         if (!mSpatialMemory && mPublishPoseCovariance) {
             // >>>>> Transform from sensor to base frame
             geometry_msgs::Transform sens2base = tf2::toMsg(mSensor2BaseTransf);
@@ -984,7 +1087,7 @@ namespace zed_wrapper {
 
             memcpy(&(odom.pose.covariance[0]), covInBase.data(), 36 * sizeof(double));
         }
-#elif ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=9)) // TODO FIX VERSION CHECK!
+#elif ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=9))
 
         // >>>>> Twist in camera frame to Twist in base frame
         Eigen::Matrix<float, 6, 1> twist_cam(slPose.twist);
@@ -2026,6 +2129,14 @@ namespace zed_wrapper {
                                 getSens2BaseTransform();
                             }
 
+                            if (!mSensor2CameraTransfValid) {
+                                getSens2CameraTransform();
+                            }
+
+                            if (!mCamera2BaseTransfValid) {
+                                getCamera2BaseTransform();
+                            }
+
                             // Transform ZED delta odom pose in TF2 Transformation
                             geometry_msgs::Transform deltaTransf;
                             deltaTransf.translation.x = mSignX * translation(mIdxX);
@@ -2039,12 +2150,12 @@ namespace zed_wrapper {
                             tf2::fromMsg(deltaTransf, deltaOdomTf);
                             // delta odom from sensor to base frame
                             tf2::Transform deltaOdomTf_base =
-                                mSensor2BaseTransf * deltaOdomTf * mSensor2BaseTransf.inverse();
+                                mSensor2BaseTransf.inverse() * deltaOdomTf * mSensor2BaseTransf;
 
                             // Propagate Odom transform in time
                             mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
 
-#if 0 // #ifndef NDEBUG // Enable to check if TF tree is correct
+#ifndef NDEBUG // Enable to check if TF tree is correct
                             double roll, pitch, yaw;
                             tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -2101,9 +2212,17 @@ namespace zed_wrapper {
                             getSens2BaseTransform();
                         }
 
-                        mMap2BaseTransf = mSensor2BaseTransf * map_to_sens_transf; // Base position in map frame
+                        if (!mSensor2CameraTransfValid) {
+                            getSens2CameraTransform();
+                        }
 
-#if 0 // #ifndef NDEBUG // Enable to check if TF tree is correct
+                        if (!mCamera2BaseTransfValid) {
+                            getCamera2BaseTransform();
+                        }
+
+                        mMap2BaseTransf = map_to_sens_transf * mSensor2BaseTransf; // Base position in map frame
+
+#ifndef NDEBUG // Enable to check if TF tree is correct
                         double roll, pitch, yaw;
                         tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -2141,7 +2260,7 @@ namespace zed_wrapper {
                             //mMap2OdomTransf = mOdom2BaseTransf.inverse() * mMap2BaseTransf;
                             mMap2OdomTransf = mMap2BaseTransf * mOdom2BaseTransf.inverse();
 
-#if 0 // #ifndef NDEBUG // Enable to check if TF tree is correct
+#ifndef NDEBUG // Enable to check if TF tree is correct
                             double roll, pitch, yaw;
                             tf2::Matrix3x3(mMap2OdomTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -2174,7 +2293,7 @@ namespace zed_wrapper {
                     }
                 }
 
-#if 0 // #ifndef NDEBUG // Enable to check if TF tree is correct
+#ifndef NDEBUG // Enable to check if TF tree is correct
                 // Double check: map_to_base must be equal to mMap2BaseTransf
                 // This is valid only if the ZED Wrapper node is publishing the map frame and the odometry frame
 
