@@ -17,7 +17,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
-    <arg name="camera_model"          default="zed" /> <!-- ZED: zed, ZEDm: zedm-->
+    <arg name="camera_model"          default="zedm" /> <!-- ZED: zed, ZEDm: zedm-->
     <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
     <arg name="zed_id"                default="0" />
     <!-- If a ZED SN is given, zed_id is ignored and the wrapper will specifically look for the ZED with the corresponding serial number -->
@@ -172,9 +172,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="imu_topic"                     value="imu/data" /> <!-- only used with ZED M -->
         <param name="imu_topic_raw"                 value="imu/data_raw" /> <!-- only used with ZED M -->
 
-        <param name="imu_pub_rate"                  value="500.0" /> <!-- only used with ZED M - Max value: 800.0 -->
+        <param name="imu_pub_rate"                  value="800.0" /> <!-- only used with ZED M - Max value: 800.0 -->
         <param name="enable_imu_fusion"             value="true" />  <!-- only used with ZED M - Enable/Disable IMU fusion in Visual Tracking -->
-        <param name="imu_timestamp_sync"            value="true" /> <!-- only used with ZED M -->
+        <param name="imu_timestamp_sync"            value="false" /> <!-- only used with ZED M -->
 
         <param name="path_pub_rate"                 value="2" />
         <param name="path_max_count"                value="-1" /> <!-- use "-1" for no limits -->

@@ -567,17 +567,21 @@ namespace zed_wrapper {
                                              &ZEDWrapperNodelet::imuPubCallback, this);
             mImuPeriodMean_usec.reset(new sl_tools::CSmartMean(mImuPubRate / 2));
 
-#ifndef NDEBUG
             sl::CameraInformation zedParam = mZed.getCameraInformation();
             sl::Transform imuTransf = zedParam.camera_imu_transform;
 
             sl::Translation imuPos = imuTransf.getTranslation();
             sl::float3 imuOrient = imuTransf.getEulerAngles(true);
 
-            NODELET_DEBUG_STREAM("IMU POSITION [x,y,z]: " << imuPos.x  << ", " << imuPos.y  << ", " << imuPos.z);
-            NODELET_DEBUG_STREAM("IMU ORIENTATION [r,p,y]: " << imuOrient[0]*DEG2RAD  << ", " << imuOrient[1]*DEG2RAD  << ", " <<
-                                 imuOrient[2]*DEG2RAD);
-#endif
+            NODELET_INFO_STREAM("IMU TRANSFORM: [" << imuTransf.r00 << ", " <<  imuTransf.r01 << ", " <<  imuTransf.r02 << ", " <<
+                                imuTransf.tx << ", "
+                                <<  imuTransf.r10 << ", " <<  imuTransf.r11 << ", " <<  imuTransf.r12 << ", " <<  imuTransf.ty << ", "
+                                <<  imuTransf.r20 << ", " <<  imuTransf.r21 << ", " <<  imuTransf.r22 << ", " <<  imuTransf.tz << ", "
+                                <<  imuTransf.m30 << ", " <<  imuTransf.m31 << ", " <<  imuTransf.m32 << ", " <<  imuTransf.m33 << "]");
+
+            NODELET_INFO_STREAM("IMU POSITION [x,y,z]: " << imuPos.x  << ", " << imuPos.y  << ", " << imuPos.z);
+            NODELET_INFO_STREAM("IMU ORIENTATION [r,p,y]: " << imuOrient[0]*DEG2RAD  << ", " << imuOrient[1]*DEG2RAD  << ", " <<
+                                imuOrient[2]*DEG2RAD);
 
         } /*else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
             NODELET_WARN_STREAM(
