@@ -64,6 +64,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="rgb_info_topic"                default="rgb/camera_info" />
     <arg name="depth_topic"                   default="depth/depth_registered" />
     <arg name="depth_cam_info_topic"          default="depth/camera_info" />
+    <arg name="point_cloud_topic"             default="point_cloud/cloud_registered" />
     <arg name="odometry_topic"                default="odom" />
 
     <arg name="publish_pose_covariance"       default="true" />
@@ -161,7 +162,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="depth_topic"                   value="$(arg depth_topic)" />
         <param name="depth_cam_info_topic"          value="$(arg depth_cam_info_topic)" />
 
-        <param name="point_cloud_topic"             value="point_cloud/cloud_registered" />
+        <param name="point_cloud_topic"             value="$(arg point_cloud_topic)" />
 
         <param name="disparity_topic"               value="disparity/disparity_image" />
         <param name="confidence_img_topic"          value="confidence/confidence_image" />
