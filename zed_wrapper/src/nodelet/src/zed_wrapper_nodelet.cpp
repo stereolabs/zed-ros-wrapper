@@ -739,7 +739,7 @@ namespace zed_wrapper {
         try {
             // Save the transformation from camera frame to base frame
             geometry_msgs::TransformStamped c2b =
-                mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, ros::Time(0));
+                mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, ros::Time(0));
             // Get the TF2 transformation
             tf2::fromMsg(c2b.transform, mCamera2BaseTransf);
 
@@ -747,8 +747,8 @@ namespace zed_wrapper {
             double roll, pitch, yaw;
             tf2::Matrix3x3(mCamera2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-            NODELET_DEBUG("Sensor2Camera [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
-                          mDepthFrameId.c_str(), mCameraFrameId.c_str(),
+            NODELET_DEBUG("Camera2Base [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                          mCameraFrameId.c_str(), mBaseFrameId.c_str(),
                           mCamera2BaseTransf.getOrigin().x(), mCamera2BaseTransf.getOrigin().y(), mCamera2BaseTransf.getOrigin().z(),
                           roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 #endif
@@ -764,7 +764,7 @@ namespace zed_wrapper {
         }
         // <<<<< Static transforms
 
-        NODELET_INFO("Static TF from '%s' to '%s' is valid" , mDepthFrameId.c_str(), mCameraFrameId.c_str());
+        NODELET_INFO("Static TF from '%s' to '%s' is valid" , mCameraFrameId.c_str(), mBaseFrameId.c_str());
         NODELET_INFO(" * T: [%g,%g,%g]",
                      mCamera2BaseTransf.getOrigin()[0], mCamera2BaseTransf.getOrigin()[1], mCamera2BaseTransf.getOrigin()[2]);
         NODELET_INFO(" * Q: [%g,%g,%g,%g]",
@@ -914,9 +914,9 @@ namespace zed_wrapper {
         mInitialPoseSl.setTranslation(trasl);
         mInitialPoseSl.setOrientation(orient);
 
-        NODELET_INFO("Inizial ZED left camera pose: ");
+        NODELET_INFO("Initial ZED left camera pose (ZED pos. tracking): ");
         NODELET_INFO(" * T: [%g,%g,%g]",
-                     mInitialPoseSl.getTranslation().x, mInitialPoseSl.getTranslation().y, mInitialPoseSl.getTranslation().y);
+                     mInitialPoseSl.getTranslation().x, mInitialPoseSl.getTranslation().y, mInitialPoseSl.getTranslation().z);
         NODELET_INFO(" * Q: [%g,%g,%g,%g]",
                      mInitialPoseSl.getOrientation().ox, mInitialPoseSl.getOrientation().oy,
                      mInitialPoseSl.getOrientation().oz, mInitialPoseSl.getOrientation().ow);
