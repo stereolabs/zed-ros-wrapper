@@ -69,6 +69,7 @@ namespace zed_wrapper {
                                            ros::console::levels::Debug)) {
             ros::console::notifyLoggerLevelsChanged();
         }
+
 #endif
         // Launch file parameters
         mCamResol = sl::RESOLUTION_HD720;
@@ -191,12 +192,14 @@ namespace zed_wrapper {
         string rgb_cam_info_raw_topic = "rgb/camera_info_raw";
 
         string depth_topic = "depth/";
+
         if (mOpenniDepthMode) {
             NODELET_INFO_STREAM("Openni depth mode activated");
             depth_topic += "depth_raw_registered";
         } else {
             depth_topic += "depth_registered";
         }
+
         string depth_cam_info_topic = "depth/camera_info";
         string disparity_topic = "disparity/disparity_image";
         string point_cloud_topic = "point_cloud/cloud_registered";
@@ -236,6 +239,7 @@ namespace zed_wrapper {
         mNhNs.getParam("imu_pub_rate", mImuPubRate);
         mNhNs.getParam("path_pub_rate", mPathPubRate);
         mNhNs.getParam("path_max_count", mPathMaxCount);
+
         if (mPathMaxCount < 2 && mPathMaxCount != -1) {
             mPathMaxCount = 2;
         }
@@ -470,6 +474,7 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Advertised on topic " << disparity_topic);
 
         // PointCloud publisher
+        mPointcloudMsg.reset(new sensor_msgs::PointCloud2);
         mPubCloud = mNh.advertise<sensor_msgs::PointCloud2>(point_cloud_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << point_cloud_topic);
 
@@ -494,10 +499,12 @@ namespace zed_wrapper {
         // Odometry and Map publisher
         mPubPose = mNh.advertise<geometry_msgs::PoseStamped>(pose_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << pose_topic);
+
         if (mPublishPoseCovariance) {
             mPubPoseCov = mNh.advertise<geometry_msgs::PoseWithCovarianceStamped>(pose_cov_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << pose_cov_topic);
         }
+
         mPubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
 
@@ -822,9 +829,11 @@ namespace zed_wrapper {
         trackParams.set_floor_as_origin = mFloorAlignment;
         NODELET_INFO_STREAM("Floor Alignment : " << (trackParams.set_floor_as_origin ? "ENABLED" : "DISABLED"));
 #else
+
         if (mFloorAlignment)  {
             NODELET_WARN("Floor Alignment is available with ZED SDK >= v2.6");
         }
+
 #endif
 
         mZed.enableTracking(trackParams);
@@ -850,12 +859,14 @@ namespace zed_wrapper {
 
         // Odometry pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
+
         if (!mSpatialMemory && mPublishPoseCovariance) {
             for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
                 // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
                 odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
             }
         }
+
 #endif
 
         // Publish odometry message
@@ -910,12 +921,14 @@ namespace zed_wrapper {
 
                 // Odometry pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
+
                 if (!mSpatialMemory) {
                     for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
                         // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
                         poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
                     }
                 }
+
 #endif
 
                 // Publish pose with covariance stamped message
@@ -1018,6 +1031,7 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::pointcloud_thread_func() {
         std::unique_lock<std::mutex> lock(mPcMutex);
+
         while (!mStopNode) {
             while (!mPcDataReady) {  // loop to avoid spurious wakeups
                 if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
@@ -1051,17 +1065,18 @@ namespace zed_wrapper {
         // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
         int ptsCount = mMatWidth * mMatHeight;
-        mPointcloudMsg.header.stamp = mPointCloudTime;
-        if (mPointcloudMsg.width != mMatWidth || mPointcloudMsg.height != mMatHeight) {
-            mPointcloudMsg.header.frame_id = mPointCloudFrameId; // Set the header values of the ROS message
+        mPointcloudMsg->header.stamp = mPointCloudTime;
 
-            mPointcloudMsg.is_bigendian = false;
-            mPointcloudMsg.is_dense = false;
+        if (mPointcloudMsg->width != mMatWidth || mPointcloudMsg->height != mMatHeight) {
+            mPointcloudMsg->header.frame_id = mPointCloudFrameId; // Set the header values of the ROS message
 
-            mPointcloudMsg.width = mMatWidth;
-            mPointcloudMsg.height = mMatHeight;
+            mPointcloudMsg->is_bigendian = false;
+            mPointcloudMsg->is_dense = false;
 
-            sensor_msgs::PointCloud2Modifier modifier(mPointcloudMsg);
+            mPointcloudMsg->width = mMatWidth;
+            mPointcloudMsg->height = mMatHeight;
+
+            sensor_msgs::PointCloud2Modifier modifier(*mPointcloudMsg);
             modifier.setPointCloud2Fields(4,
                                           "x", 1, sensor_msgs::PointField::FLOAT32,
                                           "y", 1, sensor_msgs::PointField::FLOAT32,
@@ -1069,23 +1084,23 @@ namespace zed_wrapper {
                                           "rgb", 1, sensor_msgs::PointField::FLOAT32);
         }
 
-
-
         // Data copy
         sl::Vector4<float>* cpu_cloud = mCloud.getPtr<sl::float4>();
-        float* ptCloudPtr = (float*)(&mPointcloudMsg.data[0]);
+        float* ptCloudPtr = (float*)(&mPointcloudMsg->data[0]);
 
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=5) )
         memcpy(ptCloudPtr, (float*)cpu_cloud,
                4 * ptsCount * sizeof(float)); // We can do a direct memcpy since data organization is the same
 #else
         #pragma omp parallel for
+
         for (size_t i = 0; i < ptsCount; ++i) {
             ptCloudPtr[i * 4 + 0] = mSignX * cpu_cloud[i][mIdxX];
             ptCloudPtr[i * 4 + 1] = mSignY * cpu_cloud[i][mIdxY];
             ptCloudPtr[i * 4 + 2] = mSignZ * cpu_cloud[i][mIdxZ];
             ptCloudPtr[i * 4 + 3] = cpu_cloud[i][3];
         }
+
 #endif
 
         // Pointcloud publishing
@@ -1155,6 +1170,7 @@ namespace zed_wrapper {
         if (rawParam) {
             std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
             float* p = R_.data();
+
             for (int i = 0; i < 9; i++) {
                 rightCamInfoMsg->R[i] = p[i];
             }
@@ -1353,6 +1369,7 @@ namespace zed_wrapper {
     void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
 
         std::lock_guard<std::mutex> lock(mCloseZedMutex);
+
         if (!mZed.isOpened()) {
             return;
         }
@@ -1365,6 +1382,7 @@ namespace zed_wrapper {
         }
 
         ros::Time t;
+
         if (mSvoMode) {
             t = ros::Time::now();
         } else {
@@ -1376,6 +1394,7 @@ namespace zed_wrapper {
         }
 
         sl::IMUData imu_data;
+
         if (mImuTimestampSync && mGrabActive) {
             mZed.getIMUData(imu_data, sl::TIME_REFERENCE_IMAGE);
         } else {
@@ -1418,6 +1437,7 @@ namespace zed_wrapper {
             for (int i = 0; i < 3; ++i) {
 
                 int r = 0;
+
                 if (i == 0) {
                     r = mIdxX;
                 } else if (i == 1) {
@@ -1468,6 +1488,7 @@ namespace zed_wrapper {
             for (int i = 0; i < 3; ++i) {
 
                 int r = 0;
+
                 if (i == 0) {
                     r = mIdxX;
                 } else if (i == 1) {
@@ -1502,6 +1523,7 @@ namespace zed_wrapper {
             tf2::Transform cam_to_pose;
 
             std::string poseFrame;
+
             // Look up the transformation from base frame to map link
             try {
                 poseFrame = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
@@ -1840,6 +1862,7 @@ namespace zed_wrapper {
                     // all the program
                     // Retrieve raw pointCloud data if latest Pointcloud is ready
                     std::unique_lock<std::mutex> lock(mPcMutex, std::defer_lock);
+
                     if (lock.try_lock()) {
                         mZed.retrieveMeasure(mCloud, sl::MEASURE_XYZBGRA, sl::MEM_CPU, mMatWidth, mMatHeight);
 
@@ -2017,6 +2040,7 @@ namespace zed_wrapper {
                     // Note, the frame is published, but its values will only change if
                     // someone has subscribed to odom
                     publishOdomFrame(mOdom2BaseTransf, mFrameTimestamp); // publish the base Frame in odometry frame
+
                     if (mPublishMapTf) {
                         // Note, the frame is published, but its values will only change if
                         // someone has subscribed to map
@@ -2028,6 +2052,7 @@ namespace zed_wrapper {
                 // Double check: map_to_pose must be equal to mMap2BaseTransf
 
                 tf2::Transform map_to_base;
+
                 try {
                     // Save the transformation from base to frame
                     geometry_msgs::TransformStamped b2m =
