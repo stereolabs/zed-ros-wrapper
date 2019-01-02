@@ -1340,8 +1340,8 @@ namespace zed_wrapper {
         msg.header = msg.image.header;
         msg.f = zedParam.calibration_parameters.left_cam.fx;
         msg.T = zedParam.calibration_parameters.T.x;
-        msg.min_disparity = - msg.f * msg.T / mZed.getDepthMaxRangeValue();
-        msg.max_disparity = 0;
+        msg.min_disparity = - msg.f * msg.T / mZed.getDepthMinRangeValue();
+        msg.max_disparity = - msg.f * msg.T / mZed.getDepthMaxRangeValue();
         mPubDisparity.publish(msg);
     }
 
