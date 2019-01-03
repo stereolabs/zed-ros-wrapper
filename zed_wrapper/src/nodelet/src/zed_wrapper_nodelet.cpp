@@ -474,6 +474,7 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Advertised on topic " << disparity_topic);
 
         // PointCloud publisher
+        mPointcloudMsg.reset(new sensor_msgs::PointCloud2);
         mPubCloud = mNh.advertise<sensor_msgs::PointCloud2>(point_cloud_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << point_cloud_topic);
 
@@ -1069,18 +1070,19 @@ namespace zed_wrapper {
         // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
         int ptsCount = mMatWidth * mMatHeight;
-        mPointcloudMsg.header.stamp = mPointCloudTime;
+      
+        mPointcloudMsg->header.stamp = mPointCloudTime;
 
-        if (mPointcloudMsg.width != mMatWidth || mPointcloudMsg.height != mMatHeight) {
-            mPointcloudMsg.header.frame_id = mPointCloudFrameId; // Set the header values of the ROS message
+        if (mPointcloudMsg->width != mMatWidth || mPointcloudMsg->height != mMatHeight) {
+            mPointcloudMsg->header.frame_id = mPointCloudFrameId; // Set the header values of the ROS message
 
-            mPointcloudMsg.is_bigendian = false;
-            mPointcloudMsg.is_dense = false;
+            mPointcloudMsg->is_bigendian = false;
+            mPointcloudMsg->is_dense = false;
 
-            mPointcloudMsg.width = mMatWidth;
-            mPointcloudMsg.height = mMatHeight;
+            mPointcloudMsg->width = mMatWidth;
+            mPointcloudMsg->height = mMatHeight;
 
-            sensor_msgs::PointCloud2Modifier modifier(mPointcloudMsg);
+            sensor_msgs::PointCloud2Modifier modifier(*mPointcloudMsg);
             modifier.setPointCloud2Fields(4,
                                           "x", 1, sensor_msgs::PointField::FLOAT32,
                                           "y", 1, sensor_msgs::PointField::FLOAT32,
@@ -1088,11 +1090,9 @@ namespace zed_wrapper {
                                           "rgb", 1, sensor_msgs::PointField::FLOAT32);
         }
 
-
-
         // Data copy
         sl::Vector4<float>* cpu_cloud = mCloud.getPtr<sl::float4>();
-        float* ptCloudPtr = (float*)(&mPointcloudMsg.data[0]);
+        float* ptCloudPtr = (float*)(&mPointcloudMsg->data[0]);
 
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=5) )
         memcpy(ptCloudPtr, (float*)cpu_cloud,
