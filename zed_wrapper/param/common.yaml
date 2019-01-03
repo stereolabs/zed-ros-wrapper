@@ -2,6 +2,12 @@
 # Common parameters to Stereolabs ZED and ZED mini cameras
 ---
 
+# Dynamic parameters cannot have a namespace
+auto_exposure:              true                                # Dynamic
+exposure:                   100                                 # Dynamic
+gain:                       100                                 # Dynamic
+confidence:                 100                                 # Dynamic
+
 general:
     camera_flip:                false
     zed_id:                     0
@@ -18,16 +24,12 @@ general:
     right_camera_optical_frame: 'zed_right_camera_optical_frame'    # must be equal to the frame_id used in the URDF file
     verbose:                    true
 video:
-    auto_exposure:              true                                # Dynamic
-    exposure:                   100                                 # Dynamic
-    gain:                       100                                 # Dynamic
     rgb_topic_root:             'rgb'
     left_topic_root:            'left'
     right_topic_root:           'right'
 depth:
     quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY, '4': ULTRA
     sensing_mode:               0                                   # '0': STANDARD, '1': FILL
-    confidence:                 100                                 # Dynamic
     depth_stabilization:        1                                   # `0`: disabled, `1`: enabled
     openni_depth_mode:          0                                   # '0': 32bit float meters, '1': 16bit uchar millimeters
     depth_topic_root:           'depth'

@@ -163,7 +163,16 @@ namespace zed_wrapper {
             mZedSerialNumber = static_cast<int>(tmp_sn);
         }
 
-        mNhNs.getParam("camera_model", mZedUserCamModel);
+        string camera_model;
+        mNhNs.getParam("camera_model", camera_model);
+
+        if (camera_model == "zed") {
+            mZedUserCamModel = 0;
+        } else if (camera_model == "zedm") {
+            mZedUserCamModel = 1;
+        } else {
+            NODELET_ERROR_STREAM("Camera model not valid: " << camera_model);
+        }
 
         mNhNs.getParam("publish_pose_covariance", mPublishPoseCovariance);
 

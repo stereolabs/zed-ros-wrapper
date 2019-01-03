@@ -26,15 +26,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Publish ZED urdf -->
     <arg name="publish_urdf"          default="true" />
 
-    <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
-        <rosparam file="$(find zed_wrapper)/param/common.yaml" command="load" />
-        <rosparam file="$(find zed_wrapper)/param/$(arg camera_model).yaml" command="load" />
-
-        <!-- SVO file path -->
-        <param name="svo_file"          value="$(arg svo_file)" />
-
-    </node>
-
     <!-- ROS URDF description of the ZED -->
     <group if="$(arg publish_urdf)">
         <param name="zed_description" textfile="$(find zed_wrapper)/urdf/$(arg camera_model).urdf" />
@@ -42,5 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <remap from="robot_description" to="zed_description" />
         </node>
     </group>
-        
+
+    <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
+        <rosparam file="$(find zed_wrapper)/param/common.yaml" command="load" />
+        <rosparam file="$(find zed_wrapper)/param/$(arg camera_model).yaml" command="load" />
+
+        <!-- SVO file path -->
+        <param name="svo_file"          value="$(arg svo_file)" />
+    </node>
 </launch>

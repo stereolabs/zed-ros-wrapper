@@ -2,8 +2,11 @@
 # Parameters for Stereolabs ZED camera
 ---
 
-general:
-    camera_model: 0                 # `0`: ZED, `1`: ZEDM
+camera_model: 'zed'
+
+# Dynamic parameters cannot have a namespace
+max_depth: 20.                  # Dynamic
+
 depth:
-    min_depth: 0.3                  # Min: 0.3, Max: 3.0 [for future use]
-    max_depth: 20.                  # Dynamic
+    min_depth: 0.3              # Min: 0.3, Max: 3.0 [for future use]
+
