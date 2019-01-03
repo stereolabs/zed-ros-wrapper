@@ -1,0 +1,9 @@
+# param/zed_yaml
+# Parameters for Stereolabs ZED camera
+---
+
+general:
+    camera_model: 0                 # `0`: ZED, `1`: ZEDM
+depth:
+    min_depth: 0.3                  # Min: 0.3, Max: 3.0 [for future use]
+    max_depth: 20.                  # Dynamic
