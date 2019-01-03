@@ -60,6 +60,10 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::onInit() {
 
+        // Node handlers
+        mNh = getMTNodeHandle();
+        mNhNs = getMTPrivateNodeHandle();
+
         mStopNode = false;
         mPcDataReady = false;
 
@@ -69,6 +73,7 @@ namespace zed_wrapper {
                                            ros::console::levels::Debug)) {
             ros::console::notifyLoggerLevelsChanged();
         }
+
 #endif
         // Launch file parameters
         mCamResol = sl::RESOLUTION_HD720;
@@ -81,31 +86,33 @@ namespace zed_wrapper {
         mOdometryDb = "";
         mImuPubRate = 100.0;
         mPathPubRate = 1.0;
-        mInitialTrackPose.resize(6);
         mOpenniDepthMode = false;
         mTrackingReady = false;
+        mCamMatResizeFactor = 1.0;
+        mVerbose = true;
+
+        mInitialTrackPose.resize(6);
 
         for (size_t i = 0; i < 6; i++) {
             mInitialTrackPose[i] = 0.0f;
         }
 
-        mCamMatResizeFactor = 1.0;
-        mVerbose = true;
-        mNh = getMTNodeHandle();
-        mNhNs = getMTPrivateNodeHandle();
+
+
         // Set  default coordinate frames
-        mNhNs.param<std::string>("pose_frame", mMapFrameId, "map");
-        mNhNs.param<std::string>("odometry_frame", mOdometryFrameId, "odom");
-        mNhNs.param<std::string>("base_frame", mBaseFrameId, "base_link");
-        mNhNs.param<std::string>("camera_frame", mCameraFrameId, "zed_camera_center");
-        mNhNs.param<std::string>("imu_frame", mImuFrameId, "imu_link");
-        mNhNs.param<std::string>("left_camera_frame", mLeftCamFrameId,
+        mNhNs.param<std::string>("tracking/world_frame", mWorldFrameId, "map");
+        mNhNs.param<std::string>("tracking/pose_frame", mMapFrameId, "map");
+        mNhNs.param<std::string>("tracking/odometry_frame", mOdometryFrameId, "odom");
+        mNhNs.param<std::string>("general/base_frame", mBaseFrameId, "base_link");
+        mNhNs.param<std::string>("general/camera_frame", mCameraFrameId, "zed_camera_center");
+        mNhNs.param<std::string>("imu/imu_frame", mImuFrameId, "imu_link");
+        mNhNs.param<std::string>("general/left_camera_frame", mLeftCamFrameId,
                                  "left_camera_frame");
-        mNhNs.param<std::string>("left_camera_optical_frame", mLeftCamOptFrameId,
+        mNhNs.param<std::string>("general/left_camera_optical_frame", mLeftCamOptFrameId,
                                  "left_camera_optical_frame");
-        mNhNs.param<std::string>("right_camera_frame", mRightCamFrameId,
+        mNhNs.param<std::string>("general/right_camera_frame", mRightCamFrameId,
                                  "right_camera_frame");
-        mNhNs.param<std::string>("right_camera_optical_frame", mRightCamOptFrameId,
+        mNhNs.param<std::string>("general/right_camera_optical_frame", mRightCamOptFrameId,
                                  "right_camera_optical_frame");
         mDepthFrameId = mLeftCamFrameId;
         mDepthOptFrameId = mLeftCamOptFrameId;
@@ -119,7 +126,25 @@ namespace zed_wrapper {
         mConfidenceFrameId = mDepthFrameId;
         mConfidenceOptFrameId = mDepthOptFrameId;
 
-        // Get parameters from launch file
+        // Print TF frames
+        NODELET_INFO_STREAM("world_frame \t\t   -> " << mWorldFrameId);
+        NODELET_INFO_STREAM("pose_frame \t\t   -> " << mMapFrameId);
+        NODELET_INFO_STREAM("odometry_frame \t\t   -> " << mOdometryFrameId);
+        NODELET_INFO_STREAM("base_frame \t\t   -> " << mBaseFrameId);
+        NODELET_INFO_STREAM("camera_frame \t\t   -> " << mCameraFrameId);
+        NODELET_INFO_STREAM("imu_link \t\t   -> " << mImuFrameId);
+        NODELET_INFO_STREAM("left_camera_frame \t   -> " << mLeftCamFrameId);
+        NODELET_INFO_STREAM("left_camera_optical_frame  -> " << mLeftCamOptFrameId);
+        NODELET_INFO_STREAM("right_camera_frame \t   -> " << mRightCamFrameId);
+        NODELET_INFO_STREAM("right_camera_optical_frame -> " << mRightCamOptFrameId);
+        NODELET_INFO_STREAM("depth_frame \t\t   -> " << mDepthFrameId);
+        NODELET_INFO_STREAM("depth_optical_frame \t   -> " << mDepthOptFrameId);
+        NODELET_INFO_STREAM("disparity_frame \t   -> " << mDisparityFrameId);
+        NODELET_INFO_STREAM("disparity_optical_frame    -> " << mDisparityOptFrameId);
+        NODELET_INFO_STREAM("confidence_frame \t   -> " << mConfidenceFrameId);
+        NODELET_INFO_STREAM("confidence_optical_frame    -> " << mConfidenceOptFrameId);
+
+        // Get parameters from param files
         mNhNs.getParam("resolution", mCamResol);
         mNhNs.getParam("frame_rate", mCamFrameRate);
         checkResolFps();
@@ -143,28 +168,13 @@ namespace zed_wrapper {
         mNhNs.getParam("publish_pose_covariance", mPublishPoseCovariance);
 
         // Publish odometry tf
-        mNhNs.param<bool>("publish_tf", mPublishTf, true);
-        mNhNs.param<bool>("publish_map_tf", mPublishMapTf, true);
-        mNhNs.param<bool>("camera_flip", mCameraFlip, false);
+        mNhNs.param<bool>("tracking/publish_tf", mPublishTf, true);
+        mNhNs.param<bool>("tracking/publish_map_tf", mPublishMapTf, true);
+        mNhNs.param<bool>("general/camera_flip", mCameraFlip, false);
 
         if (mZedSerialNumber > 0) {
             NODELET_INFO_STREAM("SN : " << mZedSerialNumber);
         }
-
-        // Print order frames
-        NODELET_INFO_STREAM("pose_frame \t\t   -> " << mMapFrameId);
-        NODELET_INFO_STREAM("odometry_frame \t\t   -> " << mOdometryFrameId);
-        NODELET_INFO_STREAM("base_frame \t\t   -> " << mBaseFrameId);
-        NODELET_INFO_STREAM("camera_frame \t\t   -> " << mCameraFrameId);
-        NODELET_INFO_STREAM("imu_link \t\t   -> " << mImuFrameId);
-        NODELET_INFO_STREAM("left_camera_frame \t   -> " << mLeftCamFrameId);
-        NODELET_INFO_STREAM("left_camera_optical_frame  -> " << mLeftCamOptFrameId);
-        NODELET_INFO_STREAM("right_camera_frame \t   -> " << mRightCamFrameId);
-        NODELET_INFO_STREAM("right_camera_optical_frame -> " << mRightCamOptFrameId);
-        NODELET_INFO_STREAM("depth_frame \t\t   -> " << mDepthFrameId);
-        NODELET_INFO_STREAM("depth_optical_frame \t   -> " << mDepthOptFrameId);
-        NODELET_INFO_STREAM("disparity_frame \t   -> " << mDisparityFrameId);
-        NODELET_INFO_STREAM("disparity_optical_frame    -> " << mDisparityOptFrameId);
 
         NODELET_INFO_STREAM("Camera Flip [" << (mCameraFlip ? "TRUE" : "FALSE") << "]");
 
@@ -191,12 +201,14 @@ namespace zed_wrapper {
         string rgb_cam_info_raw_topic = "rgb/camera_info_raw";
 
         string depth_topic = "depth/";
+
         if (mOpenniDepthMode) {
             NODELET_INFO_STREAM("Openni depth mode activated");
             depth_topic += "depth_raw_registered";
         } else {
             depth_topic += "depth_registered";
         }
+
         string depth_cam_info_topic = "depth/camera_info";
         string disparity_topic = "disparity/disparity_image";
         string point_cloud_topic = "point_cloud/cloud_registered";
@@ -236,6 +248,7 @@ namespace zed_wrapper {
         mNhNs.getParam("imu_pub_rate", mImuPubRate);
         mNhNs.getParam("path_pub_rate", mPathPubRate);
         mNhNs.getParam("path_max_count", mPathMaxCount);
+
         if (mPathMaxCount < 2 && mPathMaxCount != -1) {
             mPathMaxCount = 2;
         }
@@ -257,7 +270,7 @@ namespace zed_wrapper {
         mDepthCamInfoMsg = depth_cam_info_msg_;
 
         // SVO
-        mNhNs.param<std::string>("svo_filepath", mSvoFilepath, std::string());
+        mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
 
         // Initialization transformation listener
         mTfBuffer.reset(new tf2_ros::Buffer);
@@ -274,7 +287,7 @@ namespace zed_wrapper {
             mZedParams.svo_input_filename = mSvoFilepath.c_str();
             mZedParams.svo_real_time_mode = true;
 
-            //            mPubClock = mNh.advertise<rosgraph_msgs::Clock>("/clock", 1);
+            //            mPubClock = mNhNs.advertise<rosgraph_msgs::Clock>("/clock", 1);
             //            NODELET_INFO("Advertised on topic /clock");
             mSvoMode = true;
         } else {
@@ -443,7 +456,7 @@ namespace zed_wrapper {
 
         // Create all the publishers
         // Image publishers
-        image_transport::ImageTransport it_zed(mNh);
+        image_transport::ImageTransport it_zed(mNhNs);
         mPubRgb = it_zed.advertise(rgb_topic, 1); // rgb
         NODELET_INFO_STREAM("Advertised on topic " << rgb_topic);
         mPubRawRgb = it_zed.advertise(rgb_raw_topic, 1); // rgb raw
@@ -462,50 +475,52 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Advertised on topic " << conf_img_topic);
 
         // Confidence Map publisher
-        mPubConfMap = mNh.advertise<sensor_msgs::Image>(conf_map_topic, 1); // confidence map
+        mPubConfMap = mNhNs.advertise<sensor_msgs::Image>(conf_map_topic, 1); // confidence map
         NODELET_INFO_STREAM("Advertised on topic " << conf_map_topic);
 
         // Disparity publisher
-        mPubDisparity = mNh.advertise<stereo_msgs::DisparityImage>(disparity_topic, 1);
+        mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(disparity_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << disparity_topic);
 
         // PointCloud publisher
-        mPubCloud = mNh.advertise<sensor_msgs::PointCloud2>(point_cloud_topic, 1);
+        mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(point_cloud_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << point_cloud_topic);
 
         // Camera info publishers
-        mPubRgbCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_topic, 1); // rgb
+        mPubRgbCamInfo = mNhNs.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_topic, 1); // rgb
         NODELET_INFO_STREAM("Advertised on topic " << rgb_cam_info_topic);
-        mPubLeftCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(left_cam_info_topic, 1); // left
+        mPubLeftCamInfo = mNhNs.advertise<sensor_msgs::CameraInfo>(left_cam_info_topic, 1); // left
         NODELET_INFO_STREAM("Advertised on topic " << left_cam_info_topic);
-        mPubRightCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(right_cam_info_topic, 1); // right
+        mPubRightCamInfo = mNhNs.advertise<sensor_msgs::CameraInfo>(right_cam_info_topic, 1); // right
         NODELET_INFO_STREAM("Advertised on topic " << right_cam_info_topic);
-        mPubDepthCamInfo = mNh.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); // depth
+        mPubDepthCamInfo = mNhNs.advertise<sensor_msgs::CameraInfo>(depth_cam_info_topic, 1); // depth
         NODELET_INFO_STREAM("Advertised on topic " << depth_cam_info_topic);
 
         // Raw
-        mPubRgbCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_raw_topic, 1); // raw rgb
+        mPubRgbCamInfoRaw = mNhNs.advertise<sensor_msgs::CameraInfo>(rgb_cam_info_raw_topic, 1); // raw rgb
         NODELET_INFO_STREAM("Advertised on topic " << rgb_cam_info_raw_topic);
-        mPubLeftCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(left_cam_info_raw_topic, 1); // raw left
+        mPubLeftCamInfoRaw = mNhNs.advertise<sensor_msgs::CameraInfo>(left_cam_info_raw_topic, 1); // raw left
         NODELET_INFO_STREAM("Advertised on topic " << left_cam_info_raw_topic);
-        mPubRightCamInfoRaw = mNh.advertise<sensor_msgs::CameraInfo>(right_cam_info_raw_topic, 1); // raw right
+        mPubRightCamInfoRaw = mNhNs.advertise<sensor_msgs::CameraInfo>(right_cam_info_raw_topic, 1); // raw right
         NODELET_INFO_STREAM("Advertised on topic " << right_cam_info_raw_topic);
 
         // Odometry and Map publisher
-        mPubPose = mNh.advertise<geometry_msgs::PoseStamped>(pose_topic, 1);
+        mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(pose_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << pose_topic);
+
         if (mPublishPoseCovariance) {
-            mPubPoseCov = mNh.advertise<geometry_msgs::PoseWithCovarianceStamped>(pose_cov_topic, 1);
+            mPubPoseCov = mNhNs.advertise<geometry_msgs::PoseWithCovarianceStamped>(pose_cov_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << pose_cov_topic);
         }
-        mPubOdom = mNh.advertise<nav_msgs::Odometry>(odometry_topic, 1);
+
+        mPubOdom = mNhNs.advertise<nav_msgs::Odometry>(odometry_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
 
         // Camera Path
         if (mPathPubRate > 0) {
-            mPubOdomPath = mNh.advertise<nav_msgs::Path>(odom_path_topic, 1, true);
+            mPubOdomPath = mNhNs.advertise<nav_msgs::Path>(odom_path_topic, 1, true);
             NODELET_INFO_STREAM("Advertised on topic " << odom_path_topic);
-            mPubMapPath = mNh.advertise<nav_msgs::Path>(map_path_topic, 1, true);
+            mPubMapPath = mNhNs.advertise<nav_msgs::Path>(map_path_topic, 1, true);
             NODELET_INFO_STREAM("Advertised on topic " << map_path_topic);
 
             mPathTimer = mNhNs.createTimer(ros::Duration(1.0 / mPathPubRate),
@@ -524,10 +539,10 @@ namespace zed_wrapper {
 
         // Imu publisher
         if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED_M) {
-            mPubImu = mNh.advertise<sensor_msgs::Imu>(imu_topic, 500);
+            mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 500);
             NODELET_INFO_STREAM("Advertised on topic " << imu_topic << " @ "
                                 << mImuPubRate << " Hz");
-            mPubImuRaw = mNh.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
+            mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
             NODELET_INFO_STREAM("Advertised on topic " << imu_topic_raw << " @ "
                                 << mImuPubRate << " Hz");
             mFrameTimestamp = ros::Time::now();
@@ -542,9 +557,9 @@ namespace zed_wrapper {
         }
 
         // Services
-        mSrvSetInitPose = mNh.advertiseService("set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this);
-        mSrvResetOdometry = mNh.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
-        mSrvResetTracking = mNh.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
+        mSrvSetInitPose = mNhNs.advertiseService("set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this);
+        mSrvResetOdometry = mNhNs.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
+        mSrvResetTracking = mNhNs.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
 
         // Start Pointcloud thread
         mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
@@ -822,9 +837,11 @@ namespace zed_wrapper {
         trackParams.set_floor_as_origin = mFloorAlignment;
         NODELET_INFO_STREAM("Floor Alignment : " << (trackParams.set_floor_as_origin ? "ENABLED" : "DISABLED"));
 #else
+
         if (mFloorAlignment)  {
             NODELET_WARN("Floor Alignment is available with ZED SDK >= v2.6");
         }
+
 #endif
 
         mZed.enableTracking(trackParams);
@@ -850,12 +867,14 @@ namespace zed_wrapper {
 
         // Odometry pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
+
         if (!mSpatialMemory && mPublishPoseCovariance) {
             for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
                 // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
                 odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
             }
         }
+
 #endif
 
         // Publish odometry message
@@ -910,12 +929,14 @@ namespace zed_wrapper {
 
                 // Odometry pose covariance if available
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
+
                 if (!mSpatialMemory) {
                     for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
                         // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
                         poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
                     }
                 }
+
 #endif
 
                 // Publish pose with covariance stamped message
@@ -1018,6 +1039,7 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::pointcloud_thread_func() {
         std::unique_lock<std::mutex> lock(mPcMutex);
+
         while (!mStopNode) {
             while (!mPcDataReady) {  // loop to avoid spurious wakeups
                 if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
@@ -1052,6 +1074,7 @@ namespace zed_wrapper {
 
         int ptsCount = mMatWidth * mMatHeight;
         mPointcloudMsg.header.stamp = mPointCloudTime;
+
         if (mPointcloudMsg.width != mMatWidth || mPointcloudMsg.height != mMatHeight) {
             mPointcloudMsg.header.frame_id = mPointCloudFrameId; // Set the header values of the ROS message
 
@@ -1080,12 +1103,14 @@ namespace zed_wrapper {
                4 * ptsCount * sizeof(float)); // We can do a direct memcpy since data organization is the same
 #else
         #pragma omp parallel for
+
         for (size_t i = 0; i < ptsCount; ++i) {
             ptCloudPtr[i * 4 + 0] = mSignX * cpu_cloud[i][mIdxX];
             ptCloudPtr[i * 4 + 1] = mSignY * cpu_cloud[i][mIdxY];
             ptCloudPtr[i * 4 + 2] = mSignZ * cpu_cloud[i][mIdxZ];
             ptCloudPtr[i * 4 + 3] = cpu_cloud[i][3];
         }
+
 #endif
 
         // Pointcloud publishing
@@ -1155,6 +1180,7 @@ namespace zed_wrapper {
         if (rawParam) {
             std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
             float* p = R_.data();
+
             for (int i = 0; i < 9; i++) {
                 rightCamInfoMsg->R[i] = p[i];
             }
@@ -1184,32 +1210,6 @@ namespace zed_wrapper {
             uint32_t level) {
         switch (level) {
         case 0:
-            mCamConfidence = config.confidence;
-            NODELET_INFO("Reconfigure confidence : %d", mCamConfidence);
-            break;
-
-        case 1:
-            mCamExposure = config.exposure;
-            NODELET_INFO("Reconfigure exposure : %d", mCamExposure);
-            break;
-
-        case 2:
-            mCamGain = config.gain;
-            NODELET_INFO("Reconfigure gain : %d", mCamGain);
-            break;
-
-        case 3:
-            mCamAutoExposure = config.auto_exposure;
-
-            if (mCamAutoExposure) {
-                mTriggerAutoExposure = true;
-            }
-
-            NODELET_INFO("Reconfigure auto control of exposure and gain : %s",
-                         mCamAutoExposure ? "Enable" : "Disable");
-            break;
-
-        case 4:
             mCamMatResizeFactor = config.mat_resize_factor;
             NODELET_INFO("Reconfigure mat_resize_factor: %g", mCamMatResizeFactor);
             mCamDataMutex.lock();
@@ -1229,9 +1229,35 @@ namespace zed_wrapper {
             mCamDataMutex.unlock();
             break;
 
-        case 5:
+        case 1:
+            mCamConfidence = config.confidence;
+            NODELET_INFO("Reconfigure confidence : %d", mCamConfidence);
+            break;
+
+        case 2:
             mCamMaxDepth = config.max_depth;
             NODELET_INFO("Reconfigure max depth : %g", mCamMaxDepth);
+            break;
+
+        case 3:
+            mCamAutoExposure = config.auto_exposure;
+
+            if (mCamAutoExposure) {
+                mTriggerAutoExposure = true;
+            }
+
+            NODELET_INFO("Reconfigure auto control of exposure and gain : %s",
+                         mCamAutoExposure ? "Enable" : "Disable");
+            break;
+
+        case 4:
+            mCamGain = config.gain;
+            NODELET_INFO("Reconfigure gain : %d", mCamGain);
+            break;
+
+        case 5:
+            mCamExposure = config.exposure;
+            NODELET_INFO("Reconfigure exposure : %d", mCamExposure);
             break;
         }
     }
@@ -1353,6 +1379,7 @@ namespace zed_wrapper {
     void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
 
         std::lock_guard<std::mutex> lock(mCloseZedMutex);
+
         if (!mZed.isOpened()) {
             return;
         }
@@ -1365,6 +1392,7 @@ namespace zed_wrapper {
         }
 
         ros::Time t;
+
         if (mSvoMode) {
             t = ros::Time::now();
         } else {
@@ -1376,6 +1404,7 @@ namespace zed_wrapper {
         }
 
         sl::IMUData imu_data;
+
         if (mImuTimestampSync && mGrabActive) {
             mZed.getIMUData(imu_data, sl::TIME_REFERENCE_IMAGE);
         } else {
@@ -1418,6 +1447,7 @@ namespace zed_wrapper {
             for (int i = 0; i < 3; ++i) {
 
                 int r = 0;
+
                 if (i == 0) {
                     r = mIdxX;
                 } else if (i == 1) {
@@ -1468,6 +1498,7 @@ namespace zed_wrapper {
             for (int i = 0; i < 3; ++i) {
 
                 int r = 0;
+
                 if (i == 0) {
                     r = mIdxX;
                 } else if (i == 1) {
@@ -1502,6 +1533,7 @@ namespace zed_wrapper {
             tf2::Transform cam_to_pose;
 
             std::string poseFrame;
+
             // Look up the transformation from base frame to map link
             try {
                 poseFrame = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
@@ -1840,6 +1872,7 @@ namespace zed_wrapper {
                     // all the program
                     // Retrieve raw pointCloud data if latest Pointcloud is ready
                     std::unique_lock<std::mutex> lock(mPcMutex, std::defer_lock);
+
                     if (lock.try_lock()) {
                         mZed.retrieveMeasure(mCloud, sl::MEASURE_XYZBGRA, sl::MEM_CPU, mMatWidth, mMatHeight);
 
@@ -2017,6 +2050,7 @@ namespace zed_wrapper {
                     // Note, the frame is published, but its values will only change if
                     // someone has subscribed to odom
                     publishOdomFrame(mOdom2BaseTransf, mFrameTimestamp); // publish the base Frame in odometry frame
+
                     if (mPublishMapTf) {
                         // Note, the frame is published, but its values will only change if
                         // someone has subscribed to map
@@ -2028,6 +2062,7 @@ namespace zed_wrapper {
                 // Double check: map_to_pose must be equal to mMap2BaseTransf
 
                 tf2::Transform map_to_base;
+
                 try {
                     // Save the transformation from base to frame
                     geometry_msgs::TransformStamped b2m =

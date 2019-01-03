@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <rosparam file="$(find zed_wrapper)/param/$(arg camera_model).yaml" command="load" />
 
         <!-- SVO file path -->
-        <param name="svo_filepath"          value="$(arg svo_file)" />
+        <param name="svo_file"          value="$(arg svo_file)" />
 
     </node>
 

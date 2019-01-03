@@ -80,7 +80,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="right_camera_optical_frame"    value="$(arg right_camera_optical_frame)" />
 
         <!-- SVO file path -->
-        <param name="svo_filepath"          value="$(arg svo_file)" />
+        <param name="svo_file"              value="$(arg svo_file)" />
 
         <!-- ZED parameters -->
         <param name="zed_id"                value="$(arg zed_id)" />

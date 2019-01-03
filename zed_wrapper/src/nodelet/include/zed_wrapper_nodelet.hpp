@@ -281,7 +281,6 @@ namespace zed_wrapper {
         ros::ServiceServer mSrvResetOdometry;
         ros::ServiceServer mSrvResetTracking;
 
-
         // Camera info
         sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
         sensor_msgs::CameraInfoPtr mLeftCamInfoMsg;
@@ -311,6 +310,7 @@ namespace zed_wrapper {
         std::string mCloudFrameId;
         std::string mPointCloudFrameId;
 
+        std::string mWorldFrameId;
         std::string mMapFrameId;
         std::string mOdometryFrameId;
         std::string mBaseFrameId;

@@ -21,21 +21,21 @@ video:
     auto_exposure:              true                                # Dynamic
     exposure:                   100                                 # Dynamic
     gain:                       100                                 # Dynamic
-    rgb_topic_root:             "rgb"
-    left_topic_root:            "left"
-    right_topic_root:           "right"
+    rgb_topic_root:             'rgb'
+    left_topic_root:            'left'
+    right_topic_root:           'right'
 depth:
     quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY, '4': ULTRA
     sensing_mode:               0                                   # '0': STANDARD, '1': FILL
     confidence:                 100                                 # Dynamic
     depth_stabilization:        1                                   # `0`: disabled, `1`: enabled
     openni_depth_mode:          0                                   # '0': 32bit float meters, '1': 16bit uchar millimeters
-    depth_topic_root:           "depth"
-    point_cloud_topic:          "point_cloud/cloud_registered"
-    disparity_topic:            "disparity/disparity_image"
-    confidence_root:            "confidence"
-    confidence_img_topic:       "confidence_image"
-    confidence_map_topic:       "confidence_map"
+    depth_topic_root:           'depth'
+    point_cloud_topic:          'point_cloud/cloud_registered'
+    disparity_topic:            'disparity/disparity_image'
+    confidence_root:            'confidence'
+    confidence_img_topic:       'confidence_image'
+    confidence_map_topic:       'confidence_map'
 tracking:
     publish_tf:                 true
     publish_map_tf:             true
@@ -43,13 +43,13 @@ tracking:
     pose_frame:                 'map'
     odometry_frame:             'odom'
     # odometry_db:              'odometry_db_path'
-    pose_smoothing:             0                                    # `0`: disabled, `1`: enabled
+    pose_smoothing:             0                                   # `0`: disabled, `1`: enabled
     spatial_memory:             false
     floor_alignment:            false
-    initial_tracking_pose:      [0.0,0.0,0.0, 0.0,0.0,0.0]           # [X, Y, Z, R, P, Y]
+    initial_tracking_pose:      [0.0,0.0,0.0, 0.0,0.0,0.0]          # [X, Y, Z, R, P, Y]
     pose_topic:                 'pose'
     odometry_topic:             'odom'
     init_odom_with_first_valid_pose: true
     path_pub_rate:              2.0
-    path_max_count:             -1                                   # use "-1" for no limits
+    path_max_count:             -1                                  # use '-1' for no limits
     publish_pose_covariance:    true
