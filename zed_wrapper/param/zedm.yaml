@@ -10,9 +10,9 @@ max_depth: 10.                  # Dynamic
 depth:
     min_depth: 0.1              # Min: 0.1, Max: 3.0
 imu:
-    imu_frame:          'zed_imu_link'
-    imu_topic_root:     'imu'
-    imu_topic:          'data'
-    imu_raw_topic:      'data_raw'
-    imu_pub_rate:       100.0
-    imu_timestamp_sync: false
+    imu_frame:                  'zed_imu_link'  # must be equal to the frame_id used in the URDF file
+    imu_topic_root:             'imu'
+    imu_topic:                  'data'
+    imu_raw_topic:              'data_raw'
+    imu_pub_rate:               800.0
+    imu_timestamp_sync:         false           # Synchronize IMU message timestamp with latest received frame
