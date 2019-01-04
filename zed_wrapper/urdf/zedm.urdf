@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </link>
 
 <!-- Left Camera -->
-
     <joint name="zed_left_camera_joint" type="fixed">
         <parent link="zed_camera_center"/>
         <child link="zed_left_camera_frame"/>
@@ -59,7 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <link name="zed_left_camera_optical_frame"/>
 
 <!-- Right Camera -->
-
     <joint name="zed_right_camera_joint" type="fixed">
         <parent link="zed_camera_center"/>
         <child link="zed_right_camera_frame"/>
@@ -77,12 +75,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <link name="zed_right_camera_optical_frame"/>
 
 <!-- IMU -->    
-
     <joint name="imu_link_joint" type="floating">
         <parent link="zed_camera_center"/>
-        <child link="imu_link"/>
+        <child link="zed_imu_link"/>
         <origin xyz="0 0 0" rpy="0 0 0" />
     </joint>
-    <link name="imu_link" />
+    <link name="zed_imu_link" />
  
 </robot>

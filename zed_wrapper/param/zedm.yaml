@@ -14,5 +14,5 @@ imu:
     imu_topic_root:     'imu'
     imu_topic:          'data'
     imu_raw_topic:      'data_raw'
-    imu_pub_rate:       800.0
+    imu_pub_rate:       100.0
     imu_timestamp_sync: false

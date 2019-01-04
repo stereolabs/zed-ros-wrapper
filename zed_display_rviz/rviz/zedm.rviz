@@ -11,13 +11,12 @@ Panels:
         - /Video1/Camera view1/Visibility1
         - /Video1/Camera view1/Visibility1/Video1
         - /Video1/Camera view1/Visibility1/Depth1
-        - /Depth1
         - /Depth1/DepthCloud1
+        - /Pose1
         - /Pose1/Odometry1
         - /Pose1/Odometry1/Covariance1
         - /Pose1/Odometry1/Covariance1/Position1
         - /Pose1/Odometry1/Covariance1/Orientation1
-        - /Pose1/Imu1
       Splitter Ratio: 0.5
     Tree Height: 545
   - Class: rviz/Selection
@@ -74,15 +73,15 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        imu_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         zed_camera_center:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
+        zed_imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         zed_left_camera_frame:
           Alpha: 1
           Show Axes: false
@@ -511,10 +510,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.169795528
+      Pitch: 0.72479558
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.78541231
+      Yaw: 2.33041215
     Saved: ~
 Window Geometry:
   Camera view:

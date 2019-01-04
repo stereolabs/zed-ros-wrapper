@@ -48,7 +48,7 @@ tracking:
     pose_smoothing:             0                                   # `0`: disabled, `1`: enabled
     spatial_memory:             false
     floor_alignment:            false
-    initial_tracking_pose:      [0.0,0.0,0.0, 0.0,0.0,0.0]          # [X, Y, Z, R, P, Y]
+    initial_tracking_pose:      [0.0,0.0,0.6, 0.0,0.0,0.0]          # [X, Y, Z, R, P, Y]
     pose_topic:                 'pose'
     odometry_topic:             'odom'
     init_odom_with_first_valid_pose: true
