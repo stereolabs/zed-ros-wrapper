@@ -24,7 +24,6 @@
 #include <ros/console.h>
 #endif
 
-#include <rosgraph_msgs/Clock.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <sensor_msgs/Imu.h>
@@ -314,8 +313,6 @@ namespace zed_wrapper {
             mZedParams.svo_input_filename = mSvoFilepath.c_str();
             mZedParams.svo_real_time_mode = true;
 
-            //            mPubClock = mNhNs.advertise<rosgraph_msgs::Clock>("/clock", 1);
-            //            NODELET_INFO("Advertised on topic /clock");
             mSvoMode = true;
         } else {
             mZedParams.camera_fps = mCamFrameRate;
@@ -1711,13 +1708,6 @@ namespace zed_wrapper {
                     if (mGrabStatus != sl::ERROR_CODE_NOT_A_NEW_FRAME) {
                         NODELET_INFO_STREAM_ONCE(toString(mGrabStatus));
                     }
-
-                    //                    if ( mSvoMode && mPubClock.getNumSubscribers() > 0) {
-                    //                        rosgraph_msgs::Clock clkMsg;
-                    //                        clkMsg.clock = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_IMAGE));
-
-                    //                        mPubClock.publish(clkMsg);
-                    //                    }
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
 
