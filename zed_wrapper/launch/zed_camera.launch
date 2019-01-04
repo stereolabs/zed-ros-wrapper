@@ -18,6 +18,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
     <!-- Camera Model -->
+    <arg name="node_name"             default="zed_node" />
+
+    <!-- Camera Model -->
     <arg name="camera_model"          default="zed" /> <!-- 'zed' or 'zedm' -->
 
     <!-- Load SVO file -->
@@ -34,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         </node>
     </group>
 
-    <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
+    <node name="$(arg node_name)" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
         <rosparam file="$(find zed_wrapper)/param/common.yaml" command="load" />
         <rosparam file="$(find zed_wrapper)/param/$(arg camera_model).yaml" command="load" />
 
