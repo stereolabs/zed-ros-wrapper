@@ -346,6 +346,7 @@ namespace zed_wrapper {
         int mPathMaxCount;
         bool mVerbose;
         bool mSvoMode = false;
+        double mCamMinDepth;
 
         bool mTrackingActivated;
         bool mTrackingReady;

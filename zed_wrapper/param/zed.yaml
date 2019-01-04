@@ -8,5 +8,5 @@ camera_model: 'zed'
 max_depth: 20.                  # Dynamic
 
 depth:
-    min_depth: 0.3              # Min: 0.3, Max: 3.0 [for future use]
+    min_depth: 0.3              # Min: 0.3, Max: 3.0
 

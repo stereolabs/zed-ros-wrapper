@@ -89,6 +89,7 @@ namespace zed_wrapper {
         mTrackingReady = false;
         mCamMatResizeFactor = 1.0;
         mVerbose = true;
+        mCamMinDepth = 0.3;
 
         mInitialTrackPose.resize(6);
 
@@ -152,6 +153,7 @@ namespace zed_wrapper {
         mNhNs.getParam("depth/sensing_mode", mCamSensingMode);
         mNhNs.getParam("depth/openni_depth_mode", mOpenniDepthMode);
         mNhNs.getParam("depth/depth_stabilization", mDepthStabilization);
+        mNhNs.getParam("depth/min_depth", mCamMinDepth);
 
         int tmp_sn = 0;
         mNhNs.getParam("general/serial_number", tmp_sn);
@@ -399,6 +401,7 @@ namespace zed_wrapper {
         mZedParams.sdk_gpu_id = mGpuId;
         mZedParams.depth_stabilization = mDepthStabilization;
         mZedParams.camera_image_flip = mCameraFlip;
+        mZedParams.depth_minimum_distance = static_cast<float>(mCamMinDepth);
 
         mDiagUpdater.add("ZED Diagnostic", this, &ZEDWrapperNodelet::updateDiagnostic);
         mDiagUpdater.setHardwareID("ZED camera");
