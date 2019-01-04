@@ -27,6 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="publish_urdf"          default="true" />
 
     <arg name="nodelet_manager_name"  default="zed_nodelet_manager" />
+    <arg name="node_name"             default="zed_node" />
 
     <!-- ROS URDF description of the ZED -->
     <group if="$(arg publish_urdf)">
@@ -36,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         </node>
     </group>
 
-    <node pkg="nodelet" type="nodelet" name="ZED_nodelet" args="load zed_wrapper/ZEDWrapperNodelet $(arg nodelet_manager_name)" output="screen">
+    <node pkg="nodelet" type="nodelet" name="$(arg node_name)" args="load zed_wrapper/ZEDWrapperNodelet $(arg nodelet_manager_name)" output="screen">
         <rosparam file="$(find zed_wrapper)/param/common.yaml" command="load" />
         <rosparam file="$(find zed_wrapper)/param/$(arg camera_model).yaml" command="load" />
 

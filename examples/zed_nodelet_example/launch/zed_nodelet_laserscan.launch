@@ -19,6 +19,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <launch>
     <arg name="svo_file" default=""/>
 
+    <arg name="zed_node_name"         default="zed_node" />
     <arg name="camera_model"          default="zedm" /> <!-- 0=ZED, 1=ZEDM-->
     
     <arg name="nodelet_manager_name"  default="zed_nodelet_manager" />
@@ -32,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <arg name="svo_file"             value="$(arg svo_file)"/>
             <arg name="nodelet_manager_name" value="$(arg nodelet_manager_name)" />
             <arg name="camera_model"         value="$(arg camera_model)" />
+            <arg name="node_name"            value="$(arg zed_node_name)" />
         </include>
 
         <!-- Virtual laser scan as nodelet -->
@@ -40,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
              <param name="scan_height" value="10"/>
              <param name="output_frame_id" value="zed_left_camera_frame"/>
              <param name="range_min" value="0.45"/>
-             <remap from="image" to="/zed/ZED_nodelet/depth/depth_registered"/>
+             <remap from="image" to="$(arg zed_node_name)/depth/depth_registered"/>
         </node>
 
     </group>

@@ -5,7 +5,7 @@
 camera_model: 'zedm'
 
 # Dynamic parameters cannot have a namespace
-max_depth: 10.                  # Dynamic
+max_depth: 10.0                 # Dynamic
 
 depth:
     min_depth: 0.1              # Min: 0.1, Max: 3.0
