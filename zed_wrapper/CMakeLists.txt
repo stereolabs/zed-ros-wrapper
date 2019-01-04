@@ -50,6 +50,7 @@ find_package(catkin COMPONENTS
   tf2_geometry_msgs
   message_generation
   diagnostic_updater
+  roslint
 )
 
 checkPackage("image_transport" "")
@@ -145,6 +146,8 @@ add_dependencies(zed_wrapper_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${PROJECT_
 # a dummy_target so qtcreator have access to all files
 FILE(GLOB_RECURSE extra_files ${CMAKE_SOURCE_DIR}/*)
 add_custom_target(dummy_${PROJECT_NAME} SOURCES ${extra_files})
+
+roslint_cpp()
 
 ###############################################################################
 # INSTALL
