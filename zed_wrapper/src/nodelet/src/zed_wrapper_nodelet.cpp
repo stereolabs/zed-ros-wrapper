@@ -1024,8 +1024,13 @@ namespace zed_wrapper {
         msg.header = msg.image.header;
         msg.f = zedParam.calibration_parameters.left_cam.fx;
         msg.T = zedParam.calibration_parameters.T.x;
-        msg.min_disparity = msg.f * msg.T / mZed.getDepthMaxRangeValue();
-        msg.max_disparity = msg.f * msg.T / mZed.getDepthMinRangeValue();
+
+        if (msg.T > 0) {
+            msg.T *= -1.0f;
+        }
+
+        msg.min_disparity = msg.f * msg.T / mZed.getDepthMinRangeValue();
+        msg.max_disparity = msg.f * msg.T / mZed.getDepthMaxRangeValue();
         mPubDisparity.publish(msg);
     }
 
@@ -1065,6 +1070,7 @@ namespace zed_wrapper {
         // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
         int ptsCount = mMatWidth * mMatHeight;
+      
         mPointcloudMsg->header.stamp = mPointCloudTime;
 
         if (mPointcloudMsg->width != mMatWidth || mPointcloudMsg->height != mMatHeight) {
@@ -1838,7 +1844,7 @@ namespace zed_wrapper {
                 // Publish the disparity image if someone has subscribed to
                 if (disparitySubnumber > 0) {
                     mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY, sl::MEM_CPU, mMatWidth, mMatHeight);
-                    // Need to flip sign, but cause of this is not sure
+
                     publishDisparity(disparityZEDMat, mFrameTimestamp);
                 }
 
