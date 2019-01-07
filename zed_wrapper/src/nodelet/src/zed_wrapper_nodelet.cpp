@@ -238,11 +238,9 @@ namespace zed_wrapper {
         mNhNs.getParam("depth/point_cloud_topic", point_cloud_topic);
 
         string conf_img_root;
-        string conf_img_topic_name;
-        string conf_map_topic_name;
+        string conf_img_topic_name = "confidence_image";
+        string conf_map_topic_name = "confidence_map";
         mNhNs.getParam("depth/confidence_root", conf_img_root);
-        mNhNs.getParam("depth/confidence_img_topic", conf_img_topic_name);
-        mNhNs.getParam("depth/confidence_map_topic", conf_map_topic_name);
         string conf_img_topic = conf_img_root + "/" + conf_img_topic_name;
         string conf_map_topic = conf_img_root + "/" + conf_map_topic_name;
 
@@ -269,11 +267,9 @@ namespace zed_wrapper {
 
         if (camera_model == "zedm") {
             string imu_topic_root;
-            string imu_topic_name;
-            string imu_topic_raw_name;
+            string imu_topic_name = "data";
+            string imu_topic_raw_name = "data_raw";
             mNhNs.getParam("imu/imu_topic_root", imu_topic_root);
-            mNhNs.getParam("imu/imu_topic", imu_topic_name);
-            mNhNs.getParam("imu/imu_raw_topic", imu_topic_raw_name);
             imu_topic = imu_topic_root + "/" + imu_topic_name;
             imu_topic_raw = imu_topic_root + "/" + imu_topic_raw_name;
 
