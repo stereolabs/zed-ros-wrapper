@@ -278,20 +278,13 @@ namespace zed_wrapper {
         }
 
         // Create camera info
-        sensor_msgs::CameraInfoPtr rgb_cam_info_msg_(new sensor_msgs::CameraInfo());
-        sensor_msgs::CameraInfoPtr left_cam_info_msg_(new sensor_msgs::CameraInfo());
-        sensor_msgs::CameraInfoPtr right_cam_info_msg_(new sensor_msgs::CameraInfo());
-        sensor_msgs::CameraInfoPtr rgb_cam_info_raw_msg_(new sensor_msgs::CameraInfo());
-        sensor_msgs::CameraInfoPtr left_cam_info_raw_msg_(new sensor_msgs::CameraInfo());
-        sensor_msgs::CameraInfoPtr right_cam_info_raw_msg_(new sensor_msgs::CameraInfo());
-        sensor_msgs::CameraInfoPtr depth_cam_info_msg_(new sensor_msgs::CameraInfo());
-        mRgbCamInfoMsg = rgb_cam_info_msg_;
-        mLeftCamInfoMsg = left_cam_info_msg_;
-        mRightCamInfoMsg = right_cam_info_msg_;
-        mRgbCamInfoRawMsg = rgb_cam_info_raw_msg_;
-        mLeftCamInfoRawMsg = left_cam_info_raw_msg_;
-        mRightCamInfoRawMsg = right_cam_info_raw_msg_;
-        mDepthCamInfoMsg = depth_cam_info_msg_;
+        mRgbCamInfoMsg.reset(new sensor_msgs::CameraInfo());
+        mLeftCamInfoMsg.reset(new sensor_msgs::CameraInfo());
+        mRightCamInfoMsg.reset(new sensor_msgs::CameraInfo());
+        mRgbCamInfoRawMsg.reset(new sensor_msgs::CameraInfo());
+        mLeftCamInfoRawMsg.reset(new sensor_msgs::CameraInfo());
+        mRightCamInfoRawMsg.reset(new sensor_msgs::CameraInfo());
+        mDepthCamInfoMsg.reset(new sensor_msgs::CameraInfo());
 
         // SVO
         mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
@@ -1620,16 +1613,19 @@ namespace zed_wrapper {
                     mRightCamOptFrameId);
         fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
                     mRightCamOptFrameId, true);
-        mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg; // the reference camera is
-        // the Left one (next to the
-        // ZED logo)
+
+        // the reference camera is the Left one (next to the ZED logo)
+        mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg;
         mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
+
         sl::RuntimeParameters runParams;
         runParams.sensing_mode = static_cast<sl::SENSING_MODE>(mCamSensingMode);
         sl::Mat leftZEDMat, rightZEDMat, depthZEDMat, disparityZEDMat, confImgZEDMat, confMapZEDMat;
 
         // Main loop
         while (mNhNs.ok()) {
+            std::chrono::steady_clock::time_point start_elab = std::chrono::steady_clock::now();
+
             // Check for subscribers
             uint32_t rgbSubnumber = mPubRgb.getNumSubscribers();
             uint32_t rgbRawSubnumber = mPubRawRgb.getNumSubscribers();
@@ -1670,6 +1666,7 @@ namespace zed_wrapper {
                                 poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
                                 confMapSubnumber) > 0);
 
+
                 if ((startTracking) && !mTrackingActivated && mComputeDepth) { // Start the tracking
                     start_tracking();
                 } else if (!mDepthStabilization && poseSubnumber == 0 && poseCovSubnumber == 0 &&
@@ -1694,10 +1691,10 @@ namespace zed_wrapper {
 
                     runParams.enable_depth = true; // Ask to compute the depth
                 } else {
-                    runParams.enable_depth = false;
+                    runParams.enable_depth = false; // Ask to not compute the depth
                 }
 
-                mGrabStatus = mZed.grab(runParams); // Ask to not compute the depth
+                mGrabStatus = mZed.grab(runParams);
 
                 // cout << toString(grab_status) << endl;
                 if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
@@ -1708,7 +1705,7 @@ namespace zed_wrapper {
                         NODELET_INFO_STREAM_ONCE(toString(mGrabStatus));
                     }
 
-                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
                     if ((ros::Time::now() - mPrevFrameTimestamp).toSec() > 5 && !mSvoMode) {
                         mCloseZedMutex.lock();
@@ -1769,6 +1766,8 @@ namespace zed_wrapper {
 
                 mGrabPeriodMean_usec->addValue(elapsed_usec);
 
+                ROS_INFO_STREAM("Grab time: " << elapsed_usec / 1000 << " msec");
+
                 // Timestamp
                 if (mSvoMode) {
                     mFrameTimestamp = ros::Time::now();
@@ -1800,8 +1799,11 @@ namespace zed_wrapper {
 
                 mCamDataMutex.lock();
 
+
+
                 // Publish the left == rgb image if someone has subscribed to
                 if (leftSubnumber > 0 || rgbSubnumber > 0) {
+
                     // Retrieve RGBA Left image
                     mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, mMatWidth, mMatHeight);
 
@@ -1818,6 +1820,7 @@ namespace zed_wrapper {
 
                 // Publish the left_raw == rgb_raw image if someone has subscribed to
                 if (leftRawSubnumber > 0 || rgbRawSubnumber > 0) {
+
                     // Retrieve RGBA Left image
                     mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU, mMatWidth, mMatHeight);
 
@@ -1832,8 +1835,11 @@ namespace zed_wrapper {
                     }
                 }
 
+
+
                 // Publish the right image if someone has subscribed to
                 if (rightSubnumber > 0) {
+
                     // Retrieve RGBA Right image
                     mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU, mMatWidth, mMatHeight);
 
@@ -1843,6 +1849,7 @@ namespace zed_wrapper {
 
                 // Publish the right image if someone has subscribed to
                 if (rightRawSubnumber > 0) {
+
                     // Retrieve RGBA Right image
                     mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU, mMatWidth, mMatHeight);
 
@@ -1852,6 +1859,7 @@ namespace zed_wrapper {
 
                 // Publish the depth image if someone has subscribed to
                 if (depthSubnumber > 0 || disparitySubnumber > 0) {
+
                     mZed.retrieveMeasure(depthZEDMat, sl::MEASURE_DEPTH, sl::MEM_CPU, mMatWidth, mMatHeight);
                     publishCamInfo(mDepthCamInfoMsg, mPubDepthCamInfo, mFrameTimestamp);
                     publishDepth(depthZEDMat, mFrameTimestamp); // in meters
@@ -1859,6 +1867,7 @@ namespace zed_wrapper {
 
                 // Publish the disparity image if someone has subscribed to
                 if (disparitySubnumber > 0) {
+
                     mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY, sl::MEM_CPU, mMatWidth, mMatHeight);
                     // Need to flip sign, but cause of this is not sure
                     publishDisparity(disparityZEDMat, mFrameTimestamp);
@@ -1866,20 +1875,21 @@ namespace zed_wrapper {
 
                 // Publish the confidence image if someone has subscribed to
                 if (confImgSubnumber > 0) {
+
                     mZed.retrieveImage(confImgZEDMat, sl::VIEW_CONFIDENCE, sl::MEM_CPU, mMatWidth, mMatHeight);
                     publishImage(confImgZEDMat, mPubConfImg, mConfidenceOptFrameId, mFrameTimestamp);
                 }
 
                 // Publish the confidence map if someone has subscribed to
                 if (confMapSubnumber > 0) {
+
                     mZed.retrieveMeasure(confMapZEDMat, sl::MEASURE_CONFIDENCE, sl::MEM_CPU, mMatWidth, mMatHeight);
-
-
                     mPubConfMap.publish(sl_tools::imageToROSmsg(confMapZEDMat, mConfidenceOptFrameId, mFrameTimestamp));
                 }
 
                 // Publish the point cloud if someone has subscribed to
                 if (cloudSubnumber > 0) {
+
                     // Run the point cloud conversion asynchronously to avoid slowing down
                     // all the program
                     // Retrieve raw pointCloud data if latest Pointcloud is ready
@@ -1905,6 +1915,7 @@ namespace zed_wrapper {
                 // Publish the odometry if someone has subscribed to
                 if (poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
                     depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0 || pathSubNumber > 0) {
+
                     if (!mInitOdomWithPose) {
                         sl::Pose deltaOdom;
                         mTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
@@ -2059,6 +2070,7 @@ namespace zed_wrapper {
 
                 // Publish pose tf only if enabled
                 if (mPublishTf) {
+
                     // Note, the frame is published, but its values will only change if
                     // someone has subscribed to odom
                     publishOdomFrame(mOdom2BaseTransf, mFrameTimestamp); // publish the base Frame in odometry frame
@@ -2098,18 +2110,22 @@ namespace zed_wrapper {
 
                 NODELET_DEBUG("*******************************");
 #endif
+                std::chrono::steady_clock::time_point end_elab = std::chrono::steady_clock::now();
 
-                double mean = mElabPeriodMean_sec->addValue(loop_rate.cycleTime().toSec()) ;
+                double elab_usec = std::chrono::duration_cast<std::chrono::microseconds>(end_elab - start_elab).count();
+
+                //double mean_elab_sec = mElabPeriodMean_sec->addValue(loop_rate.cycleTime().toSec());
+                double mean_elab_sec = mElabPeriodMean_sec->addValue(elab_usec / 1000000.);
 
                 if (!loop_rate.sleep()) {
-                    if (mean > loop_rate.expectedCycleTime().toSec()) {
+                    if (mean_elab_sec > loop_rate.expectedCycleTime().toSec()) {
                         NODELET_DEBUG_THROTTLE(
                             1.0,
                             "Working thread is not synchronized with the Camera frame rate");
                         NODELET_DEBUG_STREAM_THROTTLE(
                             1.0, "Expected cycle time: " << loop_rate.expectedCycleTime()
                             << " - Real cycle time: "
-                            << mean);
+                            << mean_elab_sec);
                         NODELET_WARN_THROTTLE(10.0, "Elaboration takes longer than requested "
                                               "by the FPS rate. Please consider to "
                                               "lower the 'frame_rate' setting.");
@@ -2164,7 +2180,7 @@ namespace zed_wrapper {
                     double freq_perc = 100.*freq / mCamFrameRate;
                     stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
 
-                    stat.addf("Processing Time", "Mean time: %.3f sec (Exp. %.3f sec)", mElabPeriodMean_sec->getMean(), 1. / mCamFrameRate);
+                    stat.addf("Processing Time", "Mean time: %.3f sec (Max. %.3f sec)", mElabPeriodMean_sec->getMean(), 1. / mCamFrameRate);
 
                     if (mComputeDepth) {
                         stat.add("Depth status", "ACTIVE");
