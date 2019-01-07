@@ -222,6 +222,7 @@ namespace zed_wrapper {
         mNhNs.getParam("depth/depth_topic_root", depth_topic_root);
         string depth_topic = depth_topic_root;
 
+
         if (mOpenniDepthMode) {
             NODELET_INFO_STREAM("Openni depth mode activated");
             depth_topic += "/depth_raw_registered";
@@ -254,6 +255,7 @@ namespace zed_wrapper {
         mNhNs.getParam("tracking/odometry_topic", odometry_topic);
         string odom_path_topic = "path_odom";
         string map_path_topic = "path_map";
+
         mNhNs.getParam("tracking/path_pub_rate", mPathPubRate);
         mNhNs.getParam("tracking/path_max_count", mPathMaxCount);
 
@@ -513,6 +515,7 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Advertised on topic " << disparity_topic);
 
         // PointCloud publisher
+        mPointcloudMsg.reset(new sensor_msgs::PointCloud2);
         mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(point_cloud_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << point_cloud_topic);
 
@@ -526,6 +529,7 @@ namespace zed_wrapper {
         }
 
         mPubOdom = mNhNs.advertise<nav_msgs::Odometry>(odometry_topic, 1);
+
         NODELET_INFO_STREAM("Advertised on topic " << odometry_topic);
 
         // Camera Path
@@ -1044,8 +1048,13 @@ namespace zed_wrapper {
         msg.header = msg.image.header;
         msg.f = zedParam.calibration_parameters.left_cam.fx;
         msg.T = zedParam.calibration_parameters.T.x;
-        msg.min_disparity = msg.f * msg.T / mZed.getDepthMaxRangeValue();
-        msg.max_disparity = msg.f * msg.T / mZed.getDepthMinRangeValue();
+
+        if (msg.T > 0) {
+            msg.T *= -1.0f;
+        }
+
+        msg.min_disparity = msg.f * msg.T / mZed.getDepthMinRangeValue();
+        msg.max_disparity = msg.f * msg.T / mZed.getDepthMaxRangeValue();
         mPubDisparity.publish(msg);
     }
 
@@ -1085,18 +1094,19 @@ namespace zed_wrapper {
         // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
         int ptsCount = mMatWidth * mMatHeight;
-        mPointcloudMsg.header.stamp = mPointCloudTime;
 
-        if (mPointcloudMsg.width != mMatWidth || mPointcloudMsg.height != mMatHeight) {
-            mPointcloudMsg.header.frame_id = mPointCloudFrameId; // Set the header values of the ROS message
+        mPointcloudMsg->header.stamp = mPointCloudTime;
 
-            mPointcloudMsg.is_bigendian = false;
-            mPointcloudMsg.is_dense = false;
+        if (mPointcloudMsg->width != mMatWidth || mPointcloudMsg->height != mMatHeight) {
+            mPointcloudMsg->header.frame_id = mPointCloudFrameId; // Set the header values of the ROS message
 
-            mPointcloudMsg.width = mMatWidth;
-            mPointcloudMsg.height = mMatHeight;
+            mPointcloudMsg->is_bigendian = false;
+            mPointcloudMsg->is_dense = false;
 
-            sensor_msgs::PointCloud2Modifier modifier(mPointcloudMsg);
+            mPointcloudMsg->width = mMatWidth;
+            mPointcloudMsg->height = mMatHeight;
+
+            sensor_msgs::PointCloud2Modifier modifier(*mPointcloudMsg);
             modifier.setPointCloud2Fields(4,
                                           "x", 1, sensor_msgs::PointField::FLOAT32,
                                           "y", 1, sensor_msgs::PointField::FLOAT32,
@@ -1104,11 +1114,9 @@ namespace zed_wrapper {
                                           "rgb", 1, sensor_msgs::PointField::FLOAT32);
         }
 
-
-
         // Data copy
         sl::Vector4<float>* cpu_cloud = mCloud.getPtr<sl::float4>();
-        float* ptCloudPtr = (float*)(&mPointcloudMsg.data[0]);
+        float* ptCloudPtr = (float*)(&mPointcloudMsg->data[0]);
 
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=5) )
         memcpy(ptCloudPtr, (float*)cpu_cloud,
@@ -1869,7 +1877,7 @@ namespace zed_wrapper {
                 if (disparitySubnumber > 0) {
 
                     mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE_DISPARITY, sl::MEM_CPU, mMatWidth, mMatHeight);
-                    // Need to flip sign, but cause of this is not sure
+
                     publishDisparity(disparityZEDMat, mFrameTimestamp);
                 }
 

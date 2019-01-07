@@ -416,7 +416,7 @@ namespace zed_wrapper {
 
         // Point cloud variables
         sl::Mat mCloud;
-        sensor_msgs::PointCloud2 mPointcloudMsg;
+        sensor_msgs::PointCloud2Ptr mPointcloudMsg;
         ros::Time mPointCloudTime;
 
         // Dynamic reconfigure
