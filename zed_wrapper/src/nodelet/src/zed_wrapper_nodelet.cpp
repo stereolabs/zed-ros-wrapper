@@ -310,7 +310,7 @@ namespace zed_wrapper {
         } else {
             mZedParams.camera_fps = mCamFrameRate;
             mZedParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
-            mZedParams.depth_minimum_distance = 0.1;
+            mZedParams.depth_minimum_distance = 0.35;
 
             if (mZedSerialNumber == 0) {
                 mZedParams.camera_linux_id = mZedId;
