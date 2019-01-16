@@ -117,13 +117,15 @@ namespace zed_wrapper {
 
         /* \brief Publish a sl::Mat image with a ros Publisher
          * \param img : the image to publish
-         * \param pub_img : the publisher object to use (different image publishers
+         * \param pubImg : the publisher object to use (different image publishers
          * exist)
-         * \param img_frame_id : the id of the reference frame of the image (different
+         * \param camInfoMsg : the camera_info to be published with image
+         * \param imgFrameId : the id of the reference frame of the image (different
          * image frames exist)
          * \param t : the ros::Time to stamp the image
          */
-        void publishImage(sl::Mat img, image_transport::Publisher& pubImg, string imgFrameId, ros::Time t);
+        void publishImage(sl::Mat img, image_transport::CameraPublisher& pubImg, sensor_msgs::CameraInfoPtr camInfoMsg,
+                          string imgFrameId, ros::Time t);
 
         /* \brief Publish a sl::Mat depth image with a ros Publisher
          * \param depth : the depth image to publish
@@ -244,25 +246,18 @@ namespace zed_wrapper {
         bool mStopNode;
 
         // Publishers
-        image_transport::Publisher mPubRgb; //
-        image_transport::Publisher mPubRawRgb; //
-        image_transport::Publisher mPubLeft; //
-        image_transport::Publisher mPubRawLeft; //
-        image_transport::Publisher mPubRight; //
-        image_transport::Publisher mPubRawRight; //
-        image_transport::Publisher mPubDepth; //
-        image_transport::Publisher mPubConfImg; //
+        image_transport::CameraPublisher mPubRgb; //
+        image_transport::CameraPublisher mPubRawRgb; //
+        image_transport::CameraPublisher mPubLeft; //
+        image_transport::CameraPublisher mPubRawLeft; //
+        image_transport::CameraPublisher mPubRight; //
+        image_transport::CameraPublisher mPubRawRight; //
+        image_transport::CameraPublisher mPubDepth; //
+        image_transport::CameraPublisher mPubConfImg; //
 
         ros::Publisher mPubConfMap; //
         ros::Publisher mPubDisparity; //
         ros::Publisher mPubCloud;
-        ros::Publisher mPubRgbCamInfo; //
-        ros::Publisher mPubLeftCamInfo; //
-        ros::Publisher mPubRightCamInfo; //
-        ros::Publisher mPubRgbCamInfoRaw; //
-        ros::Publisher mPubLeftCamInfoRaw; //
-        ros::Publisher mPubRightCamInfoRaw; //
-        ros::Publisher mPubDepthCamInfo; //
         ros::Publisher mPubPose;
         ros::Publisher mPubPoseCov;
         ros::Publisher mPubOdom;
@@ -270,7 +265,6 @@ namespace zed_wrapper {
         ros::Publisher mPubMapPath;
         ros::Publisher mPubImu;
         ros::Publisher mPubImuRaw;
-        //ros::Publisher mPubClock;
 
         // Timers
         ros::Timer mImuTimer;
