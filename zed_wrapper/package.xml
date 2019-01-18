@@ -29,6 +29,7 @@
   <depend>eigen</depend>
   <depend>tf2_eigen</depend>
   <depend>diagnostic_updater</depend>
+  <depend>Sophus</depend>
   
   <build_depend>urdf</build_depend>
   <build_depend>message_generation</build_depend>

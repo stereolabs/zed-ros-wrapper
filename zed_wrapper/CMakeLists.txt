@@ -55,6 +55,8 @@ find_package(catkin COMPONENTS
   diagnostic_updater
 )
 
+find_package(Sophus REQUIRED)
+
 checkPackage("image_transport" "")
 checkPackage("roscpp" "")
 checkPackage("rosconsole" "")
@@ -68,6 +70,7 @@ checkPackage("nodelet" "")
 checkPackage("tf2_geometry_msgs" "")
 checkPackage("message_generation" "")
 checkPackage("diagnostic_updater" "")
+checkPackage("Sophus" "")
 
 add_service_files( FILES
     set_pose.srv
@@ -81,7 +84,9 @@ generate_dynamic_reconfigure_options(
   cfg/Zed.cfg
 )
 
-catkin_package(
+catkin_package(  
+  DEPENDS
+    Sophus
   CATKIN_DEPENDS
     roscpp
     rosconsole
