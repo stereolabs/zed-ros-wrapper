@@ -272,7 +272,6 @@ namespace zed_wrapper {
         set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
                  mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
 
-
         // Try to initialize the ZED
         if (!mSvoFilepath.empty()) {
             mZedParams.svo_input_filename = mSvoFilepath.c_str();
@@ -558,8 +557,6 @@ namespace zed_wrapper {
 
         // Start pool thread
         mDevicePollThread = std::thread(&ZEDWrapperNodelet::device_poll_thread_func, this);
-
-
     }
 
     void ZEDWrapperNodelet::checkResolFps() {
@@ -697,12 +694,11 @@ namespace zed_wrapper {
         } catch (tf2::TransformException& ex) {
             NODELET_WARN_THROTTLE(
                 10.0, "The tf from '%s' to '%s' does not seem to be available, "
-                "will assume it as identity!",
+                "will assume it as identity! Verify that the static transforms from URDF are correctly published",
                 mDepthFrameId.c_str(), mBaseFrameId.c_str());
             NODELET_DEBUG("Transform error: %s", ex.what());
             mSensor2BaseTransf.setIdentity();
         }
-
     }
 
     void ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr,
@@ -1070,7 +1066,7 @@ namespace zed_wrapper {
         // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
         int ptsCount = mMatWidth * mMatHeight;
-      
+
         mPointcloudMsg->header.stamp = mPointCloudTime;
 
         if (mPointcloudMsg->width != mMatWidth || mPointcloudMsg->height != mMatHeight) {
@@ -1639,19 +1635,17 @@ namespace zed_wrapper {
 
             // Run the loop only if there is some subscribers
             if (mGrabActive) {
-                bool startTracking = (mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
-                                      odomSubnumber > 0 || cloudSubnumber > 0 || depthSubnumber > 0 || pathSubNumber > 0);
+                bool computeTracking = (mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
+                                        odomSubnumber > 0 || pathSubNumber > 0);
 
                 // Detect if one of the subscriber need to have the depth information
                 mComputeDepth = mCamQuality != sl::DEPTH_MODE_NONE && ((depthSubnumber + disparitySubnumber + cloudSubnumber +
                                 poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
                                 confMapSubnumber) > 0);
 
-                if ((startTracking) && !mTrackingActivated && mComputeDepth) { // Start the tracking
+                if ((computeTracking) && !mTrackingActivated && (mCamQuality != sl::DEPTH_MODE_NONE)) { // Start the tracking
                     start_tracking();
-                } else if (!mDepthStabilization && poseSubnumber == 0 && poseCovSubnumber == 0 &&
-                           odomSubnumber == 0 &&
-                           mTrackingActivated) { // Stop the tracking
+                } else if (!computeTracking) { // Stop the tracking
                     mZed.disableTracking();
                     mTrackingActivated = false;
                 }
@@ -1729,10 +1723,10 @@ namespace zed_wrapper {
 
                         mTrackingActivated = false;
 
-                        startTracking = mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
-                                        odomSubnumber > 0;
+                        computeTracking = mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
+                                          odomSubnumber > 0;
 
-                        if (startTracking) {  // Start the tracking
+                        if (computeTracking) {  // Start the tracking
                             start_tracking();
                         }
                     }
@@ -1887,8 +1881,7 @@ namespace zed_wrapper {
                 mCamDataMutex.unlock();
 
                 // Publish the odometry if someone has subscribed to
-                if (poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0 || cloudSubnumber > 0 ||
-                    depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0 || pathSubNumber > 0) {
+                if (computeTracking) {
                     if (!mInitOdomWithPose) {
                         sl::Pose deltaOdom;
                         mTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
@@ -1944,9 +1937,7 @@ namespace zed_wrapper {
                 }
 
                 // Publish the zed camera pose if someone has subscribed to
-                if (poseSubnumber > 0 || odomSubnumber > 0 || poseCovSubnumber > 0 || cloudSubnumber > 0 ||
-                    depthSubnumber > 0 || imuSubnumber > 0 || imuRawsubnumber > 0 || pathSubNumber > 0) {
-
+                if (computeTracking) {
                     static sl::TRACKING_STATE oldStatus;
                     mTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME_WORLD);
 
