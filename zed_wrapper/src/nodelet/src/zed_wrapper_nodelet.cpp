@@ -1645,9 +1645,10 @@ namespace zed_wrapper {
 
                 if ((computeTracking) && !mTrackingActivated && (mCamQuality != sl::DEPTH_MODE_NONE)) { // Start the tracking
                     start_tracking();
-                } else if (!computeTracking) { // Stop the tracking
+                } else if (!computeTracking && mTrackingActivated) { // Stop the tracking
                     mZed.disableTracking();
                     mTrackingActivated = false;
+                    NODELET_INFO("Tracking DISABLED");
                 }
 
                 if (mComputeDepth) {
