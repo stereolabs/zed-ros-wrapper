@@ -67,6 +67,8 @@ add_service_files( FILES
     set_initial_pose.srv
     reset_odometry.srv
     reset_tracking.srv
+    start_svo_recording.srv
+    stop_svo_recording.srv
   )
 
 generate_messages()
