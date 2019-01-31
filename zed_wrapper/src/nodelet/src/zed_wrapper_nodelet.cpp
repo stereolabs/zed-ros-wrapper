@@ -1752,6 +1752,8 @@ namespace zed_wrapper {
                 }
 
                 // SVO recording
+                mRecMutex.lock();
+
                 if (mRecording) {
                     mRecState = mZed.record();
 
@@ -1761,6 +1763,8 @@ namespace zed_wrapper {
 
                     mDiagUpdater.force_update();
                 }
+
+                mRecMutex.unlock();
 
                 // Timestamp
                 mPrevFrameTimestamp = mFrameTimestamp;
@@ -2239,6 +2243,8 @@ namespace zed_wrapper {
 
     bool ZEDWrapperNodelet::on_start_svo_recording(zed_wrapper::start_svo_recording::Request& req,
             zed_wrapper::start_svo_recording::Response& res) {
+        std::lock_guard<std::mutex> lock(mRecMutex);
+
         if (mRecording) {
             res.result = false;
             res.info = "Recording was just active";
@@ -2301,6 +2307,8 @@ namespace zed_wrapper {
 
     bool ZEDWrapperNodelet::on_stop_svo_recording(zed_wrapper::stop_svo_recording::Request& req,
             zed_wrapper::stop_svo_recording::Response& res) {
+        std::lock_guard<std::mutex> lock(mRecMutex);
+
         if (!mRecording) {
             res.done = false;
             res.info = "Recording was not active";

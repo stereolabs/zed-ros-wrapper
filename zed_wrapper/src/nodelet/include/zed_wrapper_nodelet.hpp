@@ -298,8 +298,6 @@ namespace zed_wrapper {
         ros::ServiceServer mSrvSvoStartRecording;
         ros::ServiceServer mSrvSvoStopRecording;
 
-
-
         // Camera info
         sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
         sensor_msgs::CameraInfoPtr mLeftCamInfoMsg;
@@ -432,6 +430,7 @@ namespace zed_wrapper {
         std::mutex mCloseZedMutex;
         std::mutex mCamDataMutex;
         std::mutex mPcMutex;
+        std::mutex mRecMutex;
         std::condition_variable mPcDataReadyCondVar;
         bool mPcDataReady;
 
