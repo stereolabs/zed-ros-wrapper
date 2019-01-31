@@ -2227,7 +2227,7 @@ namespace zed_wrapper {
                 } else {
                     stat.add("SVO Recording", "ACTIVE");
                     stat.addf("SVO compression time", "%g msec", mRecState.average_compression_time);
-                    stat.addf("SVO compression ratio", "%g", mRecState.average_compression_ratio);
+                    stat.addf("SVO compression ratio", "%.1f%%", mRecState.average_compression_ratio);
                 }
             } else {
                 stat.add("SVO Recording", "NOT ACTIVE");
@@ -2245,6 +2245,11 @@ namespace zed_wrapper {
             return false;
         }
 
+        // Check filename
+        if (req.svo_filename.empty()) {
+            req.svo_filename = "zed.svo";
+        }
+
         sl::ERROR_CODE err;
         sl::SVO_COMPRESSION_MODE compression = sl::SVO_COMPRESSION_MODE_RAW;
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
@@ -2253,10 +2258,14 @@ namespace zed_wrapper {
             err = mZed.enableRecording(req.svo_filename.c_str(), compression); // H265 Compression?
 
             if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
+                ROS_DEBUG_STREAM(sl::toString(compression).c_str() << "not available. Trying " << sl::toString(
+                                     sl::SVO_COMPRESSION_MODE_AVCHD).c_str());
                 compression = sl::SVO_COMPRESSION_MODE_AVCHD;
                 err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // H264 Compression?
 
                 if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
+                    ROS_DEBUG_STREAM(sl::toString(compression).c_str() << "not available. Trying " << sl::toString(
+                                         sl::SVO_COMPRESSION_MODE_LOSSY).c_str());
                     compression = sl::SVO_COMPRESSION_MODE_LOSSY;
                     err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // JPEG Compression?
                 }
