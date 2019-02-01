@@ -40,10 +40,15 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 
+// Dynamic reconfiguration
 #include <zed_wrapper/ZedConfig.h>
+
+// Services
 #include <zed_wrapper/reset_tracking.h>
 #include <zed_wrapper/set_initial_pose.h>
 #include <zed_wrapper/reset_odometry.h>
+#include <zed_wrapper/start_svo_recording.h>
+#include <zed_wrapper/stop_svo_recording.h>
 
 #include <memory>
 #include <mutex>
@@ -217,6 +222,16 @@ namespace zed_wrapper {
         bool on_set_pose(zed_wrapper::set_initial_pose::Request& req,
                          zed_wrapper::set_initial_pose::Response& res);
 
+        /* \brief Service callback to start_svo_recording service
+         */
+        bool on_start_svo_recording(zed_wrapper::start_svo_recording::Request& req,
+                                    zed_wrapper::start_svo_recording::Response& res);
+
+        /* \brief Service callback to stop_svo_recording service
+         */
+        bool on_stop_svo_recording(zed_wrapper::stop_svo_recording::Request& req,
+                                   zed_wrapper::stop_svo_recording::Response& res);
+
         /* \brief Utility to initialize the pose variables
          */
         void set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
@@ -274,6 +289,8 @@ namespace zed_wrapper {
         ros::ServiceServer mSrvSetInitPose;
         ros::ServiceServer mSrvResetOdometry;
         ros::ServiceServer mSrvResetTracking;
+        ros::ServiceServer mSrvSvoStartRecording;
+        ros::ServiceServer mSrvSvoStopRecording;
 
         // Camera info
         sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
@@ -395,6 +412,10 @@ namespace zed_wrapper {
         bool mResetOdom = false;
         bool mPublishPoseCovariance = true;
 
+        // SVO recording
+        bool mRecording = false;
+        sl::RecordingState mRecState;
+
         // Mat
         int mCamWidth;
         int mCamHeight;
@@ -405,6 +426,7 @@ namespace zed_wrapper {
         std::mutex mCloseZedMutex;
         std::mutex mCamDataMutex;
         std::mutex mPcMutex;
+        std::mutex mRecMutex;
         std::condition_variable mPcDataReadyCondVar;
         bool mPcDataReady;
 

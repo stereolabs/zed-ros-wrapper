@@ -60,6 +60,10 @@ To launch the wrapper without Rviz, use:
  To select the ZED from its serial number
 
     $ roslaunch zed_wrapper zed.launch serial_number:=1010 #replace 1010 with the actual SN
+    
+### SVO recording
+[SVO recording](https://www.stereolabs.com/docs/video/#video-recording) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
+[More information](https://www.stereolabs.com/docs/ros/zed_node/#services)
 
 ### Diagnostic
 The ZED node publishes diagnostic information that can be used by the robotic system using a [diagnostic_aggregator node](http://wiki.ros.org/diagnostic_aggregator).
