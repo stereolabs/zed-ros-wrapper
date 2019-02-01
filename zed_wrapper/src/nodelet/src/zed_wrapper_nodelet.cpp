@@ -2264,7 +2264,7 @@ namespace zed_wrapper {
 
         sl::ERROR_CODE err;
         sl::SVO_COMPRESSION_MODE compression = sl::SVO_COMPRESSION_MODE_RAW;
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=7))
         {
             compression = sl::SVO_COMPRESSION_MODE_HEVC;
             err = mZed.enableRecording(req.svo_filename.c_str(), compression); // H265 Compression?
