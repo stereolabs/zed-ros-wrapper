@@ -1668,8 +1668,8 @@ namespace zed_wrapper {
                 runParams.enable_point_cloud = true;
             }
 
-            // Run the loop only if there is some subscribers
-            if (mGrabActive) {
+            // Run the loop only if there is some subscribers or SVO recording is active
+            if (mGrabActive || mRecording) {
                 bool computeTracking = (mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
                                         odomSubnumber > 0 || pathSubNumber > 0);
 
