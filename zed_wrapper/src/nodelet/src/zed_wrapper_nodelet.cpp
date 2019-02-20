@@ -868,7 +868,17 @@ namespace zed_wrapper {
         if (!mSpatialMemory && mPublishPoseCovariance) {
             for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
                 // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
+
                 odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+
+                if (mTwoDMode) {
+                    if ((i >= 2 && i <= 4) ||
+                        (i >= 8 && i <= 10) ||
+                        (i >= 12 && i <= 29) ||
+                        (i >= 32 && i <= 34)) {
+                        odom.pose.covariance[i] = 1e-9; // Very low covariance if 2D mode
+                    }
+                }
             }
         }
 
@@ -931,6 +941,15 @@ namespace zed_wrapper {
                     for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
                         // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
                         poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+
+                        if (mTwoDMode) {
+                            if ((i >= 2 && i <= 4) ||
+                                (i >= 8 && i <= 10) ||
+                                (i >= 12 && i <= 29) ||
+                                (i >= 32 && i <= 34)) {
+                                poseCov.pose.covariance[i] = 1e-9; // Very low covariance if 2D mode
+                            }
+                        }
                     }
                 }
 
