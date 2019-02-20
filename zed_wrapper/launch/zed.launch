@@ -32,6 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Coordinate frame -->
     <arg name="pose_frame"           default="map" />
     <arg name="odometry_frame"       default="odom" />
+    <arg name="two_d_mode"           default="false" /> <!-- if true the Z value will be fixed to "fixed_z_value", roll and pitch to zero -->
+    <arg name="fixed_z_value"        default="0.0" />
 
     <group ns="zed">
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
@@ -43,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <arg name="resolution"          value="$(arg resolution)" />
             <arg name="frame_rate"          value="$(arg frame_rate)" />
             <arg name="verbose"             value="$(arg verbose)" />
+            <arg name="two_d_mode"          value="$(arg two_d_mode)" />
+            <arg name="fixed_z_value"       value="$(arg fixed_z_value)" />
         </include>
     </group>
 </launch>
