@@ -799,6 +799,8 @@ namespace zed_wrapper {
         mNhNs.getParam("floor_alignment", mFloorAlignment);
         mNhNs.getParam("init_odom_with_first_valid_pose", mInitOdomWithPose);
         NODELET_INFO_STREAM("Init Odometry with first valid pose data : " << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
+        mNhNs.getParam("two_d_mode", mTwoDMode);
+        mNhNs.getParam("fixed_z_value", mFixedZValue);
 
         if (mInitialTrackPose.size() != 6) {
             NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialTrackPose.size()
@@ -822,6 +824,11 @@ namespace zed_wrapper {
         trackParams.enable_spatial_memory = mSpatialMemory;
         NODELET_INFO_STREAM("Spatial Memory : " << (trackParams.enable_spatial_memory ? "ENABLED" : "DISABLED"));
         trackParams.initial_world_transform = mInitialPoseSl;
+        NODELET_INFO_STREAM("Two D mode : " << (mTwoDMode ? "ENABLED" : "DISABLED"));
+
+        if (mTwoDMode) {
+            NODELET_INFO_STREAM("Fixed Z value : " << mFixedZValue);
+        }
 
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
         trackParams.set_floor_as_origin = mFloorAlignment;
@@ -861,7 +868,17 @@ namespace zed_wrapper {
         if (!mSpatialMemory && mPublishPoseCovariance) {
             for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
                 // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
+
                 odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+
+                if (mTwoDMode) {
+                    if ((i >= 2 && i <= 4) ||
+                        (i >= 8 && i <= 10) ||
+                        (i >= 12 && i <= 29) ||
+                        (i >= 32 && i <= 34)) {
+                        odom.pose.covariance[i] = 1e-9; // Very low covariance if 2D mode
+                    }
+                }
             }
         }
 
@@ -924,6 +941,15 @@ namespace zed_wrapper {
                     for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
                         // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
                         poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+
+                        if (mTwoDMode) {
+                            if ((i >= 2 && i <= 4) ||
+                                (i >= 8 && i <= 10) ||
+                                (i >= 12 && i <= 29) ||
+                                (i >= 32 && i <= 34)) {
+                                poseCov.pose.covariance[i] = 1e-9; // Very low covariance if 2D mode
+                            }
+                        }
                     }
                 }
 
@@ -1942,6 +1968,20 @@ namespace zed_wrapper {
                             // Propagate Odom transform in time
                             mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
 
+                            if (mTwoDMode) {
+                                tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
+                                tr_2d.setZ(mFixedZValue);
+                                mOdom2BaseTransf.setOrigin(tr_2d);
+
+                                double roll, pitch, yaw;
+                                tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+                                tf2::Quaternion quat_2d;
+                                quat_2d.setRPY(0.0, 0.0, yaw);
+
+                                mOdom2BaseTransf.setRotation(quat_2d);
+                            }
+
 #if 0 //#ifndef NDEBUG // Enable for TF checking
                             double roll, pitch, yaw;
                             tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
@@ -1998,6 +2038,20 @@ namespace zed_wrapper {
                         tf2::fromMsg(map2sensTransf, map_to_sens_transf);
 
                         mMap2BaseTransf = map_to_sens_transf * mSensor2BaseTransf; // Base position in map frame
+
+                        if (mTwoDMode) {
+                            tf2::Vector3 tr_2d = mMap2BaseTransf.getOrigin();
+                            tr_2d.setZ(mFixedZValue);
+                            mMap2BaseTransf.setOrigin(tr_2d);
+
+                            double roll, pitch, yaw;
+                            tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+                            tf2::Quaternion quat_2d;
+                            quat_2d.setRPY(0.0, 0.0, yaw);
+
+                            mMap2BaseTransf.setRotation(quat_2d);
+                        }
 
 #if 0 //#ifndef NDEBUG // Enable for TF checking
                         double roll, pitch, yaw;
