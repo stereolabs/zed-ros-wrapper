@@ -2323,15 +2323,16 @@ namespace zed_wrapper {
                 }
             }
         }
-#else
-        compression = sl::SVO_COMPRESSION_MODE_LOSSY;
-        err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // JPEG Compression?
-#endif
 
         if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
             compression = sl::SVO_COMPRESSION_MODE_RAW;
             err = mZed.enableRecording(req.svo_filename.c_str(), compression);
         }
+
+#else
+        compression = sl::SVO_COMPRESSION_MODE_LOSSY;
+        err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // JPEG Compression?
+#endif
 
         if (err != sl::SUCCESS) {
             res.result = false;
