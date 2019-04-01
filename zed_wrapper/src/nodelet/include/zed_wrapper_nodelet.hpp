@@ -49,6 +49,8 @@
 #include <zed_wrapper/reset_odometry.h>
 #include <zed_wrapper/start_svo_recording.h>
 #include <zed_wrapper/stop_svo_recording.h>
+#include <zed_wrapper/set_led_status.h>
+#include <zed_wrapper/toggle_led.h>
 
 #include <memory>
 #include <mutex>
@@ -230,6 +232,17 @@ namespace zed_wrapper {
         bool on_stop_svo_recording(zed_wrapper::stop_svo_recording::Request& req,
                                    zed_wrapper::stop_svo_recording::Response& res);
 
+        /* \brief Service callback to set_led_status service
+         */
+        bool on_set_led_status(zed_wrapper::set_led_status::Request& req,
+                               zed_wrapper::set_led_status::Response& res);
+
+        /* \brief Service callback to toggle_led service
+         */
+        bool on_toggle_led(zed_wrapper::toggle_led::Request& req,
+                           zed_wrapper::toggle_led::Response& res);
+
+
         /* \brief Utility to initialize the pose variables
          */
         void set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
@@ -399,6 +412,7 @@ namespace zed_wrapper {
         unsigned int mZedSerialNumber;
         int mZedUserCamModel;       // Camera model set by ROS Param
         sl::MODEL mZedRealCamModel; // Camera model requested to SDK
+        unsigned int mFwVersion;
 
         // Dynamic Parameters
         int mCamConfidence;

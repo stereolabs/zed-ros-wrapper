@@ -69,6 +69,8 @@ add_service_files( FILES
     reset_tracking.srv
     start_svo_recording.srv
     stop_svo_recording.srv
+    set_led_status.srv
+    toggle_led.srv
   )
 
 generate_messages()

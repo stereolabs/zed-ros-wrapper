@@ -410,6 +410,8 @@ namespace zed_wrapper {
         }
 
         NODELET_INFO_STREAM("CAMERA MODEL : " << mZedRealCamModel);
+        mFwVersion = mZed.getCameraInformation().firmware_version;
+        NODELET_INFO_STREAM("FW VER. : " << mFwVersion);
         mZedSerialNumber = mZed.getCameraInformation().serial_number;
 
         mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
@@ -2367,6 +2369,31 @@ namespace zed_wrapper {
         res.done = true;
 
         ROS_INFO_STREAM("SVO recording STOPPED");
+
+        return true;
+    }
+
+    bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& req,
+            zed_wrapper::set_led_status::Response& res) {
+        if (mFwVersion < 1523) {
+            ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
+            return false;
+        }
+
+        mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, req.led_enabled ? 1 : 0);
+
+        return true;
+    }
+
+    bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
+                                          zed_wrapper::toggle_led::Response& res) {
+        if (mFwVersion < 1523) {
+            ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
+            return false;
+        }
+
+        int status = mZed.getCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS);
+        mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, status == 0 ? 1 : 0);
 
         return true;
     }
