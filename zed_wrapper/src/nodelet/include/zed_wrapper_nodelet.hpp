@@ -310,6 +310,8 @@ namespace zed_wrapper {
         ros::ServiceServer mSrvResetTracking;
         ros::ServiceServer mSrvSvoStartRecording;
         ros::ServiceServer mSrvSvoStopRecording;
+        ros::ServiceServer mSrvSetLedStatus;
+        ros::ServiceServer mSrvToggleLed;
 
         // Camera info
         sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;

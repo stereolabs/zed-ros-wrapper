@@ -555,6 +555,8 @@ namespace zed_wrapper {
         mSrvResetTracking = mNh.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
         mSrvSvoStartRecording = mNh.advertiseService("start_svo_recording", &ZEDWrapperNodelet::on_start_svo_recording, this);
         mSrvSvoStopRecording = mNh.advertiseService("stop_svo_recording", &ZEDWrapperNodelet::on_stop_svo_recording, this);
+        mSrvSetLedStatus = mNh.advertiseService("set_led_status", &ZEDWrapperNodelet::on_set_led_status, this);
+        mSrvToggleLed = mNh.advertiseService("toggle_led", &ZEDWrapperNodelet::on_toggle_led, this);
 
         // Start Pointcloud thread
         mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
