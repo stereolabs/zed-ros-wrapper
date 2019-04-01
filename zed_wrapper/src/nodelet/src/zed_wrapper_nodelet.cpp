@@ -149,6 +149,7 @@ namespace zed_wrapper {
         mNhNs.getParam("general/gpu_id", mGpuId);
         mNhNs.getParam("general/zed_id", mZedId);
         mNhNs.getParam("general/verbose", mVerbose);
+
         mNhNs.getParam("depth/quality", mCamQuality);
         mNhNs.getParam("depth/sensing_mode", mCamSensingMode);
         mNhNs.getParam("depth/openni_depth_mode", mOpenniDepthMode);
@@ -337,6 +338,23 @@ namespace zed_wrapper {
 
         std::string ver = sl_tools::getSDKVersion(mVerMajor, mVerMinor, mVerSubMinor);
         NODELET_INFO_STREAM("SDK version : " << ver);
+
+        int svo_compr = 0;
+        mNhNs.getParam("general/svo_compression", svo_compr);
+
+        if (svo_compr >= sl::SVO_COMPRESSION_MODE_LAST) {
+            NODELET_WARN_STREAM("The parameter `general/svo_compression` has an invalid value. Please check it in the configuration file `common.yaml`");
+
+            if ((mVerMajor == 2 && mVerMinor < 7) || mVerMajor < 2) {
+                NODELET_WARN_STREAM("Note: H264 and H265 compression modes are available with SDK v2.7 or newer");
+            }
+
+            svo_compr = 0;
+        }
+
+        mSvoComprMode = static_cast<sl::SVO_COMPRESSION_MODE>(svo_compr);
+
+        NODELET_INFO_STREAM("SVO compression : " << sl::toString(mSvoComprMode));
 
 #if (ZED_SDK_MAJOR_VERSION<2)
         NODELET_WARN_STREAM("Please consider to upgrade to latest SDK version to "
@@ -2263,34 +2281,43 @@ namespace zed_wrapper {
         }
 
         sl::ERROR_CODE err;
-        sl::SVO_COMPRESSION_MODE compression = sl::SVO_COMPRESSION_MODE_RAW;
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=7))
-        {
-            compression = sl::SVO_COMPRESSION_MODE_HEVC;
-            err = mZed.enableRecording(req.svo_filename.c_str(), compression); // H265 Compression?
+        sl::SVO_COMPRESSION_MODE compression = mSvoComprMode;
 
-            if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
-                ROS_DEBUG_STREAM(sl::toString(compression).c_str() << "not available. Trying " << sl::toString(
-                                     sl::SVO_COMPRESSION_MODE_AVCHD).c_str());
-                compression = sl::SVO_COMPRESSION_MODE_AVCHD;
-                err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // H264 Compression?
-
-                if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
-                    ROS_DEBUG_STREAM(sl::toString(compression).c_str() << "not available. Trying " << sl::toString(
-                                         sl::SVO_COMPRESSION_MODE_LOSSY).c_str());
-                    compression = sl::SVO_COMPRESSION_MODE_LOSSY;
-                    err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // JPEG Compression?
-                }
-            }
-        }
-#else
-        compression = sl::SVO_COMPRESSION_MODE_LOSSY;
-        err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // JPEG Compression?
-#endif
+        err = mZed.enableRecording(req.svo_filename.c_str(), mSvoComprMode);
 
         if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
-            compression = sl::SVO_COMPRESSION_MODE_RAW;
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=7))
+            compression = mSvoComprMode == sl::SVO_COMPRESSION_MODE_HEVC ? sl::SVO_COMPRESSION_MODE_AVCHD :
+                          sl::SVO_COMPRESSION_MODE_HEVC;
+
+            ROS_WARN_STREAM("The chosen " << sl::toString(mSvoComprMode).c_str() << "mode is not available. Trying " <<
+                            sl::toString(compression).c_str());
+
             err = mZed.enableRecording(req.svo_filename.c_str(), compression);
+
+            if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
+                ROS_WARN_STREAM(sl::toString(compression).c_str() << "not available. Trying " << sl::toString(
+                                    sl::SVO_COMPRESSION_MODE_LOSSY).c_str());
+                compression = sl::SVO_COMPRESSION_MODE_LOSSY;
+                err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // JPEG Compression?
+
+
+#else
+            compression = mSvoComprMode == sl::SVO_COMPRESSION_MODE_LOSSY ? sl::SVO_COMPRESSION_MODE_LOSSLESS :
+                          sl::SVO_COMPRESSION_MODE_LOSSY;
+
+            ROS_WARN_STREAM("The chosen " << sl::toString(mSvoComprMode).c_str() << "mode is not available. Trying " <<
+                            sl::toString(compression).c_str());
+
+
+            err = mZed.enableRecording(req.svo_filename.c_str(), compression);
+#endif
+
+                if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
+                    compression = sl::SVO_COMPRESSION_MODE_RAW;
+                    err = mZed.enableRecording(req.svo_filename.c_str(), compression);
+                }
+            }
         }
 
         if (err != sl::SUCCESS) {
@@ -2300,6 +2327,7 @@ namespace zed_wrapper {
             return false;
         }
 
+        mSvoComprMode = compression;
         mRecording = true;
         res.info = "Recording started (";
         res.info += sl::toString(compression).c_str();
