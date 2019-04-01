@@ -2395,8 +2395,9 @@ namespace zed_wrapper {
         }
 
         int status = mZed.getCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS);
-        mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, status == 0 ? 1 : 0);
+        int new_status = status == 0 ? 1 : 0;
+        mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, new_status);
 
-        return true;
+        return (new_status == 1);
     }
 } // namespace
