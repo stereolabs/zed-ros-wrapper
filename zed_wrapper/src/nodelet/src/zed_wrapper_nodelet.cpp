@@ -457,6 +457,7 @@ namespace zed_wrapper {
         mNhNs.getParam("exposure", mCamExposure);
         mNhNs.getParam("gain", mCamGain);
         mNhNs.getParam("auto_exposure", mCamAutoExposure);
+        mNhNs.getParam("point_cloud_freq", mPointCloudFreq);
 
         if (mCamAutoExposure) {
             mTriggerAutoExposure = true;
@@ -1057,7 +1058,24 @@ namespace zed_wrapper {
                 }
             }
 
+            // ----> Check publishing frequency
+            double pc_period_msec = 1000.0 / mPointCloudFreq;
+
+            static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+            std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+            double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time).count();
+
+            if (elapsed_msec < pc_period_msec) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
+            }
+
+            // <---- Check publishing frequency
+
+            last_time = std::chrono::steady_clock::now();
             publishPointCloud();
+
+
             mPcDataReady = false;
         }
 
@@ -1244,6 +1262,11 @@ namespace zed_wrapper {
             break;
 
         case 3:
+            mPointCloudFreq = config.point_cloud_freq;
+            NODELET_INFO("Reconfigure point cloud frequency : %g", mPointCloudFreq);
+            break;
+
+        case 4:
             mCamAutoExposure = config.auto_exposure;
 
             if (mCamAutoExposure) {
@@ -1254,12 +1277,12 @@ namespace zed_wrapper {
                          mCamAutoExposure ? "Enable" : "Disable");
             break;
 
-        case 4:
+        case 5:
             mCamGain = config.gain;
             NODELET_INFO("Reconfigure gain : %d", mCamGain);
             break;
 
-        case 5:
+        case 6:
             mCamExposure = config.exposure;
             NODELET_INFO("Reconfigure exposure : %d", mCamExposure);
             break;

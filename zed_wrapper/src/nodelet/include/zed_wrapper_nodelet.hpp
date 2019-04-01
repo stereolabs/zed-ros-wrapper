@@ -401,6 +401,7 @@ namespace zed_wrapper {
         double mCamMatResizeFactor;
         double mCamMaxDepth;
         bool mCamAutoExposure;
+        double mPointCloudFreq;
 
         // flags
         bool mTriggerAutoExposure;

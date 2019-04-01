@@ -8,6 +8,7 @@ exposure:                   100                                 # Dynamic
 gain:                       100                                 # Dynamic
 confidence:                 100                                 # Dynamic
 mat_resize_factor:          1.0                                 # Dynamic
+point_cloud_freq:           15.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `frame_rate` value)
 
 general:
     camera_flip:                false
