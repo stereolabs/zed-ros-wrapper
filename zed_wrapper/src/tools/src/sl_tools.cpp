@@ -196,30 +196,37 @@ namespace sl_tools {
             imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
             memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float1>(), size);
             break;
+
         case sl::MAT_TYPE_32F_C2: /**< float 2 channels.*/
             imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC2;
             memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float2>(), size);
             break;
+
         case sl::MAT_TYPE_32F_C3: /**< float 3 channels.*/
             imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC3;
             memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float3>(), size);
             break;
+
         case sl::MAT_TYPE_32F_C4: /**< float 4 channels.*/
             imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC4;
             memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::float4>(), size);
             break;
+
         case sl::MAT_TYPE_8U_C1: /**< unsigned char 1 channel.*/
             imgMessage.encoding = sensor_msgs::image_encodings::MONO8;
             memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar1>(), size);
             break;
+
         case sl::MAT_TYPE_8U_C2: /**< unsigned char 2 channels.*/
             imgMessage.encoding = sensor_msgs::image_encodings::TYPE_8UC2;
             memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar2>(), size);
             break;
+
         case sl::MAT_TYPE_8U_C3: /**< unsigned char 3 channels.*/
             imgMessage.encoding = sensor_msgs::image_encodings::BGR8;
             memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar3>(), size);
             break;
+
         case sl::MAT_TYPE_8U_C4: /**< unsigned char 4 channels.*/
             imgMessage.encoding = sensor_msgs::image_encodings::BGRA8;
             memcpy((char*)(&imgMessage.data[0]), img.getPtr<sl::uchar4>(), size);
@@ -227,6 +234,20 @@ namespace sl_tools {
         }
 
         return ptr;
+    }
+
+    std::vector<std::string> split_string(const std::string& s, char seperator) {
+        std::vector<std::string> output;
+        std::string::size_type prev_pos = 0, pos = 0;
+
+        while ((pos = s.find(seperator, pos)) != std::string::npos) {
+            std::string substring(s.substr(prev_pos, pos - prev_pos));
+            output.push_back(substring);
+            prev_pos = ++pos;
+        }
+
+        output.push_back(s.substr(prev_pos, pos - prev_pos));
+        return output;
     }
 
     CSmartMean::CSmartMean(int winSize) {

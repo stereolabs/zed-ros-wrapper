@@ -65,6 +65,10 @@ namespace sl_tools {
      */
     sensor_msgs::ImagePtr imageToROSmsg(sl::Mat img, std::string frameId, ros::Time t);
 
+    /* \brief String tokenization
+     */
+    std::vector<std::string> split_string(const std::string& s, char seperator);
+
     /*!
      * \brief The CSmartMean class is used to
      * make a mobile window mean of a sequence of values

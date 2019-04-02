@@ -292,10 +292,32 @@ namespace zed_wrapper {
         set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
                  mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
 
+        std::string ver = sl_tools::getSDKVersion(mVerMajor, mVerMinor, mVerSubMinor);
+        NODELET_INFO_STREAM("SDK version : " << ver);
+
         // Try to initialize the ZED
         if (!mSvoFilepath.empty()) {
-            mZedParams.svo_input_filename = mSvoFilepath.c_str();
-            mZedParams.svo_real_time_mode = true;
+
+            std::size_t found = mSvoFilepath.find("stream:");
+
+            if (found != std::string::npos) {
+                if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
+                    std::vector<std::string> configStream = sl_tools::split_string(mSvoFilepath, ':');
+                    sl::String ip = sl::String(configStream.at(1).c_str());
+
+                    if (configStream.size() == 2) {
+                        mZedParams.input.setFromStream(ip, atoi(configStream.at(2).c_str()));
+                    } else {
+                        mZedParams.input.setFromStream(ip);
+                    }
+                } else {
+                    ROS_ERROR_STREAM("To acquire a remote stream is required at least the ZED SDK v2.8");
+                    return;
+                }
+            } else {
+                mZedParams.svo_input_filename = mSvoFilepath.c_str();
+                mZedParams.svo_real_time_mode = true;
+            }
 
             mSvoMode = true;
         } else {
@@ -335,9 +357,6 @@ namespace zed_wrapper {
                 }
             }
         }
-
-        std::string ver = sl_tools::getSDKVersion(mVerMajor, mVerMinor, mVerSubMinor);
-        NODELET_INFO_STREAM("SDK version : " << ver);
 
         int svo_compr = 0;
         mNhNs.getParam("general/svo_compression", svo_compr);
