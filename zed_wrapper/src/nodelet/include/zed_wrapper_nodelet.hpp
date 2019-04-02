@@ -49,6 +49,8 @@
 #include <zed_wrapper/reset_odometry.h>
 #include <zed_wrapper/start_svo_recording.h>
 #include <zed_wrapper/stop_svo_recording.h>
+#include <zed_wrapper/start_remote_stream.h>
+#include <zed_wrapper/stop_remote_stream.h>
 
 #include <memory>
 #include <mutex>
@@ -232,6 +234,16 @@ namespace zed_wrapper {
         bool on_stop_svo_recording(zed_wrapper::stop_svo_recording::Request& req,
                                    zed_wrapper::stop_svo_recording::Response& res);
 
+        /* \brief Service callback to start_remote_stream service
+         */
+        bool on_start_remote_stream(zed_wrapper::start_remote_stream::Request& req,
+                                    zed_wrapper::start_remote_stream::Response& res);
+
+        /* \brief Service callback to stop_remote_stream service
+         */
+        bool on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
+                                   zed_wrapper::stop_remote_stream::Response& res);
+
         /* \brief Utility to initialize the pose variables
          */
         void set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
@@ -291,6 +303,8 @@ namespace zed_wrapper {
         ros::ServiceServer mSrvResetTracking;
         ros::ServiceServer mSrvSvoStartRecording;
         ros::ServiceServer mSrvSvoStopRecording;
+        ros::ServiceServer mSrvSvoStartStream;
+        ros::ServiceServer mSrvSvoStopStream;
 
         // Camera info
         sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
