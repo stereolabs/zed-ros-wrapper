@@ -149,6 +149,7 @@ namespace zed_wrapper {
         mNhNs.getParam("general/gpu_id", mGpuId);
         mNhNs.getParam("general/zed_id", mZedId);
         mNhNs.getParam("general/verbose", mVerbose);
+
         mNhNs.getParam("depth/quality", mCamQuality);
         mNhNs.getParam("depth/sensing_mode", mCamSensingMode);
         mNhNs.getParam("depth/openni_depth_mode", mOpenniDepthMode);
@@ -338,6 +339,23 @@ namespace zed_wrapper {
         std::string ver = sl_tools::getSDKVersion(mVerMajor, mVerMinor, mVerSubMinor);
         NODELET_INFO_STREAM("SDK version : " << ver);
 
+        int svo_compr = 0;
+        mNhNs.getParam("general/svo_compression", svo_compr);
+
+        if (svo_compr >= sl::SVO_COMPRESSION_MODE_LAST) {
+            NODELET_WARN_STREAM("The parameter `general/svo_compression` has an invalid value. Please check it in the configuration file `common.yaml`");
+
+            if ((mVerMajor == 2 && mVerMinor < 7) || mVerMajor < 2) {
+                NODELET_WARN_STREAM("Note: H264 and H265 compression modes are available with SDK v2.7 or newer");
+            }
+
+            svo_compr = 0;
+        }
+
+        mSvoComprMode = static_cast<sl::SVO_COMPRESSION_MODE>(svo_compr);
+
+        NODELET_INFO_STREAM("SVO compression : " << sl::toString(mSvoComprMode));
+
 #if (ZED_SDK_MAJOR_VERSION<2)
         NODELET_WARN_STREAM("Please consider to upgrade to latest SDK version to "
                             "get better performances");
@@ -428,6 +446,8 @@ namespace zed_wrapper {
         }
 
         NODELET_INFO_STREAM("CAMERA MODEL : " << mZedRealCamModel);
+        mFwVersion = mZed.getCameraInformation().firmware_version;
+        NODELET_INFO_STREAM("FW VER. : " << mFwVersion);
         mZedSerialNumber = mZed.getCameraInformation().serial_number;
 
         mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
@@ -457,6 +477,7 @@ namespace zed_wrapper {
         mNhNs.getParam("exposure", mCamExposure);
         mNhNs.getParam("gain", mCamGain);
         mNhNs.getParam("auto_exposure", mCamAutoExposure);
+        mNhNs.getParam("point_cloud_freq", mPointCloudFreq);
 
         if (mCamAutoExposure) {
             mTriggerAutoExposure = true;
@@ -563,6 +584,8 @@ namespace zed_wrapper {
         mSrvResetTracking = mNh.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
         mSrvSvoStartRecording = mNh.advertiseService("start_svo_recording", &ZEDWrapperNodelet::on_start_svo_recording, this);
         mSrvSvoStopRecording = mNh.advertiseService("stop_svo_recording", &ZEDWrapperNodelet::on_stop_svo_recording, this);
+        mSrvSetLedStatus = mNh.advertiseService("set_led_status", &ZEDWrapperNodelet::on_set_led_status, this);
+        mSrvToggleLed = mNh.advertiseService("toggle_led", &ZEDWrapperNodelet::on_toggle_led, this);
 
         if (ZED_SDK_MAJOR_VERSION > 2 || (ZED_SDK_MAJOR_VERSION == 2 && ZED_SDK_MINOR_VERSION >= 8)) {
             mSrvSvoStartStream = mNh.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
@@ -814,6 +837,8 @@ namespace zed_wrapper {
         mNhNs.getParam("tracking/floor_alignment", mFloorAlignment);
         mNhNs.getParam("tracking/init_odom_with_first_valid_pose", mInitOdomWithPose);
         NODELET_INFO_STREAM("Init Odometry with first valid pose data : " << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
+        mNhNs.getParam("two_d_mode", mTwoDMode);
+        mNhNs.getParam("fixed_z_value", mFixedZValue);
 
         if (mInitialTrackPose.size() != 6) {
             NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialTrackPose.size()
@@ -837,6 +862,11 @@ namespace zed_wrapper {
         trackParams.enable_spatial_memory = mSpatialMemory;
         NODELET_INFO_STREAM("Spatial Memory : " << (trackParams.enable_spatial_memory ? "ENABLED" : "DISABLED"));
         trackParams.initial_world_transform = mInitialPoseSl;
+        NODELET_INFO_STREAM("Two D mode : " << (mTwoDMode ? "ENABLED" : "DISABLED"));
+
+        if (mTwoDMode) {
+            NODELET_INFO_STREAM("Fixed Z value : " << mFixedZValue);
+        }
 
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
         trackParams.set_floor_as_origin = mFloorAlignment;
@@ -876,7 +906,17 @@ namespace zed_wrapper {
         if (!mSpatialMemory && mPublishPoseCovariance) {
             for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
                 // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
+
                 odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+
+                if (mTwoDMode) {
+                    if ((i >= 2 && i <= 4) ||
+                        (i >= 8 && i <= 10) ||
+                        (i >= 12 && i <= 29) ||
+                        (i >= 32 && i <= 34)) {
+                        odom.pose.covariance[i] = 1e-9; // Very low covariance if 2D mode
+                    }
+                }
             }
         }
 
@@ -939,6 +979,15 @@ namespace zed_wrapper {
                     for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
                         // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
                         poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+
+                        if (mTwoDMode) {
+                            if ((i >= 2 && i <= 4) ||
+                                (i >= 8 && i <= 10) ||
+                                (i >= 12 && i <= 29) ||
+                                (i >= 32 && i <= 34)) {
+                                poseCov.pose.covariance[i] = 1e-9; // Very low covariance if 2D mode
+                            }
+                        }
                     }
                 }
 
@@ -1062,7 +1111,24 @@ namespace zed_wrapper {
                 }
             }
 
+            // ----> Check publishing frequency
+            double pc_period_msec = 1000.0 / mPointCloudFreq;
+
+            static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+            std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+            double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time).count();
+
+            if (elapsed_msec < pc_period_msec) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
+            }
+
+            // <---- Check publishing frequency
+
+            last_time = std::chrono::steady_clock::now();
             publishPointCloud();
+
+
             mPcDataReady = false;
         }
 
@@ -1249,6 +1315,11 @@ namespace zed_wrapper {
             break;
 
         case 3:
+            mPointCloudFreq = config.point_cloud_freq;
+            NODELET_INFO("Reconfigure point cloud frequency : %g", mPointCloudFreq);
+            break;
+
+        case 4:
             mCamAutoExposure = config.auto_exposure;
 
             if (mCamAutoExposure) {
@@ -1259,12 +1330,12 @@ namespace zed_wrapper {
                          mCamAutoExposure ? "Enable" : "Disable");
             break;
 
-        case 4:
+        case 5:
             mCamGain = config.gain;
             NODELET_INFO("Reconfigure gain : %d", mCamGain);
             break;
 
-        case 5:
+        case 6:
             mCamExposure = config.exposure;
             NODELET_INFO("Reconfigure exposure : %d", mCamExposure);
             break;
@@ -1660,6 +1731,7 @@ namespace zed_wrapper {
 
             // Run the loop only if there is some subscribers or SVO is active
             if (mGrabActive || mRecording || mZed.isStreamingEnabled()) {
+
                 bool computeTracking = (mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
                                         odomSubnumber > 0 || pathSubNumber > 0);
 
@@ -1956,6 +2028,20 @@ namespace zed_wrapper {
                             // Propagate Odom transform in time
                             mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
 
+                            if (mTwoDMode) {
+                                tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
+                                tr_2d.setZ(mFixedZValue);
+                                mOdom2BaseTransf.setOrigin(tr_2d);
+
+                                double roll, pitch, yaw;
+                                tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+                                tf2::Quaternion quat_2d;
+                                quat_2d.setRPY(0.0, 0.0, yaw);
+
+                                mOdom2BaseTransf.setRotation(quat_2d);
+                            }
+
 #if 0 //#ifndef NDEBUG // Enable for TF checking
                             double roll, pitch, yaw;
                             tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
@@ -2012,6 +2098,20 @@ namespace zed_wrapper {
                         tf2::fromMsg(map2sensTransf, map_to_sens_transf);
 
                         mMap2BaseTransf = map_to_sens_transf * mSensor2BaseTransf; // Base position in map frame
+
+                        if (mTwoDMode) {
+                            tf2::Vector3 tr_2d = mMap2BaseTransf.getOrigin();
+                            tr_2d.setZ(mFixedZValue);
+                            mMap2BaseTransf.setOrigin(tr_2d);
+
+                            double roll, pitch, yaw;
+                            tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+                            tf2::Quaternion quat_2d;
+                            quat_2d.setRPY(0.0, 0.0, yaw);
+
+                            mMap2BaseTransf.setRotation(quat_2d);
+                        }
 
 #if 0 //#ifndef NDEBUG // Enable for TF checking
                         double roll, pitch, yaw;
@@ -2268,34 +2368,43 @@ namespace zed_wrapper {
         }
 
         sl::ERROR_CODE err;
-        sl::SVO_COMPRESSION_MODE compression = sl::SVO_COMPRESSION_MODE_RAW;
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=7))
-        {
-            compression = sl::SVO_COMPRESSION_MODE_HEVC;
-            err = mZed.enableRecording(req.svo_filename.c_str(), compression); // H265 Compression?
+        sl::SVO_COMPRESSION_MODE compression = mSvoComprMode;
 
-            if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
-                ROS_DEBUG_STREAM(sl::toString(compression).c_str() << "not available. Trying " << sl::toString(
-                                     sl::SVO_COMPRESSION_MODE_AVCHD).c_str());
-                compression = sl::SVO_COMPRESSION_MODE_AVCHD;
-                err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // H264 Compression?
-
-                if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
-                    ROS_DEBUG_STREAM(sl::toString(compression).c_str() << "not available. Trying " << sl::toString(
-                                         sl::SVO_COMPRESSION_MODE_LOSSY).c_str());
-                    compression = sl::SVO_COMPRESSION_MODE_LOSSY;
-                    err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // JPEG Compression?
-                }
-            }
-        }
-#else
-        compression = sl::SVO_COMPRESSION_MODE_LOSSY;
-        err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // JPEG Compression?
-#endif
+        err = mZed.enableRecording(req.svo_filename.c_str(), mSvoComprMode);
 
         if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
-            compression = sl::SVO_COMPRESSION_MODE_RAW;
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=7))
+            compression = mSvoComprMode == sl::SVO_COMPRESSION_MODE_HEVC ? sl::SVO_COMPRESSION_MODE_AVCHD :
+                          sl::SVO_COMPRESSION_MODE_HEVC;
+
+            ROS_WARN_STREAM("The chosen " << sl::toString(mSvoComprMode).c_str() << "mode is not available. Trying " <<
+                            sl::toString(compression).c_str());
+
             err = mZed.enableRecording(req.svo_filename.c_str(), compression);
+
+            if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
+                ROS_WARN_STREAM(sl::toString(compression).c_str() << "not available. Trying " << sl::toString(
+                                    sl::SVO_COMPRESSION_MODE_LOSSY).c_str());
+                compression = sl::SVO_COMPRESSION_MODE_LOSSY;
+                err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // JPEG Compression?
+
+
+#else
+            compression = mSvoComprMode == sl::SVO_COMPRESSION_MODE_LOSSY ? sl::SVO_COMPRESSION_MODE_LOSSLESS :
+                          sl::SVO_COMPRESSION_MODE_LOSSY;
+
+            ROS_WARN_STREAM("The chosen " << sl::toString(mSvoComprMode).c_str() << "mode is not available. Trying " <<
+                            sl::toString(compression).c_str());
+
+
+            err = mZed.enableRecording(req.svo_filename.c_str(), compression);
+#endif
+
+                if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
+                    compression = sl::SVO_COMPRESSION_MODE_RAW;
+                    err = mZed.enableRecording(req.svo_filename.c_str(), compression);
+                }
+            }
         }
 
         if (err != sl::SUCCESS) {
@@ -2305,6 +2414,7 @@ namespace zed_wrapper {
             return false;
         }
 
+        mSvoComprMode = compression;
         mRecording = true;
         res.info = "Recording started (";
         res.info += sl::toString(compression).c_str();
@@ -2386,9 +2496,21 @@ namespace zed_wrapper {
 
         res.result = true;
         res.info = "SVO remote streaming STARTED";
+      return true;
+    }
+
+    bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& req,
+            zed_wrapper::set_led_status::Response& res) {
+        if (mFwVersion < 1523) {
+            ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
+            return false;
+        }
+
+        mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, req.led_enabled ? 1 : 0);
 
         return true;
     }
+
 
     bool ZEDWrapperNodelet::on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
             zed_wrapper::stop_remote_stream::Response& res) {
@@ -2399,5 +2521,19 @@ namespace zed_wrapper {
         ROS_INFO_STREAM("SVO remote streaming STOPPED");
 
         return true;
+    }
+  
+    bool ZEDWrapperNo1delet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
+                                          zed_wrapper::toggle_led::Response& res) {
+        if (mFwVersion < 1523) {
+            ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
+            return false;
+        }
+
+        int status = mZed.getCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS);
+        int new_status = status == 0 ? 1 : 0;
+        mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, new_status);
+
+        return (new_status == 1);     
     }
 } // namespace

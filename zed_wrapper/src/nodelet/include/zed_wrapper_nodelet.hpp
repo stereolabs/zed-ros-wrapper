@@ -51,6 +51,8 @@
 #include <zed_wrapper/stop_svo_recording.h>
 #include <zed_wrapper/start_remote_stream.h>
 #include <zed_wrapper/stop_remote_stream.h>
+#include <zed_wrapper/set_led_status.h>
+#include <zed_wrapper/toggle_led.h>
 
 #include <memory>
 #include <mutex>
@@ -244,6 +246,16 @@ namespace zed_wrapper {
         bool on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
                                    zed_wrapper::stop_remote_stream::Response& res);
 
+        /* \brief Service callback to set_led_status service
+         */
+        bool on_set_led_status(zed_wrapper::set_led_status::Request& req,
+                               zed_wrapper::set_led_status::Response& res);
+
+        /* \brief Service callback to toggle_led service
+         */
+        bool on_toggle_led(zed_wrapper::toggle_led::Request& req,
+                           zed_wrapper::toggle_led::Response& res);
+
         /* \brief Utility to initialize the pose variables
          */
         void set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
@@ -305,6 +317,8 @@ namespace zed_wrapper {
         ros::ServiceServer mSrvSvoStopRecording;
         ros::ServiceServer mSrvSvoStartStream;
         ros::ServiceServer mSrvSvoStopStream;
+        ros::ServiceServer mSrvSetLedStatus;
+        ros::ServiceServer mSrvToggleLed;
 
         // Camera info
         sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
@@ -375,6 +389,8 @@ namespace zed_wrapper {
 
         bool mTrackingActivated;
         bool mTrackingReady;
+        bool mTwoDMode = false;
+        double mFixedZValue = 0.0;
         bool mFloorAlignment = false;
         bool mGrabActive = false; // Indicate if camera grabbing is active (at least one topic subscribed)
         sl::ERROR_CODE mConnStatus;
@@ -407,6 +423,7 @@ namespace zed_wrapper {
         unsigned int mZedSerialNumber;
         int mZedUserCamModel;       // Camera model set by ROS Param
         sl::MODEL mZedRealCamModel; // Camera model requested to SDK
+        unsigned int mFwVersion;
 
         // Dynamic Parameters
         int mCamConfidence;
@@ -415,6 +432,7 @@ namespace zed_wrapper {
         double mCamMatResizeFactor;
         double mCamMaxDepth;
         bool mCamAutoExposure;
+        double mPointCloudFreq;
 
         // flags
         bool mTriggerAutoExposure;
@@ -429,6 +447,7 @@ namespace zed_wrapper {
         // SVO recording
         bool mRecording = false;
         sl::RecordingState mRecState;
+        sl::SVO_COMPRESSION_MODE mSvoComprMode;
 
         // Mat
         int mCamWidth;

@@ -1,4 +1,4 @@
-image: stereolabs/zed:ubuntu1604-cuda9.0-zed2.6-ros
+image: stereolabs/zed:ubuntu1604-cuda9.0-zed2.7-ros
 
 build:
   stage: build

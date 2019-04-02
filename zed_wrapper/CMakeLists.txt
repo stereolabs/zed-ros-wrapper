@@ -72,6 +72,8 @@ add_service_files( FILES
     stop_svo_recording.srv
     start_remote_stream.srv
     stop_remote_stream.srv
+    set_led_status.srv
+    toggle_led.srv
   )
 
 generate_messages()
