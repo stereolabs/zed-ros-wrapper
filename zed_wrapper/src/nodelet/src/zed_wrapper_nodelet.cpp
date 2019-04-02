@@ -579,17 +579,17 @@ namespace zed_wrapper {
         }
 
         // Services
-        mSrvSetInitPose = mNh.advertiseService("set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this);
-        mSrvResetOdometry = mNh.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
-        mSrvResetTracking = mNh.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
-        mSrvSvoStartRecording = mNh.advertiseService("start_svo_recording", &ZEDWrapperNodelet::on_start_svo_recording, this);
-        mSrvSvoStopRecording = mNh.advertiseService("stop_svo_recording", &ZEDWrapperNodelet::on_stop_svo_recording, this);
-        mSrvSetLedStatus = mNh.advertiseService("set_led_status", &ZEDWrapperNodelet::on_set_led_status, this);
-        mSrvToggleLed = mNh.advertiseService("toggle_led", &ZEDWrapperNodelet::on_toggle_led, this);
+        mSrvSetInitPose = mNhNs.advertiseService("set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this);
+        mSrvResetOdometry = mNhNs.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
+        mSrvResetTracking = mNhNs.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
+        mSrvSvoStartRecording = mNhNs.advertiseService("start_svo_recording", &ZEDWrapperNodelet::on_start_svo_recording, this);
+        mSrvSvoStopRecording = mNhNs.advertiseService("stop_svo_recording", &ZEDWrapperNodelet::on_stop_svo_recording, this);
 
         if (ZED_SDK_MAJOR_VERSION > 2 || (ZED_SDK_MAJOR_VERSION == 2 && ZED_SDK_MINOR_VERSION >= 8)) {
-            mSrvSvoStartStream = mNh.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
-            mSrvSvoStopStream = mNh.advertiseService("stop_remote_stream", &ZEDWrapperNodelet::on_stop_remote_stream, this);
+            mSrvSetLedStatus = mNhNs.advertiseService("set_led_status", &ZEDWrapperNodelet::on_set_led_status, this);
+            mSrvToggleLed = mNhNs.advertiseService("toggle_led", &ZEDWrapperNodelet::on_toggle_led, this);
+            mSrvSvoStartStream = mNhNs.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
+            mSrvSvoStopStream = mNhNs.advertiseService("stop_remote_stream", &ZEDWrapperNodelet::on_stop_remote_stream, this);
         }
 
         // Start Pointcloud thread
@@ -2496,11 +2496,12 @@ namespace zed_wrapper {
 
         res.result = true;
         res.info = "SVO remote streaming STARTED";
-      return true;
+        return true;
     }
 
     bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& req,
             zed_wrapper::set_led_status::Response& res) {
+
         if (mFwVersion < 1523) {
             ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
             return false;
@@ -2514,6 +2515,7 @@ namespace zed_wrapper {
 
     bool ZEDWrapperNodelet::on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
             zed_wrapper::stop_remote_stream::Response& res) {
+
         if (mZed.isStreamingEnabled()) {
             mZed.disableStreaming();
         }
@@ -2522,8 +2524,8 @@ namespace zed_wrapper {
 
         return true;
     }
-  
-    bool ZEDWrapperNo1delet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
+
+    bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
                                           zed_wrapper::toggle_led::Response& res) {
         if (mFwVersion < 1523) {
             ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
@@ -2534,6 +2536,6 @@ namespace zed_wrapper {
         int new_status = status == 0 ? 1 : 0;
         mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, new_status);
 
-        return (new_status == 1);     
+        return (new_status == 1);
     }
 } // namespace
