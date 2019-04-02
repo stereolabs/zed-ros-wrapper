@@ -415,6 +415,7 @@ namespace zed_wrapper {
         // SVO recording
         bool mRecording = false;
         sl::RecordingState mRecState;
+        sl::SVO_COMPRESSION_MODE mSvoComprMode;
 
         // Mat
         int mCamWidth;

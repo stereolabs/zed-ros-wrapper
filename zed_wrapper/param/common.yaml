@@ -23,6 +23,7 @@ general:
     right_camera_frame:         'zed_right_camera_frame'            # must be equal to the frame_id used in the URDF file
     right_camera_optical_frame: 'zed_right_camera_optical_frame'    # must be equal to the frame_id used in the URDF file
     verbose:                    true
+    svo_compression:            4                                   # `0`: RAW (no compression), `1`: LOSSLESS (PNG/ZSTD), `2`: LOSSY (JPEG), `3`: AVCHD (H264 SDK v2.7), `4`: HEVC (H265 SDK v2.7)
 video:
     rgb_topic_root:             'rgb'                               # default `rgb/image_rect_color`, `rgb/camera_info`, `rgb_raw/image_raw_color`, `rgb_raw/camera_info`
     left_topic_root:            'left'                              # default `left/image_rect_color`, `left/camera_info`, `left_raw/image_raw_color`, `left_raw/camera_info`
