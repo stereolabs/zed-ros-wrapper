@@ -71,6 +71,9 @@ The ZED node publishes diagnostic information that can be used by the robotic sy
 With the `rqt` plugin `Runtime monitor`, it is possible to retrieve all the diagnostic information, checking that the node 
 is working as expected.
 
+### 2D mode
+For robots moving on a planar surface it is possible to activate the "2D mode" (parameter `two_d_mode`). The value of the coordinate Z for odometry and pose will have a fixed value (parameter `fixed_z_value`). Roll and pitch will be fixed to zero, like relative velocities.
+
 ### Examples
 
 Alongside the wrapper itself and the Rviz display, a few examples are provided to interface the ZED with other ROS packages :
