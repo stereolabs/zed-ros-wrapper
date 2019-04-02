@@ -563,8 +563,11 @@ namespace zed_wrapper {
         mSrvResetTracking = mNh.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
         mSrvSvoStartRecording = mNh.advertiseService("start_svo_recording", &ZEDWrapperNodelet::on_start_svo_recording, this);
         mSrvSvoStopRecording = mNh.advertiseService("stop_svo_recording", &ZEDWrapperNodelet::on_stop_svo_recording, this);
-        mSrvSvoStartStream = mNh.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
-        mSrvSvoStopStream = mNh.advertiseService("stop_remote_stream", &ZEDWrapperNodelet::on_stop_remote_stream, this);
+
+        if (ZED_SDK_MAJOR_VERSION > 2 || (ZED_SDK_MAJOR_VERSION == 2 && ZED_SDK_MINOR_VERSION >= 8)) {
+            mSrvSvoStartStream = mNh.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
+            mSrvSvoStopStream = mNh.advertiseService("stop_remote_stream", &ZEDWrapperNodelet::on_stop_remote_stream, this);
+        }
 
         // Start Pointcloud thread
         mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
@@ -2373,6 +2376,9 @@ namespace zed_wrapper {
         if (err != sl::SUCCESS) {
             res.result = false;
             res.info = sl::toString(err).c_str();
+
+            ROS_ERROR_STREAM("Remote streaming not started (" << res.info << ")");
+
             return false;
         }
 
