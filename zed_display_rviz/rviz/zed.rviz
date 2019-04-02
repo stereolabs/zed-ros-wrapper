@@ -1,17 +1,21 @@
 Panels:
   - Class: rviz/Displays
-    Help Height: 0
+    Help Height: 78
     Name: Displays
     Property Tree Widget:
       Expanded:
         - /Global Options1
         - /RobotModel1/Links1
         - /TF1/Frames1
-        - /Video1/Camera view1
-        - /Video1/Camera view1/Visibility1
+        - /Video1/Camera view1/Visibility1/Video1
+        - /Video1/Camera view1/Visibility1/Depth1
+        - /Depth1/DepthCloud1/Occlusion Compensation1
         - /Pose1
-      Splitter Ratio: 0.409937888
-    Tree Height: 459
+        - /Pose1/Odometry1/Covariance1
+        - /Pose1/Odometry1/Covariance1/Position1
+        - /Pose1/Odometry1/Covariance1/Orientation1
+      Splitter Ratio: 0.5
+    Tree Height: 545
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -62,6 +66,10 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         zed_camera_center:
           Alpha: 1
           Show Axes: false
@@ -94,12 +102,14 @@ Visualization Manager:
       Frame Timeout: 5
       Frames:
         All Enabled: false
+        base_link:
+          Value: true
         map:
           Value: true
         odom:
           Value: true
         zed_camera_center:
-          Value: true
+          Value: false
         zed_left_camera_frame:
           Value: false
         zed_left_camera_optical_frame:
@@ -110,19 +120,20 @@ Visualization Manager:
           Value: false
       Marker Scale: 0.5
       Name: TF
-      Show Arrows: false
+      Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
         map:
           odom:
-            zed_camera_center:
-              zed_left_camera_frame:
-                zed_left_camera_optical_frame:
-                  {}
-              zed_right_camera_frame:
-                zed_right_camera_optical_frame:
-                  {}
+            base_link:
+              zed_camera_center:
+                zed_left_camera_frame:
+                  zed_left_camera_optical_frame:
+                    {}
+                zed_right_camera_frame:
+                  zed_right_camera_optical_frame:
+                    {}
       Update Interval: 0
       Value: true
     - Class: rviz/Group
@@ -130,10 +141,10 @@ Visualization Manager:
         - Class: rviz/Camera
           Enabled: true
           Image Rendering: background and overlay
-          Image Topic: /zed/rgb/image_rect_color
+          Image Topic: /zed/zed_node/rgb/image_rect_color
           Name: Camera view
           Overlay Alpha: 0.5
-          Queue Size: 2
+          Queue Size: 1
           Transport Hint: raw
           Unreliable: true
           Value: true
@@ -151,18 +162,19 @@ Visualization Manager:
               Odometry Path: true
               Pose: true
               Pose Path: true
+              PoseWithCovariance: true
               Value: false
             RobotModel: false
-            TF: true
+            TF: false
             Value: true
             Video:
               Left camera: true
               Right camera: true
-              Value: true
+              Value: false
           Zoom Factor: 1
         - Class: rviz/Image
           Enabled: false
-          Image Topic: /zed/left/image_rect_color
+          Image Topic: /zed/zed_node/left/image_rect_color
           Max Value: 10
           Median window: 5
           Min Value: 0
@@ -174,7 +186,7 @@ Visualization Manager:
           Value: false
         - Class: rviz/Image
           Enabled: false
-          Image Topic: /zed/right/image_rect_color
+          Image Topic: /zed/zed_node/right/image_rect_color
           Max Value: 10
           Median window: 5
           Min Value: 0
@@ -213,8 +225,8 @@ Visualization Manager:
           Size (Pixels): 1
           Size (m): 0.00999999978
           Style: Points
-          Topic: /zed/point_cloud/cloud_registered
-          Unreliable: false
+          Topic: /zed/zed_node/point_cloud/cloud_registered
+          Unreliable: true
           Use Fixed Frame: true
           Use rainbow: true
           Value: false
@@ -231,11 +243,11 @@ Visualization Manager:
           Channel Name: intensity
           Class: rviz/DepthCloud
           Color: 255; 255; 255
-          Color Image Topic: /zed/rgb/image_rect_color
+          Color Image Topic: /zed/zed_node/rgb/image_rect_color
           Color Transformer: RGB8
           Color Transport Hint: raw
           Decay Time: 0
-          Depth Map Topic: /zed/depth/depth_registered
+          Depth Map Topic: /zed/zed_node/depth/depth_registered
           Depth Map Transport Hint: raw
           Enabled: true
           Invert Rainbow: false
@@ -248,8 +260,8 @@ Visualization Manager:
             Occlusion Time-Out: 30
             Value: false
           Position Transformer: XYZ
-          Queue Size: 2
-          Selectable: true
+          Queue Size: 1
+          Selectable: false
           Size (Pixels): 1
           Style: Points
           Topic Filter: true
@@ -258,8 +270,8 @@ Visualization Manager:
           Value: true
         - Class: rviz/Image
           Enabled: false
-          Image Topic: /zed/depth/depth_registered
-          Max Value: 5
+          Image Topic: /zed/zed_node/depth/depth_registered
+          Max Value: 20
           Median window: 5
           Min Value: 0
           Name: Depth map
@@ -270,7 +282,7 @@ Visualization Manager:
           Value: false
         - Class: rviz/Image
           Enabled: false
-          Image Topic: /zed/confidence/confidence_image
+          Image Topic: /zed/zed_node/confidence/confidence_image
           Max Value: 10
           Median window: 5
           Min Value: 0
@@ -282,7 +294,7 @@ Visualization Manager:
           Value: false
         - Class: rviz/Image
           Enabled: false
-          Image Topic: /zed/confidence/confidence_map
+          Image Topic: /zed/zed_node/confidence/confidence_map
           Max Value: 100
           Median window: 5
           Min Value: 0
@@ -296,6 +308,85 @@ Visualization Manager:
       Name: Depth
     - Class: rviz/Group
       Displays:
+        - Angle Tolerance: 0
+          Class: rviz/Odometry
+          Covariance:
+            Orientation:
+              Alpha: 0.5
+              Color: 255; 255; 127
+              Color Style: RGB
+              Frame: Local
+              Offset: 0.150000006
+              Scale: 20
+              Value: true
+            Position:
+              Alpha: 0.300000012
+              Color: 204; 51; 204
+              Scale: 10
+              Value: true
+            Value: true
+          Enabled: true
+          Keep: 1
+          Name: Odometry
+          Position Tolerance: 0
+          Shape:
+            Alpha: 1
+            Axes Length: 0.100000001
+            Axes Radius: 0.00999999978
+            Color: 255; 25; 0
+            Head Length: 0.100000001
+            Head Radius: 0.0500000007
+            Shaft Length: 0.300000012
+            Shaft Radius: 0.0199999996
+            Value: Arrow
+          Topic: /zed/zed_node/odom
+          Unreliable: true
+          Value: true
+        - Alpha: 1
+          Axes Length: 1
+          Axes Radius: 0.100000001
+          Class: rviz/Pose
+          Color: 0; 255; 0
+          Enabled: false
+          Head Length: 0.100000001
+          Head Radius: 0.0500000007
+          Name: Pose
+          Shaft Length: 0.300000012
+          Shaft Radius: 0.0199999996
+          Shape: Arrow
+          Topic: /zed/zed_node/pose
+          Unreliable: false
+          Value: false
+        - Alpha: 1
+          Axes Length: 1
+          Axes Radius: 0.100000001
+          Class: rviz/PoseWithCovariance
+          Color: 25; 255; 0
+          Covariance:
+            Orientation:
+              Alpha: 0.5
+              Color: 255; 255; 127
+              Color Style: Unique
+              Frame: Local
+              Offset: 0.150000006
+              Scale: 100
+              Value: true
+            Position:
+              Alpha: 0.300000012
+              Color: 204; 51; 204
+              Scale: 100
+              Value: true
+            Value: true
+          Enabled: true
+          Head Length: 0.100000001
+          Head Radius: 0.0500000007
+          Name: PoseWithCovariance
+          Shaft Length: 0.300000012
+          Shaft Radius: 0.0199999996
+          Shape: Arrow
+          Topic: /zed/zed_node/pose_with_covariance
+          Unreliable: false
+          Value: true
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
@@ -316,42 +407,8 @@ Visualization Manager:
           Radius: 0.0299999993
           Shaft Diameter: 0.00999999978
           Shaft Length: 0.0500000007
-          Topic: /zed/path_odom
+          Topic: /zed/zed_node/path_odom
           Unreliable: true
-          Value: true
-        - Angle Tolerance: 0
-          Class: rviz/Odometry
-          Covariance:
-            Orientation:
-              Alpha: 0.5
-              Color: 255; 255; 127
-              Color Style: Unique
-              Frame: Local
-              Offset: 1
-              Scale: 1
-              Value: true
-            Position:
-              Alpha: 0.300000012
-              Color: 204; 51; 204
-              Scale: 1
-              Value: true
-            Value: true
-          Enabled: true
-          Keep: 1
-          Name: Odometry
-          Position Tolerance: 0
-          Shape:
-            Alpha: 1
-            Axes Length: 0.100000001
-            Axes Radius: 0.00999999978
-            Color: 255; 25; 0
-            Head Length: 0.100000001
-            Head Radius: 0.0500000007
-            Shaft Length: 0.300000012
-            Shaft Radius: 0.0199999996
-            Value: Arrow
-          Topic: /zed/odom
-          Unreliable: false
           Value: true
         - Alpha: 1
           Buffer Length: 1
@@ -373,23 +430,8 @@ Visualization Manager:
           Radius: 0.0299999993
           Shaft Diameter: 0.00999999978
           Shaft Length: 0.0500000007
-          Topic: /zed/path_map
+          Topic: /zed/zed_node/path_map
           Unreliable: true
-          Value: true
-        - Alpha: 1
-          Axes Length: 1
-          Axes Radius: 0.100000001
-          Class: rviz/Pose
-          Color: 0; 255; 0
-          Enabled: true
-          Head Length: 0.100000001
-          Head Radius: 0.0500000007
-          Name: Pose
-          Shaft Length: 0.300000012
-          Shaft Radius: 0.0199999996
-          Shape: Arrow
-          Topic: /zed/pose
-          Unreliable: false
           Value: true
       Enabled: true
       Name: Pose
@@ -418,25 +460,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.35755372
+      Distance: 2.70065498
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.763631225
-        Y: 1.1376406
-        Z: 0.689015388
+        X: 0.404032081
+        Y: -0.240342453
+        Z: -0.078290835
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.0447975472
+      Pitch: 0.72479558
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.85410023
+      Yaw: 2.33041215
     Saved: ~
 Window Geometry:
   Camera view:
@@ -451,10 +493,10 @@ Window Geometry:
     collapsed: false
   Height: 1056
   Hide Left Dock: false
-  Hide Right Dock: false
+  Hide Right Dock: true
   Left camera:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001f200000394fc0200000013fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000000280000020c000000d700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d00610067006501000002400000010f0000000000000000fb0000000a0049006d006100670065000000028b000000c40000000000000000fb0000000a0049006d006100670065010000028a000000c50000000000000000fb0000000a0049006d00610067006500000002b30000009c0000000000000000fb0000000a0049006d006100670065010000028b000000c40000000000000000fb0000001600430061006d00650072006100200076006900650077010000023a000001820000001600fffffffb00000012004400650070007400680020006d00610070020000024f000000be0000016b00000104fb000000200043006f006e0066006900640065006e0063006500200069006d006100670065020000024c000001c50000016e00000104fb0000001c0043006f006e0066006900640065006e006300650020006d00610070020000024c000002cb0000016e00000102fb00000016004c006500660074002000630061006d00650072006100000002510000009b0000001600fffffffb0000001800520069006700680074002000630061006d00650072006100000002c6000000f60000001600ffffff000000010000010f00000394fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000002800000394000000ad00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073f00000040fc0100000002fb0000000800540069006d006501000000000000073f0000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000004320000039400000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001ea000003dafc0200000013fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000028000002b0000000d700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d00610067006501000002400000010f0000000000000000fb0000000a0049006d006100670065000000028b000000c40000000000000000fb0000000a0049006d006100670065010000028a000000c50000000000000000fb0000000a0049006d00610067006500000002b30000009c0000000000000000fb0000000a0049006d006100670065010000028b000000c40000000000000000fb0000001600430061006d0065007200610020007600690065007701000002de000001240000001600fffffffb00000012004400650070007400680020006d006100700200000242000000d5000001ea0000011dfb000000200043006f006e0066006900640065006e0063006500200069006d006100670065020000058200000087000001ea0000010cfb0000001c0043006f006e0066006900640065006e006300650020006d00610070020000058200000195000001ea0000010dfb00000016004c006500660074002000630061006d0065007200610200000245000002ee000001ea00000129fb0000001800520069006700680074002000630061006d0065007200610200000430000002ee000001ea00000129000000010000010f000003dafc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000028000003da000000ad00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073f00000040fc0100000002fb0000000800540069006d006500000000000000073f0000030000fffffffb0000000800540069006d006501000000000000045000000000000000000000054f000003da00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Right camera:
     collapsed: false
   Selection:
@@ -464,7 +506,7 @@ Window Geometry:
   Tool Properties:
     collapsed: false
   Views:
-    collapsed: false
+    collapsed: true
   Width: 1855
   X: 65
   Y: 24

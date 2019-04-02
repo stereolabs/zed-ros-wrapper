@@ -25,6 +25,7 @@
 #include <sensor_msgs/Image.h>
 #include <sl/Camera.hpp>
 #include <string>
+#include <vector>
 
 namespace sl_tools {
 
@@ -102,6 +103,6 @@ namespace sl_tools {
     };
 
 
-} // namespace
+} // namespace sl_tools
 
-#endif // SL_TOOLS_H
+#endif  // SL_TOOLS_H

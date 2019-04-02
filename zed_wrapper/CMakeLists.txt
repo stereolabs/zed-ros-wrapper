@@ -50,6 +50,7 @@ find_package(catkin COMPONENTS
   tf2_geometry_msgs
   message_generation
   diagnostic_updater
+  roslint
 )
 
 checkPackage("image_transport" "")
@@ -150,6 +151,8 @@ add_dependencies(zed_wrapper_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${PROJECT_
 FILE(GLOB_RECURSE all_files ${CMAKE_SOURCE_DIR}/*)
 add_custom_target(all_files_${PROJECT_NAME} SOURCES ${all_files})
 
+roslint_cpp()
+
 ###############################################################################
 # INSTALL
 
@@ -165,4 +168,5 @@ install(FILES
 install(DIRECTORY
   launch
   urdf
+  param
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

@@ -131,8 +131,8 @@ int main(int argc, char** argv) {
      * is the number of messages that will be buffered up before beginning to throw
      * away the oldest ones.
      */
-    ros::Subscriber subOdom    = n.subscribe("/zed/odom", 10, odomCallback);
-    ros::Subscriber subPose    = n.subscribe("/zed/pose", 10, poseCallback);
+    ros::Subscriber subOdom    = n.subscribe("/zed/zed_node/odom", 10, odomCallback);
+    ros::Subscriber subPose    = n.subscribe("/zed/zed_node/pose", 10, poseCallback);
 
     /**
      * ros::spin() will enter a loop, pumping callbacks.  With this version, all

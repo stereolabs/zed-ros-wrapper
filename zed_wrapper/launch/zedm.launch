@@ -19,15 +19,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <launch>
     <arg name="svo_file"             default="" /> <!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
 
-    <arg name="camera_model"         default="zedm" />
+    <arg name="node_name"            default="zed_node" />
+    <arg name="camera_model"         default="zedm" /> <!-- 'zed' or 'zedm' -->
+    <arg name="publish_urdf"         default="true" />
 
-    <!-- Launch ZED camera wrapper -->
-    <include file="$(find zed_wrapper)/launch/$(arg camera_model).launch">
-        <arg name="camera_model"        value="$(arg camera_model)" />
-        <arg name="svo_file"            value="$(arg svo_file)" />
-    </include>
-
-    <!-- Launch rivz display -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_display_rviz)/rviz/$(arg camera_model).rviz" output="screen" />
-
+    <group ns="zed">
+        <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+            <arg name="svo_file"            value="$(arg svo_file)" />
+            <arg name="node_name"           value="$(arg node_name)" />
+            <arg name="camera_model"        value="$(arg camera_model)" />
+            <arg name="publish_urdf"        value="$(arg publish_urdf)" />
+        </include>
+    </group>
 </launch>

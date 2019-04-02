@@ -17,15 +17,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
-    <arg name="svo_file"                default="" /> <!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
-    
+    <arg name="svo_file"             default="" /> <!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
+
+    <arg name="camera_model"         default="zed" />
+
     <!-- Launch ZED camera wrapper -->
-    <include file="$(find zed_wrapper)/launch/zed.launch">
-        <arg name="camera_model"        value="0" /> <!-- 0=ZED, 1=ZEDM-->
+    <include file="$(find zed_wrapper)/launch/$(arg camera_model).launch">
+        <arg name="camera_model"        value="$(arg camera_model)" />
         <arg name="svo_file"            value="$(arg svo_file)" />
     </include>
-  
+
     <!-- Launch rivz display -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_display_rviz)/rviz/zed.rviz" output="screen" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_display_rviz)/rviz/$(arg camera_model).rviz" output="screen" />
 
 </launch>
