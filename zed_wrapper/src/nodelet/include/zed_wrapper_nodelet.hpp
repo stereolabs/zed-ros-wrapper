@@ -49,6 +49,8 @@
 #include <zed_wrapper/reset_odometry.h>
 #include <zed_wrapper/start_svo_recording.h>
 #include <zed_wrapper/stop_svo_recording.h>
+#include <zed_wrapper/start_remote_stream.h>
+#include <zed_wrapper/stop_remote_stream.h>
 #include <zed_wrapper/set_led_status.h>
 #include <zed_wrapper/toggle_led.h>
 
@@ -234,6 +236,16 @@ namespace zed_wrapper {
         bool on_stop_svo_recording(zed_wrapper::stop_svo_recording::Request& req,
                                    zed_wrapper::stop_svo_recording::Response& res);
 
+        /* \brief Service callback to start_remote_stream service
+         */
+        bool on_start_remote_stream(zed_wrapper::start_remote_stream::Request& req,
+                                    zed_wrapper::start_remote_stream::Response& res);
+
+        /* \brief Service callback to stop_remote_stream service
+         */
+        bool on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
+                                   zed_wrapper::stop_remote_stream::Response& res);
+
         /* \brief Service callback to set_led_status service
          */
         bool on_set_led_status(zed_wrapper::set_led_status::Request& req,
@@ -243,7 +255,6 @@ namespace zed_wrapper {
          */
         bool on_toggle_led(zed_wrapper::toggle_led::Request& req,
                            zed_wrapper::toggle_led::Response& res);
-
 
         /* \brief Utility to initialize the pose variables
          */
@@ -304,6 +315,8 @@ namespace zed_wrapper {
         ros::ServiceServer mSrvResetTracking;
         ros::ServiceServer mSrvSvoStartRecording;
         ros::ServiceServer mSrvSvoStopRecording;
+        ros::ServiceServer mSrvSvoStartStream;
+        ros::ServiceServer mSrvSvoStopStream;
         ros::ServiceServer mSrvSetLedStatus;
         ros::ServiceServer mSrvToggleLed;
 

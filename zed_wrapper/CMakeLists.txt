@@ -70,6 +70,8 @@ add_service_files( FILES
     reset_tracking.srv
     start_svo_recording.srv
     stop_svo_recording.srv
+    start_remote_stream.srv
+    stop_remote_stream.srv
     set_led_status.srv
     toggle_led.srv
   )

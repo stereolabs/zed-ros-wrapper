@@ -587,6 +587,11 @@ namespace zed_wrapper {
         mSrvSetLedStatus = mNh.advertiseService("set_led_status", &ZEDWrapperNodelet::on_set_led_status, this);
         mSrvToggleLed = mNh.advertiseService("toggle_led", &ZEDWrapperNodelet::on_toggle_led, this);
 
+        if (ZED_SDK_MAJOR_VERSION > 2 || (ZED_SDK_MAJOR_VERSION == 2 && ZED_SDK_MINOR_VERSION >= 8)) {
+            mSrvSvoStartStream = mNh.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
+            mSrvSvoStopStream = mNh.advertiseService("stop_remote_stream", &ZEDWrapperNodelet::on_stop_remote_stream, this);
+        }
+
         // Start Pointcloud thread
         mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
 
@@ -1724,8 +1729,9 @@ namespace zed_wrapper {
                 runParams.enable_point_cloud = true;
             }
 
-            // Run the loop only if there is some subscribers or SVO recording is active
-            if (mGrabActive || mRecording) {
+            // Run the loop only if there is some subscribers or SVO is active
+            if (mGrabActive || mRecording || mZed.isStreamingEnabled()) {
+
                 bool computeTracking = (mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
                                         odomSubnumber > 0 || pathSubNumber > 0);
 
@@ -2440,6 +2446,59 @@ namespace zed_wrapper {
         return true;
     }
 
+    bool ZEDWrapperNodelet::on_start_remote_stream(zed_wrapper::start_remote_stream::Request& req,
+            zed_wrapper::start_remote_stream::Response& res) {
+
+        if (mZed.isStreamingEnabled()) {
+            res.result = false;
+            res.info = "SVO remote streaming was just active";
+            return false;
+        }
+
+        sl::StreamingParameters params;
+        params.port = req.port;
+        params.bitrate = req.bitrate;
+        params.gop_size = req.gop_size;
+        params.verbose = req.verbose;
+        params.adaptative_bitrate = req.adaptative_bitrate;
+
+        if (params.gop_size < -1 || params.gop_size > 256) {
+
+            res.result = false;
+            res.info = "`gop_size` wrong (";
+            res.info += params.gop_size;
+            res.info += "). Remote streaming not started";
+
+            ROS_ERROR_STREAM(res.info);
+            return false;
+        }
+
+        if (params.port % 2 != 0) {
+            res.result = false;
+            res.info = "`port` must be an even number. Remote streaming not started";
+
+            ROS_ERROR_STREAM(res.info);
+            return false;
+        }
+
+        sl::ERROR_CODE err = mZed.enableStreaming(params);
+
+        if (err != sl::SUCCESS) {
+            res.result = false;
+            res.info = sl::toString(err).c_str();
+
+            ROS_ERROR_STREAM("Remote streaming not started (" << res.info << ")");
+
+            return false;
+        }
+
+        ROS_INFO_STREAM("SVO remote streaming STARTED");
+
+        res.result = true;
+        res.info = "SVO remote streaming STARTED";
+      return true;
+    }
+
     bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& req,
             zed_wrapper::set_led_status::Response& res) {
         if (mFwVersion < 1523) {
@@ -2452,7 +2511,19 @@ namespace zed_wrapper {
         return true;
     }
 
-    bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
+
+    bool ZEDWrapperNodelet::on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
+            zed_wrapper::stop_remote_stream::Response& res) {
+        if (mZed.isStreamingEnabled()) {
+            mZed.disableStreaming();
+        }
+
+        ROS_INFO_STREAM("SVO remote streaming STOPPED");
+
+        return true;
+    }
+  
+    bool ZEDWrapperNo1delet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
                                           zed_wrapper::toggle_led::Response& res) {
         if (mFwVersion < 1523) {
             ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
@@ -2463,6 +2534,6 @@ namespace zed_wrapper {
         int new_status = status == 0 ? 1 : 0;
         mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, new_status);
 
-        return (new_status == 1);
+        return (new_status == 1);     
     }
 } // namespace
