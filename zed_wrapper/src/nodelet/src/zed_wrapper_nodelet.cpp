@@ -74,6 +74,9 @@ namespace zed_wrapper {
         }
 
 #endif
+        std::string ver = sl_tools::getSDKVersion(mVerMajor, mVerMinor, mVerSubMinor);
+        NODELET_INFO_STREAM("SDK version : " << ver);
+
         // Launch file parameters
         mCamResol = sl::RESOLUTION_HD720;
         mCamQuality = sl::DEPTH_MODE_PERFORMANCE;
@@ -150,11 +153,14 @@ namespace zed_wrapper {
         mNhNs.getParam("general/zed_id", mZedId);
         mNhNs.getParam("general/verbose", mVerbose);
 
+        mNhNs.getParam("video/color_enhancement", mColorEnhancement);
+
         mNhNs.getParam("depth/quality", mCamQuality);
         mNhNs.getParam("depth/sensing_mode", mCamSensingMode);
         mNhNs.getParam("depth/openni_depth_mode", mOpenniDepthMode);
         mNhNs.getParam("depth/depth_stabilization", mDepthStabilization);
         mNhNs.getParam("depth/min_depth", mCamMinDepth);
+
 
         int tmp_sn = 0;
         mNhNs.getParam("general/serial_number", tmp_sn);
@@ -295,9 +301,6 @@ namespace zed_wrapper {
         set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
                  mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
 
-        std::string ver = sl_tools::getSDKVersion(mVerMajor, mVerMinor, mVerSubMinor);
-        NODELET_INFO_STREAM("SDK version : " << ver);
-
         // Try to initialize the ZED
         if (!mSvoFilepath.empty() || !mRemoteStreamAddr.empty()) {
 
@@ -421,6 +424,10 @@ namespace zed_wrapper {
         mZedParams.depth_stabilization = mDepthStabilization;
         mZedParams.camera_image_flip = mCameraFlip;
         mZedParams.depth_minimum_distance = static_cast<float>(mCamMinDepth);
+
+        if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
+            //mZedParams.color_enhancement = mColorEnhancement; TODO uncomment when the paramenter is available
+        }
 
         mDiagUpdater.add("ZED Diagnostic", this, &ZEDWrapperNodelet::updateDiagnostic);
         mDiagUpdater.setHardwareID("ZED camera");
@@ -580,22 +587,25 @@ namespace zed_wrapper {
         }
 
         // Imu publisher
-        if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED_M) {
-            mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 500);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubImu.getTopic() << " @ "
-                                << mImuPubRate << " Hz");
-            mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubImuRaw.getTopic() << " @ "
-                                << mImuPubRate << " Hz");
-            mFrameTimestamp = ros::Time::now();
-            mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
-                                          &ZEDWrapperNodelet::imuPubCallback, this);
-            mImuPeriodMean_usec.reset(new sl_tools::CSmartMean(mImuPubRate / 2));
-        } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
-            NODELET_WARN_STREAM(
-                "'imu_pub_rate' set to "
-                << mImuPubRate << " Hz"
-                << " but ZED camera model does not support IMU data publishing.");
+
+        if (!mSvoMode) {
+            if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED_M) {
+                mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 500);
+                NODELET_INFO_STREAM("Advertised on topic " << mPubImu.getTopic() << " @ "
+                                    << mImuPubRate << " Hz");
+                mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
+                NODELET_INFO_STREAM("Advertised on topic " << mPubImuRaw.getTopic() << " @ "
+                                    << mImuPubRate << " Hz");
+                mFrameTimestamp = ros::Time::now();
+                mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
+                                              &ZEDWrapperNodelet::imuPubCallback, this);
+                mImuPeriodMean_usec.reset(new sl_tools::CSmartMean(mImuPubRate / 2));
+            } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
+                NODELET_WARN_STREAM(
+                    "'imu_pub_rate' set to "
+                    << mImuPubRate << " Hz"
+                    << " but ZED camera model does not support IMU data publishing.");
+            }
         }
 
         // Services

@@ -394,6 +394,7 @@ namespace zed_wrapper {
         double mFixedZValue = 0.0;
         bool mFloorAlignment = false;
         bool mGrabActive = false; // Indicate if camera grabbing is active (at least one topic subscribed)
+        bool mColorEnhancement = true;
         sl::ERROR_CODE mConnStatus;
         sl::ERROR_CODE mGrabStatus;
         sl::TRACKING_STATE mTrackingStatus;
