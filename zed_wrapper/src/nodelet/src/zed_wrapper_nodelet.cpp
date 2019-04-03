@@ -1478,6 +1478,10 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
 
+        if (mStreaming) {
+            return;
+        }
+
         std::lock_guard<std::mutex> lock(mCloseZedMutex);
 
         if (!mZed.isOpened()) {
@@ -2536,6 +2540,8 @@ namespace zed_wrapper {
         mStreaming = false;
 
         ROS_INFO_STREAM("SVO remote streaming STOPPED");
+
+        res.done = true;
 
         return true;
     }
