@@ -1,3 +1,6 @@
+# Defines the codec used for streaming (`0`: AVCHD [H264], `1`: HEVC [H265])
+# Note: If HEVC (H265) is used, make sure the recieving host is compatible with HEVC decoding (basically a pascal NVIDIA card). If not, prefer to use AVCHD (H264) since every compatible NVIDIA card supports AVCHD decoding
+uint8 codec=0
 
 # Defines the PORT the data will be streamed on. 
 # Note: port must be an even number. Any odd number will be rejected. 

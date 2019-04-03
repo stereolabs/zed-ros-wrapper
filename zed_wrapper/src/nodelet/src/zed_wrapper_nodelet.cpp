@@ -283,6 +283,9 @@ namespace zed_wrapper {
         // SVO
         mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
 
+        // Remote Stream
+        mNhNs.param<std::string>("stream", mRemoteStreamAddr, std::string());
+
         // Initialization transformation listener
         mTfBuffer.reset(new tf2_ros::Buffer);
         mTfListener.reset(new tf2_ros::TransformListener(*mTfBuffer));
@@ -296,17 +299,18 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("SDK version : " << ver);
 
         // Try to initialize the ZED
-        if (!mSvoFilepath.empty()) {
+        if (!mSvoFilepath.empty() || !mRemoteStreamAddr.empty()) {
 
-            std::size_t found = mSvoFilepath.find("stream:");
-
-            if (found != std::string::npos) {
+            if (!mSvoFilepath.empty()) {
+                mZedParams.svo_input_filename = mSvoFilepath.c_str();
+                mZedParams.svo_real_time_mode = true;
+            } else  if (!mRemoteStreamAddr.empty()) {
                 if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
-                    std::vector<std::string> configStream = sl_tools::split_string(mSvoFilepath, ':');
-                    sl::String ip = sl::String(configStream.at(1).c_str());
+                    std::vector<std::string> configStream = sl_tools::split_string(mRemoteStreamAddr, ':');
+                    sl::String ip = sl::String(configStream.at(0).c_str());
 
                     if (configStream.size() == 2) {
-                        mZedParams.input.setFromStream(ip, atoi(configStream.at(2).c_str()));
+                        mZedParams.input.setFromStream(ip, atoi(configStream.at(1).c_str()));
                     } else {
                         mZedParams.input.setFromStream(ip);
                     }
@@ -314,9 +318,6 @@ namespace zed_wrapper {
                     ROS_ERROR_STREAM("To acquire a remote stream is required at least the ZED SDK v2.8");
                     return;
                 }
-            } else {
-                mZedParams.svo_input_filename = mSvoFilepath.c_str();
-                mZedParams.svo_real_time_mode = true;
             }
 
             mSvoMode = true;
@@ -1749,7 +1750,7 @@ namespace zed_wrapper {
             }
 
             // Run the loop only if there is some subscribers or SVO is active
-            if (mGrabActive || mRecording || mZed.isStreamingEnabled()) {
+            if (mGrabActive || mRecording || mStreaming) {
 
                 bool computeTracking = (mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
                                         odomSubnumber > 0 || pathSubNumber > 0);
@@ -2468,13 +2469,14 @@ namespace zed_wrapper {
     bool ZEDWrapperNodelet::on_start_remote_stream(zed_wrapper::start_remote_stream::Request& req,
             zed_wrapper::start_remote_stream::Response& res) {
 
-        if (mZed.isStreamingEnabled()) {
+        if (mStreaming) {
             res.result = false;
             res.info = "SVO remote streaming was just active";
             return false;
         }
 
         sl::StreamingParameters params;
+        params.codec = static_cast<sl::STREAMING_CODEC>(req.codec);
         params.port = req.port;
         params.bitrate = req.bitrate;
         params.gop_size = req.gop_size;
@@ -2482,6 +2484,8 @@ namespace zed_wrapper {
         params.adaptative_bitrate = req.adaptative_bitrate;
 
         if (params.gop_size < -1 || params.gop_size > 256) {
+
+            mStreaming = false;
 
             res.result = false;
             res.info = "`gop_size` wrong (";
@@ -2493,6 +2497,8 @@ namespace zed_wrapper {
         }
 
         if (params.port % 2 != 0) {
+            mStreaming = false;
+
             res.result = false;
             res.info = "`port` must be an even number. Remote streaming not started";
 
@@ -2503,6 +2509,8 @@ namespace zed_wrapper {
         sl::ERROR_CODE err = mZed.enableStreaming(params);
 
         if (err != sl::SUCCESS) {
+            mStreaming = false;
+
             res.result = false;
             res.info = sl::toString(err).c_str();
 
@@ -2511,10 +2519,26 @@ namespace zed_wrapper {
             return false;
         }
 
+        mStreaming = true;
+
         ROS_INFO_STREAM("SVO remote streaming STARTED");
 
         res.result = true;
         res.info = "SVO remote streaming STARTED";
+        return true;
+    }
+
+    bool ZEDWrapperNodelet::on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
+            zed_wrapper::stop_remote_stream::Response& res) {
+
+        if (mStreaming) {
+            mZed.disableStreaming();
+        }
+
+        mStreaming = false;
+
+        ROS_INFO_STREAM("SVO remote streaming STOPPED");
+
         return true;
     }
 
@@ -2527,19 +2551,6 @@ namespace zed_wrapper {
         }
 
         mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, req.led_enabled ? 1 : 0);
-
-        return true;
-    }
-
-
-    bool ZEDWrapperNodelet::on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
-            zed_wrapper::stop_remote_stream::Response& res) {
-
-        if (mZed.isStreamingEnabled()) {
-            mZed.disableStreaming();
-        }
-
-        ROS_INFO_STREAM("SVO remote streaming STOPPED");
 
         return true;
     }

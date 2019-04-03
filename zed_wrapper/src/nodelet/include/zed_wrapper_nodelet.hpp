@@ -379,6 +379,7 @@ namespace zed_wrapper {
         int mDepthStabilization;
         std::string mOdometryDb;
         std::string mSvoFilepath;
+        std::string mRemoteStreamAddr;
         double mImuPubRate;
         bool mImuTimestampSync;
         double mPathPubRate;
@@ -448,6 +449,9 @@ namespace zed_wrapper {
         bool mRecording = false;
         sl::RecordingState mRecState;
         sl::SVO_COMPRESSION_MODE mSvoComprMode;
+
+        // Streaming
+        bool mStreaming = false;
 
         // Mat
         int mCamWidth;
