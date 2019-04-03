@@ -38,6 +38,8 @@ depth:
     point_cloud_topic:          'point_cloud/cloud_registered'
     disparity_topic:            'disparity/disparity_image'
     confidence_root:            'confidence'                        # default `confidence/confidence_image` and `confidence/confidence_map`
+    two_d_mode:                 false                               # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
+    fixed_z_value:              0.0                                 # Value to be used for Z coordinate if `two_d_mode` is true
 tracking:
     publish_tf:                 true                                # publish `odom -> base_link` TF
     publish_map_tf:             true                                # publish `map -> odom` TF

@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <arg name="node_name"           value="$(arg node_name)" />
             <arg name="camera_model"        value="$(arg camera_model)" />
             <arg name="publish_urdf"        value="$(arg publish_urdf)" />
+
         </include>
     </group>
 </launch>

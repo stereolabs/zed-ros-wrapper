@@ -1751,7 +1751,6 @@ namespace zed_wrapper {
 
             // Run the loop only if there is some subscribers or SVO is active
             if (mGrabActive || mRecording || mStreaming) {
-
                 bool computeTracking = (mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
                                         odomSubnumber > 0 || pathSubNumber > 0);
 
