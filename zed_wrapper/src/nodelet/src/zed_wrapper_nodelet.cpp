@@ -1751,14 +1751,13 @@ namespace zed_wrapper {
 
             // Run the loop only if there is some subscribers or SVO is active
             if (mGrabActive || mRecording || mStreaming) {
-                bool computeTracking = (mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
-                                        odomSubnumber > 0 || pathSubNumber > 0);
-
                 // Detect if one of the subscriber need to have the depth information
                 mComputeDepth = mCamQuality != sl::DEPTH_MODE_NONE && ((depthSubnumber + disparitySubnumber + cloudSubnumber +
                                 poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
                                 confMapSubnumber) > 0);
 
+                bool computeTracking = ((mComputeDepth & mDepthStabilization) || poseSubnumber > 0 || poseCovSubnumber > 0 ||
+                                        odomSubnumber > 0 || pathSubNumber > 0);
 
                 if ((computeTracking) && !mTrackingActivated && (mCamQuality != sl::DEPTH_MODE_NONE)) { // Start the tracking
                     start_tracking();

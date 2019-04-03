@@ -400,7 +400,6 @@ namespace zed_wrapper {
         bool mImuPublishing = false;
         bool mPcPublishing = false;
 
-
         // Last frame time
         ros::Time mPrevFrameTimestamp;
         ros::Time mFrameTimestamp;
