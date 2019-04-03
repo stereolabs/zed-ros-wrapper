@@ -23,6 +23,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Load SVO file -->
     <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
 
+    <!-- Remote stream -->
+    <arg name="stream"               default="" /> <!-- <arg name="stream" default="<ip_address>:<port>"> -->
+
     <!-- Publish ZED urdf -->
     <arg name="publish_urdf"          default="true" />
 
@@ -43,5 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- SVO file path -->
         <param name="svo_file"                  value="$(arg svo_file)" />
+        <!-- Remote stream -->
+        <param name="stream"                    value="$(arg stream)" />
     </node>
 </launch>

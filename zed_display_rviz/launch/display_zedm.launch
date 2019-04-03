@@ -18,6 +18,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
     <arg name="svo_file"             default="" /> <!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
+    <arg name="stream"               default="" /> <!-- <arg name="stream" default="<ip_address>:<port>"> -->
 
     <arg name="camera_model"         default="zedm" />
 
@@ -25,6 +26,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <include file="$(find zed_wrapper)/launch/$(arg camera_model).launch">
         <arg name="camera_model"        value="$(arg camera_model)" />
         <arg name="svo_file"            value="$(arg svo_file)" />
+        <arg name="stream"              value="$(arg stream)" />
     </include>
 
     <!-- Launch rivz display -->
