@@ -8,13 +8,13 @@ exposure:                   100                                 # Dynamic
 gain:                       100                                 # Dynamic
 confidence:                 100                                 # Dynamic
 mat_resize_factor:          1.0                                 # Dynamic
-point_cloud_freq:           15.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `frame_rate` value)
+point_cloud_freq:           10.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `frame_rate` value)
 
 general:
     camera_flip:                false
     zed_id:                     0
     serial_number:              0
-    resolution:                 0                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
+    resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
     frame_rate:                 30
     gpu_id:                     -1
     base_frame:                 'base_link'                         # must be equal to the frame_id used in the URDF file

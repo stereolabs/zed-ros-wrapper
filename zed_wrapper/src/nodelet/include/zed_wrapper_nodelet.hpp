@@ -74,7 +74,7 @@ namespace zed_wrapper {
          */
         virtual ~ZEDWrapperNodelet();
 
-      private:
+      protected:
         /* \brief Initialization function called by the Nodelet base class
          */
         virtual void onInit();
@@ -86,8 +86,6 @@ namespace zed_wrapper {
         /* \brief Pointcloud publishing function
          */
         void pointcloud_thread_func();
-
-      protected:
 
         /* \brief Publish the pose of the camera in "Map" frame with a ros Publisher
          * \param t : the ros::Time to stamp the image
@@ -258,11 +256,23 @@ namespace zed_wrapper {
 
         /* \brief Utility to initialize the pose variables
          */
-        void set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
+        bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
 
         /* \brief Utility to initialize the most used transforms
          */
         void initTransforms();
+
+        /* \brief Utility to initialize the static transform from Sensor to Base
+         */
+        bool getSens2BaseTransform();
+
+        /* \brief Utility to initialize the static transform from Sensor to Camera
+         */
+        bool getSens2CameraTransform();
+
+        /* \brief Utility to initialize the static transform from Camera to Base
+         */
+        bool getCamera2BaseTransform();
 
         /* \bried Start tracking loading the parameters from param server
          */
@@ -361,10 +371,6 @@ namespace zed_wrapper {
         std::string mLeftCamOptFrameId;
         std::string mImuFrameId;
 
-        // initialization Transform listener
-        boost::shared_ptr<tf2_ros::Buffer> mTfBuffer;
-        boost::shared_ptr<tf2_ros::TransformListener> mTfListener;
-
         bool mPublishTf;
         bool mPublishMapTf;
         bool mCameraFlip;
@@ -408,15 +414,26 @@ namespace zed_wrapper {
         //Tracking variables
         sl::Pose mLastZedPose; // Sensor to Map transform
         sl::Transform mInitialPoseSl;
-        std::vector<float> mInitialTrackPose;
+        std::vector<float> mInitialBasePose;
         std::vector<geometry_msgs::PoseStamped> mOdomPath;
         std::vector<geometry_msgs::PoseStamped> mMapPath;
 
         // TF Transforms
-        tf2::Transform mMap2OdomTransf;     // Coordinates of the odometry frame in map frame
-        tf2::Transform mOdom2BaseTransf;    // Coordinates of the base in odometry frame
-        tf2::Transform mMap2BaseTransf;     // Coordinates of the base in base frame
-        tf2::Transform mSensor2BaseTransf;  // Coordinates of the base frame in sensor frame
+        tf2::Transform mMap2OdomTransf;         // Coordinates of the odometry frame in map frame
+        tf2::Transform mOdom2BaseTransf;        // Coordinates of the base in odometry frame
+        tf2::Transform mMap2BaseTransf;         // Coordinates of the base in map frame
+        tf2::Transform mMap2CameraTransf;       // Coordinates of the camera in base frame
+        tf2::Transform mSensor2BaseTransf;      // Coordinates of the base frame in sensor frame
+        tf2::Transform mSensor2CameraTransf;    // Coordinates of the camera frame in sensor frame
+        tf2::Transform mCamera2BaseTransf;      // Coordinates of the base frame in camera frame
+
+        bool mSensor2BaseTransfValid = false;
+        bool mSensor2CameraTransfValid = false;
+        bool mCamera2BaseTransfValid = false;
+
+        // initialization Transform listener
+        boost::shared_ptr<tf2_ros::Buffer> mTfBuffer;
+        boost::shared_ptr<tf2_ros::TransformListener> mTfListener;
 
         // Zed object
         sl::InitParameters mZedParams;
@@ -464,6 +481,7 @@ namespace zed_wrapper {
         std::mutex mCamDataMutex;
         std::mutex mPcMutex;
         std::mutex mRecMutex;
+        std::mutex mPosTrkMutex;
         std::condition_variable mPcDataReadyCondVar;
         bool mPcDataReady;
 

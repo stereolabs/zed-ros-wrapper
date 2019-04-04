@@ -94,10 +94,10 @@ namespace zed_wrapper {
         mVerbose = true;
         mCamMinDepth = 0.3;
 
-        mInitialTrackPose.resize(6);
+        mInitialBasePose.resize(6);
 
         for (size_t i = 0; i < 6; i++) {
-            mInitialTrackPose[i] = 0.0f;
+            mInitialBasePose[i] = 0.0f;
         }
 
         // Set  default coordinate frames
@@ -297,9 +297,9 @@ namespace zed_wrapper {
         mTfListener.reset(new tf2_ros::TransformListener(*mTfBuffer));
 
         // Initialize tf2 transformation
-        mNhNs.getParam("tracking/initial_tracking_pose", mInitialTrackPose);
-        set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
-                 mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
+        mNhNs.getParam("tracking/initial_tracking_pose", mInitialBasePose);
+        set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+                 mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
 
         // Try to initialize the ZED
         if (!mSvoFilepath.empty() || !mRemoteStreamAddr.empty()) {
@@ -737,43 +737,169 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::initTransforms() {
-        // Dynamic transforms
-        mOdom2BaseTransf.setIdentity();
-        mMap2OdomTransf.setIdentity();
+        // According to REP 105 -> http://www.ros.org/reps/rep-0105.html
 
-        // Static transforms
+        // base_link <- odom <- map
+        //     ^                 |
+        //     |                 |
+        //     -------------------
+
+        // ----> Dynamic transforms
+        mOdom2BaseTransf.setIdentity();     // broadcasted if `publish_tf` is true
+        mMap2OdomTransf.setIdentity();      // broadcasted if `publish_map_tf` is true
+        mMap2BaseTransf.setIdentity();      // used internally, but not broadcasted
+        mMap2CameraTransf.setIdentity();    // used internally, but not broadcasted
+        // <---- Dynamic transforms
+    }
+
+    bool ZEDWrapperNodelet::getCamera2BaseTransform() {
+        ROS_DEBUG("Getting static TF from '%s' to '%s'", mCameraFrameId.c_str(), mBaseFrameId.c_str());
+
+        mCamera2BaseTransfValid = false;
+        static int errCount = 0;
+
+        // ----> Static transforms
         // Sensor to Base link
         try {
-            // Save the transformation from base to frame
+
+            // Save the transformation
+            geometry_msgs::TransformStamped c2b =
+                mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, ros::Time(0), ros::Duration(2));
+
+            // Get the TF2 transformation
+            tf2::fromMsg(c2b.transform, mCamera2BaseTransf);
+
+            double roll, pitch, yaw;
+            tf2::Matrix3x3(mCamera2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+            ROS_INFO("Static transform Camera Center to Base [%s -> %s]",
+                     mCameraFrameId.c_str(), mBaseFrameId.c_str());
+            ROS_INFO(" * Translation: {%.3f,%.3f,%.3f}",
+                     mCamera2BaseTransf.getOrigin().x(), mCamera2BaseTransf.getOrigin().y(), mCamera2BaseTransf.getOrigin().z());
+            ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
+                     roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+
+        } catch (tf2::TransformException& ex) {
+            if (++errCount % 50 == 0) {
+                ROS_WARN("The tf from '%s' to '%s' does not seem to be available, "
+                         "will assume it as identity!",
+                         mCameraFrameId.c_str(), mBaseFrameId.c_str());
+                ROS_WARN("Transform error: %s", ex.what());
+            }
+
+            mCamera2BaseTransf.setIdentity();
+            return false;
+        }
+
+        // <---- Static transforms
+
+        errCount = 0;
+        mCamera2BaseTransfValid = true;
+        return true;
+    }
+
+    bool ZEDWrapperNodelet::getSens2CameraTransform() {
+        ROS_DEBUG("Getting static TF from '%s' to '%s'", mDepthFrameId.c_str(), mCameraFrameId.c_str());
+
+        mSensor2CameraTransfValid = false;
+        static int errCount = 0;
+
+        // ----> Static transforms
+        // Sensor to Camera Center
+        try {
+            // Save the transformation
+            geometry_msgs::TransformStamped s2c =
+                mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, ros::Time(0), ros::Duration(2));
+            // Get the TF2 transformation
+            tf2::fromMsg(s2c.transform, mSensor2CameraTransf);
+
+            double roll, pitch, yaw;
+            tf2::Matrix3x3(mSensor2CameraTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+            ROS_INFO("Static transform Sensor to Camera Center [%s -> %s]",
+                     mDepthFrameId.c_str(), mCameraFrameId.c_str());
+            ROS_INFO(" * Translation: {%.3f,%.3f,%.3f}",
+                     mSensor2CameraTransf.getOrigin().x(), mSensor2CameraTransf.getOrigin().y(), mSensor2CameraTransf.getOrigin().z());
+            ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
+                     roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+        } catch (tf2::TransformException& ex) {
+            if (++errCount % 50 == 0) {
+                ROS_WARN("The tf from '%s' to '%s' does not seem to be available, "
+                         "will assume it as identity!",
+                         mDepthFrameId.c_str(), mCameraFrameId.c_str());
+                ROS_WARN("Transform error: %s", ex.what());
+            }
+
+            mSensor2CameraTransf.setIdentity();
+            return false;
+        }
+
+        // <---- Static transforms
+
+        errCount = 0;
+        mSensor2CameraTransfValid = true;
+        return true;
+    }
+
+    bool ZEDWrapperNodelet::getSens2BaseTransform() {
+        ROS_DEBUG("Getting static TF from '%s' to '%s'", mDepthFrameId.c_str(), mBaseFrameId.c_str());
+
+        mSensor2BaseTransfValid = false;
+        static int errCount = 0;
+
+        // ----> Static transforms
+        // Sensor to Base link
+        try {
+            // Save the transformation
             geometry_msgs::TransformStamped s2b =
-                mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, mFrameTimestamp); // Coordinates of the base in sensor frame
+                mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, ros::Time(0), ros::Duration(2));
             // Get the TF2 transformation
             tf2::fromMsg(s2b.transform, mSensor2BaseTransf);
 
-#if 0 //#ifndef NDEBUG // Enable for TF checking
             double roll, pitch, yaw;
             tf2::Matrix3x3(mSensor2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-            NODELET_DEBUG("Sensor2Base [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
-                          mDepthFrameId.c_str(), mBaseFrameId.c_str(),
-                          mSensor2BaseTransf.getOrigin().x(), mSensor2BaseTransf.getOrigin().y(), mSensor2BaseTransf.getOrigin().z(),
-                          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-#endif
-
+            ROS_INFO("Static transform Sensor to Base [%s -> %s]",
+                     mDepthFrameId.c_str(), mBaseFrameId.c_str());
+            ROS_INFO(" * Translation: {%.3f,%.3f,%.3f}",
+                     mSensor2BaseTransf.getOrigin().x(), mSensor2BaseTransf.getOrigin().y(), mSensor2BaseTransf.getOrigin().z());
+            ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
+                     roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
         } catch (tf2::TransformException& ex) {
-            NODELET_WARN_THROTTLE(
-                10.0, "The tf from '%s' to '%s' does not seem to be available, "
-                "will assume it as identity! Verify that the static transforms from URDF are correctly published",
-                mDepthFrameId.c_str(), mBaseFrameId.c_str());
-            NODELET_DEBUG("Transform error: %s", ex.what());
+            if (++errCount % 50 == 0) {
+                ROS_WARN("The tf from '%s' to '%s' does not seem to be available, "
+                         "will assume it as identity!",
+                         mDepthFrameId.c_str(), mBaseFrameId.c_str());
+                ROS_WARN("Transform error: %s", ex.what());
+            }
+
             mSensor2BaseTransf.setIdentity();
+            return false;
         }
+
+        // <---- Static transforms
+
+        errCount = 0;
+        mSensor2BaseTransfValid = true;
+        return true;
     }
 
-    void ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr,
+    bool ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr,
                                      float pr, float yr) {
         initTransforms();
+
+        if (!mSensor2BaseTransfValid) {
+            getSens2BaseTransform();
+        }
+
+        if (!mSensor2CameraTransfValid) {
+            getSens2CameraTransform();
+        }
+
+        if (!mCamera2BaseTransfValid) {
+            getCamera2BaseTransform();
+        }
 
         // Apply Base to sensor transform
         tf2::Transform initPose;
@@ -801,25 +927,36 @@ namespace zed_wrapper {
         sl::Orientation orient(q_vec);
         mInitialPoseSl.setTranslation(trasl);
         mInitialPoseSl.setOrientation(orient);
+
+        return (mSensor2BaseTransfValid & mSensor2CameraTransfValid & mCamera2BaseTransfValid);
+
     }
 
     bool ZEDWrapperNodelet::on_set_pose(
         zed_wrapper::set_initial_pose::Request& req,
         zed_wrapper::set_initial_pose::Response& res) {
-        mInitialTrackPose.resize(6);
-        mInitialTrackPose[0] = req.x;
-        mInitialTrackPose[1] = req.y;
-        mInitialTrackPose[2] = req.z;
-        mInitialTrackPose[3] = req.R;
-        mInitialTrackPose[4] = req.P;
-        mInitialTrackPose[5] = req.Y;
+        mInitialBasePose.resize(6);
+        mInitialBasePose[0] = req.x;
+        mInitialBasePose[1] = req.y;
+        mInitialBasePose[2] = req.z;
+        mInitialBasePose[3] = req.R;
+        mInitialBasePose[4] = req.P;
+        mInitialBasePose[5] = req.Y;
 
-        set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
-                 mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
-
-        if (mTrackingActivated) {
-            mZed.resetTracking(mInitialPoseSl);
+        if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+                      mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
+            res.done = false;
+            return false;
         }
+
+        std::lock_guard<std::mutex> lock(mPosTrkMutex);
+
+        // Disable tracking
+        mTrackingActivated = false;
+        mZed.disableTracking();
+
+        // Restart tracking
+        start_tracking();
 
         res.done = true;
         return true;
@@ -833,22 +970,23 @@ namespace zed_wrapper {
             return false;
         }
 
-        mNhNs.getParam("tracking/initial_tracking_pose", mInitialTrackPose);
-
-        if (mInitialTrackPose.size() != 6) {
-            NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialTrackPose.size()
-                                << "). Using Identity");
-            mInitialPoseSl.setIdentity();
+        if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+                      mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
+            res.reset_done = false;
+            return false;
         }
 
-        set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
-                 mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
+        std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
-        if (mZed.resetTracking(mInitialPoseSl) == sl::SUCCESS) {
-            return true;
-        }
+        // Disable tracking
+        mTrackingActivated = false;
+        mZed.disableTracking();
 
-        return false;
+        // Restart tracking
+        start_tracking();
+
+        res.reset_done = true;
+        return true;
     }
 
     bool ZEDWrapperNodelet::on_reset_odometry(
@@ -861,6 +999,46 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::start_tracking() {
         NODELET_INFO_STREAM("*** Starting Positional Tracking ***");
+
+        ROS_INFO(" * Waiting for valid static transformations...");
+
+        bool transformOk = false;
+        double elapsed = 0.0;
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        do {
+            transformOk = set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+                                   mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
+
+            elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() -
+                      start).count();
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            if (elapsed > 10000) {
+                ROS_WARN(" !!! Failed to get static transforms. Is the 'ROBOT STATE PUBLISHER' node correctly working? ");
+                break;
+            }
+
+        } while (transformOk == false);
+
+        if (transformOk) {
+            ROS_DEBUG("Time required to get valid static transforms: %g sec", elapsed / 1000.);
+        }
+
+        ROS_INFO("Initial ZED left camera pose (ZED pos. tracking): ");
+        ROS_INFO(" * T: [%g,%g,%g]",
+                 mInitialPoseSl.getTranslation().x, mInitialPoseSl.getTranslation().y, mInitialPoseSl.getTranslation().z);
+        ROS_INFO(" * Q: [%g,%g,%g,%g]",
+                 mInitialPoseSl.getOrientation().ox, mInitialPoseSl.getOrientation().oy,
+                 mInitialPoseSl.getOrientation().oz, mInitialPoseSl.getOrientation().ow);
+
+        if (mOdometryDb != "" && !sl_tools::file_exist(mOdometryDb)) {
+            mOdometryDb = "";
+            ROS_WARN("odometry_DB path doesn't exist or is unreachable.");
+        }
+
         mNhNs.getParam("tracking/odometry_DB", mOdometryDb);
         mNhNs.getParam("tracking/pose_smoothing", mPoseSmoothing);
         mNhNs.getParam("tracking/spatial_memory", mSpatialMemory);
@@ -869,15 +1047,6 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Init Odometry with first valid pose data : " << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
         mNhNs.getParam("two_d_mode", mTwoDMode);
         mNhNs.getParam("fixed_z_value", mFixedZValue);
-
-        if (mInitialTrackPose.size() != 6) {
-            NODELET_WARN_STREAM("Invalid Initial Pose size (" << mInitialTrackPose.size()
-                                << "). Using Identity");
-            mInitialPoseSl.setIdentity();
-        }
-
-        set_pose(mInitialTrackPose[0], mInitialTrackPose[1], mInitialTrackPose[2],
-                 mInitialTrackPose[3], mInitialTrackPose[4], mInitialTrackPose[5]);
 
         if (mOdometryDb != "" && !sl_tools::file_exist(mOdometryDb)) {
             mOdometryDb = "";
@@ -909,9 +1078,15 @@ namespace zed_wrapper {
 
 #endif
 
-        mZed.enableTracking(trackParams);
-        mTrackingActivated = true;
-        NODELET_INFO("Tracking ENABLED");
+        sl::ERROR_CODE err = mZed.enableTracking(trackParams);
+
+        if (err == sl::SUCCESS) {
+            mTrackingActivated = true;
+        } else {
+            mTrackingActivated = false;
+
+            ROS_WARN("Tracking not activated: %s", sl::toString(err).c_str());
+        }
     }
 
     void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t) {
@@ -1765,6 +1940,8 @@ namespace zed_wrapper {
 
             // Run the loop only if there is some subscribers or SVO is active
             if (mGrabActive || mRecording || mStreaming) {
+                std::lock_guard<std::mutex> lock(mPosTrkMutex);
+
                 // Detect if one of the subscriber need to have the depth information
                 mComputeDepth = mCamQuality != sl::DEPTH_MODE_NONE && ((depthSubnumber + disparitySubnumber + cloudSubnumber +
                                 poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
@@ -2026,6 +2203,19 @@ namespace zed_wrapper {
 
                 // Publish the odometry if someone has subscribed to
                 if (computeTracking) {
+
+                    if (!mSensor2BaseTransfValid) {
+                        getSens2BaseTransform();
+                    }
+
+                    if (!mSensor2CameraTransfValid) {
+                        getSens2CameraTransform();
+                    }
+
+                    if (!mCamera2BaseTransfValid) {
+                        getCamera2BaseTransform();
+                    }
+
                     if (!mInitOdomWithPose) {
                         sl::Pose deltaOdom;
                         mTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME_CAMERA);
@@ -2250,21 +2440,28 @@ namespace zed_wrapper {
 
                 double elab_usec = std::chrono::duration_cast<std::chrono::microseconds>(end_elab - start_elab).count();
 
-                //double mean_elab_sec = mElabPeriodMean_sec->addValue(loop_rate.cycleTime().toSec());
                 double mean_elab_sec = mElabPeriodMean_sec->addValue(elab_usec / 1000000.);
 
+                static int count_warn = 0;
+
                 if (!loop_rate.sleep()) {
-                    if (mean_elab_sec > loop_rate.expectedCycleTime().toSec()) {
-                        NODELET_DEBUG_THROTTLE(
-                            1.0,
-                            "Working thread is not synchronized with the Camera frame rate");
-                        NODELET_DEBUG_STREAM_THROTTLE(
-                            1.0, "Expected cycle time: " << loop_rate.expectedCycleTime()
-                            << " - Real cycle time: "
-                            << mean_elab_sec);
-                        NODELET_WARN_THROTTLE(10.0, "Elaboration takes longer than requested "
-                                              "by the FPS rate. Please consider to "
-                                              "lower the 'frame_rate' setting.");
+                    if (mean_elab_sec > (1. / mCamFrameRate)) {
+                        if (++count_warn > 10) {
+                            NODELET_DEBUG_THROTTLE(
+                                1.0,
+                                "Working thread is not synchronized with the Camera frame rate");
+                            NODELET_DEBUG_STREAM_THROTTLE(
+                                1.0, "Expected cycle time: " << loop_rate.expectedCycleTime()
+                                << " - Real cycle time: "
+                                << mean_elab_sec);
+                            NODELET_WARN_THROTTLE(10.0, "Elaboration takes longer than requested "
+                                                  "by the FPS rate. Please consider to "
+                                                  "lower the 'frame_rate' setting.");
+                        }
+
+                        loop_rate.reset();
+                    } else {
+                        count_warn = 0;
                     }
                 }
             } else {
