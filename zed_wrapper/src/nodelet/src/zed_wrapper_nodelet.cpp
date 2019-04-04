@@ -77,151 +77,23 @@ namespace zed_wrapper {
         std::string ver = sl_tools::getSDKVersion(mVerMajor, mVerMinor, mVerSubMinor);
         NODELET_INFO_STREAM("SDK version : " << ver);
 
-        // Launch file parameters
-        mCamResol = sl::RESOLUTION_HD720;
-        mCamQuality = sl::DEPTH_MODE_PERFORMANCE;
-        mCamSensingMode = sl::SENSING_MODE_STANDARD;
-        mCamFrameRate = 30;
-        mGpuId = -1;
-        mZedId = 0;
-        mZedSerialNumber = 0;
-        mOdometryDb = "";
-        mImuPubRate = 100.0;
-        mPathPubRate = 1.0;
-        mOpenniDepthMode = false;
-        mTrackingReady = false;
-        mCamMatResizeFactor = 1.0;
-        mVerbose = true;
-        mCamMinDepth = 0.3;
-
-        mInitialBasePose.resize(6);
-
-        for (size_t i = 0; i < 6; i++) {
-            mInitialBasePose[i] = 0.0f;
-        }
-
-        // Set  default coordinate frames
-        mNhNs.param<std::string>("tracking/world_frame", mWorldFrameId, "map");
-        mNhNs.param<std::string>("tracking/pose_frame", mMapFrameId, "map");
-        mNhNs.param<std::string>("tracking/odometry_frame", mOdometryFrameId, "odom");
-        mNhNs.param<std::string>("general/base_frame", mBaseFrameId, "base_link");
-        mNhNs.param<std::string>("general/camera_frame", mCameraFrameId, "zed_camera_center");
-        mNhNs.param<std::string>("imu/imu_frame", mImuFrameId, "imu_link");
-        mNhNs.param<std::string>("general/left_camera_frame", mLeftCamFrameId,
-                                 "left_camera_frame");
-        mNhNs.param<std::string>("general/left_camera_optical_frame", mLeftCamOptFrameId,
-                                 "left_camera_optical_frame");
-        mNhNs.param<std::string>("general/right_camera_frame", mRightCamFrameId,
-                                 "right_camera_frame");
-        mNhNs.param<std::string>("general/right_camera_optical_frame", mRightCamOptFrameId,
-                                 "right_camera_optical_frame");
-        mDepthFrameId = mLeftCamFrameId;
-        mDepthOptFrameId = mLeftCamOptFrameId;
-
-        // Note: Depth image frame id must match color image frame id
-        mCloudFrameId = mDepthOptFrameId;
-        mRgbFrameId = mDepthFrameId;
-        mRgbOptFrameId = mCloudFrameId;
-        mDisparityFrameId = mDepthFrameId;
-        mDisparityOptFrameId = mDepthOptFrameId;
-        mConfidenceFrameId = mDepthFrameId;
-        mConfidenceOptFrameId = mDepthOptFrameId;
-
-        // Print TF frames
-        NODELET_INFO_STREAM("world_frame \t\t   -> " << mWorldFrameId);
-        NODELET_INFO_STREAM("pose_frame \t\t   -> " << mMapFrameId);
-        NODELET_INFO_STREAM("odometry_frame \t\t   -> " << mOdometryFrameId);
-        NODELET_INFO_STREAM("base_frame \t\t   -> " << mBaseFrameId);
-        NODELET_INFO_STREAM("camera_frame \t\t   -> " << mCameraFrameId);
-        NODELET_INFO_STREAM("imu_link \t\t   -> " << mImuFrameId);
-        NODELET_INFO_STREAM("left_camera_frame \t   -> " << mLeftCamFrameId);
-        NODELET_INFO_STREAM("left_camera_optical_frame  -> " << mLeftCamOptFrameId);
-        NODELET_INFO_STREAM("right_camera_frame \t   -> " << mRightCamFrameId);
-        NODELET_INFO_STREAM("right_camera_optical_frame -> " << mRightCamOptFrameId);
-        NODELET_INFO_STREAM("depth_frame \t\t   -> " << mDepthFrameId);
-        NODELET_INFO_STREAM("depth_optical_frame \t   -> " << mDepthOptFrameId);
-        NODELET_INFO_STREAM("disparity_frame \t   -> " << mDisparityFrameId);
-        NODELET_INFO_STREAM("disparity_optical_frame    -> " << mDisparityOptFrameId);
-        NODELET_INFO_STREAM("confidence_frame \t   -> " << mConfidenceFrameId);
-        NODELET_INFO_STREAM("confidence_optical_frame    -> " << mConfidenceOptFrameId);
-
-        // Get parameters from param files
-        mNhNs.getParam("general/resolution", mCamResol);
-        mNhNs.getParam("general/frame_rate", mCamFrameRate);
-        checkResolFps();
-        mNhNs.getParam("general/gpu_id", mGpuId);
-        mNhNs.getParam("general/zed_id", mZedId);
-        mNhNs.getParam("general/verbose", mVerbose);
-
-        mNhNs.getParam("video/color_enhancement", mColorEnhancement);
-
-        mNhNs.getParam("depth/quality", mCamQuality);
-        mNhNs.getParam("depth/sensing_mode", mCamSensingMode);
-        mNhNs.getParam("depth/openni_depth_mode", mOpenniDepthMode);
-        mNhNs.getParam("depth/depth_stabilization", mDepthStabilization);
-        mNhNs.getParam("depth/min_depth", mCamMinDepth);
-
-
-        int tmp_sn = 0;
-        mNhNs.getParam("general/serial_number", tmp_sn);
-
-        if (tmp_sn > 0) {
-            mZedSerialNumber = static_cast<int>(tmp_sn);
-        }
-
-        string camera_model;
-        mNhNs.getParam("camera_model", camera_model);
-
-        if (camera_model == "zed") {
-            mZedUserCamModel = 0;
-        } else if (camera_model == "zedm") {
-            mZedUserCamModel = 1;
-        } else {
-            NODELET_ERROR_STREAM("Camera model not valid: " << camera_model);
-        }
-
-        mNhNs.getParam("tracking/publish_pose_covariance", mPublishPoseCovariance);
-
-        // Publish odometry tf
-        mNhNs.param<bool>("tracking/publish_tf", mPublishTf, true);
-        mNhNs.param<bool>("tracking/publish_map_tf", mPublishMapTf, true);
-        mNhNs.param<bool>("general/camera_flip", mCameraFlip, false);
-
-        if (mZedSerialNumber > 0) {
-            NODELET_INFO_STREAM("SN : " << mZedSerialNumber);
-        }
-
-        NODELET_INFO_STREAM("Camera Flip [" << (mCameraFlip ? "TRUE" : "FALSE") << "]");
-
-        // Status of odometry TF
-        NODELET_INFO_STREAM("Broadcasting " << mOdometryFrameId << " [" << (mPublishTf ? "TRUE" : "FALSE") << "]");
-        // Status of map TF
-        NODELET_INFO_STREAM("Broadcasting " << mMapFrameId << " [" << ((mPublishTf &&
-                            mPublishMapTf) ? "TRUE" : "FALSE") << "]");
+        readParameters();
+        initTransforms();
 
         std::string img_topic = "/image_rect_color";
         std::string img_raw_topic = "/image_raw_color";
         std::string raw_suffix = "_raw";
 
         // Set the video topic names
-        std::string rgb_topic_root;
-        std::string right_topic_root;
-        std::string left_topic_root;
-        mNhNs.getParam("video/rgb_topic_root", rgb_topic_root);
-        mNhNs.getParam("video/right_topic_root", right_topic_root);
-        mNhNs.getParam("video/left_topic_root", left_topic_root);
-        string left_topic = left_topic_root + img_topic;
-        string left_raw_topic = left_topic_root + raw_suffix + img_raw_topic;
-        string right_topic = right_topic_root + img_topic;
-        string right_raw_topic = right_topic_root + raw_suffix + img_raw_topic;
-        string rgb_topic = rgb_topic_root + img_topic;
-        string rgb_raw_topic = rgb_topic_root + raw_suffix + img_raw_topic;
+        string left_topic = mLeftTopicRoot + img_topic;
+        string left_raw_topic = mLeftTopicRoot + raw_suffix + img_raw_topic;
+        string right_topic = mRightTopicRoot + img_topic;
+        string right_raw_topic = mRightTopicRoot + raw_suffix + img_raw_topic;
+        string rgb_topic = mRgbTopicRoot + img_topic;
+        string rgb_raw_topic = mRgbTopicRoot + raw_suffix + img_raw_topic;
 
         // Set the depth topic names
-        std::string depth_topic_root;
-        mNhNs.getParam("depth/depth_topic_root", depth_topic_root);
-        string depth_topic = depth_topic_root;
-
+        string depth_topic = mDepthTopicRoot;
 
         if (mOpenniDepthMode) {
             NODELET_INFO_STREAM("Openni depth mode activated");
@@ -230,51 +102,27 @@ namespace zed_wrapper {
             depth_topic += "/depth_registered";
         }
 
-        string disparity_topic = "disparity/disparity_image";
-        mNhNs.getParam("depth/disparity_topic", disparity_topic);
-
-        string point_cloud_topic = "point_cloud/cloud_registered";
-        mNhNs.getParam("depth/point_cloud_topic", point_cloud_topic);
-
-        string conf_img_root;
         string conf_img_topic_name = "confidence_image";
         string conf_map_topic_name = "confidence_map";
-        mNhNs.getParam("depth/confidence_root", conf_img_root);
-        string conf_img_topic = conf_img_root + "/" + conf_img_topic_name;
-        string conf_map_topic = conf_img_root + "/" + conf_map_topic_name;
+        string conf_img_topic = mConfImgRoot + "/" + conf_img_topic_name;
+        string conf_map_topic = mConfImgRoot + "/" + conf_map_topic_name;
 
         // Set the positional tracking topic names
-        string pose_topic;
         string pose_cov_topic;
-        mNhNs.getParam("tracking/pose_topic", pose_topic);
-        pose_cov_topic = pose_topic + "_with_covariance";
+        pose_cov_topic = mPoseTopic + "_with_covariance";
 
-        string odometry_topic;
-        mNhNs.getParam("tracking/odometry_topic", odometry_topic);
         string odom_path_topic = "path_odom";
         string map_path_topic = "path_map";
-
-        mNhNs.getParam("tracking/path_pub_rate", mPathPubRate);
-        mNhNs.getParam("tracking/path_max_count", mPathMaxCount);
-
-        if (mPathMaxCount < 2 && mPathMaxCount != -1) {
-            mPathMaxCount = 2;
-        }
 
         // Set the IMU topic names
         string imu_topic;
         string imu_topic_raw;
 
-        if (camera_model == "zedm") {
-            string imu_topic_root;
+        if (mZedUserCamModel == 1) { // ZED-M
             string imu_topic_name = "data";
             string imu_topic_raw_name = "data_raw";
-            mNhNs.getParam("imu/imu_topic_root", imu_topic_root);
-            imu_topic = imu_topic_root + "/" + imu_topic_name;
-            imu_topic_raw = imu_topic_root + "/" + imu_topic_raw_name;
-
-            mNhNs.getParam("imu/imu_timestamp_sync", mImuTimestampSync);
-            mNhNs.getParam("imu/imu_pub_rate", mImuPubRate);
+            imu_topic = mImuTopicRoot + "/" + imu_topic_name;
+            imu_topic_raw = mImuTopicRoot + "/" + imu_topic_raw_name;
         }
 
         // Create camera info
@@ -286,20 +134,9 @@ namespace zed_wrapper {
         mRightCamInfoRawMsg.reset(new sensor_msgs::CameraInfo());
         mDepthCamInfoMsg.reset(new sensor_msgs::CameraInfo());
 
-        // SVO
-        mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
-
-        // Remote Stream
-        mNhNs.param<std::string>("stream", mRemoteStreamAddr, std::string());
-
         // Initialization transformation listener
         mTfBuffer.reset(new tf2_ros::Buffer);
         mTfListener.reset(new tf2_ros::TransformListener(*mTfBuffer));
-
-        // Initialize tf2 transformation
-        mNhNs.getParam("tracking/initial_tracking_pose", mInitialBasePose);
-        set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
-                 mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
 
         // Try to initialize the ZED
         if (!mSvoFilepath.empty() || !mRemoteStreamAddr.empty()) {
@@ -362,30 +199,13 @@ namespace zed_wrapper {
             }
         }
 
-        int svo_compr = 0;
-        mNhNs.getParam("general/svo_compression", svo_compr);
-
-        if (svo_compr >= sl::SVO_COMPRESSION_MODE_LAST) {
-            NODELET_WARN_STREAM("The parameter `general/svo_compression` has an invalid value. Please check it in the configuration file `common.yaml`");
-
-            if ((mVerMajor == 2 && mVerMinor < 7) || mVerMajor < 2) {
-                NODELET_WARN_STREAM("Note: H264 and H265 compression modes are available with SDK v2.7 or newer");
-            }
-
-            svo_compr = 0;
-        }
-
-        mSvoComprMode = static_cast<sl::SVO_COMPRESSION_MODE>(svo_compr);
-
-        NODELET_INFO_STREAM("SVO compression : " << sl::toString(mSvoComprMode));
-
 #if (ZED_SDK_MAJOR_VERSION<2)
         NODELET_WARN_STREAM("Please consider to upgrade to latest SDK version to "
                             "get better performances");
 
         mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_IMAGE;
 
-        NODELET_INFO_STREAM("Camera coordinate system : COORDINATE_SYSTEM_IMAGE");
+        NODELET_INFO_STREAM(" * Camera coordinate system -> COORDINATE_SYSTEM_IMAGE");
         mIdxX = 2;
         mIdxY = 0;
         mIdxZ = 1;
@@ -398,7 +218,7 @@ namespace zed_wrapper {
 
         mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP;
 
-        NODELET_INFO_STREAM("Camera coordinate system : COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP");
+        NODELET_INFO_STREAM(" * Camera coordinate system -> COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP");
         mIdxX = 1;
         mIdxY = 0;
         mIdxZ = 2;
@@ -408,7 +228,7 @@ namespace zed_wrapper {
 #else
         mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD;
 
-        NODELET_INFO_STREAM("Camera coordinate system : COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD");
+        NODELET_INFO_STREAM(" * Camera coordinate system -> COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD");
         mIdxX = 0;
         mIdxY = 1;
         mIdxZ = 2;
@@ -436,7 +256,7 @@ namespace zed_wrapper {
 
         while (mConnStatus != sl::SUCCESS) {
             mConnStatus = mZed.open(mZedParams);
-            NODELET_INFO_STREAM(toString(mConnStatus));
+            NODELET_INFO_STREAM("ZED connection -> " << sl::toString(mConnStatus));
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
             if (!mNhNs.ok()) {
@@ -472,10 +292,20 @@ namespace zed_wrapper {
             }
         }
 
-        NODELET_INFO_STREAM("CAMERA MODEL : " << mZedRealCamModel);
-        mFwVersion = mZed.getCameraInformation().firmware_version;
-        NODELET_INFO_STREAM("FW VER. : " << mFwVersion);
+        NODELET_INFO_STREAM(" * CAMERA MODEL\t -> " << sl::toString(mZedRealCamModel).c_str());
         mZedSerialNumber = mZed.getCameraInformation().serial_number;
+        NODELET_INFO_STREAM(" * Serial Number -> " << mZedSerialNumber);
+
+        if (!mSvoMode) {
+            mFwVersion = mZed.getCameraInformation().firmware_version;
+            NODELET_INFO_STREAM(" * FW Version\t -> " << mFwVersion);
+        } else {
+            if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
+                NODELET_INFO_STREAM(" * Input type\t -> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
+            } else {
+                NODELET_INFO_STREAM(" * Input type\t -> SVO");
+            }
+        }
 
         mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
 
@@ -484,31 +314,6 @@ namespace zed_wrapper {
         dynamic_reconfigure::Server<zed_wrapper::ZedConfig>::CallbackType f;
         f = boost::bind(&ZEDWrapperNodelet::dynamicReconfCallback, this, _1, _2);
         mDynRecServer->setCallback(f);
-
-        mNhNs.getParam("mat_resize_factor", mCamMatResizeFactor);
-
-        if (mCamMatResizeFactor < 0.1) {
-            mCamMatResizeFactor = 0.1;
-            NODELET_WARN_STREAM(
-                "Minimum allowed values for 'mat_resize_factor' is 0.1");
-        }
-
-        if (mCamMatResizeFactor > 1.0) {
-            mCamMatResizeFactor = 1.0;
-            NODELET_WARN_STREAM(
-                "Maximum allowed values for 'mat_resize_factor' is 1.0");
-        }
-
-        mNhNs.getParam("confidence", mCamConfidence);
-        mNhNs.getParam("max_depth", mCamMaxDepth);
-        mNhNs.getParam("exposure", mCamExposure);
-        mNhNs.getParam("gain", mCamGain);
-        mNhNs.getParam("auto_exposure", mCamAutoExposure);
-        mNhNs.getParam("point_cloud_freq", mPointCloudFreq);
-
-        if (mCamAutoExposure) {
-            mTriggerAutoExposure = true;
-        }
 
         // Create all the publishers
         // Image publishers
@@ -545,16 +350,16 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Advertised on topic " << mPubConfMap.getTopic());
 
         // Disparity publisher
-        mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(disparity_topic, 1);
+        mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(mDisparityTopic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubDisparity.getTopic());
 
         // PointCloud publisher
         mPointcloudMsg.reset(new sensor_msgs::PointCloud2);
-        mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(point_cloud_topic, 1);
+        mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(mPointCloudTopic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubCloud.getTopic());
 
         // Odometry and Pose publisher
-        mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(pose_topic, 1);
+        mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(mPoseTopic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubPose.getTopic());
 
         if (mPublishPoseCovariance) {
@@ -562,7 +367,7 @@ namespace zed_wrapper {
             NODELET_INFO_STREAM("Advertised on topic " << mPubPoseCov.getTopic());
         }
 
-        mPubOdom = mNhNs.advertise<nav_msgs::Odometry>(odometry_topic, 1);
+        mPubOdom = mNhNs.advertise<nav_msgs::Odometry>(mOdometryTopic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubOdom.getTopic());
 
         // Camera Path
@@ -627,6 +432,222 @@ namespace zed_wrapper {
 
         // Start pool thread
         mDevicePollThread = std::thread(&ZEDWrapperNodelet::device_poll_thread_func, this);
+    }
+
+    void ZEDWrapperNodelet::readParameters() {
+
+        NODELET_INFO_STREAM("*** PARAMETERS ***");
+
+        // ----> General
+        // Get parameters from param files
+        mNhNs.getParam("general/resolution", mCamResol);
+        NODELET_INFO_STREAM(" * Camera Resolution\t\t-> " << sl::toString(static_cast<sl::RESOLUTION>
+                            (mCamResol)).c_str());
+        mNhNs.getParam("general/frame_rate", mCamFrameRate);
+        checkResolFps();
+        NODELET_INFO_STREAM(" * Camera Framerate\t\t-> " << mCamFrameRate);
+        mNhNs.getParam("general/gpu_id", mGpuId);
+        NODELET_INFO_STREAM(" * Gpu ID\t\t\t-> " << mGpuId);
+        mNhNs.getParam("general/zed_id", mZedId);
+        NODELET_INFO_STREAM(" * Camera ID\t\t\t-> " << mGpuId);
+        mNhNs.getParam("general/verbose", mVerbose);
+        NODELET_INFO_STREAM(" * Verbose\t\t\t-> " << (mVerbose ? "ENABLED" : "DISABLED"));
+        mNhNs.param<bool>("general/camera_flip", mCameraFlip, false);
+        NODELET_INFO_STREAM(" * Camera Flip\t\t\t-> " << (mCameraFlip ? "ENABLED" : "DISABLED"));
+
+        int tmp_sn = 0;
+        mNhNs.getParam("general/serial_number", tmp_sn);
+
+        if (tmp_sn > 0) {
+            mZedSerialNumber = static_cast<int>(tmp_sn);
+            NODELET_INFO_STREAM(" * Serial number\t\t-> " <<  mZedSerialNumber);
+        }
+
+
+        string camera_model;
+        mNhNs.getParam("camera_model", camera_model);
+
+        if (camera_model == "zed") {
+            mZedUserCamModel = 0;
+            NODELET_INFO_STREAM(" * Camera Model\t\t\t-> " <<  camera_model);
+        } else if (camera_model == "zedm") {
+            mZedUserCamModel = 1;
+            NODELET_INFO_STREAM(" * Camera Model\t\t\t-> " <<  camera_model);
+        } else {
+            NODELET_ERROR_STREAM("Camera model not valid: " << camera_model);
+        }
+
+        // <---- General
+
+        // ----> Video
+        mNhNs.getParam("video/color_enhancement", mColorEnhancement); // TODO Future use?
+
+        mNhNs.param<std::string>("video/rgb_topic_root", mRgbTopicRoot, "rgb");
+        mNhNs.param<std::string>("video/right_topic_root", mRightTopicRoot, "right");
+        mNhNs.param<std::string>("video/left_topic_root", mLeftTopicRoot, "left");
+        // <---- Video
+
+        // -----> Depth
+        mNhNs.param<std::string>("depth/depth_topic_root", mDepthTopicRoot, "depth");
+        mNhNs.param<std::string>("depth/disparity_topic", mDisparityTopic, "disparity/disparity_image");
+        mNhNs.param<std::string>("depth/point_cloud_topic", mPointCloudTopic, "point_cloud/cloud_registered");
+        mNhNs.param<std::string>("depth/confidence_root", mConfImgRoot, "confidence");
+
+        mNhNs.getParam("depth/quality", mCamQuality);
+        NODELET_INFO_STREAM(" * Depth quality\t\t-> " << sl::toString(static_cast<sl::DEPTH_MODE>(mCamQuality)).c_str());
+        mNhNs.getParam("depth/sensing_mode", mCamSensingMode);
+        NODELET_INFO_STREAM(" * Depth Sensing mode\t\t-> " << sl::toString(static_cast<sl::SENSING_MODE>
+                            (mCamSensingMode)).c_str());
+        mNhNs.getParam("depth/openni_depth_mode", mOpenniDepthMode);
+        NODELET_INFO_STREAM(" * OpenNI mode\t\t\t-> " << (mOpenniDepthMode ? "ENABLED" : "DISABLED"));
+        mNhNs.getParam("depth/depth_stabilization", mDepthStabilization);
+        NODELET_INFO_STREAM(" * Depth Stabilization\t\t-> " << (mDepthStabilization ? "ENABLED" : "DISABLED"));
+        mNhNs.getParam("depth/min_depth", mCamMinDepth);
+        NODELET_INFO_STREAM(" * Minimum depth\t\t-> " <<  mCamMinDepth);
+        // <----- Depth
+
+        // ----> Tracking
+        mNhNs.param<std::string>("tracking/pose_topic", mPoseTopic, "pose");
+        mNhNs.param<std::string>("tracking/odometry_topic", mOdometryTopic, "odom");
+
+        mNhNs.getParam("tracking/publish_pose_covariance", mPublishPoseCovariance);
+        NODELET_INFO_STREAM(" * Publish Pose Covariance\t-> " << (mPublishPoseCovariance ? "ENABLED" : "DISABLED"));
+        mNhNs.getParam("tracking/path_pub_rate", mPathPubRate);
+        NODELET_INFO_STREAM(" * Path rate\t\t\t-> " <<  mPathPubRate << " Hz");
+        mNhNs.getParam("tracking/path_max_count", mPathMaxCount);
+        NODELET_INFO_STREAM(" * Path history size\t\t-> " << (mPathMaxCount == -1) ? std::string("INFINITE") : std::to_string(
+                                mPathMaxCount));
+
+        if (mPathMaxCount < 2 && mPathMaxCount != -1) {
+            mPathMaxCount = 2;
+        }
+
+        mNhNs.getParam("tracking/initial_tracking_pose", mInitialBasePose);
+
+        mNhNs.getParam("tracking/odometry_DB", mOdometryDb);
+        mNhNs.getParam("tracking/pose_smoothing", mPoseSmoothing);
+        mNhNs.getParam("tracking/spatial_memory", mSpatialMemory);
+        mNhNs.getParam("tracking/floor_alignment", mFloorAlignment);
+        mNhNs.getParam("tracking/init_odom_with_first_valid_pose", mInitOdomWithPose);
+        mNhNs.getParam("two_d_mode", mTwoDMode);
+        mNhNs.getParam("fixed_z_value", mFixedZValue);
+        // <---- Tracking
+
+        // ----> IMU
+        mNhNs.param<std::string>("imu/imu_topic_root", mImuTopicRoot);
+
+        mNhNs.getParam("imu/imu_timestamp_sync", mImuTimestampSync);
+        mNhNs.getParam("imu/imu_pub_rate", mImuPubRate);
+        // <---- IMU
+
+        // ----> SVO
+        mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
+        int svo_compr = 0;
+        mNhNs.getParam("general/svo_compression", svo_compr);
+
+        if (svo_compr >= sl::SVO_COMPRESSION_MODE_LAST) {
+            NODELET_WARN_STREAM("The parameter `general/svo_compression` has an invalid value. Please check it in the configuration file `common.yaml`");
+
+            if ((mVerMajor == 2 && mVerMinor < 7) || mVerMajor < 2) {
+                NODELET_WARN_STREAM("Note: AVCHD (H264) and HEVC (H265) compression modes are available with SDK v2.7 or newer");
+            }
+
+            svo_compr = 0;
+        }
+
+        mSvoComprMode = static_cast<sl::SVO_COMPRESSION_MODE>(svo_compr);
+
+        NODELET_INFO_STREAM(" * SVO REC compression\t\t-> " << sl::toString(mSvoComprMode));
+        // <---- SVO
+
+        // Remote Stream
+        mNhNs.param<std::string>("stream", mRemoteStreamAddr, std::string());
+
+        // ----> Coordinate frames
+        mNhNs.param<std::string>("tracking/world_frame", mWorldFrameId, "map");
+        mNhNs.param<std::string>("tracking/pose_frame", mMapFrameId, "map");
+        mNhNs.param<std::string>("tracking/odometry_frame", mOdometryFrameId, "odom");
+        mNhNs.param<std::string>("general/base_frame", mBaseFrameId, "base_link");
+        mNhNs.param<std::string>("general/camera_frame", mCameraFrameId, "zed_camera_center");
+        mNhNs.param<std::string>("imu/imu_frame", mImuFrameId, "imu_link");
+        mNhNs.param<std::string>("general/left_camera_frame", mLeftCamFrameId, "left_camera_frame");
+        mNhNs.param<std::string>("general/left_camera_optical_frame", mLeftCamOptFrameId, "left_camera_optical_frame");
+        mNhNs.param<std::string>("general/right_camera_frame", mRightCamFrameId, "right_camera_frame");
+        mNhNs.param<std::string>("general/right_camera_optical_frame", mRightCamOptFrameId, "right_camera_optical_frame");
+        mDepthFrameId = mLeftCamFrameId;
+        mDepthOptFrameId = mLeftCamOptFrameId;
+
+        // Note: Depth image frame id must match color image frame id
+        mCloudFrameId = mDepthOptFrameId;
+        mRgbFrameId = mDepthFrameId;
+        mRgbOptFrameId = mCloudFrameId;
+        mDisparityFrameId = mDepthFrameId;
+        mDisparityOptFrameId = mDepthOptFrameId;
+        mConfidenceFrameId = mDepthFrameId;
+        mConfidenceOptFrameId = mDepthOptFrameId;
+
+        // Print TF frames
+        NODELET_INFO_STREAM(" * world_frame\t\t\t-> " << mWorldFrameId);
+        NODELET_INFO_STREAM(" * pose_frame\t\t\t-> " << mMapFrameId);
+        NODELET_INFO_STREAM(" * odometry_frame\t\t-> " << mOdometryFrameId);
+        NODELET_INFO_STREAM(" * base_frame\t\t\t-> " << mBaseFrameId);
+        NODELET_INFO_STREAM(" * camera_frame\t\t\t-> " << mCameraFrameId);
+        NODELET_INFO_STREAM(" * imu_link\t\t\t-> " << mImuFrameId);
+        NODELET_INFO_STREAM(" * left_camera_frame\t\t-> " << mLeftCamFrameId);
+        NODELET_INFO_STREAM(" * left_camera_optical_frame\t-> " << mLeftCamOptFrameId);
+        NODELET_INFO_STREAM(" * right_camera_frame\t\t-> " << mRightCamFrameId);
+        NODELET_INFO_STREAM(" * right_camera_optical_frame\t-> " << mRightCamOptFrameId);
+        NODELET_INFO_STREAM(" * depth_frame\t\t\t-> " << mDepthFrameId);
+        NODELET_INFO_STREAM(" * depth_optical_frame\t\t-> " << mDepthOptFrameId);
+        NODELET_INFO_STREAM(" * disparity_frame\t\t-> " << mDisparityFrameId);
+        NODELET_INFO_STREAM(" * disparity_optical_frame\t-> " << mDisparityOptFrameId);
+        NODELET_INFO_STREAM(" * confidence_frame\t\t-> " << mConfidenceFrameId);
+        NODELET_INFO_STREAM(" * confidence_optical_frame\t-> " << mConfidenceOptFrameId);
+        // <---- Coordinate frames
+
+        // ----> TF broadcasting
+        mNhNs.param<bool>("tracking/publish_tf", mPublishTf, true);
+        NODELET_INFO_STREAM(" * Broadcast odometry TF\t-> " << (mPublishTf ? "ENABLED" : "DISABLED"));
+        mNhNs.param<bool>("tracking/publish_map_tf", mPublishMapTf, true);
+        NODELET_INFO_STREAM(" * Broadcast map pose TF\t-> " << (mPublishTf ? (mPublishMapTf ? "ENABLED" : "DISABLED") :
+                            "DISABLED"));
+        // <---- TF broadcasting
+
+        // ----> Dynamic
+        mNhNs.getParam("mat_resize_factor", mCamMatResizeFactor);
+
+
+        if (mCamMatResizeFactor < 0.1) {
+            mCamMatResizeFactor = 0.1;
+            NODELET_WARN_STREAM("Minimum allowed values for 'mat_resize_factor' is 0.1");
+        }
+
+        if (mCamMatResizeFactor > 1.0) {
+            mCamMatResizeFactor = 1.0;
+            NODELET_WARN_STREAM("Maximum allowed values for 'mat_resize_factor' is 1.0");
+        }
+
+        NODELET_INFO_STREAM(" * [DYN] mat_resize_factor\t-> " << mCamMatResizeFactor);
+
+        mNhNs.getParam("confidence", mCamConfidence);
+        NODELET_INFO_STREAM(" * [DYN] confidence\t\t-> " << mCamConfidence);
+        mNhNs.getParam("max_depth", mCamMaxDepth);
+        NODELET_INFO_STREAM(" * [DYN] max_depth\t\t-> " << mCamMaxDepth);
+        mNhNs.getParam("exposure", mCamExposure);
+        NODELET_INFO_STREAM(" * [DYN] exposure\t\t-> " << mCamExposure);
+        mNhNs.getParam("gain", mCamGain);
+        NODELET_INFO_STREAM(" * [DYN] gain\t\t\t-> " << mCamGain);
+        mNhNs.getParam("auto_exposure", mCamAutoExposure);
+        NODELET_INFO_STREAM(" * [DYN] auto_exposure\t\t-> " << (mCamAutoExposure ? "ENABLED" : "DISABLED"));
+        mNhNs.getParam("point_cloud_freq", mPointCloudFreq);
+        NODELET_INFO_STREAM(" * [DYN] point_cloud_freq\t-> " << mPointCloudFreq << " Hz");
+
+        if (mCamAutoExposure) {
+            mTriggerAutoExposure = true;
+        }
+
+        // <---- Dynamic
+
     }
 
     void ZEDWrapperNodelet::checkResolFps() {
@@ -1036,25 +1057,12 @@ namespace zed_wrapper {
 
         if (mOdometryDb != "" && !sl_tools::file_exist(mOdometryDb)) {
             mOdometryDb = "";
-            ROS_WARN("odometry_DB path doesn't exist or is unreachable.");
-        }
-
-        mNhNs.getParam("tracking/odometry_DB", mOdometryDb);
-        mNhNs.getParam("tracking/pose_smoothing", mPoseSmoothing);
-        mNhNs.getParam("tracking/spatial_memory", mSpatialMemory);
-        mNhNs.getParam("tracking/floor_alignment", mFloorAlignment);
-        mNhNs.getParam("tracking/init_odom_with_first_valid_pose", mInitOdomWithPose);
-        NODELET_INFO_STREAM("Init Odometry with first valid pose data : " << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
-        mNhNs.getParam("two_d_mode", mTwoDMode);
-        mNhNs.getParam("fixed_z_value", mFixedZValue);
-
-        if (mOdometryDb != "" && !sl_tools::file_exist(mOdometryDb)) {
-            mOdometryDb = "";
             NODELET_WARN("odometry_DB path doesn't exist or is unreachable.");
         }
 
         // Tracking parameters
         sl::TrackingParameters trackParams;
+        NODELET_INFO_STREAM("Init Odometry with first valid pose data : " << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
         trackParams.area_file_path = mOdometryDb.c_str();
         trackParams.enable_pose_smoothing = mPoseSmoothing;
         NODELET_INFO_STREAM("Pose Smoothing : " << (trackParams.enable_pose_smoothing ? "ENABLED" : "DISABLED"));
@@ -1205,6 +1213,18 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t) {
+        if (!mSensor2BaseTransfValid) {
+            getSens2BaseTransform();
+        }
+
+        if (!mSensor2CameraTransfValid) {
+            getSens2CameraTransform();
+        }
+
+        if (!mCamera2BaseTransfValid) {
+            getCamera2BaseTransform();
+        }
+
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = t;
         transformStamped.header.frame_id = mOdometryFrameId;
@@ -1216,6 +1236,18 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time t) {
+        if (!mSensor2BaseTransfValid) {
+            getSens2BaseTransform();
+        }
+
+        if (!mSensor2CameraTransfValid) {
+            getSens2CameraTransform();
+        }
+
+        if (!mCamera2BaseTransfValid) {
+            getCamera2BaseTransform();
+        }
+
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = t;
         transformStamped.header.frame_id = mMapFrameId;
@@ -1227,6 +1259,18 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::publishImuFrame(tf2::Transform imuTransform, ros::Time t) {
+        if (!mSensor2BaseTransfValid) {
+            getSens2BaseTransform();
+        }
+
+        if (!mSensor2CameraTransfValid) {
+            getSens2CameraTransform();
+        }
+
+        if (!mCamera2BaseTransfValid) {
+            getCamera2BaseTransform();
+        }
+
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = t;
         transformStamped.header.frame_id = mCameraFrameId;
@@ -2396,6 +2440,8 @@ namespace zed_wrapper {
 
                 // Publish pose tf only if enabled
                 if (mPublishTf) {
+
+
 
                     // Note, the frame is published, but its values will only change if
                     // someone has subscribed to odom

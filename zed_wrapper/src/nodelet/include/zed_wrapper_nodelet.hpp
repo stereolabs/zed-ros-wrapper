@@ -79,6 +79,10 @@ namespace zed_wrapper {
          */
         virtual void onInit();
 
+        /* \brief Reads parameters from the param server
+         */
+        void readParameters();
+
         /* \brief ZED camera polling thread function
          */
         void device_poll_thread_func();
@@ -406,6 +410,18 @@ namespace zed_wrapper {
         sl::TRACKING_STATE mTrackingStatus;
         bool mImuPublishing = false;
         bool mPcPublishing = false;
+
+        // Topic names
+        std::string mRgbTopicRoot;
+        std::string mRightTopicRoot;
+        std::string mLeftTopicRoot;
+        std::string mDepthTopicRoot;
+        std::string mDisparityTopic;
+        std::string mPointCloudTopic;
+        std::string mConfImgRoot;
+        std::string mPoseTopic;
+        std::string mOdometryTopic;
+        std::string mImuTopicRoot;
 
         // Last frame time
         ros::Time mPrevFrameTimestamp;
