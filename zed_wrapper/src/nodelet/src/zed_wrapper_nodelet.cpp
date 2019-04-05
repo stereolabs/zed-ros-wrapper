@@ -59,6 +59,7 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::onInit() {
 
+
         // Node handlers
         mNh = getMTNodeHandle();
         mNhNs = getMTPrivateNodeHandle();
@@ -91,6 +92,8 @@ namespace zed_wrapper {
         string right_raw_topic = mRightTopicRoot + raw_suffix + img_raw_topic;
         string rgb_topic = mRgbTopicRoot + img_topic;
         string rgb_raw_topic = mRgbTopicRoot + raw_suffix + img_raw_topic;
+        string stereo_topic = mStereoTopicRoot + img_topic;
+        string stereo_raw_topic = mStereoTopicRoot + raw_suffix + img_raw_topic;
 
         // Set the depth topic names
         string depth_topic = mDepthTopicRoot;
@@ -345,6 +348,11 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Advertised on topic " << mPubConfImg.getTopic());
         NODELET_INFO_STREAM("Advertised on topic " << mPubConfImg.getInfoTopic());
 
+        mPubStereo = it_zed.advertise(stereo_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << mPubStereo.getTopic());
+        mPubRawStereo = it_zed.advertise(stereo_raw_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << mPubRawStereo.getTopic());
+
         // Confidence Map publisher
         mPubConfMap = mNhNs.advertise<sensor_msgs::Image>(conf_map_topic, 1); // confidence map
         NODELET_INFO_STREAM("Advertised on topic " << mPubConfMap.getTopic());
@@ -485,6 +493,7 @@ namespace zed_wrapper {
         mNhNs.param<std::string>("video/rgb_topic_root", mRgbTopicRoot, "rgb");
         mNhNs.param<std::string>("video/right_topic_root", mRightTopicRoot, "right");
         mNhNs.param<std::string>("video/left_topic_root", mLeftTopicRoot, "left");
+        mNhNs.param<std::string>("video/stereo_topic_root", mStereoTopicRoot, "stereo");
         // <---- Video
 
         // -----> Depth
@@ -1994,11 +2003,15 @@ namespace zed_wrapper {
             uint32_t imuSubnumber = mPubImu.getNumSubscribers();
             uint32_t imuRawsubnumber = mPubImuRaw.getNumSubscribers();
             uint32_t pathSubNumber = mPubMapPath.getNumSubscribers() + mPubOdomPath.getNumSubscribers();
+            uint32_t stereoSubNumber = mPubStereo.getNumSubscribers();
+            uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers();
+
             mGrabActive = ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
                             leftRawSubnumber + rightSubnumber + rightRawSubnumber +
                             depthSubnumber + disparitySubnumber + cloudSubnumber +
                             poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
-                            confMapSubnumber /*+ imuSubnumber + imuRawsubnumber*/ + pathSubNumber) > 0);
+                            confMapSubnumber /*+ imuSubnumber + imuRawsubnumber*/ + pathSubNumber +
+                            stereoSubNumber + stereoRawSubNumber) > 0);
 
             runParams.enable_point_cloud = false;
 
@@ -2213,6 +2226,26 @@ namespace zed_wrapper {
                     mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU, mMatWidth, mMatHeight);
 
                     publishImage(rightZEDMat, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, mFrameTimestamp);
+                }
+
+                // Stereo couple side-by-side
+                if (stereoSubNumber > 0) {
+
+                    // Retrieve RGBA Right image
+                    mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT, sl::MEM_CPU, mMatWidth, mMatHeight);
+                    mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT, sl::MEM_CPU, mMatWidth, mMatHeight);
+
+                    mPubStereo.publish(sl_tools::imagesToROSmsg(leftZEDMat, rightZEDMat, mCameraFrameId, mFrameTimestamp));
+                }
+
+                // Stereo RAW couple side-by-side
+                if (stereoRawSubNumber > 0) {
+
+                    // Retrieve RGBA Right image
+                    mZed.retrieveImage(rightZEDMat, sl::VIEW_RIGHT_UNRECTIFIED, sl::MEM_CPU, mMatWidth, mMatHeight);
+                    mZed.retrieveImage(leftZEDMat, sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU, mMatWidth, mMatHeight);
+
+                    mPubRawStereo.publish(sl_tools::imagesToROSmsg(leftZEDMat, rightZEDMat, mCameraFrameId, mFrameTimestamp));
                 }
 
                 // Publish the depth image if someone has subscribed to
