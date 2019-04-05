@@ -1136,11 +1136,16 @@ namespace zed_wrapper {
                 odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]);
 
                 if (mTwoDMode) {
-                    if ((i >= 2 && i <= 4) ||
-                        (i >= 8 && i <= 10) ||
-                        (i >= 12 && i <= 29) ||
-                        (i >= 32 && i <= 34)) {
-                        odom.pose.covariance[i] = 1e-9; // Very low covariance if 2D mode
+                    if (i == 14 || i == 21 || i == 28) {
+                        odom.pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
+                    } else if ((i >= 2 && i <= 4) ||
+                               (i >= 8 && i <= 10) ||
+                               (i >= 12 && i <= 13) ||
+                               (i >= 15 && i <= 16) ||
+                               (i >= 18 && i <= 20) ||
+                               (i == 22) ||
+                               (i >= 24 && i <= 27)) {
+                        odom.pose.covariance[i] = 0.0;
                     }
                 }
             }
@@ -1206,11 +1211,16 @@ namespace zed_wrapper {
                         poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
 
                         if (mTwoDMode) {
-                            if ((i >= 2 && i <= 4) ||
-                                (i >= 8 && i <= 10) ||
-                                (i >= 12 && i <= 29) ||
-                                (i >= 32 && i <= 34)) {
-                                poseCov.pose.covariance[i] = 1e-9; // Very low covariance if 2D mode
+                            if (i == 14 || i == 21 || i == 28) {
+                                poseCov.pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
+                            } else if ((i >= 2 && i <= 4) ||
+                                       (i >= 8 && i <= 10) ||
+                                       (i >= 12 && i <= 13) ||
+                                       (i >= 15 && i <= 16) ||
+                                       (i >= 18 && i <= 20) ||
+                                       (i == 22) ||
+                                       (i >= 24 && i <= 27)) {
+                                poseCov.pose.covariance[i] = 0.0;
                             }
                         }
                     }
@@ -1225,6 +1235,7 @@ namespace zed_wrapper {
             }
         }
     }
+
 
     void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t) {
         if (!mSensor2BaseTransfValid) {

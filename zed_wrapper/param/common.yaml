@@ -25,11 +25,13 @@ general:
     right_camera_optical_frame: 'zed_right_camera_optical_frame'    # must be equal to the frame_id used in the URDF file
     verbose:                    true
     svo_compression:            4                                   # `0`: RAW (no compression), `1`: LOSSLESS (PNG/ZSTD), `2`: LOSSY (JPEG), `3`: AVCHD (H264 SDK v2.7), `4`: HEVC (H265 SDK v2.7)
+
 video:
     rgb_topic_root:             'rgb'                               # default `rgb/image_rect_color`, `rgb/camera_info`, `rgb_raw/image_raw_color`, `rgb_raw/camera_info`
     left_topic_root:            'left'                              # default `left/image_rect_color`, `left/camera_info`, `left_raw/image_raw_color`, `left_raw/camera_info`
     right_topic_root:           'right'                             # default `right/image_rect_color`, `right/camera_info`, `right_raw/image_raw_color`, `right_raw/camera_info`
     color_enhancement:          true                                # [FUTURE USE] This parameter enhances color spreading on R/G/B channel and increase gamma correction on black areas for a better gray segmentation in black areas. Recommended for computer's vision applications.
+
 depth:
     quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY, '4': ULTRA
     sensing_mode:               0                                   # '0': STANDARD, '1': FILL
@@ -39,6 +41,7 @@ depth:
     point_cloud_topic:          'point_cloud/cloud_registered'
     disparity_topic:            'disparity/disparity_image'
     confidence_root:            'confidence'                        # default `confidence/confidence_image` and `confidence/confidence_map`
+
 tracking:
     publish_tf:                 true                                # publish `odom -> base_link` TF
     publish_map_tf:             true                                # publish `map -> odom` TF
@@ -52,12 +55,12 @@ tracking:
     initial_tracking_pose:      [0.0,0.0,0.0, 0.0,0.0,0.0]          # [X, Y, Z, R, P, Y]
     pose_topic:                 'pose'
     publish_pose_covariance:    true                                # Enable to publish the `pose_with_covariance` message
-    fixed_covariance:           true                                # Set the covariance for pose and odometry to a diagonal matrix with `fixed_cov_value` on the diagonal
+    fixed_covariance:           false                               # Set the covariance for pose and odometry to a diagonal matrix with `fixed_cov_value` on the diagonal
     fixed_cov_value:            1e-6                                # Value used on the diagonal of the fixed covariance matrix (`fixed_covariance -> true`)
     odometry_topic:             'odom'
     init_odom_with_first_valid_pose: true                           # Enable to initialize the odometry with the first valid pose
     path_pub_rate:              2.0                                 # Path positions punlishing frequency
     path_max_count:             -1                                  # use '-1' for unlimited path size
-    two_d_mode:                 true                               # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
+    two_d_mode:                 false                               # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
     fixed_z_value:              1.0                                 # Value to be used for Z coordinate if `two_d_mode` is true
 
