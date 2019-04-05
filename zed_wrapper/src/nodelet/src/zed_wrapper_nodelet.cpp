@@ -523,7 +523,6 @@ namespace zed_wrapper {
         mNhNs.getParam("tracking/initial_tracking_pose", mInitialBasePose);
 
         mNhNs.getParam("tracking/odometry_DB", mOdometryDb);
-        mNhNs.getParam("tracking/pose_smoothing", mPoseSmoothing);
         mNhNs.getParam("tracking/spatial_memory", mSpatialMemory);
         mNhNs.getParam("tracking/floor_alignment", mFloorAlignment);
         mNhNs.getParam("tracking/init_odom_with_first_valid_pose", mInitOdomWithPose);
@@ -1081,8 +1080,8 @@ namespace zed_wrapper {
         sl::TrackingParameters trackParams;
         NODELET_INFO_STREAM("Init Odometry with first valid pose data : " << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
         trackParams.area_file_path = mOdometryDb.c_str();
-        trackParams.enable_pose_smoothing = mPoseSmoothing;
-        NODELET_INFO_STREAM("Pose Smoothing : " << (trackParams.enable_pose_smoothing ? "ENABLED" : "DISABLED"));
+        mPoseSmoothing = false;
+        trackParams.enable_pose_smoothing = mPoseSmoothing; // Always false. To be enabled only for VR/AR applications
         trackParams.enable_spatial_memory = mSpatialMemory;
         NODELET_INFO_STREAM("Spatial Memory : " << (trackParams.enable_spatial_memory ? "ENABLED" : "DISABLED"));
         trackParams.initial_world_transform = mInitialPoseSl;

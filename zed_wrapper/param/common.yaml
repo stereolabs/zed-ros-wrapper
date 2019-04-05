@@ -49,7 +49,6 @@ tracking:
     pose_frame:                 'map'
     odometry_frame:             'odom'
     # odometry_db:              'odometry_db_path'
-    pose_smoothing:             0                                   # `0`: disabled, `1`: enabled
     spatial_memory:             false                               # Enable to detect loop closure
     floor_alignment:            false                               # Enable to automatically calculate camera/floor offset
     initial_tracking_pose:      [0.0,0.0,0.0, 0.0,0.0,0.0]          # [X, Y, Z, R, P, Y]
