@@ -39,8 +39,6 @@ depth:
     point_cloud_topic:          'point_cloud/cloud_registered'
     disparity_topic:            'disparity/disparity_image'
     confidence_root:            'confidence'                        # default `confidence/confidence_image` and `confidence/confidence_map`
-    two_d_mode:                 false                               # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
-    fixed_z_value:              0.0                                 # Value to be used for Z coordinate if `two_d_mode` is true
 tracking:
     publish_tf:                 true                                # publish `odom -> base_link` TF
     publish_map_tf:             true                                # publish `map -> odom` TF
@@ -49,13 +47,17 @@ tracking:
     odometry_frame:             'odom'
     # odometry_db:              'odometry_db_path'
     pose_smoothing:             0                                   # `0`: disabled, `1`: enabled
-    spatial_memory:             true                                # Enable to detect loop closure
+    spatial_memory:             false                               # Enable to detect loop closure
     floor_alignment:            false                               # Enable to automatically calculate camera/floor offset
     initial_tracking_pose:      [0.0,0.0,0.0, 0.0,0.0,0.0]          # [X, Y, Z, R, P, Y]
     pose_topic:                 'pose'
     publish_pose_covariance:    true                                # Enable to publish the `pose_with_covariance` message
+    fixed_covariance:           true                                # Set the covariance for pose and odometry to a diagonal matrix with `fixed_cov_value` on the diagonal
+    fixed_cov_value:            1e-6                                # Value used on the diagonal of the fixed covariance matrix (`fixed_covariance -> true`)
     odometry_topic:             'odom'
     init_odom_with_first_valid_pose: true                           # Enable to initialize the odometry with the first valid pose
     path_pub_rate:              2.0                                 # Path positions punlishing frequency
     path_max_count:             -1                                  # use '-1' for unlimited path size
+    two_d_mode:                 true                               # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
+    fixed_z_value:              1.0                                 # Value to be used for Z coordinate if `two_d_mode` is true
 

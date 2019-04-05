@@ -402,6 +402,8 @@ namespace zed_wrapper {
         bool mTrackingReady;
         bool mTwoDMode = false;
         double mFixedZValue = 0.0;
+        bool mFixedCov = true;
+        double mFixedCovValue = 1e-6;
         bool mFloorAlignment = false;
         bool mGrabActive = false; // Indicate if camera grabbing is active (at least one topic subscribed)
         bool mColorEnhancement = true;

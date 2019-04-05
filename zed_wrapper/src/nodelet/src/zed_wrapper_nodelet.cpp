@@ -420,7 +420,7 @@ namespace zed_wrapper {
         mSrvSvoStartRecording = mNhNs.advertiseService("start_svo_recording", &ZEDWrapperNodelet::on_start_svo_recording, this);
         mSrvSvoStopRecording = mNhNs.advertiseService("stop_svo_recording", &ZEDWrapperNodelet::on_stop_svo_recording, this);
 
-        if (ZED_SDK_MAJOR_VERSION > 2 || (ZED_SDK_MAJOR_VERSION == 2 && ZED_SDK_MINOR_VERSION >= 8)) {
+        if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
             mSrvSetLedStatus = mNhNs.advertiseService("set_led_status", &ZEDWrapperNodelet::on_set_led_status, this);
             mSrvToggleLed = mNhNs.advertiseService("toggle_led", &ZEDWrapperNodelet::on_toggle_led, this);
             mSrvSvoStartStream = mNhNs.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
@@ -510,8 +510,6 @@ namespace zed_wrapper {
         mNhNs.param<std::string>("tracking/pose_topic", mPoseTopic, "pose");
         mNhNs.param<std::string>("tracking/odometry_topic", mOdometryTopic, "odom");
 
-        mNhNs.getParam("tracking/publish_pose_covariance", mPublishPoseCovariance);
-        NODELET_INFO_STREAM(" * Publish Pose Covariance\t-> " << (mPublishPoseCovariance ? "ENABLED" : "DISABLED"));
         mNhNs.getParam("tracking/path_pub_rate", mPathPubRate);
         NODELET_INFO_STREAM(" * Path rate\t\t\t-> " <<  mPathPubRate << " Hz");
         mNhNs.getParam("tracking/path_max_count", mPathMaxCount);
@@ -529,8 +527,27 @@ namespace zed_wrapper {
         mNhNs.getParam("tracking/spatial_memory", mSpatialMemory);
         mNhNs.getParam("tracking/floor_alignment", mFloorAlignment);
         mNhNs.getParam("tracking/init_odom_with_first_valid_pose", mInitOdomWithPose);
-        mNhNs.getParam("two_d_mode", mTwoDMode);
-        mNhNs.getParam("fixed_z_value", mFixedZValue);
+        mNhNs.getParam("tracking/two_d_mode", mTwoDMode);
+        mNhNs.getParam("tracking/fixed_z_value", mFixedZValue);
+
+        mNhNs.getParam("tracking/publish_pose_covariance", mPublishPoseCovariance);
+        NODELET_INFO_STREAM(" * Publish Pose Covariance\t-> " << (mPublishPoseCovariance ? "ENABLED" : "DISABLED"));
+
+        if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
+            mNhNs.getParam("tracking/fixed_covariance", mFixedCov);
+        } else {
+            if (mFixedCov) {
+                ROS_WARN("Dynamic covariance is available with SDK v2.8 or newer");
+            }
+
+            mFixedCov = true;
+        }
+
+        NODELET_INFO_STREAM(" * Fixed covariance\t\t-> " << (mFixedCov ? "ENABLED" : "DISABLED"));
+
+        mNhNs.getParam("tracking/fixed_cov_value", mFixedCovValue);
+        NODELET_INFO_STREAM(" * Fixed cov. value\t\t-> " << mFixedCovValue);
+
         // <---- Tracking
 
         // ----> IMU
@@ -1114,13 +1131,9 @@ namespace zed_wrapper {
         odom.pose.pose.orientation.w = base2odom.rotation.w;
 
         // Odometry pose covariance if available
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
-
-        if (!mSpatialMemory && mPublishPoseCovariance) {
+        if (!mFixedCov && mPublishPoseCovariance) {
             for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
-                // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
-
-                odom.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+                odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]);
 
                 if (mTwoDMode) {
                     if ((i >= 2 && i <= 4) ||
@@ -1131,9 +1144,11 @@ namespace zed_wrapper {
                     }
                 }
             }
+        } else {
+            for (size_t i = 0; i < odom.pose.covariance.size(); i += 7) {
+                odom.pose.covariance[i] = mFixedCovValue;
+            }
         }
-
-#endif
 
         // Publish odometry message
         mPubOdom.publish(odom);
@@ -1186,11 +1201,8 @@ namespace zed_wrapper {
                 poseCov.pose.pose = pose;
 
                 // Odometry pose covariance if available
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
-
-                if (!mSpatialMemory) {
+                if (!mFixedCov) {
                     for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
-                        // odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]); // TODO USE THIS WHEN STEP BY STEP COVARIANCE WILL BE AVAILABLE IN CAMERA_FRAME
                         poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
 
                         if (mTwoDMode) {
@@ -1202,9 +1214,11 @@ namespace zed_wrapper {
                             }
                         }
                     }
+                } else {
+                    for (size_t i = 0; i < poseCov.pose.covariance.size(); i += 7) {
+                        poseCov.pose.covariance[i] = mFixedCovValue;
+                    }
                 }
-
-#endif
 
                 // Publish pose with covariance stamped message
                 mPubPoseCov.publish(poseCov);
