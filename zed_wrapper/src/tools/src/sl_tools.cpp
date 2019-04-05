@@ -236,6 +236,110 @@ namespace sl_tools {
         return ptr;
     }
 
+    sensor_msgs::ImagePtr imagesToROSmsg(sl::Mat left, sl::Mat right, std::string frameId, ros::Time t) {
+
+        if (left.getWidth() != right.getWidth() ||
+            left.getHeight() != right.getHeight() ||
+            left.getChannels() != right.getChannels() ||
+            left.getDataType() != right.getDataType()) {
+            return nullptr;
+        }
+
+        sensor_msgs::ImagePtr ptr = boost::make_shared<sensor_msgs::Image>();
+        sensor_msgs::Image& imgMessage = *ptr;
+
+        imgMessage.header.stamp = t;
+        imgMessage.header.frame_id = frameId;
+        imgMessage.height = left.getHeight();
+        imgMessage.width = 2 * left.getWidth();
+
+        int num = 1; // for endianness detection
+        imgMessage.is_bigendian = !(*(char*)&num == 1);
+
+        imgMessage.step = 2 * left.getStepBytes();
+
+        size_t size = imgMessage.step * imgMessage.height;
+        imgMessage.data.resize(size);
+
+        sl::MAT_TYPE dataType = left.getDataType();
+
+        int dataSize = 0;
+        char* srcL;
+        char* srcR;
+
+        switch (dataType) {
+        case sl::MAT_TYPE_32F_C1: /**< float 1 channel.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+            dataSize = sizeof(float);
+            srcL = (char*)left.getPtr<sl::float1>();
+            srcR = (char*)right.getPtr<sl::float1>();
+            break;
+
+        case sl::MAT_TYPE_32F_C2: /**< float 2 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC2;
+            dataSize = 2 * sizeof(float);
+            srcL = (char*)left.getPtr<sl::float2>();
+            srcR = (char*)right.getPtr<sl::float2>();
+            break;
+
+        case sl::MAT_TYPE_32F_C3: /**< float 3 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC3;
+            dataSize = 3 * sizeof(float);
+            srcL = (char*)left.getPtr<sl::float3>();
+            srcR = (char*)right.getPtr<sl::float3>();
+            break;
+
+        case sl::MAT_TYPE_32F_C4: /**< float 4 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_32FC4;
+            dataSize = 4 * sizeof(float);
+            srcL = (char*)left.getPtr<sl::float4>();
+            srcR = (char*)right.getPtr<sl::float4>();
+            break;
+
+        case sl::MAT_TYPE_8U_C1: /**< unsigned char 1 channel.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::MONO8;
+            dataSize = sizeof(char);
+            srcL = (char*)left.getPtr<sl::uchar1>();
+            srcR = (char*)right.getPtr<sl::uchar1>();
+            break;
+
+        case sl::MAT_TYPE_8U_C2: /**< unsigned char 2 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::TYPE_8UC2;
+            dataSize = 2 * sizeof(char);
+            srcL = (char*)left.getPtr<sl::uchar2>();
+            srcR = (char*)right.getPtr<sl::uchar2>();
+            break;
+
+        case sl::MAT_TYPE_8U_C3: /**< unsigned char 3 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::BGR8;
+            dataSize = 3 * sizeof(char);
+            srcL = (char*)left.getPtr<sl::uchar3>();
+            srcR = (char*)right.getPtr<sl::uchar3>();
+            break;
+
+        case sl::MAT_TYPE_8U_C4: /**< unsigned char 4 channels.*/
+            imgMessage.encoding = sensor_msgs::image_encodings::BGRA8;
+            dataSize = 4 * sizeof(char);
+            srcL = (char*)left.getPtr<sl::uchar4>();
+            srcR = (char*)right.getPtr<sl::uchar4>();
+            break;
+        }
+
+        char* dest = (char*)(&imgMessage.data[0]);
+
+        for (int i = 0; i < left.getHeight(); i++) {
+            memcpy(dest, srcL, left.getStepBytes());
+            dest += left.getStepBytes();
+            memcpy(dest, srcR, right.getStepBytes());
+            dest += right.getStepBytes();
+
+            srcL += left.getStepBytes();
+            srcR += right.getStepBytes();
+        }
+
+        return ptr;
+    }
+
     std::vector<std::string> split_string(const std::string& s, char seperator) {
         std::vector<std::string> output;
         std::string::size_type prev_pos = 0, pos = 0;

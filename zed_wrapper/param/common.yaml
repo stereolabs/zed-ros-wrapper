@@ -30,6 +30,7 @@ video:
     rgb_topic_root:             'rgb'                               # default `rgb/image_rect_color`, `rgb/camera_info`, `rgb_raw/image_raw_color`, `rgb_raw/camera_info`
     left_topic_root:            'left'                              # default `left/image_rect_color`, `left/camera_info`, `left_raw/image_raw_color`, `left_raw/camera_info`
     right_topic_root:           'right'                             # default `right/image_rect_color`, `right/camera_info`, `right_raw/image_raw_color`, `right_raw/camera_info`
+    stereo_topic_root:          'stereo'                            # default `stereo/image_rect_color`, `stereo/camera_info`, `stereo_raw/image_raw_color`, `stereo_raw/camera_info`
     color_enhancement:          true                                # [FUTURE USE] This parameter enhances color spreading on R/G/B channel and increase gamma correction on black areas for a better gray segmentation in black areas. Recommended for computer's vision applications.
 
 depth:

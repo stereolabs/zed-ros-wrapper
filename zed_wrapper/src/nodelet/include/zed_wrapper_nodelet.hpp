@@ -307,6 +307,9 @@ namespace zed_wrapper {
         image_transport::CameraPublisher mPubRawRight; //
         image_transport::CameraPublisher mPubDepth; //
         image_transport::CameraPublisher mPubConfImg; //
+        image_transport::Publisher mPubStereo;
+        image_transport::Publisher mPubRawStereo;
+
 
         ros::Publisher mPubConfMap; //
         ros::Publisher mPubDisparity; //
@@ -424,6 +427,7 @@ namespace zed_wrapper {
         std::string mPoseTopic;
         std::string mOdometryTopic;
         std::string mImuTopicRoot;
+        std::string mStereoTopicRoot;
 
         // Last frame time
         ros::Time mPrevFrameTimestamp;
