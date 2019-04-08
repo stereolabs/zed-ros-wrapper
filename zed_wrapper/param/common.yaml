@@ -47,7 +47,7 @@ tracking:
     publish_tf:                 true                                # publish `odom -> base_link` TF
     publish_map_tf:             true                                # publish `map -> odom` TF
     world_frame:                'map'                               # [Future use]
-    pose_frame:                 'map'
+    map_frame:                  'map'
     odometry_frame:             'odom'
     # odometry_db:              'odometry_db_path'
     spatial_memory:             false                               # Enable to detect loop closure

@@ -590,7 +590,7 @@ namespace zed_wrapper {
 
         // ----> Coordinate frames
         mNhNs.param<std::string>("tracking/world_frame", mWorldFrameId, "map");
-        mNhNs.param<std::string>("tracking/pose_frame", mMapFrameId, "map");
+        mNhNs.param<std::string>("tracking/map_frame", mMapFrameId, "map");
         mNhNs.param<std::string>("tracking/odometry_frame", mOdometryFrameId, "odom");
         mNhNs.param<std::string>("general/base_frame", mBaseFrameId, "base_link");
         mNhNs.param<std::string>("general/camera_frame", mCameraFrameId, "zed_camera_center");
@@ -613,7 +613,7 @@ namespace zed_wrapper {
 
         // Print TF frames
         NODELET_INFO_STREAM(" * world_frame\t\t\t-> " << mWorldFrameId);
-        NODELET_INFO_STREAM(" * pose_frame\t\t\t-> " << mMapFrameId);
+        NODELET_INFO_STREAM(" * map_frame\t\t\t-> " << mMapFrameId);
         NODELET_INFO_STREAM(" * odometry_frame\t\t-> " << mOdometryFrameId);
         NODELET_INFO_STREAM(" * base_frame\t\t\t-> " << mBaseFrameId);
         NODELET_INFO_STREAM(" * camera_frame\t\t\t-> " << mCameraFrameId);
