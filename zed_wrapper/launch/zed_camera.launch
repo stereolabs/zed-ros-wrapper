@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="publish_map_tf"        default="true" />
 
     <arg name="camera_id"             default="-1" />
+    <arg name="gpu_id"                default="-1" />
 
     <!-- ROS URDF description of the ZED -->
     <group if="$(arg publish_urdf)">
@@ -61,5 +62,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- Camera ID -->
         <param name="general/zed_id"             value="$(arg camera_id)" />
+
+        <!-- GPU ID -->
+        <param name="general/gpu_id"             value="$(arg gpu_id)" />
     </node>
 </launch>

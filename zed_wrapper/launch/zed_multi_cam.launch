@@ -40,5 +40,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <arg name="camera_id"           value="1" />
         </include>
     </group>
-
 </launch>

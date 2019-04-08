@@ -49,10 +49,10 @@ tracking:
     world_frame:                'map'                               # [Future use]
     map_frame:                  'map'
     odometry_frame:             'odom'
-    # odometry_db:              'odometry_db_path'
-    spatial_memory:             false                               # Enable to detect loop closure
+    odometry_db:                ''
+    spatial_memory:             true                                # Enable to detect loop closure
     floor_alignment:            false                               # Enable to automatically calculate camera/floor offset
-    initial_base_pose:      [0.0,0.0,0.0, 0.0,0.0,0.0]          # [X, Y, Z, R, P, Y]
+    initial_base_pose:          [0.0,0.0,0.0, 0.0,0.0,0.0]          # [X, Y, Z, R, P, Y]
     pose_topic:                 'pose'
     publish_pose_covariance:    true                                # Enable to publish the `pose_with_covariance` message
     fixed_covariance:           false                               # Set the covariance for pose and odometry to a diagonal matrix with `fixed_cov_value` on the diagonal
