@@ -18,17 +18,22 @@ This package lets you use the ZED stereo camera with ROS. It outputs the camera 
 
 The zed_ros_wrapper is a catkin package. It depends on the following ROS packages:
 
-   - tf2_ros
-   - tf2_geometry_msgs
-   - nav_msgs
-   - roscpp
-   - rosconsole
-   - sensor_msgs
-   - stereo_msgs
-   - image_transport
-   - dynamic_reconfigure
-   - urdf
-   - diagnostic_updater
+- tf2_ros
+- tf2_geometry_msgs
+- nav_msgs
+- roscpp
+- rosconsole
+- sensor_msgs
+- stereo_msgs
+- image_transport
+- dynamic_reconfigure
+- nodelet
+- diagnostic_updater
+- urdf
+- message_generation
+- roslint
+- robot_state_publisher
+- message_runtime
 
 Open a terminal and build the package:
 
