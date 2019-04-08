@@ -31,6 +31,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Publish ZED urdf -->
     <arg name="publish_urdf"          default="true" />
 
+    <!-- Publish ZED urdf -->
+    <arg name="publish_tf"            default="true" />
+    <arg name="publish_map_tf"        default="true" />
+
     <!-- ROS URDF description of the ZED -->
     <group if="$(arg publish_urdf)">
         <param name="zed_description" textfile="$(find zed_wrapper)/urdf/$(arg camera_model).urdf" />
@@ -46,7 +50,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <!-- SVO file path -->
         <param name="svo_file"          value="$(arg svo_file)" />
 
-<!-- Remote stream -->
+        <!-- Remote stream -->
         <param name="stream"            value="$(arg stream)" />
+
+        <!-- Publish ZED urdf -->
+        <param name="tracking/publish_tf"        value="$(arg publish_tf)" />
+        <param name="tracking/publish_map_tf"    value="$(arg publish_map_tf)" />
     </node>
 </launch>
