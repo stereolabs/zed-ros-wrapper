@@ -65,7 +65,7 @@ checkPackage("tf2_geometry_msgs" "")
 checkPackage("message_generation" "")
 
 add_service_files( FILES
-    set_initial_pose.srv
+    set_pose.srv
     reset_odometry.srv
     reset_tracking.srv
     start_svo_recording.srv

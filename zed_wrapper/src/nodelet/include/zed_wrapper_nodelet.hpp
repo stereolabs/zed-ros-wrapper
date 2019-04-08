@@ -45,7 +45,7 @@
 
 // Services
 #include <zed_wrapper/reset_tracking.h>
-#include <zed_wrapper/set_initial_pose.h>
+#include <zed_wrapper/set_pose.h>
 #include <zed_wrapper/reset_odometry.h>
 #include <zed_wrapper/start_svo_recording.h>
 #include <zed_wrapper/stop_svo_recording.h>
@@ -225,8 +225,8 @@ namespace zed_wrapper {
         /* \brief Service callback to set_pose service
          *        Tracking pose is set to the new values
          */
-        bool on_set_pose(zed_wrapper::set_initial_pose::Request& req,
-                         zed_wrapper::set_initial_pose::Response& res);
+        bool on_set_pose(zed_wrapper::set_pose::Request& req,
+                         zed_wrapper::set_pose::Response& res);
 
         /* \brief Service callback to start_svo_recording service
          */

@@ -422,7 +422,7 @@ namespace zed_wrapper {
         }
 
         // Services
-        mSrvSetInitPose = mNhNs.advertiseService("set_initial_pose", &ZEDWrapperNodelet::on_set_pose, this);
+        mSrvSetInitPose = mNhNs.advertiseService("set_pose", &ZEDWrapperNodelet::on_set_pose, this);
         mSrvResetOdometry = mNhNs.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
         mSrvResetTracking = mNhNs.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
         mSrvSvoStartRecording = mNhNs.advertiseService("start_svo_recording", &ZEDWrapperNodelet::on_start_svo_recording, this);
@@ -529,7 +529,7 @@ namespace zed_wrapper {
             mPathMaxCount = 2;
         }
 
-        mNhNs.getParam("tracking/initial_tracking_pose", mInitialBasePose);
+        mNhNs.getParam("tracking/initial_base_pose", mInitialBasePose);
 
         mNhNs.getParam("tracking/odometry_DB", mOdometryDb);
         mNhNs.getParam("tracking/spatial_memory", mSpatialMemory);
@@ -979,8 +979,8 @@ namespace zed_wrapper {
     }
 
     bool ZEDWrapperNodelet::on_set_pose(
-        zed_wrapper::set_initial_pose::Request& req,
-        zed_wrapper::set_initial_pose::Response& res) {
+        zed_wrapper::set_pose::Request& req,
+        zed_wrapper::set_pose::Response& res) {
         mInitialBasePose.resize(6);
         mInitialBasePose[0] = req.x;
         mInitialBasePose[1] = req.y;
