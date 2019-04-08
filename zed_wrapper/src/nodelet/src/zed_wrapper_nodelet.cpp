@@ -117,17 +117,6 @@ namespace zed_wrapper {
         string odom_path_topic = "path_odom";
         string map_path_topic = "path_map";
 
-        // Set the IMU topic names
-        string imu_topic;
-        string imu_topic_raw;
-
-        if (mZedUserCamModel == 1) { // ZED-M
-            string imu_topic_name = "data";
-            string imu_topic_raw_name = "data_raw";
-            imu_topic = mImuTopicRoot + "/" + imu_topic_name;
-            imu_topic_raw = mImuTopicRoot + "/" + imu_topic_raw_name;
-        }
-
         // Create camera info
         mRgbCamInfoMsg.reset(new sensor_msgs::CameraInfo());
         mLeftCamInfoMsg.reset(new sensor_msgs::CameraInfo());
@@ -277,18 +266,13 @@ namespace zed_wrapper {
         }
 
         mZedRealCamModel = mZed.getCameraInformation().camera_model;
-        std::string camModelStr = "LAST";
 
         if (mZedRealCamModel == sl::MODEL_ZED) {
-            camModelStr = "ZED";
-
             if (mZedUserCamModel != 0) {
                 NODELET_WARN("Camera model does not match user parameter. Please modify "
                              "the value of the parameter 'camera_model' to 0");
             }
         } else if (mZedRealCamModel == sl::MODEL_ZED_M) {
-            camModelStr = "ZED M";
-
             if (mZedUserCamModel != 1) {
                 NODELET_WARN("Camera model does not match user parameter. Please modify "
                              "the value of the parameter 'camera_model' to 1");
@@ -308,6 +292,17 @@ namespace zed_wrapper {
             } else {
                 NODELET_INFO_STREAM(" * Input type\t -> SVO");
             }
+        }
+
+        // Set the IMU topic names using real camera model
+        string imu_topic;
+        string imu_topic_raw;
+
+        if (mZedRealCamModel == sl::MODEL_ZED_M) {
+            string imu_topic_name = "data";
+            string imu_topic_raw_name = "data_raw";
+            imu_topic = mImuTopicRoot + "/" + imu_topic_name;
+            imu_topic_raw = mImuTopicRoot + "/" + imu_topic_raw_name;
         }
 
         mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
@@ -564,14 +559,14 @@ namespace zed_wrapper {
 
         mNhNs.getParam("tracking/fixed_cov_value", mFixedCovValue);
         NODELET_INFO_STREAM(" * Fixed cov. value\t\t-> " << mFixedCovValue);
-
         // <---- Tracking
 
         // ----> IMU
-        mNhNs.param<std::string>("imu/imu_topic_root", mImuTopicRoot);
-
+        mNhNs.param<std::string>("imu/imu_topic_root", mImuTopicRoot, "imu");
         mNhNs.getParam("imu/imu_timestamp_sync", mImuTimestampSync);
+        NODELET_INFO_STREAM(" * IMU timestamp sync\t\t-> " << (mImuTimestampSync ? "ENABLED" : "DISABLED"));
         mNhNs.getParam("imu/imu_pub_rate", mImuPubRate);
+        NODELET_INFO_STREAM(" * IMU data freq\t\t-> " << mImuPubRate << " Hz");
         // <---- IMU
 
         // ----> SVO
