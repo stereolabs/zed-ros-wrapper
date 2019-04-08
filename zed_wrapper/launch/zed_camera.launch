@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="publish_tf"            default="true" />
     <arg name="publish_map_tf"        default="true" />
 
+    <arg name="camera_id"             default="-1" />
+
     <!-- ROS URDF description of the ZED -->
     <group if="$(arg publish_urdf)">
         <param name="zed_description" textfile="$(find zed_wrapper)/urdf/$(arg camera_model).urdf" />
@@ -56,5 +58,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <!-- Publish ZED urdf -->
         <param name="tracking/publish_tf"        value="$(arg publish_tf)" />
         <param name="tracking/publish_map_tf"    value="$(arg publish_map_tf)" />
+
+        <!-- Camera ID -->
+        <param name="general/zed_id"             value="$(arg camera_id)" />
     </node>
 </launch>

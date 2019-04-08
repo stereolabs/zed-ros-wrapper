@@ -12,7 +12,7 @@ point_cloud_freq:           10.0                                # Dynamic - freq
 
 general:
     camera_flip:                false
-    zed_id:                     0
+    zed_id:                     -1
     serial_number:              0
     resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
     frame_rate:                 30
