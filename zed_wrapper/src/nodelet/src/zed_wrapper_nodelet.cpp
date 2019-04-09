@@ -105,6 +105,9 @@ namespace zed_wrapper {
             depth_topic += "/depth_registered";
         }
 
+        string pointcloud_topic = mPointCloudTopicRoot + "/cloud_registered";
+        string pointcloud_fused_topic = mPointCloudTopicRoot + "/fused_cloud_registered";
+
         string conf_img_topic_name = "confidence_image";
         string conf_map_topic_name = "confidence_map";
         string conf_img_topic = mConfImgRoot + "/" + conf_img_topic_name;
@@ -358,8 +361,11 @@ namespace zed_wrapper {
 
         // PointCloud publisher
         mPointcloudMsg.reset(new sensor_msgs::PointCloud2);
-        mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(mPointCloudTopic, 1);
+        mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubCloud.getTopic());
+        mPointcloudFusedMsg.reset(new sensor_msgs::PointCloud2);
+        mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
 
         // Odometry and Pose publisher
         mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(mPoseTopic, 1);
@@ -494,7 +500,7 @@ namespace zed_wrapper {
         // -----> Depth
         mNhNs.param<std::string>("depth/depth_topic_root", mDepthTopicRoot, "depth");
         mNhNs.param<std::string>("depth/disparity_topic", mDisparityTopic, "disparity/disparity_image");
-        mNhNs.param<std::string>("depth/point_cloud_topic", mPointCloudTopic, "point_cloud/cloud_registered");
+        mNhNs.param<std::string>("depth/point_cloud_topic_root", mPointCloudTopicRoot, "point_cloud");
         mNhNs.param<std::string>("depth/confidence_root", mConfImgRoot, "confidence");
 
         mNhNs.getParam("depth/quality", mCamQuality);
@@ -560,6 +566,15 @@ namespace zed_wrapper {
         mNhNs.getParam("tracking/fixed_cov_value", mFixedCovValue);
         NODELET_INFO_STREAM(" * Fixed cov. value\t\t-> " << mFixedCovValue);
         // <---- Tracking
+
+        // ----> Mapping
+        mNhNs.getParam("mapping/resolution", mMappingRes);
+        NODELET_INFO_STREAM(" * Mapping resolution\t\t-> " << sl::toString(
+                                static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes)));
+        mNhNs.getParam("mapping/fused_pointcloud_freq", mFusedPcPubFreq);
+        NODELET_INFO_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
+        // <---- Mapping
+
 
         // ----> IMU
         mNhNs.param<std::string>("imu/imu_topic_root", mImuTopicRoot, "imu");
@@ -1047,6 +1062,31 @@ namespace zed_wrapper {
         return true;
     }
 
+    void ZEDWrapperNodelet::start_mapping() {
+        NODELET_INFO_STREAM("*** Starting Spatial Mapping ***");
+
+        sl::SpatialMappingParameters params;
+        params.map_type = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE_FUSED_POINT_CLOUD;
+        params.use_chunk_only = false;
+        params.set(static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes));
+
+        sl::ERROR_CODE err = mZed.enableSpatialMapping(params);
+
+        if (err == sl::SUCCESS) {
+            mMappingActivated = true;
+
+            mFusedPcTimer = mNhNs.createTimer(ros::Duration(1.0 / mFusedPcPubFreq), &ZEDWrapperNodelet::pubFusedPointCloudCallback,
+                                              this);
+
+            ROS_INFO_STREAM(" * Resolution: " << params.resolution_meter << " m");
+        } else {
+            mMappingActivated = false;
+            mFusedPcTimer.stop();
+
+            ROS_WARN("Mapping not activated: %s", sl::toString(err).c_str());
+        }
+    }
+
     void ZEDWrapperNodelet::start_tracking() {
         NODELET_INFO_STREAM("*** Starting Positional Tracking ***");
 
@@ -1469,6 +1509,75 @@ namespace zed_wrapper {
 
         // Pointcloud publishing
         mPubCloud.publish(mPointcloudMsg);
+    }
+
+    void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
+        std::lock_guard<std::mutex> lock(mCloseZedMutex);
+
+        if (!mZed.isOpened()) {
+            return;
+        }
+
+        sl::FusedPointCloud fusedPC;
+        sl::ERROR_CODE res = mZed.extractWholeSpatialMap(fusedPC);
+
+        if (res != sl::SUCCESS) {
+            ROS_WARN_STREAM("Fused point cloud not extracted: " << sl::toString(res).c_str());
+            return;
+        }
+
+        // Initialize Point Cloud message
+        // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
+
+        size_t ptsCount = fusedPC.getNumberOfPoints();
+
+        mPointcloudFusedMsg->header.stamp = mFrameTimestamp;
+
+        if (mPointcloudFusedMsg->width != ptsCount || mPointcloudFusedMsg->height != 1) {
+            mPointcloudFusedMsg->header.frame_id = mMapFrameId; // Set the header values of the ROS message
+
+            mPointcloudFusedMsg->is_bigendian = false;
+            mPointcloudFusedMsg->is_dense = false;
+
+            mPointcloudFusedMsg->width = ptsCount;
+            mPointcloudFusedMsg->height = 1;
+
+            sensor_msgs::PointCloud2Modifier modifier(*mPointcloudFusedMsg);
+            modifier.setPointCloud2Fields(4,
+                                          "x", 1, sensor_msgs::PointField::FLOAT32,
+                                          "y", 1, sensor_msgs::PointField::FLOAT32,
+                                          "z", 1, sensor_msgs::PointField::FLOAT32,
+                                          "rgb", 1, sensor_msgs::PointField::FLOAT32);
+        }
+
+        // Data copy
+        sl::float3* cloud_pts = fusedPC.vertices.data();
+        sl::uchar3* cloud_rgb = fusedPC.colors.data();
+        float* ptCloudPtr = (float*)(&mPointcloudFusedMsg->data[0]);
+
+        std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+
+        float color;
+
+        for (size_t i = 0; i < ptsCount; ++i) {
+            ptCloudPtr[i * 4 + 0] = cloud_pts[i][0];
+            ptCloudPtr[i * 4 + 1] = cloud_pts[i][1];
+            ptCloudPtr[i * 4 + 2] = cloud_pts[i][2];
+            *((unsigned char*)(&color) + 0) = cloud_rgb[i].b;
+            *((unsigned char*)(&color) + 1) = cloud_rgb[i].g;
+            *((unsigned char*)(&color) + 2) = cloud_rgb[i].r;
+            ptCloudPtr[i * 4 + 3] = color;
+        }
+
+        std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+
+        double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+
+        ROS_INFO_STREAM("Data copy: " << elapsed_usec << " usec [" << ptsCount << "] - " << (static_cast<double>
+                        (ptsCount) / elapsed_usec) << " pts/usec");
+
+        // Pointcloud publishing
+        mPubFusedCloud.publish(mPointcloudFusedMsg);
     }
 
     void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg,
@@ -1953,6 +2062,7 @@ namespace zed_wrapper {
         mPrevFrameTimestamp = mFrameTimestamp;
 
         mTrackingActivated = false;
+        mMappingActivated = false;
         mRecording = false;
 
         // Get the parameters of the ZED images
@@ -1992,41 +2102,39 @@ namespace zed_wrapper {
             uint32_t depthSubnumber = mPubDepth.getNumSubscribers();
             uint32_t disparitySubnumber = mPubDisparity.getNumSubscribers();
             uint32_t cloudSubnumber = mPubCloud.getNumSubscribers();
+            uint32_t fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
             uint32_t poseSubnumber = mPubPose.getNumSubscribers();
             uint32_t poseCovSubnumber = mPubPoseCov.getNumSubscribers();
             uint32_t odomSubnumber = mPubOdom.getNumSubscribers();
             uint32_t confImgSubnumber = mPubConfImg.getNumSubscribers();
             uint32_t confMapSubnumber = mPubConfMap.getNumSubscribers();
-            uint32_t imuSubnumber = mPubImu.getNumSubscribers();
-            uint32_t imuRawsubnumber = mPubImuRaw.getNumSubscribers();
+            //            uint32_t imuSubnumber = mPubImu.getNumSubscribers();
+            //            uint32_t imuRawsubnumber = mPubImuRaw.getNumSubscribers();
             uint32_t pathSubNumber = mPubMapPath.getNumSubscribers() + mPubOdomPath.getNumSubscribers();
             uint32_t stereoSubNumber = mPubStereo.getNumSubscribers();
             uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers();
 
             mGrabActive = ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
                             leftRawSubnumber + rightSubnumber + rightRawSubnumber +
-                            depthSubnumber + disparitySubnumber + cloudSubnumber +
+                            depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber +
                             poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
                             confMapSubnumber /*+ imuSubnumber + imuRawsubnumber*/ + pathSubNumber +
                             stereoSubNumber + stereoRawSubNumber) > 0);
 
             runParams.enable_point_cloud = false;
 
-            if (cloudSubnumber > 0) {
-                runParams.enable_point_cloud = true;
-            }
-
             // Run the loop only if there is some subscribers or SVO is active
             if (mGrabActive || mRecording || mStreaming) {
                 std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
                 // Detect if one of the subscriber need to have the depth information
-                mComputeDepth = mCamQuality != sl::DEPTH_MODE_NONE && ((depthSubnumber + disparitySubnumber + cloudSubnumber +
-                                poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
-                                confMapSubnumber) > 0);
+                mComputeDepth = mCamQuality != sl::DEPTH_MODE_NONE &&
+                                ((depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber +
+                                  poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
+                                  confMapSubnumber) > 0);
 
-                bool computeTracking = ((mComputeDepth & mDepthStabilization) || poseSubnumber > 0 || poseCovSubnumber > 0 ||
-                                        odomSubnumber > 0 || pathSubNumber > 0);
+                bool computeTracking = ((mComputeDepth & mDepthStabilization) || fusedCloudSubnumber > 0 || poseSubnumber > 0 ||
+                                        poseCovSubnumber > 0 || odomSubnumber > 0 || pathSubNumber > 0);
 
                 if ((computeTracking) && !mTrackingActivated && (mCamQuality != sl::DEPTH_MODE_NONE)) { // Start the tracking
                     start_tracking();
@@ -2035,6 +2143,16 @@ namespace zed_wrapper {
                     mTrackingActivated = false;
                     NODELET_INFO("Tracking DISABLED");
                 }
+
+                if (fusedCloudSubnumber > 0 && !mMappingActivated) {
+                    start_mapping();
+                } else if (fusedCloudSubnumber == 0 && mMappingActivated) {
+                    mFusedPcTimer.stop();
+                    mZed.disableSpatialMapping();
+                    mMappingActivated = false;
+                    NODELET_INFO("Spatial Mapping DISABLED");
+                }
+
 
                 if (mComputeDepth) {
                     int actual_confidence = mZed.getConfidenceThreshold();
@@ -2321,12 +2439,14 @@ namespace zed_wrapper {
                         sl::Translation translation = deltaOdom.getTranslation();
                         sl::Orientation quat = deltaOdom.getOrientation();
 
+#if 0
                         NODELET_DEBUG("delta ODOM [%s] - %.2f,%.2f,%.2f %.2f,%.2f,%.2f,%.2f",
                                       sl::toString(mTrackingStatus).c_str(),
                                       translation(mIdxX), translation(mIdxY), translation(mIdxZ),
                                       quat(mIdxX), quat(mIdxY), quat(mIdxZ), quat(3));
 
                         NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(mTrackingStatus));
+#endif
 
                         if (mTrackingStatus == sl::TRACKING_STATE_OK || mTrackingStatus == sl::TRACKING_STATE_SEARCHING ||
                             mTrackingStatus == sl::TRACKING_STATE_FPS_TOO_LOW) {
@@ -2398,9 +2518,10 @@ namespace zed_wrapper {
                                   mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
                                   translation.x, translation.y, translation.z,
                                   roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-#endif
 
                     NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << sl::toString(mTrackingStatus));
+
+#endif
 
                     if (mTrackingStatus == sl::TRACKING_STATE_OK ||
                         mTrackingStatus == sl::TRACKING_STATE_SEARCHING /*|| status == sl::TRACKING_STATE_FPS_TOO_LOW*/) {

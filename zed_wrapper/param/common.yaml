@@ -39,7 +39,7 @@ depth:
     depth_stabilization:        1                                   # `0`: disabled, `1`: enabled
     openni_depth_mode:          0                                   # '0': 32bit float meters, '1': 16bit uchar millimeters
     depth_topic_root:           'depth'                             # default `depth/depth_registered` or `depth/depth_raw_registered` if `openni_depth_mode` is true
-    point_cloud_topic:          'point_cloud/cloud_registered'
+    point_cloud_topic_root:     'point_cloud'
     disparity_topic:            'disparity/disparity_image'
     confidence_root:            'confidence'                        # default `confidence/confidence_image` and `confidence/confidence_map`
 
@@ -63,4 +63,9 @@ tracking:
     path_max_count:             -1                                  # use '-1' for unlimited path size
     two_d_mode:                 false                               # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
     fixed_z_value:              1.0                                 # Value to be used for Z coordinate if `two_d_mode` is true
+
+mapping:
+    resolution:                 0                                   # `0`: HIGH, `1`: MEDIUM, `2`: LOW
+    fused_pointcloud_freq:      1.0                                 # frequency of the publishing of the fused colored point cloud
+
 
