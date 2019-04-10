@@ -1582,7 +1582,7 @@ namespace zed_wrapper {
 
         std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
-        ROS_INFO_STREAM("Chunks: " << mFusedPC.chunks.size());
+        //ROS_INFO_STREAM("Chunks: " << mFusedPC.chunks.size());
 
         int index = 0;
         float* ptCloudPtr = (float*)(&mPointcloudFusedMsg->data[0]);
@@ -1610,14 +1610,14 @@ namespace zed_wrapper {
 
         std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
 
-        ROS_INFO_STREAM("Updated: " << updated);
+        //ROS_INFO_STREAM("Updated: " << updated);
 
 
         double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
 
 
-        ROS_INFO_STREAM("Data copy: " << elapsed_usec << " usec [" << ptsCount << "] - " << (static_cast<double>
-                        (ptsCount) / elapsed_usec) << " pts/usec");
+        //        ROS_INFO_STREAM("Data copy: " << elapsed_usec << " usec [" << ptsCount << "] - " << (static_cast<double>
+        //                        (ptsCount) / elapsed_usec) << " pts/usec");
 
         // Pointcloud publishing
         mPubFusedCloud.publish(mPointcloudFusedMsg);
