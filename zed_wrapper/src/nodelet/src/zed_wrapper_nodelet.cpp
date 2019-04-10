@@ -1512,7 +1512,6 @@ namespace zed_wrapper {
         memcpy(ptCloudPtr, (float*)cpu_cloud,
                4 * ptsCount * sizeof(float)); // We can do a direct memcpy since data organization is the same
 #else
-        #pragma omp parallel for
 
         for (size_t i = 0; i < ptsCount; ++i) {
             ptCloudPtr[i * 4 + 0] = mSignX * cpu_cloud[i][mIdxX];
@@ -1529,6 +1528,7 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
 
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
         uint32_t fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
 
         if (fusedCloudSubnumber == 0) {
@@ -1549,10 +1549,6 @@ namespace zed_wrapper {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
-        if (mZed.getSpatialMapRequestStatusAsync() != sl::SUCCESS) {
-            return;
-        }
-
         sl::ERROR_CODE res = mZed.retrieveSpatialMapAsync(mFusedPC);
 
         if (res != sl::SUCCESS) {
@@ -1560,14 +1556,12 @@ namespace zed_wrapper {
             return;
         }
 
-        // Initialize Point Cloud message
-        // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
-
         size_t ptsCount = mFusedPC.getNumberOfPoints();
-
         bool resized = false;
 
         if (mPointcloudFusedMsg->width != ptsCount || mPointcloudFusedMsg->height != 1) {
+            // Initialize Point Cloud message
+            // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
             mPointcloudFusedMsg->header.frame_id = mMapFrameId; // Set the header values of the ROS message
 
             mPointcloudFusedMsg->is_bigendian = false;
@@ -1594,33 +1588,22 @@ namespace zed_wrapper {
         float* ptCloudPtr = (float*)(&mPointcloudFusedMsg->data[0]);
         int updated = 0;
 
-        //#pragma omp parallel for shared (index)
-
         for (int c = 0; c < mFusedPC.chunks.size(); c++) {
-
             if (mFusedPC.chunks[c].has_been_updated || resized) {
                 updated++;
 
-                // Data copy
-                sl::float3* cloud_pts = mFusedPC.chunks[c].vertices.data();
-                sl::uchar3* cloud_rgb = mFusedPC.chunks[c].colors.data();
+                size_t chunkSize = mFusedPC.chunks[c].vertices.size();
 
-                float color;
+                if (chunkSize > 0) {
 
-                //#pragma omp critical
+                    float* cloud_pts = (float*)(mFusedPC.chunks[c].vertices.data());
 
-                for (size_t i = 0; i < mFusedPC.chunks[c].vertices.size(); ++i) {
-                    ptCloudPtr[index * 4 + 0] = cloud_pts[i][0];
-                    ptCloudPtr[index * 4 + 1] = cloud_pts[i][1];
-                    ptCloudPtr[index * 4 + 2] = cloud_pts[i][2];
-                    *((unsigned char*)(&color) + 0) = cloud_rgb[i].b;
-                    *((unsigned char*)(&color) + 1) = cloud_rgb[i].g;
-                    *((unsigned char*)(&color) + 2) = cloud_rgb[i].r;
-                    ptCloudPtr[index * 4 + 3] = color;
-                    index++;
+                    memcpy(ptCloudPtr, cloud_pts, 4 * chunkSize * sizeof(float));
+
+                    ptCloudPtr += 4 * chunkSize;
                 }
+
             } else {
-                //#pragma omp critical
                 index += mFusedPC.chunks[c].vertices.size();
             }
         }
@@ -1638,6 +1621,7 @@ namespace zed_wrapper {
 
         // Pointcloud publishing
         mPubFusedCloud.publish(mPointcloudFusedMsg);
+#endif
     }
 
     void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg,
