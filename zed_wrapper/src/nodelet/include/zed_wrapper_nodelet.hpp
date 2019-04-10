@@ -410,6 +410,7 @@ namespace zed_wrapper {
         double mCamMinDepth;
 
         bool mTrackingActivated;
+        bool mMappingEnabled;
         bool mMappingActivated;
         bool mTrackingReady;
         bool mTwoDMode = false;
@@ -522,6 +523,7 @@ namespace zed_wrapper {
         // Point cloud variables
         sl::Mat mCloud;
         sensor_msgs::PointCloud2Ptr mPointcloudMsg;
+        sl::FusedPointCloud mFusedPC;
         sensor_msgs::PointCloud2Ptr mPointcloudFusedMsg;
         ros::Time mPointCloudTime;
 

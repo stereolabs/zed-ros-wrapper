@@ -363,9 +363,12 @@ namespace zed_wrapper {
         mPointcloudMsg.reset(new sensor_msgs::PointCloud2);
         mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubCloud.getTopic());
-        mPointcloudFusedMsg.reset(new sensor_msgs::PointCloud2);
-        mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
+
+        if (mMappingEnabled) {
+            mPointcloudFusedMsg.reset(new sensor_msgs::PointCloud2);
+            mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
+            NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
+        }
 
         // Odometry and Pose publisher
         mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(mPoseTopic, 1);
@@ -568,11 +571,17 @@ namespace zed_wrapper {
         // <---- Tracking
 
         // ----> Mapping
-        mNhNs.getParam("mapping/resolution", mMappingRes);
-        NODELET_INFO_STREAM(" * Mapping resolution\t\t-> " << sl::toString(
-                                static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes)));
-        mNhNs.getParam("mapping/fused_pointcloud_freq", mFusedPcPubFreq);
-        NODELET_INFO_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
+        mNhNs.param<bool>("mapping/mapping_enabled", mMappingEnabled, false);
+        NODELET_INFO_STREAM(" * Mapping\t\t\t-> " << (mMappingEnabled ? "ENABLED" : "DISABLED"));
+
+        if (mMappingEnabled) {
+            mNhNs.getParam("mapping/resolution", mMappingRes);
+            NODELET_INFO_STREAM(" * Mapping resolution\t\t-> " << sl::toString(
+                                    static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes)));
+            mNhNs.getParam("mapping/fused_pointcloud_freq", mFusedPcPubFreq);
+            NODELET_INFO_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
+        }
+
         // <---- Mapping
 
 
@@ -1063,11 +1072,18 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::start_mapping() {
+
+        if (!mMappingEnabled) {
+            NODELET_WARN_STREAM("Cannot enable MAPPING. The parameter `mapping_enable` is set to FALSE");
+
+            return;
+        }
+
         NODELET_INFO_STREAM("*** Starting Spatial Mapping ***");
 
         sl::SpatialMappingParameters params;
         params.map_type = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE_FUSED_POINT_CLOUD;
-        params.use_chunk_only = false;
+        params.use_chunk_only = true;
         params.set(static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes));
 
         sl::ERROR_CODE err = mZed.enableSpatialMapping(params);
@@ -1512,14 +1528,32 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
+
+        uint32_t fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
+
+        if (fusedCloudSubnumber == 0) {
+            return;
+        }
+
         std::lock_guard<std::mutex> lock(mCloseZedMutex);
 
         if (!mZed.isOpened()) {
             return;
         }
 
-        sl::FusedPointCloud fusedPC;
-        sl::ERROR_CODE res = mZed.extractWholeSpatialMap(fusedPC);
+        mPointcloudFusedMsg->header.stamp = mFrameTimestamp;
+        mZed.requestSpatialMapAsync();
+
+        while (mZed.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE_FAILURE) {
+            //Mesh is still generating
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        if (mZed.getSpatialMapRequestStatusAsync() != sl::SUCCESS) {
+            return;
+        }
+
+        sl::ERROR_CODE res = mZed.retrieveSpatialMapAsync(mFusedPC);
 
         if (res != sl::SUCCESS) {
             ROS_WARN_STREAM("Fused point cloud not extracted: " << sl::toString(res).c_str());
@@ -1529,9 +1563,9 @@ namespace zed_wrapper {
         // Initialize Point Cloud message
         // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
-        size_t ptsCount = fusedPC.getNumberOfPoints();
+        size_t ptsCount = mFusedPC.getNumberOfPoints();
 
-        mPointcloudFusedMsg->header.stamp = mFrameTimestamp;
+        bool resized = false;
 
         if (mPointcloudFusedMsg->width != ptsCount || mPointcloudFusedMsg->height != 1) {
             mPointcloudFusedMsg->header.frame_id = mMapFrameId; // Set the header values of the ROS message
@@ -1548,30 +1582,56 @@ namespace zed_wrapper {
                                           "y", 1, sensor_msgs::PointField::FLOAT32,
                                           "z", 1, sensor_msgs::PointField::FLOAT32,
                                           "rgb", 1, sensor_msgs::PointField::FLOAT32);
-        }
 
-        // Data copy
-        sl::float3* cloud_pts = fusedPC.vertices.data();
-        sl::uchar3* cloud_rgb = fusedPC.colors.data();
-        float* ptCloudPtr = (float*)(&mPointcloudFusedMsg->data[0]);
+            resized = true;
+        }
 
         std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
-        float color;
+        ROS_INFO_STREAM("Chunks: " << mFusedPC.chunks.size());
 
-        for (size_t i = 0; i < ptsCount; ++i) {
-            ptCloudPtr[i * 4 + 0] = cloud_pts[i][0];
-            ptCloudPtr[i * 4 + 1] = cloud_pts[i][1];
-            ptCloudPtr[i * 4 + 2] = cloud_pts[i][2];
-            *((unsigned char*)(&color) + 0) = cloud_rgb[i].b;
-            *((unsigned char*)(&color) + 1) = cloud_rgb[i].g;
-            *((unsigned char*)(&color) + 2) = cloud_rgb[i].r;
-            ptCloudPtr[i * 4 + 3] = color;
+        int index = 0;
+        float* ptCloudPtr = (float*)(&mPointcloudFusedMsg->data[0]);
+        int updated = 0;
+
+        //#pragma omp parallel for shared (index)
+
+        for (int c = 0; c < mFusedPC.chunks.size(); c++) {
+
+            if (mFusedPC.chunks[c].has_been_updated || resized) {
+                updated++;
+
+                // Data copy
+                sl::float3* cloud_pts = mFusedPC.chunks[c].vertices.data();
+                sl::uchar3* cloud_rgb = mFusedPC.chunks[c].colors.data();
+
+                float color;
+
+                //#pragma omp critical
+
+                for (size_t i = 0; i < mFusedPC.chunks[c].vertices.size(); ++i) {
+                    ptCloudPtr[index * 4 + 0] = cloud_pts[i][0];
+                    ptCloudPtr[index * 4 + 1] = cloud_pts[i][1];
+                    ptCloudPtr[index * 4 + 2] = cloud_pts[i][2];
+                    *((unsigned char*)(&color) + 0) = cloud_rgb[i].b;
+                    *((unsigned char*)(&color) + 1) = cloud_rgb[i].g;
+                    *((unsigned char*)(&color) + 2) = cloud_rgb[i].r;
+                    ptCloudPtr[index * 4 + 3] = color;
+                    index++;
+                }
+            } else {
+                //#pragma omp critical
+                index += mFusedPC.chunks[c].vertices.size();
+            }
         }
 
         std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
 
+        ROS_INFO_STREAM("Updated: " << updated);
+
+
         double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+
 
         ROS_INFO_STREAM("Data copy: " << elapsed_usec << " usec [" << ptsCount << "] - " << (static_cast<double>
                         (ptsCount) / elapsed_usec) << " pts/usec");
@@ -2124,35 +2184,29 @@ namespace zed_wrapper {
             runParams.enable_point_cloud = false;
 
             // Run the loop only if there is some subscribers or SVO is active
-            if (mGrabActive || mRecording || mStreaming) {
+            if (mGrabActive || mRecording || mStreaming || mMappingActivated || mTrackingActivated) {
                 std::lock_guard<std::mutex> lock(mPosTrkMutex);
+
+                // Note: one tracking is started is never stopped anymore
+                bool computeTracking = ((mComputeDepth & mDepthStabilization) || fusedCloudSubnumber > 0 || poseSubnumber > 0 ||
+                                        poseCovSubnumber > 0 || odomSubnumber > 0 || pathSubNumber > 0);
+
+                // Start the tracking?
+                if ((computeTracking) && !mTrackingActivated && (mCamQuality != sl::DEPTH_MODE_NONE)) {
+                    start_tracking();
+                }
+
+
+                // Start the mapping?
+                if (fusedCloudSubnumber > 0 && !mMappingActivated) {
+                    start_mapping();
+                }
 
                 // Detect if one of the subscriber need to have the depth information
                 mComputeDepth = mCamQuality != sl::DEPTH_MODE_NONE &&
                                 ((depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber +
                                   poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
                                   confMapSubnumber) > 0);
-
-                bool computeTracking = ((mComputeDepth & mDepthStabilization) || fusedCloudSubnumber > 0 || poseSubnumber > 0 ||
-                                        poseCovSubnumber > 0 || odomSubnumber > 0 || pathSubNumber > 0);
-
-                if ((computeTracking) && !mTrackingActivated && (mCamQuality != sl::DEPTH_MODE_NONE)) { // Start the tracking
-                    start_tracking();
-                } else if (!computeTracking && mTrackingActivated) { // Stop the tracking
-                    mZed.disableTracking();
-                    mTrackingActivated = false;
-                    NODELET_INFO("Tracking DISABLED");
-                }
-
-                if (fusedCloudSubnumber > 0 && !mMappingActivated) {
-                    start_mapping();
-                } else if (fusedCloudSubnumber == 0 && mMappingActivated) {
-                    mFusedPcTimer.stop();
-                    mZed.disableSpatialMapping();
-                    mMappingActivated = false;
-                    NODELET_INFO("Spatial Mapping DISABLED");
-                }
-
 
                 if (mComputeDepth) {
                     int actual_confidence = mZed.getConfidenceThreshold();
@@ -2493,7 +2547,10 @@ namespace zed_wrapper {
 #endif
 
                             // Publish odometry message
-                            publishOdom(mOdom2BaseTransf, deltaOdom, mFrameTimestamp);
+                            if (odomSubnumber > 0) {
+                                publishOdom(mOdom2BaseTransf, deltaOdom, mFrameTimestamp);
+                            }
+
                             mTrackingReady = true;
                         }
                     } else if (mFloorAlignment) {
@@ -2604,7 +2661,10 @@ namespace zed_wrapper {
                         }
 
                         // Publish Pose message
-                        publishPose(mFrameTimestamp);
+                        if ((poseSubnumber + poseCovSubnumber) > 0) {
+                            publishPose(mFrameTimestamp);
+                        }
+
                         mTrackingReady = true;
                     }
 
