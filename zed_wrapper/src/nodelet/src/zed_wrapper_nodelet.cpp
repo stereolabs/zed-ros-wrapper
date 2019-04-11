@@ -1241,8 +1241,7 @@ namespace zed_wrapper {
 
         std_msgs::Header header;
         header.stamp = mFrameTimestamp;
-        header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
-
+        header.frame_id = mWorldFrameId;
         geometry_msgs::Pose pose;
 
         // conversion from Tranform to message
@@ -1570,7 +1569,7 @@ namespace zed_wrapper {
         if (mPointcloudFusedMsg->width != ptsCount || mPointcloudFusedMsg->height != 1) {
             // Initialize Point Cloud message
             // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
-            mPointcloudFusedMsg->header.frame_id = mMapFrameId; // Set the header values of the ROS message
+            mPointcloudFusedMsg->header.frame_id = mWorldFrameId; // Set the header values of the ROS message
 
             mPointcloudFusedMsg->is_bigendian = false;
             mPointcloudFusedMsg->is_dense = false;
@@ -1790,7 +1789,7 @@ namespace zed_wrapper {
         geometry_msgs::PoseStamped mapPose;
 
         odomPose.header.stamp = mFrameTimestamp;
-        odomPose.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
+        odomPose.header.frame_id = mWorldFrameId; // frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2odom = tf2::toMsg(mOdom2BaseTransf);
         // Add all value in Pose message
@@ -1803,7 +1802,7 @@ namespace zed_wrapper {
         odomPose.pose.orientation.w = base2odom.rotation.w;
 
         mapPose.header.stamp = mFrameTimestamp;
-        mapPose.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId; // frame
+        mapPose.header.frame_id = mWorldFrameId; // frame
         // conversion from Tranform to message
         geometry_msgs::Transform base2map = tf2::toMsg(mMap2BaseTransf);
         // Add all value in Pose message
@@ -1837,7 +1836,7 @@ namespace zed_wrapper {
 
         if (mapPathSub > 0) {
             nav_msgs::Path mapPath;
-            mapPath.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
+            mapPath.header.frame_id = mWorldFrameId;
             mapPath.header.stamp = mFrameTimestamp;
             mapPath.poses = mMapPath;
 
@@ -1846,7 +1845,7 @@ namespace zed_wrapper {
 
         if (odomPathSub > 0) {
             nav_msgs::Path odomPath;
-            odomPath.header.frame_id = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
+            odomPath.header.frame_id = mWorldFrameId;
             odomPath.header.stamp = mFrameTimestamp;
             odomPath.poses = mOdomPath;
 
