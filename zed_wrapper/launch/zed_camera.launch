@@ -47,8 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </group>
 
     <node name="$(arg node_name)" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
-        <rosparam file="$(find zed_wrapper)/param/common.yaml" command="load" />
-        <rosparam file="$(find zed_wrapper)/param/$(arg camera_model).yaml" command="load" />
+        <rosparam file="$(find zed_wrapper)/params/common.yaml" command="load" />
+        <rosparam file="$(find zed_wrapper)/params/$(arg camera_model).yaml" command="load" />
 
         <!-- SVO file path -->
         <param name="svo_file"          value="$(arg svo_file)" />

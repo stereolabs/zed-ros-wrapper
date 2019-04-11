@@ -42,8 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </group>
 
     <node pkg="nodelet" type="nodelet" name="$(arg node_name)" args="load zed_wrapper/ZEDWrapperNodelet $(arg nodelet_manager_name)" output="screen">
-        <rosparam file="$(find zed_wrapper)/param/common.yaml" command="load" />
-        <rosparam file="$(find zed_wrapper)/param/$(arg camera_model).yaml" command="load" />
+        <rosparam file="$(find zed_wrapper)/params/common.yaml" command="load" />
+        <rosparam file="$(find zed_wrapper)/params/$(arg camera_model).yaml" command="load" />
 
         <!-- SVO file path -->
         <param name="svo_file"                  value="$(arg svo_file)" />
