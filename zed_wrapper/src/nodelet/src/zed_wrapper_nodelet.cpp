@@ -2167,21 +2167,22 @@ namespace zed_wrapper {
             uint32_t stereoSubNumber = mPubStereo.getNumSubscribers();
             uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers();
 
-            mGrabActive = ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
-                            leftRawSubnumber + rightSubnumber + rightRawSubnumber +
-                            depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber +
-                            poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
-                            confMapSubnumber /*+ imuSubnumber + imuRawsubnumber*/ + pathSubNumber +
-                            stereoSubNumber + stereoRawSubNumber) > 0);
+            mGrabActive =  mRecording || mStreaming || mMappingEnabled || mTrackingActivated ||
+                           ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
+                             leftRawSubnumber + rightSubnumber + rightRawSubnumber +
+                             depthSubnumber + disparitySubnumber + cloudSubnumber +
+                             poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
+                             confMapSubnumber /*+ imuSubnumber + imuRawsubnumber*/ + pathSubNumber +
+                             stereoSubNumber + stereoRawSubNumber) > 0);
 
             runParams.enable_point_cloud = false;
 
             // Run the loop only if there is some subscribers or SVO is active
-            if (mGrabActive || mRecording || mStreaming || mMappingActivated || mTrackingActivated) {
+            if (mGrabActive) {
                 std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
                 // Note: one tracking is started is never stopped anymore
-                bool computeTracking = ((mComputeDepth & mDepthStabilization) || fusedCloudSubnumber > 0 || poseSubnumber > 0 ||
+                bool computeTracking = (mMappingEnabled || (mComputeDepth & mDepthStabilization) || poseSubnumber > 0 ||
                                         poseCovSubnumber > 0 || odomSubnumber > 0 || pathSubNumber > 0);
 
                 // Start the tracking?
@@ -2189,9 +2190,8 @@ namespace zed_wrapper {
                     start_tracking();
                 }
 
-
                 // Start the mapping?
-                if (fusedCloudSubnumber > 0 && !mMappingActivated) {
+                if (mMappingEnabled && !mMappingActivated) {
                     start_mapping();
                 }
 
@@ -2963,7 +2963,6 @@ namespace zed_wrapper {
         params.port = req.port;
         params.bitrate = req.bitrate;
         params.gop_size = req.gop_size;
-        params.verbose = req.verbose;
         params.adaptative_bitrate = req.adaptative_bitrate;
 
         if (params.gop_size < -1 || params.gop_size > 256) {

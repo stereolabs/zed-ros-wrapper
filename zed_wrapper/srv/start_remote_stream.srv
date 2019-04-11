@@ -20,9 +20,6 @@ int32 gop_size=-1
 # Note_ if activated, bitrate can vary between [bitrate/4, bitrate]
 # Warning: Currently, the adaptive bitrate only works when "sending" device is a NVIDIA jetson (X1,X2,Xavier,Nano)
 bool adaptative_bitrate=False
-
-# Verbosity for stream output (sender side). Set to true to activate debug message
-bool verbose=False
 ---
 bool result
 string info
