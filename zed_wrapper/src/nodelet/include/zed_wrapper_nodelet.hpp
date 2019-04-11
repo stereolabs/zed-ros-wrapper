@@ -150,9 +150,13 @@ namespace zed_wrapper {
          */
         void publishConf(sl::Mat conf, ros::Time t);
 
-        /* \brief Publish a pointCloud with a ros Publisher
+        /* \brief Publish a single pointCloud with a ros Publisher
          */
         void publishPointCloud();
+
+        /* \brief Publish a fused pointCloud with a ros Publisher
+         */
+        void pubFusedPointCloudCallback(const ros::TimerEvent& e);
 
         /* \brief Publish the informations of a camera with a ros Publisher
          * \param cam_info_msg : the information message to publish
@@ -278,11 +282,13 @@ namespace zed_wrapper {
          */
         bool getCamera2BaseTransform();
 
-        /* \bried Start tracking loading the parameters from param server
+        /* \bried Start tracking
          */
         void start_tracking();
 
-
+        /* \bried Start spatial mapping
+         */
+        void start_mapping();
 
       private:
         // SDK version
@@ -314,6 +320,7 @@ namespace zed_wrapper {
         ros::Publisher mPubConfMap; //
         ros::Publisher mPubDisparity; //
         ros::Publisher mPubCloud;
+        ros::Publisher mPubFusedCloud;
         ros::Publisher mPubPose;
         ros::Publisher mPubPoseCov;
         ros::Publisher mPubOdom;
@@ -325,6 +332,7 @@ namespace zed_wrapper {
         // Timers
         ros::Timer mImuTimer;
         ros::Timer mPathTimer;
+        ros::Timer mFusedPcTimer;
 
         // Services
         ros::ServiceServer mSrvSetInitPose;
@@ -402,6 +410,8 @@ namespace zed_wrapper {
         double mCamMinDepth;
 
         bool mTrackingActivated;
+        bool mMappingEnabled;
+        bool mMappingActivated;
         bool mTrackingReady;
         bool mTwoDMode = false;
         double mFixedZValue = 0.0;
@@ -416,13 +426,16 @@ namespace zed_wrapper {
         bool mImuPublishing = false;
         bool mPcPublishing = false;
 
+        int mMappingRes = 0;
+        double mFusedPcPubFreq = 2.0;
+
         // Topic names
         std::string mRgbTopicRoot;
         std::string mRightTopicRoot;
         std::string mLeftTopicRoot;
         std::string mDepthTopicRoot;
         std::string mDisparityTopic;
-        std::string mPointCloudTopic;
+        std::string mPointCloudTopicRoot;
         std::string mConfImgRoot;
         std::string mPoseTopic;
         std::string mOdometryTopic;
@@ -510,6 +523,8 @@ namespace zed_wrapper {
         // Point cloud variables
         sl::Mat mCloud;
         sensor_msgs::PointCloud2Ptr mPointcloudMsg;
+        sl::FusedPointCloud mFusedPC;
+        sensor_msgs::PointCloud2Ptr mPointcloudFusedMsg;
         ros::Time mPointCloudTime;
 
         // Dynamic reconfigure
