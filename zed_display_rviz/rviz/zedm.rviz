@@ -403,7 +403,7 @@ Visualization Manager:
           Buffer Length: 1
           Class: rviz/Path
           Color: 255; 25; 0
-          Enabled: false
+          Enabled: true
           Head Diameter: 0.029999999329447746
           Head Length: 0.019999999552965164
           Length: 0.30000001192092896
@@ -421,7 +421,7 @@ Visualization Manager:
           Shaft Length: 0.05000000074505806
           Topic: /zed/zed_node/path_odom
           Unreliable: true
-          Value: false
+          Value: true
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
@@ -532,25 +532,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.337989807128906
+      Distance: 5.1125593185424805
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 3.491659164428711
-        Y: 3.2318716049194336
-        Z: 0.7526312470436096
+        X: 1.7252397537231445
+        Y: 0.14679433405399323
+        Z: -1.1434578895568848
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.49039870500564575
-      Target Frame: <Fixed Frame>
+      Pitch: 0.7353986501693726
+      Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 2.420396327972412
+      Yaw: 3.505399227142334
     Saved: ~
 Window Geometry:
   Camera view:
