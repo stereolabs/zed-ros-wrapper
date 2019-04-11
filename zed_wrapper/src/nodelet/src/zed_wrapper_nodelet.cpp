@@ -138,7 +138,7 @@ namespace zed_wrapper {
 
             if (!mSvoFilepath.empty()) {
                 mZedParams.svo_input_filename = mSvoFilepath.c_str();
-                mZedParams.svo_real_time_mode = true;
+                mZedParams.svo_real_time_mode = false;
             } else  if (!mRemoteStreamAddr.empty()) {
                 if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
                     std::vector<std::string> configStream = sl_tools::split_string(mRemoteStreamAddr, ':');
