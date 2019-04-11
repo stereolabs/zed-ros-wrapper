@@ -572,14 +572,23 @@ namespace zed_wrapper {
 
         // ----> Mapping
         mNhNs.param<bool>("mapping/mapping_enabled", mMappingEnabled, false);
-        NODELET_INFO_STREAM(" * Mapping\t\t\t-> " << (mMappingEnabled ? "ENABLED" : "DISABLED"));
 
         if (mMappingEnabled) {
-            mNhNs.getParam("mapping/resolution", mMappingRes);
-            NODELET_INFO_STREAM(" * Mapping resolution\t\t-> " << sl::toString(
-                                    static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes)));
-            mNhNs.getParam("mapping/fused_pointcloud_freq", mFusedPcPubFreq);
-            NODELET_INFO_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
+            if ((mVerMajor == 2 && mVerMinor < 8) || mVerMajor < 2) {
+                NODELET_WARN_STREAM("The mapping module is available with SDK v2.8 or major");
+                mMappingEnabled = false;
+                NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
+            } else {
+                NODELET_INFO_STREAM(" * Mapping\t\t\t-> ENABLED");
+
+                mNhNs.getParam("mapping/resolution", mMappingRes);
+                NODELET_INFO_STREAM(" * Mapping resolution\t\t-> " << sl::toString(
+                                        static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes)));
+                mNhNs.getParam("mapping/fused_pointcloud_freq", mFusedPcPubFreq);
+                NODELET_INFO_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
+            }
+        } else {
+            NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
         }
 
         // <---- Mapping
@@ -2719,9 +2728,9 @@ namespace zed_wrapper {
                                 1.0, "Expected cycle time: " << loop_rate.expectedCycleTime()
                                 << " - Real cycle time: "
                                 << mean_elab_sec);
-                            NODELET_WARN_THROTTLE(10.0, "Elaboration takes longer than requested "
-                                                  "by the FPS rate. Please consider to "
-                                                  "lower the 'frame_rate' setting.");
+                            NODELET_WARN_STREAM_THROTTLE(10.0, "Elaboration takes longer (" << mean_elab_sec << " sec) than requested "
+                                                         "by the FPS rate (" << loop_rate.expectedCycleTime() << " sec). Please consider to "
+                                                         "lower the 'frame_rate' setting or to reduce the power requirements reducing the resolutions.");
                         }
 
                         loop_rate.reset();
