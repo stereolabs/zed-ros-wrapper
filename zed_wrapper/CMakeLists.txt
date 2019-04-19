@@ -50,6 +50,7 @@ find_package(catkin COMPONENTS
   tf2_geometry_msgs
   message_generation
   diagnostic_updater
+  roslint
 )
 
 checkPackage("image_transport" "")
@@ -64,11 +65,15 @@ checkPackage("tf2_geometry_msgs" "")
 checkPackage("message_generation" "")
 
 add_service_files( FILES
-    set_initial_pose.srv
+    set_pose.srv
     reset_odometry.srv
     reset_tracking.srv
     start_svo_recording.srv
     stop_svo_recording.srv
+    start_remote_stream.srv
+    stop_remote_stream.srv
+    set_led_status.srv
+    toggle_led.srv
   )
 
 generate_messages()
@@ -148,6 +153,9 @@ add_dependencies(zed_wrapper_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${PROJECT_
 FILE(GLOB_RECURSE all_files ${CMAKE_SOURCE_DIR}/*)
 add_custom_target(all_files_${PROJECT_NAME} SOURCES ${all_files})
 
+roslint_cpp()
+
+
 ###############################################################################
 # INSTALL
 
@@ -163,4 +171,5 @@ install(FILES
 install(DIRECTORY
   launch
   urdf
+  param
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

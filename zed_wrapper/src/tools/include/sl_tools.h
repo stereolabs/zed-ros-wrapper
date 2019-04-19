@@ -25,6 +25,7 @@
 #include <sensor_msgs/Image.h>
 #include <sl/Camera.hpp>
 #include <string>
+#include <vector>
 
 namespace sl_tools {
 
@@ -64,6 +65,18 @@ namespace sl_tools {
      */
     sensor_msgs::ImagePtr imageToROSmsg(sl::Mat img, std::string frameId, ros::Time t);
 
+    /* \brief Two sl::Mat to ros message conversion
+     * \param left : the left image to publish
+     * \param right : the right image to publish
+     * \param frameId : the id of the reference frame of the image
+     * \param t : the ros::Time to stamp the image
+     */
+    sensor_msgs::ImagePtr imagesToROSmsg(sl::Mat left, sl::Mat right, std::string frameId, ros::Time t);
+
+    /* \brief String tokenization
+     */
+    std::vector<std::string> split_string(const std::string& s, char seperator);
+
     /*!
      * \brief The CSmartMean class is used to
      * make a mobile window mean of a sequence of values
@@ -102,6 +115,6 @@ namespace sl_tools {
     };
 
 
-} // namespace
+} // namespace sl_tools
 
-#endif // SL_TOOLS_H
+#endif  // SL_TOOLS_H

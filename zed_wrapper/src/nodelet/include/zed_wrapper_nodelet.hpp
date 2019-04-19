@@ -45,10 +45,14 @@
 
 // Services
 #include <zed_wrapper/reset_tracking.h>
-#include <zed_wrapper/set_initial_pose.h>
+#include <zed_wrapper/set_pose.h>
 #include <zed_wrapper/reset_odometry.h>
 #include <zed_wrapper/start_svo_recording.h>
 #include <zed_wrapper/stop_svo_recording.h>
+#include <zed_wrapper/start_remote_stream.h>
+#include <zed_wrapper/stop_remote_stream.h>
+#include <zed_wrapper/set_led_status.h>
+#include <zed_wrapper/toggle_led.h>
 
 #include <memory>
 #include <mutex>
@@ -70,10 +74,14 @@ namespace zed_wrapper {
          */
         virtual ~ZEDWrapperNodelet();
 
-      private:
+      protected:
         /* \brief Initialization function called by the Nodelet base class
          */
         virtual void onInit();
+
+        /* \brief Reads parameters from the param server
+         */
+        void readParameters();
 
         /* \brief ZED camera polling thread function
          */
@@ -82,8 +90,6 @@ namespace zed_wrapper {
         /* \brief Pointcloud publishing function
          */
         void pointcloud_thread_func();
-
-      protected:
 
         /* \brief Publish the pose of the camera in "Map" frame with a ros Publisher
          * \param t : the ros::Time to stamp the image
@@ -122,13 +128,15 @@ namespace zed_wrapper {
 
         /* \brief Publish a sl::Mat image with a ros Publisher
          * \param img : the image to publish
-         * \param pub_img : the publisher object to use (different image publishers
+         * \param pubImg : the publisher object to use (different image publishers
          * exist)
-         * \param img_frame_id : the id of the reference frame of the image (different
+         * \param camInfoMsg : the camera_info to be published with image
+         * \param imgFrameId : the id of the reference frame of the image (different
          * image frames exist)
          * \param t : the ros::Time to stamp the image
          */
-        void publishImage(sl::Mat img, image_transport::Publisher& pubImg, string imgFrameId, ros::Time t);
+        void publishImage(sl::Mat img, image_transport::CameraPublisher& pubImg, sensor_msgs::CameraInfoPtr camInfoMsg,
+                          string imgFrameId, ros::Time t);
 
         /* \brief Publish a sl::Mat depth image with a ros Publisher
          * \param depth : the depth image to publish
@@ -142,9 +150,13 @@ namespace zed_wrapper {
          */
         void publishConf(sl::Mat conf, ros::Time t);
 
-        /* \brief Publish a pointCloud with a ros Publisher
+        /* \brief Publish a single pointCloud with a ros Publisher
          */
         void publishPointCloud();
+
+        /* \brief Publish a fused pointCloud with a ros Publisher
+         */
+        void pubFusedPointCloudCallback(const ros::TimerEvent& e);
 
         /* \brief Publish the informations of a camera with a ros Publisher
          * \param cam_info_msg : the information message to publish
@@ -217,8 +229,8 @@ namespace zed_wrapper {
         /* \brief Service callback to set_pose service
          *        Tracking pose is set to the new values
          */
-        bool on_set_pose(zed_wrapper::set_initial_pose::Request& req,
-                         zed_wrapper::set_initial_pose::Response& res);
+        bool on_set_pose(zed_wrapper::set_pose::Request& req,
+                         zed_wrapper::set_pose::Response& res);
 
         /* \brief Service callback to start_svo_recording service
          */
@@ -230,19 +242,53 @@ namespace zed_wrapper {
         bool on_stop_svo_recording(zed_wrapper::stop_svo_recording::Request& req,
                                    zed_wrapper::stop_svo_recording::Response& res);
 
+        /* \brief Service callback to start_remote_stream service
+         */
+        bool on_start_remote_stream(zed_wrapper::start_remote_stream::Request& req,
+                                    zed_wrapper::start_remote_stream::Response& res);
+
+        /* \brief Service callback to stop_remote_stream service
+         */
+        bool on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
+                                   zed_wrapper::stop_remote_stream::Response& res);
+
+        /* \brief Service callback to set_led_status service
+         */
+        bool on_set_led_status(zed_wrapper::set_led_status::Request& req,
+                               zed_wrapper::set_led_status::Response& res);
+
+        /* \brief Service callback to toggle_led service
+         */
+        bool on_toggle_led(zed_wrapper::toggle_led::Request& req,
+                           zed_wrapper::toggle_led::Response& res);
+
         /* \brief Utility to initialize the pose variables
          */
-        void set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
+        bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
 
         /* \brief Utility to initialize the most used transforms
          */
         void initTransforms();
 
-        /* \bried Start tracking loading the parameters from param server
+        /* \brief Utility to initialize the static transform from Sensor to Base
+         */
+        bool getSens2BaseTransform();
+
+        /* \brief Utility to initialize the static transform from Sensor to Camera
+         */
+        bool getSens2CameraTransform();
+
+        /* \brief Utility to initialize the static transform from Camera to Base
+         */
+        bool getCamera2BaseTransform();
+
+        /* \bried Start tracking
          */
         void start_tracking();
 
-
+        /* \bried Start spatial mapping
+         */
+        void start_mapping();
 
       private:
         // SDK version
@@ -259,25 +305,22 @@ namespace zed_wrapper {
         bool mStopNode;
 
         // Publishers
-        image_transport::Publisher mPubRgb; //
-        image_transport::Publisher mPubRawRgb; //
-        image_transport::Publisher mPubLeft; //
-        image_transport::Publisher mPubRawLeft; //
-        image_transport::Publisher mPubRight; //
-        image_transport::Publisher mPubRawRight; //
-        image_transport::Publisher mPubDepth; //
-        image_transport::Publisher mPubConfImg; //
+        image_transport::CameraPublisher mPubRgb; //
+        image_transport::CameraPublisher mPubRawRgb; //
+        image_transport::CameraPublisher mPubLeft; //
+        image_transport::CameraPublisher mPubRawLeft; //
+        image_transport::CameraPublisher mPubRight; //
+        image_transport::CameraPublisher mPubRawRight; //
+        image_transport::CameraPublisher mPubDepth; //
+        image_transport::CameraPublisher mPubConfImg; //
+        image_transport::Publisher mPubStereo;
+        image_transport::Publisher mPubRawStereo;
+
 
         ros::Publisher mPubConfMap; //
         ros::Publisher mPubDisparity; //
         ros::Publisher mPubCloud;
-        ros::Publisher mPubRgbCamInfo; //
-        ros::Publisher mPubLeftCamInfo; //
-        ros::Publisher mPubRightCamInfo; //
-        ros::Publisher mPubRgbCamInfoRaw; //
-        ros::Publisher mPubLeftCamInfoRaw; //
-        ros::Publisher mPubRightCamInfoRaw; //
-        ros::Publisher mPubDepthCamInfo; //
+        ros::Publisher mPubFusedCloud;
         ros::Publisher mPubPose;
         ros::Publisher mPubPoseCov;
         ros::Publisher mPubOdom;
@@ -285,11 +328,11 @@ namespace zed_wrapper {
         ros::Publisher mPubMapPath;
         ros::Publisher mPubImu;
         ros::Publisher mPubImuRaw;
-        //ros::Publisher mPubClock;
 
         // Timers
         ros::Timer mImuTimer;
         ros::Timer mPathTimer;
+        ros::Timer mFusedPcTimer;
 
         // Services
         ros::ServiceServer mSrvSetInitPose;
@@ -297,6 +340,10 @@ namespace zed_wrapper {
         ros::ServiceServer mSrvResetTracking;
         ros::ServiceServer mSrvSvoStartRecording;
         ros::ServiceServer mSrvSvoStopRecording;
+        ros::ServiceServer mSrvSvoStartStream;
+        ros::ServiceServer mSrvSvoStopStream;
+        ros::ServiceServer mSrvSetLedStatus;
+        ros::ServiceServer mSrvToggleLed;
 
         // Camera info
         sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
@@ -327,6 +374,7 @@ namespace zed_wrapper {
         std::string mCloudFrameId;
         std::string mPointCloudFrameId;
 
+        std::string mWorldFrameId;
         std::string mMapFrameId;
         std::string mOdometryFrameId;
         std::string mBaseFrameId;
@@ -337,10 +385,6 @@ namespace zed_wrapper {
         std::string mLeftCamFrameId;
         std::string mLeftCamOptFrameId;
         std::string mImuFrameId;
-
-        // initialization Transform listener
-        boost::shared_ptr<tf2_ros::Buffer> mTfBuffer;
-        boost::shared_ptr<tf2_ros::TransformListener> mTfListener;
 
         bool mPublishTf;
         bool mPublishMapTf;
@@ -356,25 +400,47 @@ namespace zed_wrapper {
         int mDepthStabilization;
         std::string mOdometryDb;
         std::string mSvoFilepath;
+        std::string mRemoteStreamAddr;
         double mImuPubRate;
         bool mImuTimestampSync;
         double mPathPubRate;
         int mPathMaxCount;
         bool mVerbose;
         bool mSvoMode = false;
+        double mCamMinDepth;
 
         bool mTrackingActivated;
+        bool mMappingEnabled;
+        bool mMappingActivated;
         bool mTrackingReady;
         bool mTwoDMode = false;
         double mFixedZValue = 0.0;
+        bool mFixedCov = true;
+        double mFixedCovValue = 1e-6;
         bool mFloorAlignment = false;
         bool mGrabActive = false; // Indicate if camera grabbing is active (at least one topic subscribed)
+        bool mColorEnhancement = true;
         sl::ERROR_CODE mConnStatus;
         sl::ERROR_CODE mGrabStatus;
         sl::TRACKING_STATE mTrackingStatus;
         bool mImuPublishing = false;
         bool mPcPublishing = false;
 
+        int mMappingRes = 0;
+        double mFusedPcPubFreq = 2.0;
+
+        // Topic names
+        std::string mRgbTopicRoot;
+        std::string mRightTopicRoot;
+        std::string mLeftTopicRoot;
+        std::string mDepthTopicRoot;
+        std::string mDisparityTopic;
+        std::string mPointCloudTopicRoot;
+        std::string mConfImgRoot;
+        std::string mPoseTopic;
+        std::string mOdometryTopic;
+        std::string mImuTopicRoot;
+        std::string mStereoTopicRoot;
 
         // Last frame time
         ros::Time mPrevFrameTimestamp;
@@ -383,15 +449,26 @@ namespace zed_wrapper {
         //Tracking variables
         sl::Pose mLastZedPose; // Sensor to Map transform
         sl::Transform mInitialPoseSl;
-        std::vector<float> mInitialTrackPose;
+        std::vector<float> mInitialBasePose;
         std::vector<geometry_msgs::PoseStamped> mOdomPath;
         std::vector<geometry_msgs::PoseStamped> mMapPath;
 
         // TF Transforms
-        tf2::Transform mMap2OdomTransf;     // Coordinates of the odometry frame in map frame
-        tf2::Transform mOdom2BaseTransf;    // Coordinates of the base in odometry frame
-        tf2::Transform mMap2BaseTransf;     // Coordinates of the base in base frame
-        tf2::Transform mSensor2BaseTransf;  // Coordinates of the base frame in sensor frame
+        tf2::Transform mMap2OdomTransf;         // Coordinates of the odometry frame in map frame
+        tf2::Transform mOdom2BaseTransf;        // Coordinates of the base in odometry frame
+        tf2::Transform mMap2BaseTransf;         // Coordinates of the base in map frame
+        tf2::Transform mMap2CameraTransf;       // Coordinates of the camera in base frame
+        tf2::Transform mSensor2BaseTransf;      // Coordinates of the base frame in sensor frame
+        tf2::Transform mSensor2CameraTransf;    // Coordinates of the camera frame in sensor frame
+        tf2::Transform mCamera2BaseTransf;      // Coordinates of the base frame in camera frame
+
+        bool mSensor2BaseTransfValid = false;
+        bool mSensor2CameraTransfValid = false;
+        bool mCamera2BaseTransfValid = false;
+
+        // initialization Transform listener
+        boost::shared_ptr<tf2_ros::Buffer> mTfBuffer;
+        boost::shared_ptr<tf2_ros::TransformListener> mTfListener;
 
         // Zed object
         sl::InitParameters mZedParams;
@@ -399,6 +476,7 @@ namespace zed_wrapper {
         unsigned int mZedSerialNumber;
         int mZedUserCamModel;       // Camera model set by ROS Param
         sl::MODEL mZedRealCamModel; // Camera model requested to SDK
+        unsigned int mFwVersion;
 
         // Dynamic Parameters
         int mCamConfidence;
@@ -407,12 +485,13 @@ namespace zed_wrapper {
         double mCamMatResizeFactor;
         double mCamMaxDepth;
         bool mCamAutoExposure;
+        double mPointCloudFreq;
 
         // flags
         bool mTriggerAutoExposure;
         bool mComputeDepth;
         bool mOpenniDepthMode; // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
-        bool mPoseSmoothing;
+        bool mPoseSmoothing = false; // Always disabled. Enable only for AR/VR applications
         bool mSpatialMemory;
         bool mInitOdomWithPose;
         bool mResetOdom = false;
@@ -421,6 +500,10 @@ namespace zed_wrapper {
         // SVO recording
         bool mRecording = false;
         sl::RecordingState mRecState;
+        sl::SVO_COMPRESSION_MODE mSvoComprMode;
+
+        // Streaming
+        bool mStreaming = false;
 
         // Mat
         int mCamWidth;
@@ -433,12 +516,15 @@ namespace zed_wrapper {
         std::mutex mCamDataMutex;
         std::mutex mPcMutex;
         std::mutex mRecMutex;
+        std::mutex mPosTrkMutex;
         std::condition_variable mPcDataReadyCondVar;
         bool mPcDataReady;
 
         // Point cloud variables
         sl::Mat mCloud;
         sensor_msgs::PointCloud2Ptr mPointcloudMsg;
+        sl::FusedPointCloud mFusedPC;
+        sensor_msgs::PointCloud2Ptr mPointcloudFusedMsg;
         ros::Time mPointCloudTime;
 
         // Dynamic reconfigure

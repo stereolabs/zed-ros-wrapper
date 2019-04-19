@@ -5,12 +5,9 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /TF1
+        - /Camera Model1/Status1
         - /TF1/Frames1
         - /Left Camera1/Visibility1
-        - /Pose1
-        - /Tags1
-        - /Left Image1
       Splitter Ratio: 0.483870953
     Tree Height: 853
   - Class: rviz/Selection
@@ -63,7 +60,7 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        imu_link:
+        base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -72,6 +69,10 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        zed_imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         zed_left_camera_frame:
           Alpha: 1
           Show Axes: false
@@ -103,11 +104,7 @@ Visualization Manager:
           Value: true
         ar_marker_1:
           Value: true
-        ar_marker_14:
-          Value: true
         ar_marker_144:
-          Value: true
-        ar_marker_192:
           Value: true
         ar_marker_2:
           Value: true
@@ -115,21 +112,17 @@ Visualization Manager:
           Value: true
         ar_marker_4:
           Value: true
-        ar_marker_48:
-          Value: true
         ar_marker_5:
           Value: true
         ar_marker_6:
-          Value: true
-        ar_marker_64:
           Value: true
         ar_marker_7:
           Value: true
         ar_marker_8:
           Value: true
-        ar_marker_80:
+        ar_marker_96:
           Value: true
-        ar_marker_9:
+        base_link:
           Value: true
         map:
           Value: true
@@ -153,50 +146,41 @@ Visualization Manager:
       Tree:
         map:
           odom:
-            zed_camera_center:
-              zed_left_camera_frame:
-                zed_left_camera_optical_frame:
-                  ar_marker_0:
+            base_link:
+              zed_camera_center:
+                zed_left_camera_frame:
+                  zed_left_camera_optical_frame:
+                    ar_marker_0:
+                      {}
+                    ar_marker_1:
+                      {}
+                    ar_marker_144:
+                      {}
+                    ar_marker_2:
+                      {}
+                    ar_marker_3:
+                      {}
+                    ar_marker_4:
+                      {}
+                    ar_marker_5:
+                      {}
+                    ar_marker_6:
+                      {}
+                    ar_marker_7:
+                      {}
+                    ar_marker_8:
+                      {}
+                    ar_marker_96:
+                      {}
+                zed_right_camera_frame:
+                  zed_right_camera_optical_frame:
                     {}
-                  ar_marker_1:
-                    {}
-                  ar_marker_14:
-                    {}
-                  ar_marker_144:
-                    {}
-                  ar_marker_192:
-                    {}
-                  ar_marker_2:
-                    {}
-                  ar_marker_3:
-                    {}
-                  ar_marker_4:
-                    {}
-                  ar_marker_48:
-                    {}
-                  ar_marker_5:
-                    {}
-                  ar_marker_6:
-                    {}
-                  ar_marker_64:
-                    {}
-                  ar_marker_7:
-                    {}
-                  ar_marker_8:
-                    {}
-                  ar_marker_80:
-                    {}
-                  ar_marker_9:
-                    {}
-              zed_right_camera_frame:
-                zed_right_camera_optical_frame:
-                  {}
       Update Interval: 0
       Value: true
     - Class: rviz/Camera
       Enabled: true
       Image Rendering: background and overlay
-      Image Topic: /zed/left/image_rect_color
+      Image Topic: /zed/zed_node/left/image_rect_color
       Name: Left Camera
       Overlay Alpha: 0.25
       Queue Size: 1
@@ -224,7 +208,7 @@ Visualization Manager:
       Shaft Length: 1
       Shaft Radius: 0.0500000007
       Shape: Axes
-      Topic: /zed/pose
+      Topic: /zed/zed_node/pose
       Unreliable: false
       Value: true
     - Class: rviz/Marker
@@ -237,7 +221,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /zed/left/image_rect_color
+      Image Topic: /zed/zed_node/left/image_rect_color
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -312,5 +296,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1855
-  X: 1985
+  X: 65
   Y: 24

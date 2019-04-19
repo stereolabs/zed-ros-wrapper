@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
      * is the number of messages that will be buffered up before beginning to throw
      * away the oldest ones.
      */
-    ros::Subscriber subDepth    = n.subscribe("/zed/depth/depth_registered", 10, depthCallback);
+    ros::Subscriber subDepth    = n.subscribe("/zed/zed_node/depth/depth_registered", 10, depthCallback);
 
 
     /**

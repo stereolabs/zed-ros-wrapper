@@ -1,0 +1,25 @@
+# Defines the codec used for streaming (`0`: AVCHD [H264], `1`: HEVC [H265])
+# Note: If HEVC (H265) is used, make sure the recieving host is compatible with HEVC decoding (basically a pascal NVIDIA card). If not, prefer to use AVCHD (H264) since every compatible NVIDIA card supports AVCHD decoding
+uint8 codec=0
+
+# Defines the PORT the data will be streamed on. 
+# Note: port must be an even number. Any odd number will be rejected. 
+uint16 port=30000
+
+# Defines the streaming BITRATE in Kbits/s
+uint32 bitrate=2000
+
+# Defines the GOP SIZE in frame unit.
+# Note: if value is set to -1, the gop size will match 2 seconds, depending on camera fps.
+# Note: The gop size determines the maximum distance between IDR/I-frames. Very high GOP size will result in slightly more efficient compression, especially on static scene. But it can result in more latency if IDR/I-frame packet are lost during streaming.
+# Note: Default value is -1. Maximum allowed value is 256 (frames).
+int32 gop_size=-1
+
+# Enable/Disable adaptive bitrate
+# Note: Bitrate will be adjusted regarding the number of packet loss during streaming.
+# Note_ if activated, bitrate can vary between [bitrate/4, bitrate]
+# Warning: Currently, the adaptive bitrate only works when "sending" device is a NVIDIA jetson (X1,X2,Xavier,Nano)
+bool adaptative_bitrate=False
+---
+bool result
+string info
