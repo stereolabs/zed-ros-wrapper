@@ -1118,7 +1118,7 @@ namespace zed_wrapper {
         }
 
 #else
-        NODELET_WARN("Cannot enable MAPPING for SDK version minor than v2.8");
+        NODELET_WARN("Enabling MAPPING requires the ZED SDK v2.8 or newer");
 #endif
     }
 
@@ -2973,10 +2973,10 @@ namespace zed_wrapper {
         res.info = "Remote streaming STARTED";
         return true;
 #else
-        ROS_WARN("Remote streaming is available with SDK v2.8 or newer");
+        ROS_WARN("Remote streaming requires the ZED SDK v2.8 or newer");
 
         res.result = false;
-        res.info = "Remote streaming is available with SDK v2.8 or newer";
+        res.info = "Remote streaming requires the ZED SDK v2.8 or newer";
         return true;
 #endif
     }
@@ -3011,7 +3011,7 @@ namespace zed_wrapper {
 
         return true;
 #else
-        ROS_WARN("Led control is available with SDK v2.8 or newer");
+        ROS_WARN("LED control requires the ZED SDK v2.8 or newer");
         return false;
 #endif
     }
@@ -3031,7 +3031,7 @@ namespace zed_wrapper {
 
         return (new_status == 1);
 #else
-        ROS_WARN("Led control is available with SDK v2.8 or newer");
+        ROS_WARN("LED control requires the ZED SDK v2.8 or newer");
         return false;
 #endif
     }
