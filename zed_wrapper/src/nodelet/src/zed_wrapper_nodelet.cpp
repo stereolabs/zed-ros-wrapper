@@ -140,19 +140,20 @@ namespace zed_wrapper {
                 mZedParams.svo_input_filename = mSvoFilepath.c_str();
                 mZedParams.svo_real_time_mode = false;
             } else  if (!mRemoteStreamAddr.empty()) {
-                if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
-                    std::vector<std::string> configStream = sl_tools::split_string(mRemoteStreamAddr, ':');
-                    sl::String ip = sl::String(configStream.at(0).c_str());
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+                std::vector<std::string> configStream = sl_tools::split_string(mRemoteStreamAddr, ':');
+                sl::String ip = sl::String(configStream.at(0).c_str());
 
-                    if (configStream.size() == 2) {
-                        mZedParams.input.setFromStream(ip, atoi(configStream.at(1).c_str()));
-                    } else {
-                        mZedParams.input.setFromStream(ip);
-                    }
+                if (configStream.size() == 2) {
+                    mZedParams.input.setFromStream(ip, atoi(configStream.at(1).c_str()));
                 } else {
-                    ROS_ERROR_STREAM("To acquire a remote stream is required at least the ZED SDK v2.8");
-                    return;
+                    mZedParams.input.setFromStream(ip);
                 }
+
+#else
+                ROS_ERROR_STREAM("Acquiring a remote stream requires the ZED SDK v2.8 or newer");
+                return;
+#endif
             }
 
             mSvoMode = true;
@@ -290,11 +291,11 @@ namespace zed_wrapper {
             mFwVersion = mZed.getCameraInformation().firmware_version;
             NODELET_INFO_STREAM(" * FW Version\t -> " << mFwVersion);
         } else {
-            if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
-                NODELET_INFO_STREAM(" * Input type\t -> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
-            } else {
-                NODELET_INFO_STREAM(" * Input type\t -> SVO");
-            }
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+            NODELET_INFO_STREAM(" * Input type\t -> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
+#else
+            NODELET_INFO_STREAM(" * Input type\t -> SVO");
+#endif
         }
 
         // Set the IMU topic names using real camera model
@@ -364,11 +365,15 @@ namespace zed_wrapper {
         mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubCloud.getTopic());
 
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+
         if (mMappingEnabled) {
             mPointcloudFusedMsg.reset(new sensor_msgs::PointCloud2);
             mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
         }
+
+#endif
 
         // Odometry and Pose publisher
         mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(mPoseTopic, 1);
@@ -575,7 +580,7 @@ namespace zed_wrapper {
 
         if (mMappingEnabled) {
             if ((mVerMajor == 2 && mVerMinor < 8) || mVerMajor < 2) {
-                NODELET_WARN_STREAM("The mapping module is available with SDK v2.8 or major");
+                NODELET_WARN_STREAM("The mapping module is available with SDK v2.8 or newer");
                 mMappingEnabled = false;
                 NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
             } else {
@@ -1081,6 +1086,7 @@ namespace zed_wrapper {
     }
 
     void ZEDWrapperNodelet::start_mapping() {
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
         if (!mMappingEnabled) {
             NODELET_WARN_STREAM("Cannot enable MAPPING. The parameter `mapping_enable` is set to FALSE");
@@ -1110,6 +1116,10 @@ namespace zed_wrapper {
 
             ROS_WARN("Mapping not activated: %s", sl::toString(err).c_str());
         }
+
+#else
+        NODELET_WARN("Enabling MAPPING requires the ZED SDK v2.8 or newer");
+#endif
     }
 
     void ZEDWrapperNodelet::start_tracking() {
@@ -2904,6 +2914,7 @@ namespace zed_wrapper {
 
     bool ZEDWrapperNodelet::on_start_remote_stream(zed_wrapper::start_remote_stream::Request& req,
             zed_wrapper::start_remote_stream::Response& res) {
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
         if (mStreaming) {
             res.result = false;
@@ -2956,15 +2967,23 @@ namespace zed_wrapper {
 
         mStreaming = true;
 
-        ROS_INFO_STREAM("SVO remote streaming STARTED");
+        ROS_INFO_STREAM("Remote streaming STARTED");
 
         res.result = true;
-        res.info = "SVO remote streaming STARTED";
+        res.info = "Remote streaming STARTED";
         return true;
+#else
+        ROS_WARN("Remote streaming requires the ZED SDK v2.8 or newer");
+
+        res.result = false;
+        res.info = "Remote streaming requires the ZED SDK v2.8 or newer";
+        return true;
+#endif
     }
 
     bool ZEDWrapperNodelet::on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
             zed_wrapper::stop_remote_stream::Response& res) {
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
         if (mStreaming) {
             mZed.disableStreaming();
@@ -2973,7 +2992,7 @@ namespace zed_wrapper {
         mStreaming = false;
 
         ROS_INFO_STREAM("SVO remote streaming STOPPED");
-
+#endif
         res.done = true;
 
         return true;
@@ -2981,6 +3000,7 @@ namespace zed_wrapper {
 
     bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& req,
             zed_wrapper::set_led_status::Response& res) {
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
         if (mFwVersion < 1523) {
             ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
@@ -2990,10 +3010,16 @@ namespace zed_wrapper {
         mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, req.led_enabled ? 1 : 0);
 
         return true;
+#else
+        ROS_WARN("LED control requires the ZED SDK v2.8 or newer");
+        return false;
+#endif
     }
 
     bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
                                           zed_wrapper::toggle_led::Response& res) {
+#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+
         if (mFwVersion < 1523) {
             ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
             return false;
@@ -3004,5 +3030,9 @@ namespace zed_wrapper {
         mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, new_status);
 
         return (new_status == 1);
+#else
+        ROS_WARN("LED control requires the ZED SDK v2.8 or newer");
+        return false;
+#endif
     }
 } // namespace
