@@ -580,7 +580,7 @@ namespace zed_wrapper {
 
         if (mMappingEnabled) {
             if ((mVerMajor == 2 && mVerMinor < 8) || mVerMajor < 2) {
-                NODELET_WARN_STREAM("The mapping module is available with SDK v2.8 or major");
+                NODELET_WARN_STREAM("The mapping module is available with SDK v2.8 or newer");
                 mMappingEnabled = false;
                 NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
             } else {
@@ -2973,10 +2973,10 @@ namespace zed_wrapper {
         res.info = "Remote streaming STARTED";
         return true;
 #else
-        ROS_WARN("Remote streaming is available with SDK v2.8 or major");
+        ROS_WARN("Remote streaming is available with SDK v2.8 or newer");
 
         res.result = false;
-        res.info = "Remote streaming is available with SDK v2.8 or major";
+        res.info = "Remote streaming is available with SDK v2.8 or newer";
         return true;
 #endif
     }
@@ -3011,7 +3011,7 @@ namespace zed_wrapper {
 
         return true;
 #else
-        ROS_WARN("Led control is available with SDK v2.8 or major");
+        ROS_WARN("Led control is available with SDK v2.8 or newer");
         return false;
 #endif
     }
@@ -3031,7 +3031,7 @@ namespace zed_wrapper {
 
         return (new_status == 1);
 #else
-        ROS_WARN("Led control is available with SDK v2.8 or major");
+        ROS_WARN("Led control is available with SDK v2.8 or newer");
         return false;
 #endif
     }
