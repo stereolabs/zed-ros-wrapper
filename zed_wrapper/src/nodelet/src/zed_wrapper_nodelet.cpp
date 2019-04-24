@@ -151,7 +151,7 @@ namespace zed_wrapper {
                 }
 
 #else
-                ROS_ERROR_STREAM("To acquire a remote stream is required at least the ZED SDK v2.8");
+                ROS_ERROR_STREAM("Acquiring a remote stream requires the ZED SDK v2.8 or newer");
                 return;
 #endif
             }
