@@ -240,6 +240,7 @@ namespace zed_wrapper {
         mZedParams.depth_stabilization = mDepthStabilization;
         mZedParams.camera_image_flip = mCameraFlip;
         mZedParams.depth_minimum_distance = static_cast<float>(mCamMinDepth);
+        mZedParams.camera_disable_self_calib = mCameraSelfCalib;
 
         if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
             //mZedParams.color_enhancement = mColorEnhancement; TODO uncomment when the paramenter is available
@@ -471,6 +472,8 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM(" * Verbose\t\t\t-> " << (mVerbose ? "ENABLED" : "DISABLED"));
         mNhNs.param<bool>("general/camera_flip", mCameraFlip, false);
         NODELET_INFO_STREAM(" * Camera Flip\t\t\t-> " << (mCameraFlip ? "ENABLED" : "DISABLED"));
+        mNhNs.param<bool>("general/self_calib", mCameraSelfCalib, true);
+        NODELET_INFO_STREAM(" * Self calibration\t\t\t-> " << (mCameraSelfCalib ? "ENABLED" : "DISABLED"));
 
         int tmp_sn = 0;
         mNhNs.getParam("general/serial_number", tmp_sn);

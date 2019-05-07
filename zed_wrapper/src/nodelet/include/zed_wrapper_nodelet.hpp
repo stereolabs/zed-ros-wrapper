@@ -389,6 +389,7 @@ namespace zed_wrapper {
         bool mPublishTf;
         bool mPublishMapTf;
         bool mCameraFlip;
+        bool mCameraSelfCalib;
 
         // Launch file parameters
         int mCamResol;
