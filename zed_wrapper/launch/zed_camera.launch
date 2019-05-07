@@ -31,10 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Publish ZED urdf -->
     <arg name="publish_urdf"          default="true" />
 
-    <!-- Publish ZED urdf -->
-    <arg name="publish_tf"            default="true" />
-    <arg name="publish_map_tf"        default="true" />
-
     <arg name="camera_id"             default="-1" />
     <arg name="gpu_id"                default="-1" />
 
@@ -55,10 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- Remote stream -->
         <param name="stream"            value="$(arg stream)" />
-
-        <!-- Publish ZED urdf -->
-        <param name="tracking/publish_tf"        value="$(arg publish_tf)" />
-        <param name="tracking/publish_map_tf"    value="$(arg publish_map_tf)" />
 
         <!-- Camera ID -->
         <param name="general/zed_id"             value="$(arg camera_id)" />

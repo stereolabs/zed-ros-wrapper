@@ -17,25 +17,51 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
-    <arg name="svo_file"             default="" /> <!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
-    <arg name="stream"               default="" /> <!-- <arg name="stream" default="<ip_address>:<port>"> -->
-    <arg name="node_name"            default="zed_node" />
-    <arg name="camera_model"         default="zed" /> <!-- 'zed' or 'zedm' -->
-    <arg name="publish_urdf"         default="true" />
+    <!-- Camera Model -->
+    <arg name="node_name"             default="zed_node" />
 
-    <!-- Disable TF publishing -->
-    <arg name="publish_tf"           default="false" />
-    <arg name="publish_map_tf"       default="false" />
+    <!-- Camera Model -->
+    <arg name="camera_model"          default="zed" /> <!-- 'zed' or 'zedm' -->
+
+    <!-- Load SVO file -->
+    <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
+    <!-- Remote stream -->
+    <arg name="stream"                default="" /> <!-- <arg name="stream" default="<ip_address>:<port>"> -->
+
+    <!-- Publish ZED urdf -->
+    <arg name="publish_urdf"          default="true" />
+
+    <arg name="camera_id"             default="-1" />
+    <arg name="gpu_id"                default="-1" />
 
     <group ns="zed">
-        <include file="$(find zed_wrapper)/launch/zed_camera.launch">
-            <arg name="svo_file"            value="$(arg svo_file)" />
-            <arg name="stream"              value="$(arg stream)" />
-            <arg name="node_name"           value="$(arg node_name)" />
-            <arg name="camera_model"        value="$(arg camera_model)" />
-            <arg name="publish_urdf"        value="$(arg publish_urdf)" />
-            <arg name="publish_tf"          value="$(arg publish_tf)" />
-            <arg name="publish_map_tf"      value="$(arg publish_map_tf)" />
-        </include>
-    </group>
+        <!-- ROS URDF description of the ZED -->
+        <group if="$(arg publish_urdf)">
+            <param name="zed_description" textfile="$(find zed_wrapper)/urdf/$(arg camera_model).urdf" />
+            <node name="zed_state_publisher" pkg="robot_state_publisher" type="state_publisher">
+                <remap from="robot_description" to="zed_description" />
+            </node>
+        </group>
+
+        <node name="$(arg node_name)" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
+            <rosparam file="$(find zed_wrapper)/params/common.yaml" command="load" />
+            <rosparam file="$(find zed_wrapper)/params/$(arg camera_model).yaml" command="load" />
+
+            <!-- SVO file path -->
+            <param name="svo_file"          value="$(arg svo_file)" />
+
+            <!-- Remote stream -->
+            <param name="stream"            value="$(arg stream)" />
+
+            <!-- Publish ZED urdf -->
+            <param name="tracking/publish_tf"        value="false" />
+            <param name="tracking/publish_map_tf"    value="false" />
+
+            <!-- Camera ID -->
+            <param name="general/zed_id"             value="$(arg camera_id)" />
+
+            <!-- GPU ID -->
+            <param name="general/gpu_id"             value="$(arg gpu_id)" />
+        </node>
+     </group>
 </launch>
