@@ -419,6 +419,7 @@ namespace zed_wrapper {
         bool mFixedCov = true;
         double mFixedCovValue = 1e-6;
         bool mFloorAlignment = false;
+        bool mImuFusion = true;
         bool mGrabActive = false; // Indicate if camera grabbing is active (at least one topic subscribed)
         bool mColorEnhancement = true;
         sl::ERROR_CODE mConnStatus;

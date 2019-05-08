@@ -240,7 +240,7 @@ namespace zed_wrapper {
         mZedParams.depth_stabilization = mDepthStabilization;
         mZedParams.camera_image_flip = mCameraFlip;
         mZedParams.depth_minimum_distance = static_cast<float>(mCamMinDepth);
-        mZedParams.camera_disable_self_calib = mCameraSelfCalib;
+        mZedParams.camera_disable_self_calib = !mCameraSelfCalib;
 
         if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
             //mZedParams.color_enhancement = mColorEnhancement; TODO uncomment when the paramenter is available
@@ -473,7 +473,7 @@ namespace zed_wrapper {
         mNhNs.param<bool>("general/camera_flip", mCameraFlip, false);
         NODELET_INFO_STREAM(" * Camera Flip\t\t\t-> " << (mCameraFlip ? "ENABLED" : "DISABLED"));
         mNhNs.param<bool>("general/self_calib", mCameraSelfCalib, true);
-        NODELET_INFO_STREAM(" * Self calibration\t\t\t-> " << (mCameraSelfCalib ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * Self calibration\t\t-> " << (mCameraSelfCalib ? "ENABLED" : "DISABLED"));
 
         int tmp_sn = 0;
         mNhNs.getParam("general/serial_number", tmp_sn);
@@ -545,15 +545,17 @@ namespace zed_wrapper {
 
         mNhNs.getParam("tracking/odometry_DB", mOdometryDb);
         NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mOdometryDb.c_str());
-        mNhNs.getParam("tracking/spatial_memory", mSpatialMemory);
+        mNhNs.param<bool>("tracking/spatial_memory", mSpatialMemory, false);
         NODELET_INFO_STREAM(" * Spatial Memory\t\t-> " << (mSpatialMemory ? "ENABLED" : "DISABLED"));
-        mNhNs.getParam("tracking/floor_alignment", mFloorAlignment);
+        mNhNs.param<bool>("tracking/imu_fusion", mImuFusion, true);
+        NODELET_INFO_STREAM(" * IMU Fusion\t\t\t-> " << (mImuFusion ? "ENABLED" : "DISABLED"));
+        mNhNs.param<bool>("tracking/floor_alignment", mFloorAlignment, false);
         NODELET_INFO_STREAM(" * Floor alignment\t\t-> " << (mFloorAlignment ? "ENABLED" : "DISABLED"));
-        mNhNs.getParam("tracking/init_odom_with_first_valid_pose", mInitOdomWithPose);
+        mNhNs.param<bool>("tracking/init_odom_with_first_valid_pose", mInitOdomWithPose, true);
         NODELET_INFO_STREAM(" * Init Odometry with first valid pose data -> " << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
-        mNhNs.getParam("tracking/two_d_mode", mTwoDMode);
+        mNhNs.param<bool>("tracking/two_d_mode", mTwoDMode, false);
         NODELET_INFO_STREAM(" * Two D mode\t\t\t-> " << (mTwoDMode ? "ENABLED" : "DISABLED"));
-        mNhNs.getParam("tracking/fixed_z_value", mFixedZValue);
+        mNhNs.param<double>("tracking/fixed_z_value", mFixedZValue, 0.0);
 
         if (mTwoDMode) {
             NODELET_INFO_STREAM(" * Fixed Z value\t\t-> " << mFixedZValue);
@@ -1174,6 +1176,7 @@ namespace zed_wrapper {
         mPoseSmoothing = false;
         trackParams.enable_pose_smoothing = mPoseSmoothing; // Always false. To be enabled only for VR/AR applications
         trackParams.enable_spatial_memory = mSpatialMemory;
+        trackParams.enable_imu_fusion = mImuFusion;
         trackParams.initial_world_transform = mInitialPoseSl;
 
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
