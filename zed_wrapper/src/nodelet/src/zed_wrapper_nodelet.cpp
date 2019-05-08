@@ -1173,8 +1173,10 @@ namespace zed_wrapper {
         sl::TrackingParameters trackParams;
 
         trackParams.area_file_path = mOdometryDb.c_str();
-        mPoseSmoothing = false;
-        trackParams.enable_pose_smoothing = mPoseSmoothing; // Always false. To be enabled only for VR/AR applications
+
+        mPoseSmoothing = false; // Always false. Pose Smoothing is to be enabled only for VR/AR applications
+        trackParams.enable_pose_smoothing = mPoseSmoothing;
+
         trackParams.enable_spatial_memory = mSpatialMemory;
         trackParams.enable_imu_fusion = mImuFusion;
         trackParams.initial_world_transform = mInitialPoseSl;
@@ -1184,7 +1186,7 @@ namespace zed_wrapper {
 #else
 
         if (mFloorAlignment)  {
-            NODELET_WARN("Floor Alignment is available with ZED SDK >= v2.6");
+            NODELET_WARN("Floor Alignment is available with ZED SDK v2.6 or newer");
         }
 
 #endif
