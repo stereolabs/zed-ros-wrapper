@@ -5,10 +5,13 @@
 camera_model: 'zedm'
 
 # Dynamic parameters cannot have a namespace
-max_depth: 10.0                 # Dynamic
+max_depth:                      10.0                 # Dynamic
 
 depth:
-    min_depth: 0.1              # Min: 0.1, Max: 3.0
+    min_depth:                  0.1             # Min: 0.1, Max: 3.0
+
+tracking:
+    imu_fusion:                 true            # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
 
 imu:
     imu_frame:                  'zed_imu_link'  # must be equal to the frame_id used in the URDF file
