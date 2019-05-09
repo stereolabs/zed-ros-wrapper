@@ -171,5 +171,5 @@ install(FILES
 install(DIRECTORY
   launch
   urdf
-  param
+  params
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
