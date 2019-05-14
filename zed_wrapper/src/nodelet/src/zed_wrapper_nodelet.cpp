@@ -1395,10 +1395,13 @@ namespace zed_wrapper {
     void ZEDWrapperNodelet::publishImage(sl::Mat img,
                                          image_transport::CameraPublisher& pubImg, sensor_msgs::CameraInfoPtr camInfoMsg,
                                          string imgFrameId, ros::Time t) {
+        camInfoMsg->header.stamp = t;
         pubImg.publish(sl_tools::imageToROSmsg(img, imgFrameId, t), camInfoMsg);
     }
 
     void ZEDWrapperNodelet::publishDepth(sl::Mat depth, ros::Time t) {
+
+        mDepthCamInfoMsg->header.stamp = t;
 
         if (!mOpenniDepthMode) {
             mPubDepth.publish(*sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t), *mDepthCamInfoMsg, t);
