@@ -34,6 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="camera_id"             default="-1" />
     <arg name="gpu_id"                default="-1" />
 
+    <!-- Imu topic name -->
+    <arg name="imu_topic"             default="/$(arg node_name)/imu/data" />
+    <arg name="imu_topic_raw"         default="/$(arg node_name)/imu/data_raw" />
+
     <!-- ROS URDF description of the ZED -->
     <group if="$(arg publish_urdf)">
         <param name="zed_description" textfile="$(find zed_wrapper)/urdf/$(arg camera_model).urdf" />
@@ -57,5 +61,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- GPU ID -->
         <param name="general/gpu_id"             value="$(arg gpu_id)" />
+
+        <!-- Remap imu_topic -->
+        <remap from="/$(arg node_name)/imu/data" to="$(arg imu_topic)" />
+        <remap from="/$(arg node_name)/imu/data_raw" to="$(arg imu_topic_raw)" />
     </node>
 </launch>
