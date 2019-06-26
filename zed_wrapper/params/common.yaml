@@ -23,7 +23,7 @@ general:
     left_camera_optical_frame:  'zed_left_camera_optical_frame'     # must be equal to the frame_id used in the URDF file
     right_camera_frame:         'zed_right_camera_frame'            # must be equal to the frame_id used in the URDF file
     right_camera_optical_frame: 'zed_right_camera_optical_frame'    # must be equal to the frame_id used in the URDF file
-    verbose:                    true
+    verbose:                    false
     svo_compression:            4                                   # `0`: RAW (no compression), `1`: LOSSLESS (PNG/ZSTD), `2`: LOSSY (JPEG), `3`: AVCHD (H264 SDK v2.7), `4`: HEVC (H265 SDK v2.7)
     self_calib:                 true                                # enable/disable self calibration at starting
 
@@ -35,7 +35,7 @@ video:
     color_enhancement:          true                                # [FUTURE USE] This parameter enhances color spreading on R/G/B channel and increase gamma correction on black areas for a better gray segmentation in black areas. Recommended for computer's vision applications.
 
 depth:
-    quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY, '4': ULTRA
+    quality:                    4                                   # '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY, '4': ULTRA
     sensing_mode:               0                                   # '0': STANDARD, '1': FILL
     depth_stabilization:        1                                   # `0`: disabled, `1`: enabled
     openni_depth_mode:          0                                   # '0': 32bit float meters, '1': 16bit uchar millimeters
@@ -45,8 +45,8 @@ depth:
     confidence_root:            'confidence'                        # default `confidence/confidence_image` and `confidence/confidence_map`
 
 tracking:
-    publish_tf:                 true                                # publish `odom -> base_link` TF
-    publish_map_tf:             true                                # publish `map -> odom` TF
+    publish_tf:                 false                               # publish `odom -> base_link` TF
+    publish_map_tf:             false                               # publish `map -> odom` TF
     world_frame:                'map'                               # the reference fixed frame (same as `map_frame` or `odometry_frame`)
     map_frame:                  'map'
     odometry_frame:             'odom'
