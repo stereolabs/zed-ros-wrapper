@@ -21,7 +21,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="node_name"             default="zed_node" />
 
     <!-- Camera Model -->
-    <arg name="camera_model"          default="zed" /> <!-- 'zed' or 'zedm' -->
+    <arg name="camera_model"          default="zed" /> <!-- 'zed' or 'zedm' or 'zed2' -->
 
     <!-- Load SVO file -->
     <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Publish ZED urdf -->
     <arg name="publish_urdf"          default="true" />
 
-    <arg name="camera_id"             default="-1" />
+    <arg name="camera_id"             default="0" />
     <arg name="gpu_id"                default="-1" />
 
     <!-- ROS URDF description of the ZED -->

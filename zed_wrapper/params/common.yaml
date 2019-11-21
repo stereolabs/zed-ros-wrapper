@@ -12,7 +12,7 @@ point_cloud_freq:           10.0                                # Dynamic - freq
 
 general:
     camera_flip:                false
-    zed_id:                     -1
+    zed_id:                     0
     serial_number:              0
     resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
     frame_rate:                 30
@@ -24,7 +24,7 @@ general:
     right_camera_frame:         'zed_right_camera_frame'            # must be equal to the frame_id used in the URDF file
     right_camera_optical_frame: 'zed_right_camera_optical_frame'    # must be equal to the frame_id used in the URDF file
     verbose:                    true
-    svo_compression:            4                                   # `0`: RAW (no compression), `1`: LOSSLESS (PNG/ZSTD), `2`: LOSSY (JPEG), `3`: AVCHD (H264 SDK v2.7), `4`: HEVC (H265 SDK v2.7)
+    svo_compression:            2                                   # `0`: LOSSLESS, `1`: AVCHD, `2`: HEVC
     self_calib:                 true                                # enable/disable self calibration at starting
 
 video:
@@ -32,12 +32,12 @@ video:
     left_topic_root:            'left'                              # default `left/image_rect_color`, `left/camera_info`, `left_raw/image_raw_color`, `left_raw/camera_info`
     right_topic_root:           'right'                             # default `right/image_rect_color`, `right/camera_info`, `right_raw/image_raw_color`, `right_raw/camera_info`
     stereo_topic_root:          'stereo'                            # default `stereo/image_rect_color`, `stereo/camera_info`, `stereo_raw/image_raw_color`, `stereo_raw/camera_info`
-    color_enhancement:          true                                # [FUTURE USE] This parameter enhances color spreading on R/G/B channel and increase gamma correction on black areas for a better gray segmentation in black areas. Recommended for computer's vision applications.
+    color_enhancement:          true                                # This parameter enhances color spreading on R/G/B channel and increase gamma correction on black areas for a better gray segmentation in black areas. Recommended for computer's vision applications.
 
 depth:
     quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY, '4': ULTRA
     sensing_mode:               0                                   # '0': STANDARD, '1': FILL
-    depth_stabilization:        1                                   # `0`: disabled, `1`: enabled
+    depth_stabilization:        0                                   # `0`: disabled, `1`: enabled
     openni_depth_mode:          0                                   # '0': 32bit float meters, '1': 16bit uchar millimeters
     depth_topic_root:           'depth'                             # default `depth/depth_registered` or `depth/depth_raw_registered` if `openni_depth_mode` is true
     point_cloud_topic_root:     'point_cloud'
@@ -45,8 +45,8 @@ depth:
     confidence_root:            'confidence'                        # default `confidence/confidence_image` and `confidence/confidence_map`
 
 tracking:
-    publish_tf:                 true                                # publish `odom -> base_link` TF
-    publish_map_tf:             true                                # publish `map -> odom` TF
+    publish_tf:                 true                               # publish `odom -> base_link` TF
+    publish_map_tf:             true                               # publish `map -> odom` TF
     world_frame:                'map'                               # the reference fixed frame (same as `map_frame` or `odometry_frame`)
     map_frame:                  'map'
     odometry_frame:             'odom'
@@ -62,11 +62,11 @@ tracking:
     init_odom_with_first_valid_pose: true                           # Enable to initialize the odometry with the first valid pose
     path_pub_rate:              2.0                                 # Path positions punlishing frequency
     path_max_count:             -1                                  # use '-1' for unlimited path size
-    two_d_mode:                 false                               # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
-    fixed_z_value:              1.0                                 # Value to be used for Z coordinate if `two_d_mode` is true
+    two_d_mode:                 true                                # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
+    fixed_z_value:              0.00                                # Value to be used for Z coordinate if `two_d_mode` is true
 
 mapping:
     mapping_enabled:            false                               # True to enable mapping and fused point cloud pubblication
-    resolution:                 1                                   # `0`: HIGH, `1`: MEDIUM, `2`: LOW
+    resolution:                 0                                   # `0`: HIGH, `1`: MEDIUM, `2`: LOW
     fused_pointcloud_freq:      1.0                                 # frequency of the publishing of the fused colored point cloud
 

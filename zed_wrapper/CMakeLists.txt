@@ -19,8 +19,8 @@ function(checkPackage package customMessage)
     endif()
 endfunction(checkPackage)
 
-find_package(ZED 2.3)
-checkPackage("ZED" "ZED SDK not found, install it from:\n https://www.stereolabs.com/developers/")
+find_package(ZED 3)
+checkPackage("ZED" "ZED SDK v3.x not found, install it from:\n https://www.stereolabs.com/developers/")
 
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
 if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # Jetson TX

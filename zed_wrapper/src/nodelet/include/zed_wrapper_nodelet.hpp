@@ -392,10 +392,10 @@ namespace zed_wrapper {
         bool mCameraSelfCalib;
 
         // Launch file parameters
-        int mCamResol;
+        sl::RESOLUTION mCamResol;
         int mCamFrameRate;
-        int mCamQuality;
-        int mCamSensingMode;
+        sl::DEPTH_MODE mDepthMode;
+        sl::SENSING_MODE mCamSensingMode;
         int mGpuId;
         int mZedId;
         int mDepthStabilization;
@@ -476,9 +476,10 @@ namespace zed_wrapper {
         sl::InitParameters mZedParams;
         sl::Camera mZed;
         unsigned int mZedSerialNumber;
-        int mZedUserCamModel;       // Camera model set by ROS Param
+        sl::MODEL mZedUserCamModel; // Camera model set by ROS Param
         sl::MODEL mZedRealCamModel; // Camera model requested to SDK
-        unsigned int mFwVersion;
+        unsigned int mCamFwVersion;     // Camera FW version
+        unsigned int mSensFwVersion;    // Sensors FW version
 
         // Dynamic Parameters
         int mCamConfidence;
@@ -510,8 +511,7 @@ namespace zed_wrapper {
         // Mat
         int mCamWidth;
         int mCamHeight;
-        int mMatWidth;
-        int mMatHeight;
+        sl::Resolution mMatResol;
 
         // Thread Sync
         std::mutex mCloseZedMutex;
@@ -533,10 +533,6 @@ namespace zed_wrapper {
 
         // Dynamic reconfigure
         boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> mDynRecServer;
-
-        // Coordinate Changing indices and signs
-        int mIdxX, mIdxY, mIdxZ;
-        int mSignX, mSignY, mSignZ;
 
         // Diagnostic
         std::unique_ptr<sl_tools::CSmartMean> mElabPeriodMean_sec;
