@@ -30,6 +30,8 @@
 #include <sensor_msgs/distortion_models.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
+#include <sensor_msgs/FluidPressure.h>
+#include <sensor_msgs/Temperature.h>
 #include <stereo_msgs/DisparityImage.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -285,12 +287,15 @@ namespace zed_wrapper {
         // Set the IMU topic names using real camera model
         string imu_topic;
         string imu_topic_raw;
+        string imu_temp_topic;
 
         if (mZedRealCamModel == sl::MODEL::ZED_M) {
             string imu_topic_name = "data";
             string imu_topic_raw_name = "data_raw";
+            string imu_topic_temp_name = "temperature";
             imu_topic = mImuTopicRoot + "/" + imu_topic_name;
             imu_topic_raw = mImuTopicRoot + "/" + imu_topic_raw_name;
+            imu_temp_topic = mImuTopicRoot + "/" + imu_topic_temp_name;
         }
 
         mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
@@ -395,17 +400,22 @@ namespace zed_wrapper {
         // Imu publisher
 
         if (!mSvoMode) {
-            if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL::ZED_M) {
-                mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 500);
+            if (mImuPubRate > 0 && mZedRealCamModel != sl::MODEL::ZED) {
+                mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 400);
                 NODELET_INFO_STREAM("Advertised on topic " << mPubImu.getTopic() << " @ "
                                     << mImuPubRate << " Hz");
-                mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 500);
+                mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 400);
                 NODELET_INFO_STREAM("Advertised on topic " << mPubImuRaw.getTopic() << " @ "
+                                    << mImuPubRate << " Hz");
+                mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, 400);
+                NODELET_INFO_STREAM("Advertised on topic " << mPubImuTemp.getTopic() << " @ "
                                     << mImuPubRate << " Hz");
                 mFrameTimestamp = ros::Time::now();
                 mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
                                               &ZEDWrapperNodelet::imuPubCallback, this);
                 mImuPeriodMean_usec.reset(new sl_tools::CSmartMean(mImuPubRate / 2));
+
+
             } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL::ZED) {
                 NODELET_WARN_STREAM(
                     "'imu_pub_rate' set to "
@@ -1868,8 +1878,9 @@ namespace zed_wrapper {
 
         uint32_t imu_SubNumber = mPubImu.getNumSubscribers();
         uint32_t imu_RawSubNumber = mPubImuRaw.getNumSubscribers();
+        uint32_t imu_TempSubNumber = mPubImuTemp.getNumSubscribers();
 
-        if (imu_SubNumber < 1 && imu_RawSubNumber < 1) {
+        if (imu_SubNumber < 1 && imu_RawSubNumber < 1 && imu_TempSubNumber<1) {
             return;
         }
 
@@ -1893,7 +1904,7 @@ namespace zed_wrapper {
             mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
         }
 
-        if (imu_SubNumber > 0 || imu_RawSubNumber > 0) {
+        if (imu_SubNumber > 0 || imu_RawSubNumber > 0 || imu_TempSubNumber >0 ) {
             // Publish freq calculation
             static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
             std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
@@ -1906,6 +1917,16 @@ namespace zed_wrapper {
             mImuPublishing = true;
         } else {
             mImuPublishing = false;
+        }
+
+        if (imu_TempSubNumber>0) {
+            sensor_msgs::Temperature imu_temp_msg;
+            imu_temp_msg.header.stamp = t;
+            imu_temp_msg.header.frame_id = mImuFrameId;
+            float imu_temp;
+            sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, imu_temp);
+            imu_temp_msg.temperature = static_cast<double>(imu_temp);
+            imu_temp_msg.variance = 0.0;
         }
 
         if (imu_SubNumber > 0) {

@@ -328,6 +328,7 @@ namespace zed_wrapper {
         ros::Publisher mPubMapPath;
         ros::Publisher mPubImu;
         ros::Publisher mPubImuRaw;
+        ros::Publisher mPubImuTemp;
 
         // Timers
         ros::Timer mImuTimer;
