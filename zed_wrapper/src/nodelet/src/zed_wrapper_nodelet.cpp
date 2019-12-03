@@ -289,7 +289,7 @@ namespace zed_wrapper {
         string imu_topic_raw;
         string imu_temp_topic;
 
-        if (mZedRealCamModel == sl::MODEL::ZED_M) {
+        if (mZedRealCamModel != sl::MODEL::ZED) {
             string imu_topic_name = "data";
             string imu_topic_raw_name = "data_raw";
             string imu_topic_temp_name = "temperature";
@@ -1927,6 +1927,8 @@ namespace zed_wrapper {
             sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, imu_temp);
             imu_temp_msg.temperature = static_cast<double>(imu_temp);
             imu_temp_msg.variance = 0.0;
+
+            mPubImuTemp.publish(imu_temp_msg);
         }
 
         if (imu_SubNumber > 0) {
