@@ -65,6 +65,22 @@ namespace zed_wrapper {
 
     class ZEDWrapperNodelet : public nodelet::Nodelet {
 
+        typedef enum _dyn_params {
+            MAT_RESIZE_FACTOR   = 0,
+            CONFIDENCE          = 1,
+            POINTCLOUD_FREQ     = 2,
+            BRIGHTNESS          = 3,
+            CONTRAST            = 4,
+            HUE                 = 5,
+            SATURATION          = 6,
+            SHARPNESS           = 7,
+            AUTO_EXP_GAIN       = 8,
+            GAIN                = 9,
+            EXPOSURE            = 10,
+            AUTO_WB             = 11,
+            WB_TEMP             = 12
+        } DynParams;
+
       public:
         /* \brief Default constructor
          */
@@ -410,6 +426,7 @@ namespace zed_wrapper {
         bool mVerbose;
         bool mSvoMode = false;
         double mCamMinDepth;
+        double mCamMaxDepth;
 
         bool mTrackingActivated;
         bool mMappingEnabled;
@@ -483,16 +500,24 @@ namespace zed_wrapper {
         unsigned int mSensFwVersion;    // Sensors FW version
 
         // Dynamic Parameters
-        int mCamConfidence;
-        int mCamExposure;
-        int mCamGain;
-        double mCamMatResizeFactor;
-        double mCamMaxDepth;
-        bool mCamAutoExposure;
-        double mPointCloudFreq;
+        int mCamBrightness = 4;
+        int mCamContrast = 4;
+        int mCamHue = 0;
+        int mCamSaturation = 4;
+        int mCamSharpness = 3;
+        bool mCamAutoExposure = true;
+        int mCamGain = 100;
+        int mCamExposure = 100;
+        bool mCamAutoWB = true;
+        int mCamWB = 4200;
+
+        double mCamMatResizeFactor = 1.0;
+        int mCamConfidence = 100;
+        double mPointCloudFreq = 15.;
 
         // flags
-        bool mTriggerAutoExposure;
+        bool mTriggerAutoExposure = true;
+        bool mTriggerAutoWB = true;
         bool mComputeDepth;
         bool mOpenniDepthMode; // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
         bool mPoseSmoothing = false; // Always disabled. Enable only for AR/VR applications

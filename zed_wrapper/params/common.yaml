@@ -3,9 +3,16 @@
 ---
 
 # Dynamic parameters cannot have a namespace
-auto_exposure:              true                                # Dynamic
-exposure:                   100                                 # Dynamic
-gain:                       100                                 # Dynamic
+brightness:                 4                                   # Dynamic
+contrast:                   4                                   # Dynamic
+hue:                        0                                   # Dynamic
+saturation:                 4                                   # Dynamic
+sharpness:                  3                                   # Dynamic
+auto_exposure_gain:         true                                # Dynamic
+gain:                       100                                 # Dynamic - works only if `auto_exposure_gain` is false
+exposure:                   100                                 # Dynamic - works only if `auto_exposure_gain` is false
+auto_whitebalance:          true                                # Dynamic
+whitebalance_temperature:   4200                                # Dynamic - works only if `auto_whitebalance` is false
 confidence:                 100                                 # Dynamic
 mat_resize_factor:          1.0                                 # Dynamic
 point_cloud_freq:           10.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `frame_rate` value)
