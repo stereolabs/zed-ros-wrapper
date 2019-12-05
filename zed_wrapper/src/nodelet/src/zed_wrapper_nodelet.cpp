@@ -21,6 +21,7 @@
 #include "zed_wrapper_nodelet.hpp"
 
 #include <csignal>
+#include <chrono>
 
 #ifndef NDEBUG
 #include <ros/console.h>
@@ -29,18 +30,15 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/FluidPressure.h>
+#include <sensor_msgs/Temperature.h>
+#include <sensor_msgs/MagneticField.h>
 #include <sensor_msgs/distortion_models.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
-#include <sensor_msgs/FluidPressure.h>
-#include <sensor_msgs/Temperature.h>
 #include <stereo_msgs/DisparityImage.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-
-#include <chrono>
-
-using namespace std;
 
 namespace zed_wrapper {
 
@@ -48,6 +46,8 @@ namespace zed_wrapper {
 #define DEG2RAD 0.017453293
 #define RAD2DEG 57.295777937
 #endif
+
+#define MAG_FREQ    50.
 
 ZEDWrapperNodelet::ZEDWrapperNodelet() : Nodelet() {}
 
@@ -147,7 +147,6 @@ void ZEDWrapperNodelet::onInit() {
 
     // Try to initialize the ZED
     if (!mSvoFilepath.empty() || !mRemoteStreamAddr.empty()) {
-
         if (!mSvoFilepath.empty()) {
             mZedParams.input.setFromSVOFile(mSvoFilepath.c_str());
             mZedParams.svo_real_time_mode = false;
@@ -292,14 +291,20 @@ void ZEDWrapperNodelet::onInit() {
     string imu_topic;
     string imu_topic_raw;
     string imu_temp_topic;
+    string imu_mag_topic;
+    string imu_mag_topic_raw;
 
     if (mZedRealCamModel != sl::MODEL::ZED) {
         string imu_topic_name = "data";
         string imu_topic_raw_name = "data_raw";
         string imu_topic_temp_name = "temperature";
+        string imu_topic_mag_name = "mag";
+        string imu_topic_mag_raw_name = "mag_raw";
         imu_topic = mImuTopicRoot + "/" + imu_topic_name;
         imu_topic_raw = mImuTopicRoot + "/" + imu_topic_raw_name;
         imu_temp_topic = mImuTopicRoot + "/" + imu_topic_temp_name;
+        imu_mag_topic = mImuTopicRoot + "/" + imu_topic_mag_name;
+        imu_mag_topic_raw = mImuTopicRoot + "/" + imu_topic_mag_raw_name;
     }
 
     mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
@@ -416,6 +421,12 @@ void ZEDWrapperNodelet::onInit() {
             mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, 400);
             NODELET_INFO_STREAM("Advertised on topic " << mPubImuTemp.getTopic() << " @ "
                                 << mImuPubRate << " Hz");
+            mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, MAG_FREQ);
+            NODELET_INFO_STREAM("Advertised on topic " << mPubImuMag.getTopic() << " @ "
+                                << std::min(MAG_FREQ,mImuPubRate) << " Hz");
+            mPubImuMagRaw = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic_raw, MAG_FREQ);
+            NODELET_INFO_STREAM("Advertised on topic " << mPubImuMagRaw.getTopic() << " @ "
+                                << std::min(MAG_FREQ,mImuPubRate) << " Hz");
             mFrameTimestamp = ros::Time::now();
             mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
                                           &ZEDWrapperNodelet::imuPubCallback, this);
@@ -1969,9 +1980,21 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
 
     uint32_t imu_SubNumber = mPubImu.getNumSubscribers();
     uint32_t imu_RawSubNumber = mPubImuRaw.getNumSubscribers();
-    uint32_t imu_TempSubNumber = mPubImuTemp.getNumSubscribers();
+    uint32_t imu_TempSubNumber = mPubImuTemp.getNumSubscribers(); // TODO Check for ZED-M
+    uint32_t imu_MagSubNumber = 0;
+    uint32_t imu_MagRawSubNumber = 0;
 
-    if (imu_SubNumber < 1 && imu_RawSubNumber < 1 && imu_TempSubNumber<1) {
+    if( mZedRealCamModel != sl::MODEL::ZED2  ) {
+        imu_MagSubNumber = 0;
+        imu_MagRawSubNumber = 0;
+    } else {
+        imu_MagSubNumber = mPubImuMag.getNumSubscribers();
+        imu_MagRawSubNumber = mPubImuMagRaw.getNumSubscribers();
+    }
+
+    if (imu_SubNumber < 1 && imu_RawSubNumber < 1 &&
+            imu_TempSubNumber<1 &&
+            imu_MagSubNumber<1 && imu_MagRawSubNumber<1) {
         return;
     }
 
@@ -1995,7 +2018,9 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
         mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
     }
 
-    if (imu_SubNumber > 0 || imu_RawSubNumber > 0 || imu_TempSubNumber >0 ) {
+    if( imu_SubNumber > 0 || imu_RawSubNumber > 0 ||
+            imu_TempSubNumber > 0 ||
+            imu_MagSubNumber > 0 || imu_MagRawSubNumber > 0 ) {
         // Publish freq calculation
         static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
@@ -2020,6 +2045,50 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
         imu_temp_msg.variance = 0.0;
 
         mPubImuTemp.publish(imu_temp_msg);
+    }
+
+    if( imu_MagSubNumber>0 ) {
+        if( sens_data.magnetometer.is_available ) {
+            sensor_msgs::MagneticField mag_msg;
+            mag_msg.header.stamp = t;
+            mag_msg.header.frame_id = mImuFrameId;
+            mag_msg.magnetic_field.x = sens_data.magnetometer.magnetic_field_calibrated.x*1e-6;
+            mag_msg.magnetic_field.y = sens_data.magnetometer.magnetic_field_calibrated.y*1e-6;
+            mag_msg.magnetic_field.z = sens_data.magnetometer.magnetic_field_calibrated.z*1e-6;
+            mag_msg.magnetic_field_covariance[0] = 0.039e-6;
+            mag_msg.magnetic_field_covariance[1] = 0.0f;
+            mag_msg.magnetic_field_covariance[2] = 0.0f;
+            mag_msg.magnetic_field_covariance[3] = 0.037e-6;
+            mag_msg.magnetic_field_covariance[4] = 0.0f;
+            mag_msg.magnetic_field_covariance[5] = 0.0f;
+            mag_msg.magnetic_field_covariance[6] = 0.0f;
+            mag_msg.magnetic_field_covariance[7] = 0.0f;
+            mag_msg.magnetic_field_covariance[8] = 0.047e-6;
+
+            mPubImuMag.publish(mag_msg);
+        }
+    }
+
+    if( imu_MagRawSubNumber>0 ) {
+        if( sens_data.magnetometer.is_available ) {
+            sensor_msgs::MagneticField mag_msg;
+            mag_msg.header.stamp = t;
+            mag_msg.header.frame_id = mImuFrameId;
+            mag_msg.magnetic_field.x = sens_data.magnetometer.magnetic_field_uncalibrated.x*1e-6;
+            mag_msg.magnetic_field.y = sens_data.magnetometer.magnetic_field_uncalibrated.y*1e-6;
+            mag_msg.magnetic_field.z = sens_data.magnetometer.magnetic_field_uncalibrated.z*1e-6;
+            mag_msg.magnetic_field_covariance[0] = 0.039e-6;
+            mag_msg.magnetic_field_covariance[1] = 0.0f;
+            mag_msg.magnetic_field_covariance[2] = 0.0f;
+            mag_msg.magnetic_field_covariance[3] = 0.037e-6;
+            mag_msg.magnetic_field_covariance[4] = 0.0f;
+            mag_msg.magnetic_field_covariance[5] = 0.0f;
+            mag_msg.magnetic_field_covariance[6] = 0.0f;
+            mag_msg.magnetic_field_covariance[7] = 0.0f;
+            mag_msg.magnetic_field_covariance[8] = 0.047e-6;
+
+            mPubImuMagRaw.publish(mag_msg);
+        }
     }
 
     if (imu_SubNumber > 0) {
@@ -2906,81 +2975,82 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
 void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat) {
 
-    if (mConnStatus == sl::ERROR_CODE::SUCCESS) {
-        if (mGrabActive) {
-            if (mGrabStatus == sl::ERROR_CODE::SUCCESS /*|| mGrabStatus == sl::ERROR_CODE::NOT_A_NEW_FRAME*/) {
+    if (mConnStatus != sl::ERROR_CODE::SUCCESS) {
+        stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, sl::toString(mConnStatus).c_str());
+        return;
+    }
 
-                stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Camera grabbing");
+    if (mGrabActive) {
+        if (mGrabStatus == sl::ERROR_CODE::SUCCESS /*|| mGrabStatus == sl::ERROR_CODE::NOT_A_NEW_FRAME*/) {
 
-                double freq = 1000000. / mGrabPeriodMean_usec->getMean();
-                double freq_perc = 100.*freq / mCamFrameRate;
-                stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+            stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Camera grabbing");
 
-                stat.addf("Processing Time", "Mean time: %.3f sec (Max. %.3f sec)", mElabPeriodMean_sec->getMean(), 1. / mCamFrameRate);
+            double freq = 1000000. / mGrabPeriodMean_usec->getMean();
+            double freq_perc = 100.*freq / mCamFrameRate;
+            stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
 
-                if (mComputeDepth) {
-                    stat.add("Depth status", "ACTIVE");
+            stat.addf("Processing Time", "Mean time: %.3f sec (Max. %.3f sec)", mElabPeriodMean_sec->getMean(), 1. / mCamFrameRate);
 
-                    if (mPcPublishing) {
-                        double freq = 1000000. / mPcPeriodMean_usec->getMean();
-                        double freq_perc = 100.*freq / mCamFrameRate;
-                        stat.addf("Point Cloud", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
-                    } else {
-                        stat.add("Point Cloud", "Topic not subscribed");
-                    }
+            if (mComputeDepth) {
+                stat.add("Depth status", "ACTIVE");
 
-                    if (mFloorAlignment) {
-                        if (mInitOdomWithPose) {
-                            stat.add("Floor Detection", "NOT INITIALIZED");
-                        } else {
-                            stat.add("Floor Detection", "INITIALIZED");
-                        }
-                    }
-
-                    if (mTrackingActivated) {
-                        stat.addf("Tracking status", "%s", sl::toString(mTrackingStatus).c_str());
-                    } else {
-                        stat.add("Tracking status", "INACTIVE");
-                    }
+                if (mPcPublishing) {
+                    double freq = 1000000. / mPcPeriodMean_usec->getMean();
+                    double freq_perc = 100.*freq / mCamFrameRate;
+                    stat.addf("Point Cloud", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
                 } else {
-                    stat.add("Depth status", "INACTIVE");
+                    stat.add("Point Cloud", "Topic not subscribed");
+                }
+
+                if (mFloorAlignment) {
+                    if (mInitOdomWithPose) {
+                        stat.add("Floor Detection", "NOT INITIALIZED");
+                    } else {
+                        stat.add("Floor Detection", "INITIALIZED");
+                    }
+                }
+
+                if (mTrackingActivated) {
+                    stat.addf("Tracking status", "%s", sl::toString(mTrackingStatus).c_str());
+                } else {
+                    stat.add("Tracking status", "INACTIVE");
                 }
             } else {
-                stat.summaryf(diagnostic_msgs::DiagnosticStatus::ERROR, "Camera error: %s", sl::toString(mGrabStatus).c_str());
+                stat.add("Depth status", "INACTIVE");
             }
-
         } else {
-            stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Waiting for data subscriber");
-            stat.add("Capture", "INACTIVE");
+            stat.summaryf(diagnostic_msgs::DiagnosticStatus::ERROR, "Camera error: %s", sl::toString(mGrabStatus).c_str());
         }
 
-        if (mImuPublishing) {
-            double freq = 1000000. / mImuPeriodMean_usec->getMean();
-            double freq_perc = 100.*freq / mImuPubRate;
-            stat.addf("IMU", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
-        } else {
-            stat.add("IMU", "Topics not subscribed");
-        }
+    } else {
+        stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Waiting for data subscriber");
+        stat.add("Capture", "INACTIVE");
+    }
 
-        if (mRecording) {
-            if (!mRecState.status) {
-                if (mGrabActive) {
-                    stat.add("SVO Recording", "ERROR");
-                    stat.summary(diagnostic_msgs::DiagnosticStatus::WARN,
-                                 "Error adding frames to SVO file while recording. Check free disk space");
-                } else {
-                    stat.add("SVO Recording", "WAITING");
-                }
+    if (mImuPublishing) {
+        double freq = 1000000. / mImuPeriodMean_usec->getMean();
+        double freq_perc = 100.*freq / mImuPubRate;
+        stat.addf("IMU", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+    } else {
+        stat.add("IMU", "Topics not subscribed");
+    }
+
+    if (mRecording) {
+        if (!mRecState.status) {
+            if (mGrabActive) {
+                stat.add("SVO Recording", "ERROR");
+                stat.summary(diagnostic_msgs::DiagnosticStatus::WARN,
+                             "Error adding frames to SVO file while recording. Check free disk space");
             } else {
-                stat.add("SVO Recording", "ACTIVE");
-                stat.addf("SVO compression time", "%g msec", mRecState.average_compression_time);
-                stat.addf("SVO compression ratio", "%.1f%%", mRecState.average_compression_ratio);
+                stat.add("SVO Recording", "WAITING");
             }
         } else {
-            stat.add("SVO Recording", "NOT ACTIVE");
+            stat.add("SVO Recording", "ACTIVE");
+            stat.addf("SVO compression time", "%g msec", mRecState.average_compression_time);
+            stat.addf("SVO compression ratio", "%.1f%%", mRecState.average_compression_ratio);
         }
     } else {
-        stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, sl::toString(mConnStatus).c_str());
+        stat.add("SVO Recording", "NOT ACTIVE");
     }
 }
 
