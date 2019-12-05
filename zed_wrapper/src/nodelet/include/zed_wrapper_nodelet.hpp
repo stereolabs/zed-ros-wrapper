@@ -558,11 +558,9 @@ namespace zed_wrapper {
         // Point cloud variables
         sl::Mat mCloud;
         sensor_msgs::PointCloud2Ptr mPointcloudMsg;
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
         sl::FusedPointCloud mFusedPC;
         sensor_msgs::PointCloud2Ptr mPointcloudFusedMsg;
-#endif
-        ros::Time mPointCloudTime;
+                ros::Time mPointCloudTime;
 
         // Dynamic reconfigure
         boost::recursive_mutex mDynServerMutex; // To avoid Dynamic Reconfigure Server warning

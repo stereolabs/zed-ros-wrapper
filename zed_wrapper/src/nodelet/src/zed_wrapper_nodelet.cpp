@@ -20,6 +20,8 @@
 
 #include "zed_wrapper_nodelet.hpp"
 
+#include <csignal>
+
 #ifndef NDEBUG
 #include <ros/console.h>
 #endif
@@ -79,6 +81,14 @@ void ZEDWrapperNodelet::onInit() {
 #endif
     std::string ver = sl_tools::getSDKVersion(mVerMajor, mVerMinor, mVerSubMinor);
     NODELET_INFO_STREAM("SDK version : " << ver);
+
+    if( mVerMajor < 3 )  {
+        NODELET_ERROR( "This version of the ZED ROS Wrapper is designed to be used with ZED SDK v3.x");
+        ros::shutdown();
+        raise(SIGINT);
+        raise(SIGABRT);
+        exit(-1);
+    }
 
     readParameters();
     initTransforms();
@@ -142,7 +152,6 @@ void ZEDWrapperNodelet::onInit() {
             mZedParams.input.setFromSVOFile(mSvoFilepath.c_str());
             mZedParams.svo_real_time_mode = false;
         } else  if (!mRemoteStreamAddr.empty()) {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
             std::vector<std::string> configStream = sl_tools::split_string(mRemoteStreamAddr, ':');
             sl::String ip = sl::String(configStream.at(0).c_str());
 
@@ -151,11 +160,6 @@ void ZEDWrapperNodelet::onInit() {
             } else {
                 mZedParams.input.setFromStream(ip);
             }
-
-#else
-            NODELET_ERROR_STREAM("Acquiring a remote stream requires the ZED SDK v2.8 or newer");
-            return;
-#endif
         }
 
         mSvoMode = true;
@@ -281,11 +285,7 @@ void ZEDWrapperNodelet::onInit() {
             NODELET_INFO_STREAM(" * Sensors FW Version -> " << mSensFwVersion);
         }
     } else {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
         NODELET_INFO_STREAM(" * Input type\t -> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
-#else
-        NODELET_INFO_STREAM(" * Input type\t -> SVO");
-#endif
     }
 
     // Set the IMU topic names using real camera model
@@ -304,7 +304,7 @@ void ZEDWrapperNodelet::onInit() {
 
     mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
 
-    // Dynamic Reconfigure parameters
+    // ----> Dynamic Reconfigure parameters
     mDynRecServer = boost::make_shared<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>>(mDynServerMutex);
     dynamic_reconfigure::Server<zed_wrapper::ZedConfig>::CallbackType f;
     f = boost::bind(&ZEDWrapperNodelet::dynamicReconfCallback, this, _1, _2);
@@ -312,11 +312,13 @@ void ZEDWrapperNodelet::onInit() {
     // Update parameters
     zed_wrapper::ZedConfig config;
     mDynRecServer->getConfigDefault(config);
+    mDynServerMutex.lock();
     mDynRecServer->updateConfig(config);
+    mDynServerMutex.unlock();
+    // <---- Dynamic Reconfigure parameters
 
     // Create all the publishers
     // Image publishers
-    //        image_transport::ImageTransport it_zed(mNhNs);
     image_transport::ImageTransport it_zed(mNhNs);
 
     mPubRgb = it_zed.advertiseCamera(rgb_topic, 1); // rgb
@@ -362,15 +364,11 @@ void ZEDWrapperNodelet::onInit() {
     mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_topic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubCloud.getTopic());
 
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
-
     if (mMappingEnabled) {
         mPointcloudFusedMsg.reset(new sensor_msgs::PointCloud2);
         mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
     }
-
-#endif
 
     // Odometry and Pose publisher
     mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(mPoseTopic, 1);
@@ -439,12 +437,10 @@ void ZEDWrapperNodelet::onInit() {
     mSrvSvoStartRecording = mNhNs.advertiseService("start_svo_recording", &ZEDWrapperNodelet::on_start_svo_recording, this);
     mSrvSvoStopRecording = mNhNs.advertiseService("stop_svo_recording", &ZEDWrapperNodelet::on_stop_svo_recording, this);
 
-    if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
-        mSrvSetLedStatus = mNhNs.advertiseService("set_led_status", &ZEDWrapperNodelet::on_set_led_status, this);
-        mSrvToggleLed = mNhNs.advertiseService("toggle_led", &ZEDWrapperNodelet::on_toggle_led, this);
-        mSrvSvoStartStream = mNhNs.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
-        mSrvSvoStopStream = mNhNs.advertiseService("stop_remote_stream", &ZEDWrapperNodelet::on_stop_remote_stream, this);
-    }
+    mSrvSetLedStatus = mNhNs.advertiseService("set_led_status", &ZEDWrapperNodelet::on_set_led_status, this);
+    mSrvToggleLed = mNhNs.advertiseService("toggle_led", &ZEDWrapperNodelet::on_toggle_led, this);
+    mSrvSvoStartStream = mNhNs.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
+    mSrvSvoStopStream = mNhNs.advertiseService("stop_remote_stream", &ZEDWrapperNodelet::on_stop_remote_stream, this);
 
     // Start Pointcloud thread
     mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
@@ -573,16 +569,7 @@ void ZEDWrapperNodelet::readParameters() {
     mNhNs.getParam("tracking/publish_pose_covariance", mPublishPoseCovariance);
     NODELET_INFO_STREAM(" * Publish Pose Covariance\t-> " << (mPublishPoseCovariance ? "ENABLED" : "DISABLED"));
 
-    if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
-        mNhNs.getParam("tracking/fixed_covariance", mFixedCov);
-    } else {
-        if (mFixedCov) {
-            NODELET_WARN("Dynamic covariance is available with SDK v2.8 or newer");
-        }
-
-        mFixedCov = true;
-    }
-
+    mNhNs.getParam("tracking/fixed_covariance", mFixedCov);
     NODELET_INFO_STREAM(" * Fixed covariance\t\t-> " << (mFixedCov ? "ENABLED" : "DISABLED"));
 
     mNhNs.getParam("tracking/fixed_cov_value", mFixedCovValue);
@@ -593,19 +580,13 @@ void ZEDWrapperNodelet::readParameters() {
     mNhNs.param<bool>("mapping/mapping_enabled", mMappingEnabled, false);
 
     if (mMappingEnabled) {
-        if ((mVerMajor == 2 && mVerMinor < 8) || mVerMajor < 2) {
-            NODELET_WARN_STREAM("The mapping module is available with SDK v2.8 or newer");
-            mMappingEnabled = false;
-            NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
-        } else {
-            NODELET_INFO_STREAM(" * Mapping\t\t\t-> ENABLED");
+        NODELET_INFO_STREAM(" * Mapping\t\t\t-> ENABLED");
 
-            mNhNs.getParam("mapping/resolution", mMappingRes);
-            NODELET_INFO_STREAM(" * Mapping resolution\t\t-> " << sl::toString(
-                                    static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes)));
-            mNhNs.getParam("mapping/fused_pointcloud_freq", mFusedPcPubFreq);
-            NODELET_INFO_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
-        }
+        mNhNs.getParam("mapping/resolution", mMappingRes);
+        NODELET_INFO_STREAM(" * Mapping resolution\t\t-> " << sl::toString(
+                                static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes)));
+        mNhNs.getParam("mapping/fused_pointcloud_freq", mFusedPcPubFreq);
+        NODELET_INFO_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
     } else {
         NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
     }
@@ -628,10 +609,6 @@ void ZEDWrapperNodelet::readParameters() {
 
     if (svo_compr >= static_cast<int>(sl::SVO_COMPRESSION_MODE::LAST)) {
         NODELET_WARN_STREAM("The parameter `general/svo_compression` has an invalid value. Please check it in the configuration file `common.yaml`");
-
-        if ((mVerMajor == 2 && mVerMinor < 7) || mVerMajor < 2) {
-            NODELET_WARN_STREAM("Note: AVCHD (H264) and HEVC (H265) compression modes are available with SDK v2.7 or newer");
-        }
 
         svo_compr = 0;
     }
@@ -1114,8 +1091,6 @@ bool ZEDWrapperNodelet::on_reset_odometry(
 }
 
 void ZEDWrapperNodelet::start_mapping() {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
-
     if (!mMappingEnabled) {
         NODELET_WARN_STREAM("Cannot enable MAPPING. The parameter `mapping_enable` is set to FALSE");
 
@@ -1144,10 +1119,6 @@ void ZEDWrapperNodelet::start_mapping() {
 
         NODELET_WARN("Mapping not activated: %s", sl::toString(err).c_str());
     }
-
-#else
-    NODELET_WARN("Enabling MAPPING requires the ZED SDK v2.8 or newer");
-#endif
 }
 
 void ZEDWrapperNodelet::start_tracking() {
@@ -1550,27 +1521,14 @@ void ZEDWrapperNodelet::publishPointCloud() {
     sl::Vector4<float>* cpu_cloud = mCloud.getPtr<sl::float4>();
     float* ptCloudPtr = (float*)(&mPointcloudMsg->data[0]);
 
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=5) )
-    memcpy(ptCloudPtr, (float*)cpu_cloud,
-           4 * ptsCount * sizeof(float)); // We can do a direct memcpy since data organization is the same
-#else
-
-    for (size_t i = 0; i < ptsCount; ++i) {
-        ptCloudPtr[i * 4 + 0] = cpu_cloud[i][0];
-        ptCloudPtr[i * 4 + 1] = cpu_cloud[i][1];
-        ptCloudPtr[i * 4 + 2] = cpu_cloud[i][2];
-        ptCloudPtr[i * 4 + 3] = cpu_cloud[i][3];
-    }
-
-#endif
+    // We can do a direct memcpy since data organization is the same
+    memcpy(ptCloudPtr, (float*)cpu_cloud, 4 * ptsCount * sizeof(float));
 
     // Pointcloud publishing
     mPubCloud.publish(mPointcloudMsg);
 }
 
 void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
-
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
     uint32_t fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
 
     if (fusedCloudSubnumber == 0) {
@@ -1663,7 +1621,6 @@ void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
 
     // Pointcloud publishing
     mPubFusedCloud.publish(mPointcloudFusedMsg);
-#endif
 }
 
 void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg,
@@ -3112,8 +3069,6 @@ bool ZEDWrapperNodelet::on_stop_svo_recording(zed_wrapper::stop_svo_recording::R
 
 bool ZEDWrapperNodelet::on_start_remote_stream(zed_wrapper::start_remote_stream::Request& req,
                                                zed_wrapper::start_remote_stream::Response& res) {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
-
     if (mStreaming) {
         res.result = false;
         res.info = "SVO remote streaming was just active";
@@ -3170,36 +3125,23 @@ bool ZEDWrapperNodelet::on_start_remote_stream(zed_wrapper::start_remote_stream:
     res.result = true;
     res.info = "Remote streaming STARTED";
     return true;
-#else
-    NODELET_WARN("Remote streaming requires the ZED SDK v2.8 or newer");
-
-    res.result = false;
-    res.info = "Remote streaming requires the ZED SDK v2.8 or newer";
-    return true;
-#endif
 }
 
 bool ZEDWrapperNodelet::on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
                                               zed_wrapper::stop_remote_stream::Response& res) {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
-
     if (mStreaming) {
         mZed.disableStreaming();
     }
 
     mStreaming = false;
-
     NODELET_INFO_STREAM("SVO remote streaming STOPPED");
-#endif
-    res.done = true;
 
+    res.done = true;
     return true;
 }
 
 bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& req,
                                           zed_wrapper::set_led_status::Response& res) {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
-
     if (mCamFwVersion < 1523) {
         NODELET_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
         return false;
@@ -3208,16 +3150,10 @@ bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& 
     mZed.setCameraSettings(sl::VIDEO_SETTINGS::LED_STATUS, req.led_enabled ? 1 : 0);
 
     return true;
-#else
-    NODELET_WARN("LED control requires the ZED SDK v2.8 or newer");
-    return false;
-#endif
 }
 
 bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
                                       zed_wrapper::toggle_led::Response& res) {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
-
     if (mCamFwVersion < 1523) {
         NODELET_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
         return false;
@@ -3228,9 +3164,6 @@ bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
     mZed.setCameraSettings(sl::VIDEO_SETTINGS::LED_STATUS, new_status);
 
     return (new_status == 1);
-#else
-    NODELET_WARN("LED control requires the ZED SDK v2.8 or newer");
-    return false;
-#endif
 }
+
 } // namespace
