@@ -153,7 +153,7 @@ void ZEDWrapperNodelet::onInit() {
             }
 
 #else
-            ROS_ERROR_STREAM("Acquiring a remote stream requires the ZED SDK v2.8 or newer");
+            NODELET_ERROR_STREAM("Acquiring a remote stream requires the ZED SDK v2.8 or newer");
             return;
 #endif
         }
@@ -238,6 +238,10 @@ void ZEDWrapperNodelet::onInit() {
     }
     NODELET_INFO_STREAM(" ...  " << sl::toString( mZedRealCamModel) << " ready");
 
+    // Disable AEC_AGC and Auto Whitebalance to trigger it if use set to automatic
+    mZed.setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC, 0);
+    mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, 0);
+
     mZedRealCamModel = mZed.getCameraInformation().camera_model;
 
     if (mZedRealCamModel == sl::MODEL::ZED) {
@@ -301,10 +305,14 @@ void ZEDWrapperNodelet::onInit() {
     mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
 
     // Dynamic Reconfigure parameters
-    mDynRecServer = boost::make_shared<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>>();
+    mDynRecServer = boost::make_shared<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>>(mDynServerMutex);
     dynamic_reconfigure::Server<zed_wrapper::ZedConfig>::CallbackType f;
     f = boost::bind(&ZEDWrapperNodelet::dynamicReconfCallback, this, _1, _2);
     mDynRecServer->setCallback(f);
+    // Update parameters
+    zed_wrapper::ZedConfig config;
+    mDynRecServer->getConfigDefault(config);
+    mDynRecServer->updateConfig(config);
 
     // Create all the publishers
     // Image publishers
@@ -569,7 +577,7 @@ void ZEDWrapperNodelet::readParameters() {
         mNhNs.getParam("tracking/fixed_covariance", mFixedCov);
     } else {
         if (mFixedCov) {
-            ROS_WARN("Dynamic covariance is available with SDK v2.8 or newer");
+            NODELET_WARN("Dynamic covariance is available with SDK v2.8 or newer");
         }
 
         mFixedCov = true;
@@ -861,7 +869,7 @@ void ZEDWrapperNodelet::initTransforms() {
 }
 
 bool ZEDWrapperNodelet::getCamera2BaseTransform() {
-    ROS_DEBUG("Getting static TF from '%s' to '%s'", mCameraFrameId.c_str(), mBaseFrameId.c_str());
+    NODELET_DEBUG("Getting static TF from '%s' to '%s'", mCameraFrameId.c_str(), mBaseFrameId.c_str());
 
     mCamera2BaseTransfValid = false;
     static int errCount = 0;
@@ -880,19 +888,19 @@ bool ZEDWrapperNodelet::getCamera2BaseTransform() {
         double roll, pitch, yaw;
         tf2::Matrix3x3(mCamera2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-        ROS_INFO("Static transform Camera Center to Base [%s -> %s]",
-                 mCameraFrameId.c_str(), mBaseFrameId.c_str());
-        ROS_INFO(" * Translation: {%.3f,%.3f,%.3f}",
-                 mCamera2BaseTransf.getOrigin().x(), mCamera2BaseTransf.getOrigin().y(), mCamera2BaseTransf.getOrigin().z());
-        ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
-                 roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+        NODELET_INFO("Static transform Camera Center to Base [%s -> %s]",
+                     mCameraFrameId.c_str(), mBaseFrameId.c_str());
+        NODELET_INFO(" * Translation: {%.3f,%.3f,%.3f}",
+                     mCamera2BaseTransf.getOrigin().x(), mCamera2BaseTransf.getOrigin().y(), mCamera2BaseTransf.getOrigin().z());
+        NODELET_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
+                     roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
     } catch (tf2::TransformException& ex) {
         if (++errCount % 50 == 0) {
-            ROS_WARN("The tf from '%s' to '%s' does not seem to be available, "
-                     "will assume it as identity!",
-                     mCameraFrameId.c_str(), mBaseFrameId.c_str());
-            ROS_WARN("Transform error: %s", ex.what());
+            NODELET_WARN("The tf from '%s' to '%s' does not seem to be available, "
+                         "will assume it as identity!",
+                         mCameraFrameId.c_str(), mBaseFrameId.c_str());
+            NODELET_WARN("Transform error: %s", ex.what());
         }
 
         mCamera2BaseTransf.setIdentity();
@@ -907,7 +915,7 @@ bool ZEDWrapperNodelet::getCamera2BaseTransform() {
 }
 
 bool ZEDWrapperNodelet::getSens2CameraTransform() {
-    ROS_DEBUG("Getting static TF from '%s' to '%s'", mDepthFrameId.c_str(), mCameraFrameId.c_str());
+    NODELET_DEBUG("Getting static TF from '%s' to '%s'", mDepthFrameId.c_str(), mCameraFrameId.c_str());
 
     mSensor2CameraTransfValid = false;
     static int errCount = 0;
@@ -924,18 +932,18 @@ bool ZEDWrapperNodelet::getSens2CameraTransform() {
         double roll, pitch, yaw;
         tf2::Matrix3x3(mSensor2CameraTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-        ROS_INFO("Static transform Sensor to Camera Center [%s -> %s]",
-                 mDepthFrameId.c_str(), mCameraFrameId.c_str());
-        ROS_INFO(" * Translation: {%.3f,%.3f,%.3f}",
-                 mSensor2CameraTransf.getOrigin().x(), mSensor2CameraTransf.getOrigin().y(), mSensor2CameraTransf.getOrigin().z());
-        ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
-                 roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+        NODELET_INFO("Static transform Sensor to Camera Center [%s -> %s]",
+                     mDepthFrameId.c_str(), mCameraFrameId.c_str());
+        NODELET_INFO(" * Translation: {%.3f,%.3f,%.3f}",
+                     mSensor2CameraTransf.getOrigin().x(), mSensor2CameraTransf.getOrigin().y(), mSensor2CameraTransf.getOrigin().z());
+        NODELET_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
+                     roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
     } catch (tf2::TransformException& ex) {
         if (++errCount % 50 == 0) {
-            ROS_WARN("The tf from '%s' to '%s' does not seem to be available, "
-                     "will assume it as identity!",
-                     mDepthFrameId.c_str(), mCameraFrameId.c_str());
-            ROS_WARN("Transform error: %s", ex.what());
+            NODELET_WARN("The tf from '%s' to '%s' does not seem to be available, "
+                         "will assume it as identity!",
+                         mDepthFrameId.c_str(), mCameraFrameId.c_str());
+            NODELET_WARN("Transform error: %s", ex.what());
         }
 
         mSensor2CameraTransf.setIdentity();
@@ -950,7 +958,7 @@ bool ZEDWrapperNodelet::getSens2CameraTransform() {
 }
 
 bool ZEDWrapperNodelet::getSens2BaseTransform() {
-    ROS_DEBUG("Getting static TF from '%s' to '%s'", mDepthFrameId.c_str(), mBaseFrameId.c_str());
+    NODELET_DEBUG("Getting static TF from '%s' to '%s'", mDepthFrameId.c_str(), mBaseFrameId.c_str());
 
     mSensor2BaseTransfValid = false;
     static int errCount = 0;
@@ -967,19 +975,19 @@ bool ZEDWrapperNodelet::getSens2BaseTransform() {
         double roll, pitch, yaw;
         tf2::Matrix3x3(mSensor2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-        ROS_INFO("Static transform Sensor to Base [%s -> %s]",
-                 mDepthFrameId.c_str(), mBaseFrameId.c_str());
-        ROS_INFO(" * Translation: {%.3f,%.3f,%.3f}",
-                 mSensor2BaseTransf.getOrigin().x(), mSensor2BaseTransf.getOrigin().y(), mSensor2BaseTransf.getOrigin().z());
-        ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
-                 roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+        NODELET_INFO("Static transform Sensor to Base [%s -> %s]",
+                     mDepthFrameId.c_str(), mBaseFrameId.c_str());
+        NODELET_INFO(" * Translation: {%.3f,%.3f,%.3f}",
+                     mSensor2BaseTransf.getOrigin().x(), mSensor2BaseTransf.getOrigin().y(), mSensor2BaseTransf.getOrigin().z());
+        NODELET_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
+                     roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
     } catch (tf2::TransformException& ex) {
         if (++errCount % 50 == 0) {
-            ROS_WARN("The tf from '%s' to '%s' does not seem to be available, "
-                     "will assume it as identity!",
-                     mDepthFrameId.c_str(), mBaseFrameId.c_str());
-            ROS_WARN("Transform error: %s", ex.what());
+            NODELET_WARN("The tf from '%s' to '%s' does not seem to be available, "
+                         "will assume it as identity!",
+                         mDepthFrameId.c_str(), mBaseFrameId.c_str());
+            NODELET_WARN("Transform error: %s", ex.what());
         }
 
         mSensor2BaseTransf.setIdentity();
@@ -1129,12 +1137,12 @@ void ZEDWrapperNodelet::start_mapping() {
         mFusedPcTimer = mNhNs.createTimer(ros::Duration(1.0 / mFusedPcPubFreq), &ZEDWrapperNodelet::pubFusedPointCloudCallback,
                                           this);
 
-        ROS_INFO_STREAM(" * Resolution: " << params.resolution_meter << " m");
+        NODELET_INFO_STREAM(" * Resolution: " << params.resolution_meter << " m");
     } else {
         mMappingActivated = false;
         mFusedPcTimer.stop();
 
-        ROS_WARN("Mapping not activated: %s", sl::toString(err).c_str());
+        NODELET_WARN("Mapping not activated: %s", sl::toString(err).c_str());
     }
 
 #else
@@ -1145,7 +1153,7 @@ void ZEDWrapperNodelet::start_mapping() {
 void ZEDWrapperNodelet::start_tracking() {
     NODELET_INFO_STREAM("*** Starting Positional Tracking ***");
 
-    ROS_INFO(" * Waiting for valid static transformations...");
+    NODELET_INFO(" * Waiting for valid static transformations...");
 
     bool transformOk = false;
     double elapsed = 0.0;
@@ -1162,22 +1170,22 @@ void ZEDWrapperNodelet::start_tracking() {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         if (elapsed > 10000) {
-            ROS_WARN(" !!! Failed to get static transforms. Is the 'ROBOT STATE PUBLISHER' node correctly working? ");
+            NODELET_WARN(" !!! Failed to get static transforms. Is the 'ROBOT STATE PUBLISHER' node correctly working? ");
             break;
         }
 
     } while (transformOk == false);
 
     if (transformOk) {
-        ROS_DEBUG("Time required to get valid static transforms: %g sec", elapsed / 1000.);
+        NODELET_DEBUG("Time required to get valid static transforms: %g sec", elapsed / 1000.);
     }
 
-    ROS_INFO("Initial ZED left camera pose (ZED pos. tracking): ");
-    ROS_INFO(" * T: [%g,%g,%g]",
-             mInitialPoseSl.getTranslation().x, mInitialPoseSl.getTranslation().y, mInitialPoseSl.getTranslation().z);
-    ROS_INFO(" * Q: [%g,%g,%g,%g]",
-             mInitialPoseSl.getOrientation().ox, mInitialPoseSl.getOrientation().oy,
-             mInitialPoseSl.getOrientation().oz, mInitialPoseSl.getOrientation().ow);
+    NODELET_INFO("Initial ZED left camera pose (ZED pos. tracking): ");
+    NODELET_INFO(" * T: [%g,%g,%g]",
+                 mInitialPoseSl.getTranslation().x, mInitialPoseSl.getTranslation().y, mInitialPoseSl.getTranslation().z);
+    NODELET_INFO(" * Q: [%g,%g,%g,%g]",
+                 mInitialPoseSl.getOrientation().ox, mInitialPoseSl.getOrientation().oy,
+                 mInitialPoseSl.getOrientation().oz, mInitialPoseSl.getOrientation().ow);
 
     if (mOdometryDb != "" && !sl_tools::file_exist(mOdometryDb)) {
         mOdometryDb = "";
@@ -1205,7 +1213,7 @@ void ZEDWrapperNodelet::start_tracking() {
     } else {
         mTrackingActivated = false;
 
-        ROS_WARN("Tracking not activated: %s", sl::toString(err).c_str());
+        NODELET_WARN("Tracking not activated: %s", sl::toString(err).c_str());
     }
 }
 
@@ -1586,7 +1594,7 @@ void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
     sl::ERROR_CODE res = mZed.retrieveSpatialMapAsync(mFusedPC);
 
     if (res != sl::ERROR_CODE::SUCCESS) {
-        ROS_WARN_STREAM("Fused point cloud not extracted: " << sl::toString(res).c_str());
+        NODELET_WARN_STREAM("Fused point cloud not extracted: " << sl::toString(res).c_str());
         return;
     }
 
@@ -1616,7 +1624,7 @@ void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
 
     std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
-    //ROS_INFO_STREAM("Chunks: " << mFusedPC.chunks.size());
+    //NODELET_INFO_STREAM("Chunks: " << mFusedPC.chunks.size());
 
     int index = 0;
     float* ptCloudPtr = (float*)(&mPointcloudFusedMsg->data[0]);
@@ -1644,13 +1652,13 @@ void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
 
     std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
 
-    //ROS_INFO_STREAM("Updated: " << updated);
+    //NODELET_INFO_STREAM("Updated: " << updated);
 
 
     double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
 
 
-    //        ROS_INFO_STREAM("Data copy: " << elapsed_usec << " usec [" << ptsCount << "] - " << (static_cast<double>
+    //        NODELET_INFO_STREAM("Data copy: " << elapsed_usec << " usec [" << ptsCount << "] - " << (static_cast<double>
     //                        (ptsCount) / elapsed_usec) << " pts/usec");
 
     // Pointcloud publishing
@@ -1745,13 +1753,45 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
     rightCamInfoMsg->header.frame_id = rightFrameId;
 }
 
+void ZEDWrapperNodelet::updateDynamicReconfigure() {
+    //NODELET_DEBUG_STREAM( "updateDynamicReconfigure MUTEX LOCK");
+    mDynParMutex.lock();
+    zed_wrapper::ZedConfig config;
+
+    config.auto_exposure_gain = mCamAutoExposure;
+    config.auto_whitebalance = mCamAutoWB;
+    config.brightness = mCamBrightness;
+    config.confidence = mCamConfidence;
+    config.contrast = mCamContrast;
+    config.exposure = mCamExposure;
+    config.gain = mCamGain;
+    config.hue = mCamHue;
+    config.mat_resize_factor = mCamMatResizeFactor;
+    config.saturation = mCamSaturation;
+    config.sharpness = mCamSharpness;
+    config.whitebalance_temperature = mCamWB/100;
+    config.point_cloud_freq = mPointCloudFreq;
+    mDynParMutex.unlock();
+
+    mDynServerMutex.lock();
+    mDynRecServer->updateConfig(config);
+    mDynServerMutex.unlock();
+
+    //NODELET_DEBUG_STREAM( "updateDynamicReconfigure MUTEX UNLOCK");
+}
+
 void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, uint32_t level) {
+    //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX LOCK");
+    mDynParMutex.lock();
     DynParams param = static_cast<DynParams>(level);
 
     switch (param) {
     case MAT_RESIZE_FACTOR: {
         mCamMatResizeFactor = config.mat_resize_factor;
         NODELET_INFO("Reconfigure mat_resize_factor: %g", mCamMatResizeFactor);
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
+        mDynParMutex.unlock();
+
         mCamDataMutex.lock();
         size_t w = static_cast<size_t>(mCamWidth * mCamMatResizeFactor);
         size_t h = static_cast<size_t>(mCamHeight * mCamMatResizeFactor);
@@ -1774,50 +1814,63 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
     case CONFIDENCE:
         mCamConfidence = config.confidence;
         NODELET_INFO("Reconfigure confidence threshold: %d", mCamConfidence);
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
 
     case POINTCLOUD_FREQ:
         mPointCloudFreq = config.point_cloud_freq;
         NODELET_INFO("Reconfigure point cloud frequency: %g", mPointCloudFreq);
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
 
     case BRIGHTNESS:
         mCamBrightness = config.brightness;
         NODELET_INFO("Reconfigure image brightness: %d", mCamBrightness);
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
 
     case CONTRAST:
         mCamContrast = config.contrast;
         NODELET_INFO("Reconfigure image brightness: %d", mCamBrightness);
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
 
     case HUE:
         mCamHue = config.hue;
         NODELET_INFO("Reconfigure image hue: %d", mCamHue);
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
 
     case SATURATION:
         mCamSaturation = config.saturation;
         NODELET_INFO("Reconfigure image saturation: %d", mCamSaturation);
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
 
     case SHARPNESS:
         mCamSharpness = config.sharpness;
         NODELET_INFO("Reconfigure image sharpness: %d", mCamSharpness);
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
 
     case AUTO_EXP_GAIN:
         mCamAutoExposure = config.auto_exposure_gain;
         NODELET_INFO_STREAM("Reconfigure auto exposure/gain: " << mCamAutoExposure?"ENABLED":"DISABLED");
         if( !mCamAutoExposure ) {
-            mCamGain = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAIN);
-            mCamExposure = mZed.getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE);
-            config.gain = mCamGain;
-            config.exposure = mCamExposure;
-            mDynRecServer->updateConfig(config);
+            mZed.setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC, 0 );
+            mTriggerAutoExposure = false;
         } else {
             mTriggerAutoExposure = true;
         }
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
 
     case GAIN:
@@ -1827,6 +1880,8 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
         } else {
             NODELET_INFO("Reconfigure gain: %d", mCamGain);
         }
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
 
     case EXPOSURE:
@@ -1836,18 +1891,21 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
         } else {
             NODELET_INFO("Reconfigure exposure: %d", mCamExposure);
         }
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
 
     case AUTO_WB:
         mCamAutoWB = config.auto_whitebalance;
         NODELET_INFO_STREAM("Reconfigure auto white balance: " << mCamAutoWB?"ENABLED":"DISABLED");
         if( !mCamAutoWB ) {
-            mCamWB = mZed.getCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE);
-            config.whitebalance_temperature = mCamWB;
-            mDynRecServer->updateConfig(config);
+            mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, 0 );
+            mTriggerAutoWB = false;
         } else {
             mTriggerAutoWB = true;
         }
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
 
     case WB_TEMP:
@@ -1857,10 +1915,15 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
         } else {
             NODELET_INFO("Reconfigure white balance temperature: %d", mCamWB);
         }
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
+
+    default:
+        NODELET_DEBUG_STREAM( "dynamicReconfCallback Unknown param: " << level);
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
     }
-
-
 }
 
 void ZEDWrapperNodelet::pathPubCallback(const ros::TimerEvent& e) {
@@ -2324,6 +2387,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 continue;
             }
 
+            mFrameCount++;
+
             // SVO recording
             mRecMutex.lock();
 
@@ -2331,7 +2396,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 mRecState = mZed.getRecordingStatus();
 
                 if (!mRecState.status) {
-                    ROS_ERROR_THROTTLE(1.0, "Error saving frame to SVO");
+                    NODELET_ERROR_THROTTLE(1.0, "Error saving frame to SVO");
                 }
 
                 mDiagUpdater.force_update();
@@ -2351,7 +2416,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
             mGrabPeriodMean_usec->addValue(elapsed_usec);
 
-            //ROS_INFO_STREAM("Grab time: " << elapsed_usec / 1000 << " msec");
+            // NODELET_INFO_STREAM("Grab time: " << elapsed_usec / 1000 << " msec");
 
             // Timestamp
             if (mSvoMode) {
@@ -2361,53 +2426,86 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             }
 
             // ----> Camera Settings
-            int brightness = mZed.getCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS);
-            if( brightness != mCamBrightness ) {
-                mZed.setCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, mCamBrightness);
-            }
+            if( mFrameCount%5 == 0 ) {
+                //NODELET_DEBUG_STREAM( "[" << mFrameCount << "] device_poll_thread_func MUTEX LOCK");
+                mDynParMutex.lock();
+                bool update_dyn_params = false;
 
-            int contrast = mZed.getCameraSettings(sl::VIDEO_SETTINGS::CONTRAST);
-            if( contrast != mCamContrast ) {
-                mZed.setCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, mCamContrast);
-            }
-
-            int hue = mZed.getCameraSettings(sl::VIDEO_SETTINGS::HUE);
-            if( hue != mCamHue ) {
-                mZed.setCameraSettings(sl::VIDEO_SETTINGS::HUE, mCamHue);
-            }
-
-            int saturation = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SATURATION);
-            if( saturation != mCamSaturation ) {
-                mZed.setCameraSettings(sl::VIDEO_SETTINGS::SATURATION, mCamSaturation);
-            }
-
-            int sharpness = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS);
-            if( sharpness != mCamSharpness ) {
-                mZed.setCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS, mCamSharpness);
-            }
-
-            if (mCamAutoExposure && mTriggerAutoExposure) {
-                mZed.setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC, 1);
-                mTriggerAutoExposure = false;
-            } else {
-                int exposure = mZed.getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE);
-                if (exposure != mCamExposure) {
-                    mZed.setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, mCamExposure);
+                int brightness = mZed.getCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS);
+                if( brightness != mCamBrightness ) {
+                    mZed.setCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, mCamBrightness);
+                    NODELET_DEBUG_STREAM( "mCamBrightness changed: " << mCamBrightness << " <- " << brightness);
+                    update_dyn_params = true;
                 }
 
-                int gain = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAIN);
-                if (gain != mCamGain) {
-                    mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAIN, mCamGain);
+                int contrast = mZed.getCameraSettings(sl::VIDEO_SETTINGS::CONTRAST);
+                if( contrast != mCamContrast ) {
+                    mZed.setCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, mCamContrast);
+                    NODELET_DEBUG_STREAM( "mCamContrast changed: " << mCamContrast << " <- " << contrast);
+                    update_dyn_params = true;
                 }
-            }
 
-            if (mCamAutoWB && mTriggerAutoWB) {
-                mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, 1);
-                mTriggerAutoWB = false;
-            } else {
-                int wb = mZed.getCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE);
-                if (wb != mCamWB) {
-                    mZed.setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, mCamWB);
+                int hue = mZed.getCameraSettings(sl::VIDEO_SETTINGS::HUE);
+                if( hue != mCamHue ) {
+                    mZed.setCameraSettings(sl::VIDEO_SETTINGS::HUE, mCamHue);
+                    NODELET_DEBUG_STREAM( "mCamHue changed: " << mCamHue << " <- " << hue);
+                    update_dyn_params = true;
+                }
+
+                int saturation = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SATURATION);
+                if( saturation != mCamSaturation ) {
+                    mZed.setCameraSettings(sl::VIDEO_SETTINGS::SATURATION, mCamSaturation);
+                    NODELET_DEBUG_STREAM( "mCamSaturation changed: " << mCamSaturation << " <- " << saturation);
+                    update_dyn_params = true;
+                }
+
+                int sharpness = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS);
+                if( sharpness != mCamSharpness ) {
+                    mZed.setCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS, mCamSharpness);
+                    NODELET_DEBUG_STREAM( "mCamSharpness changed: " << mCamSharpness << " <- " << sharpness);
+                    update_dyn_params = true;
+                }
+
+                if (mCamAutoExposure) {
+                    if( mTriggerAutoExposure ) {
+                        mZed.setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC, 1);
+                        mTriggerAutoExposure = false;
+                    }
+                } else {
+                    int exposure = mZed.getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE);
+                    if (exposure != mCamExposure) {
+                        mZed.setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, mCamExposure);
+                        NODELET_DEBUG_STREAM( "mCamExposure changed: " << mCamExposure << " <- " << exposure);
+                        update_dyn_params = true;
+                    }
+
+                    int gain = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAIN);
+                    if (gain != mCamGain) {
+                        mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAIN, mCamGain);
+                        NODELET_DEBUG_STREAM( "mCamGain changed: " << mCamGain << " <- " << gain);
+                        update_dyn_params = true;
+                    }
+                }
+
+                if (mCamAutoWB ) {
+                    if(mTriggerAutoWB) {
+                        mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, 1);
+                        mTriggerAutoWB = false;
+                    }
+                } else {
+                    int wb = mZed.getCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE);
+                    if (wb != mCamWB) {
+                        mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, mCamWB);
+                        NODELET_DEBUG_STREAM( "mCamWB changed: " << mCamWB << " <- " << wb);
+                        update_dyn_params = true;
+                    }
+                }
+                mDynParMutex.unlock();
+                //NODELET_DEBUG_STREAM( "device_poll_thread_func MUTEX UNLOCK");
+
+                if(update_dyn_params) {
+                    NODELET_DEBUG( "Update Dynamic Parameters");
+                    updateDynamicReconfigure();
                 }
             }
             // <---- Camera Settings
@@ -2696,7 +2794,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
                     if (initOdom || mResetOdom) {
 
-                        ROS_INFO("Odometry aligned to last tracking pose");
+                        NODELET_INFO("Odometry aligned to last tracking pose");
 
                         // Propagate Odom transform in time
                         mOdom2BaseTransf = mMap2BaseTransf;
@@ -2955,14 +3053,14 @@ bool ZEDWrapperNodelet::on_start_svo_recording(zed_wrapper::start_svo_recording:
         recParams.compression_mode = mSvoComprMode == sl::SVO_COMPRESSION_MODE::H265 ? sl::SVO_COMPRESSION_MODE::H264 :
                                                                                        sl::SVO_COMPRESSION_MODE::H265;
 
-        ROS_WARN_STREAM("The chosen " << sl::toString(mSvoComprMode).c_str() << "mode is not available. Trying " <<
-                        sl::toString(recParams.compression_mode).c_str());
+        NODELET_WARN_STREAM("The chosen " << sl::toString(mSvoComprMode).c_str() << "mode is not available. Trying " <<
+                            sl::toString(recParams.compression_mode).c_str());
 
         err = mZed.enableRecording(recParams);
 
         if (err == sl::ERROR_CODE::SVO_UNSUPPORTED_COMPRESSION) {
-            ROS_WARN_STREAM(sl::toString(recParams.compression_mode).c_str() << "not available. Trying " << sl::toString(
-                                sl::SVO_COMPRESSION_MODE::H264).c_str());
+            NODELET_WARN_STREAM(sl::toString(recParams.compression_mode).c_str() << "not available. Trying " << sl::toString(
+                                    sl::SVO_COMPRESSION_MODE::H264).c_str());
             recParams.compression_mode = sl::SVO_COMPRESSION_MODE::H264;
             err = mZed.enableRecording(recParams);
 
@@ -2987,7 +3085,7 @@ bool ZEDWrapperNodelet::on_start_svo_recording(zed_wrapper::start_svo_recording:
     res.info += ")";
     res.result = true;
 
-    ROS_INFO_STREAM("SVO recording STARTED: " << req.svo_filename << " (" << sl::toString(mSvoComprMode).c_str() << ")");
+    NODELET_INFO_STREAM("SVO recording STARTED: " << req.svo_filename << " (" << sl::toString(mSvoComprMode).c_str() << ")");
 
     return true;
 }
@@ -3007,7 +3105,7 @@ bool ZEDWrapperNodelet::on_stop_svo_recording(zed_wrapper::stop_svo_recording::R
     res.info = "Recording stopped";
     res.done = true;
 
-    ROS_INFO_STREAM("SVO recording STOPPED");
+    NODELET_INFO_STREAM("SVO recording STOPPED");
 
     return true;
 }
@@ -3038,7 +3136,7 @@ bool ZEDWrapperNodelet::on_start_remote_stream(zed_wrapper::start_remote_stream:
         res.info += params.gop_size;
         res.info += "). Remote streaming not started";
 
-        ROS_ERROR_STREAM(res.info);
+        NODELET_ERROR_STREAM(res.info);
         return false;
     }
 
@@ -3048,7 +3146,7 @@ bool ZEDWrapperNodelet::on_start_remote_stream(zed_wrapper::start_remote_stream:
         res.result = false;
         res.info = "`port` must be an even number. Remote streaming not started";
 
-        ROS_ERROR_STREAM(res.info);
+        NODELET_ERROR_STREAM(res.info);
         return false;
     }
 
@@ -3060,20 +3158,20 @@ bool ZEDWrapperNodelet::on_start_remote_stream(zed_wrapper::start_remote_stream:
         res.result = false;
         res.info = sl::toString(err).c_str();
 
-        ROS_ERROR_STREAM("Remote streaming not started (" << res.info << ")");
+        NODELET_ERROR_STREAM("Remote streaming not started (" << res.info << ")");
 
         return false;
     }
 
     mStreaming = true;
 
-    ROS_INFO_STREAM("Remote streaming STARTED");
+    NODELET_INFO_STREAM("Remote streaming STARTED");
 
     res.result = true;
     res.info = "Remote streaming STARTED";
     return true;
 #else
-    ROS_WARN("Remote streaming requires the ZED SDK v2.8 or newer");
+    NODELET_WARN("Remote streaming requires the ZED SDK v2.8 or newer");
 
     res.result = false;
     res.info = "Remote streaming requires the ZED SDK v2.8 or newer";
@@ -3091,7 +3189,7 @@ bool ZEDWrapperNodelet::on_stop_remote_stream(zed_wrapper::stop_remote_stream::R
 
     mStreaming = false;
 
-    ROS_INFO_STREAM("SVO remote streaming STOPPED");
+    NODELET_INFO_STREAM("SVO remote streaming STOPPED");
 #endif
     res.done = true;
 
@@ -3103,7 +3201,7 @@ bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& 
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
     if (mCamFwVersion < 1523) {
-        ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
+        NODELET_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
         return false;
     }
 
@@ -3111,7 +3209,7 @@ bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& 
 
     return true;
 #else
-    ROS_WARN("LED control requires the ZED SDK v2.8 or newer");
+    NODELET_WARN("LED control requires the ZED SDK v2.8 or newer");
     return false;
 #endif
 }
@@ -3121,7 +3219,7 @@ bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
 #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
     if (mCamFwVersion < 1523) {
-        ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
+        NODELET_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
         return false;
     }
 
@@ -3131,7 +3229,7 @@ bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
 
     return (new_status == 1);
 #else
-    ROS_WARN("LED control requires the ZED SDK v2.8 or newer");
+    NODELET_WARN("LED control requires the ZED SDK v2.8 or newer");
     return false;
 #endif
 }

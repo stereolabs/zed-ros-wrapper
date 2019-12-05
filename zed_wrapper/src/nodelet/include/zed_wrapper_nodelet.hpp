@@ -306,7 +306,13 @@ namespace zed_wrapper {
          */
         void start_mapping();
 
+        /* \brief Update Dynamic reconfigure parameters
+         */
+        void updateDynamicReconfigure();
+
       private:
+        uint64_t mFrameCount = 0;
+
         // SDK version
         int mVerMajor;
         int mVerMinor;
@@ -545,6 +551,7 @@ namespace zed_wrapper {
         std::mutex mPcMutex;
         std::mutex mRecMutex;
         std::mutex mPosTrkMutex;
+        std::mutex mDynParMutex;
         std::condition_variable mPcDataReadyCondVar;
         bool mPcDataReady;
 
@@ -558,6 +565,7 @@ namespace zed_wrapper {
         ros::Time mPointCloudTime;
 
         // Dynamic reconfigure
+        boost::recursive_mutex mDynServerMutex; // To avoid Dynamic Reconfigure Server warning
         boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> mDynRecServer;
 
         // Diagnostic
