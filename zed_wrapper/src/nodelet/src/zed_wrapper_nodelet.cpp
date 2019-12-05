@@ -48,6 +48,7 @@ namespace zed_wrapper {
 #endif
 
 #define MAG_FREQ    50.
+#define BARO_FREQ   25.
 
 ZEDWrapperNodelet::ZEDWrapperNodelet() : Nodelet() {}
 
@@ -293,6 +294,7 @@ void ZEDWrapperNodelet::onInit() {
     string imu_temp_topic;
     string imu_mag_topic;
     string imu_mag_topic_raw;
+    string pressure_topic = "atm_press";
 
     if (mZedRealCamModel != sl::MODEL::ZED) {
         string imu_topic_name = "data";
@@ -408,35 +410,42 @@ void ZEDWrapperNodelet::onInit() {
         NODELET_INFO_STREAM("Path topics not published -> mPathPubRate: " << mPathPubRate);
     }
 
-    // Imu publisher
-
+    // Sensor publishers
     if (!mSvoMode) {
-        if (mImuPubRate > 0 && mZedRealCamModel != sl::MODEL::ZED) {
-            mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 400);
+        if (mSensPubRate > 0 && mZedRealCamModel != sl::MODEL::ZED) {
+            // IMU Publishers
+            mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, static_cast<int>(mSensPubRate));
             NODELET_INFO_STREAM("Advertised on topic " << mPubImu.getTopic() << " @ "
-                                << mImuPubRate << " Hz");
-            mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 400);
+                                << mSensPubRate << " Hz");
+            mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, static_cast<int>(mSensPubRate));
             NODELET_INFO_STREAM("Advertised on topic " << mPubImuRaw.getTopic() << " @ "
-                                << mImuPubRate << " Hz");
-            mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, 400);
+                                << mSensPubRate << " Hz");
+            mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, static_cast<int>(mSensPubRate));
             NODELET_INFO_STREAM("Advertised on topic " << mPubImuTemp.getTopic() << " @ "
-                                << mImuPubRate << " Hz");
+                                << mSensPubRate << " Hz");
             mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, MAG_FREQ);
             NODELET_INFO_STREAM("Advertised on topic " << mPubImuMag.getTopic() << " @ "
-                                << std::min(MAG_FREQ,mImuPubRate) << " Hz");
-            mPubImuMagRaw = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic_raw, MAG_FREQ);
+                                << std::min(MAG_FREQ,mSensPubRate) << " Hz");
+            mPubImuMagRaw = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic_raw, static_cast<int>(MAG_FREQ));
             NODELET_INFO_STREAM("Advertised on topic " << mPubImuMagRaw.getTopic() << " @ "
-                                << std::min(MAG_FREQ,mImuPubRate) << " Hz");
+                                << std::min(MAG_FREQ,mSensPubRate) << " Hz");
+
+            if( mZedRealCamModel == sl::MODEL::ZED2 ) {
+                mPubPressure = mNhNs.advertise<sensor_msgs::FluidPressure>(pressure_topic, static_cast<int>(BARO_FREQ));
+                NODELET_INFO_STREAM("Advertised on topic " << mPubPressure.getTopic() << " @ "
+                                    << std::min(BARO_FREQ,mSensPubRate ) << " Hz");
+            }
+
             mFrameTimestamp = ros::Time::now();
-            mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
-                                          &ZEDWrapperNodelet::imuPubCallback, this);
-            mImuPeriodMean_usec.reset(new sl_tools::CSmartMean(mImuPubRate / 2));
+            mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mSensPubRate),
+                                          &ZEDWrapperNodelet::sensPubCallback, this);
+            mSensPeriodMean_usec.reset(new sl_tools::CSmartMean(mSensPubRate / 2));
 
 
-        } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL::ZED) {
+        } else if (mSensPubRate > 0 && mZedRealCamModel == sl::MODEL::ZED) {
             NODELET_WARN_STREAM(
-                        "'imu_pub_rate' set to "
-                        << mImuPubRate << " Hz"
+                        "'sens_pub_rate' set to "
+                        << mSensPubRate << " Hz"
                         << " but ZED camera model does not support IMU data publishing.");
         }
     }
@@ -605,13 +614,13 @@ void ZEDWrapperNodelet::readParameters() {
     // <---- Mapping
 
 
-    // ----> IMU
-    mNhNs.param<std::string>("imu/imu_topic_root", mImuTopicRoot, "imu");
-    mNhNs.getParam("imu/imu_timestamp_sync", mImuTimestampSync);
-    NODELET_INFO_STREAM(" * IMU timestamp sync\t\t-> " << (mImuTimestampSync ? "ENABLED" : "DISABLED"));
-    mNhNs.getParam("imu/imu_pub_rate", mImuPubRate);
-    NODELET_INFO_STREAM(" * IMU data freq\t\t-> " << mImuPubRate << " Hz");
-    // <---- IMU
+    // ----> Sensors
+    mNhNs.param<std::string>("sensors/imu_topic_root", mImuTopicRoot, "imu");
+    mNhNs.getParam("sensors/sensors_timestamp_sync", mSensTimestampSync);
+    NODELET_INFO_STREAM(" * Sensors timestamp sync\t-> " << (mSensTimestampSync ? "ENABLED" : "DISABLED"));
+    mNhNs.getParam("sensors/sens_pub_rate", mSensPubRate);
+    NODELET_INFO_STREAM(" * Sensors data freq\t\t-> " << mSensPubRate << " Hz");
+    // <---- Sensors
 
     // ----> SVO
     mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
@@ -638,7 +647,7 @@ void ZEDWrapperNodelet::readParameters() {
     mNhNs.param<std::string>("tracking/odometry_frame", mOdometryFrameId, "odom");
     mNhNs.param<std::string>("general/base_frame", mBaseFrameId, "base_link");
     mNhNs.param<std::string>("general/camera_frame", mCameraFrameId, "zed_camera_center");
-    mNhNs.param<std::string>("imu/imu_frame", mImuFrameId, "imu_link");
+    mNhNs.param<std::string>("sensors/imu_frame", mImuFrameId, "imu_link");
     mNhNs.param<std::string>("general/left_camera_frame", mLeftCamFrameId, "left_camera_frame");
     mNhNs.param<std::string>("general/left_camera_optical_frame", mLeftCamOptFrameId, "left_camera_optical_frame");
     mNhNs.param<std::string>("general/right_camera_frame", mRightCamFrameId, "right_camera_frame");
@@ -728,7 +737,6 @@ void ZEDWrapperNodelet::readParameters() {
     if (mCamAutoExposure) {
         mTriggerAutoExposure = true;
     }
-
     // <---- Dynamic
 
 }
@@ -1966,7 +1974,7 @@ void ZEDWrapperNodelet::pathPubCallback(const ros::TimerEvent& e) {
     }
 }
 
-void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
+void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
 
     if (mStreaming) {
         return;
@@ -1983,43 +1991,58 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
     uint32_t imu_TempSubNumber = mPubImuTemp.getNumSubscribers(); // TODO Check for ZED-M
     uint32_t imu_MagSubNumber = 0;
     uint32_t imu_MagRawSubNumber = 0;
+    uint32_t pressSubNumber = 0;
 
-    if( mZedRealCamModel != sl::MODEL::ZED2  ) {
-        imu_MagSubNumber = 0;
-        imu_MagRawSubNumber = 0;
-    } else {
+    if( mZedRealCamModel == sl::MODEL::ZED2 ) {
         imu_MagSubNumber = mPubImuMag.getNumSubscribers();
         imu_MagRawSubNumber = mPubImuMagRaw.getNumSubscribers();
+        pressSubNumber = mPubPressure.getNumSubscribers();
     }
 
     if (imu_SubNumber < 1 && imu_RawSubNumber < 1 &&
-            imu_TempSubNumber<1 &&
+            imu_TempSubNumber<1 && pressSubNumber<1 &&
             imu_MagSubNumber<1 && imu_MagRawSubNumber<1) {
         return;
     }
 
-    ros::Time t;
+    ros::Time t_imu;
+    ros::Time t_baro;
+    ros::Time t_mag;
+    ros::Time t_mag_raw;
 
-    if (mSvoMode) {
-        t = ros::Time::now();
-    } else {
-        if (mImuTimestampSync && mGrabActive) {
-            t = mFrameTimestamp;
-        } else {
-            t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
-        }
-    }
+    static ros::Time lastT_baro = ros::Time();
+    static ros::Time lastT_mag = ros::Time();
+    static ros::Time lastT_mag_raw = ros::Time();
 
     sl::SensorsData sens_data;
 
-    if (mImuTimestampSync && mGrabActive) {
+    if (mSensTimestampSync && mGrabActive) {
         mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
     } else {
         mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
     }
 
+    if (mSvoMode) {
+        t_imu = ros::Time::now();
+        t_baro = ros::Time::now();
+        t_mag = ros::Time::now();
+        t_mag_raw = ros::Time::now();
+    } else {
+        if (mSensTimestampSync && mGrabActive) {
+            t_imu = mFrameTimestamp;
+            t_baro = mFrameTimestamp;
+            t_mag = mFrameTimestamp;
+            t_mag_raw = mFrameTimestamp;
+        } else {
+            t_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
+            t_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
+            t_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
+            t_mag_raw = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
+        }
+    }
+
     if( imu_SubNumber > 0 || imu_RawSubNumber > 0 ||
-            imu_TempSubNumber > 0 ||
+            imu_TempSubNumber > 0 || pressSubNumber > 0 ||
             imu_MagSubNumber > 0 || imu_MagRawSubNumber > 0 ) {
         // Publish freq calculation
         static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
@@ -2028,16 +2051,16 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
         double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
         last_time = now;
 
-        mImuPeriodMean_usec->addValue(elapsed_usec);
+        mSensPeriodMean_usec->addValue(elapsed_usec);
 
-        mImuPublishing = true;
+        mSensPublishing = true;
     } else {
-        mImuPublishing = false;
+        mSensPublishing = false;
     }
 
     if (imu_TempSubNumber>0) {
         sensor_msgs::Temperature imu_temp_msg;
-        imu_temp_msg.header.stamp = t;
+        imu_temp_msg.header.stamp = t_imu;
         imu_temp_msg.header.frame_id = mImuFrameId;
         float imu_temp;
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, imu_temp);
@@ -2047,19 +2070,33 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
         mPubImuTemp.publish(imu_temp_msg);
     }
 
+    if( pressSubNumber>0 ) {
+        if( sens_data.barometer.is_available && lastT_baro != t_baro ) {
+            lastT_baro = t_baro;
+            sensor_msgs::FluidPressure press_msg;
+            press_msg.header.stamp = t_baro;
+            press_msg.header.frame_id = mCameraFrameId;
+            press_msg.fluid_pressure = sens_data.barometer.pressure * 1e-2; // Pascal
+            press_msg.variance = 1.0585e-2;
+
+            mPubPressure.publish(press_msg);
+        }
+    }
+
     if( imu_MagSubNumber>0 ) {
-        if( sens_data.magnetometer.is_available ) {
+        if( sens_data.magnetometer.is_available && lastT_mag != t_mag ) {
+            lastT_mag = t_mag;
             sensor_msgs::MagneticField mag_msg;
-            mag_msg.header.stamp = t;
+            mag_msg.header.stamp = t_mag;
             mag_msg.header.frame_id = mImuFrameId;
-            mag_msg.magnetic_field.x = sens_data.magnetometer.magnetic_field_calibrated.x*1e-6;
-            mag_msg.magnetic_field.y = sens_data.magnetometer.magnetic_field_calibrated.y*1e-6;
-            mag_msg.magnetic_field.z = sens_data.magnetometer.magnetic_field_calibrated.z*1e-6;
+            mag_msg.magnetic_field.x = sens_data.magnetometer.magnetic_field_calibrated.x*1e-6; // Tesla
+            mag_msg.magnetic_field.y = sens_data.magnetometer.magnetic_field_calibrated.y*1e-6; // Tesla
+            mag_msg.magnetic_field.z = sens_data.magnetometer.magnetic_field_calibrated.z*1e-6; // Tesla
             mag_msg.magnetic_field_covariance[0] = 0.039e-6;
             mag_msg.magnetic_field_covariance[1] = 0.0f;
             mag_msg.magnetic_field_covariance[2] = 0.0f;
-            mag_msg.magnetic_field_covariance[3] = 0.037e-6;
-            mag_msg.magnetic_field_covariance[4] = 0.0f;
+            mag_msg.magnetic_field_covariance[3] = 0.0f;
+            mag_msg.magnetic_field_covariance[4] = 0.037e-6;
             mag_msg.magnetic_field_covariance[5] = 0.0f;
             mag_msg.magnetic_field_covariance[6] = 0.0f;
             mag_msg.magnetic_field_covariance[7] = 0.0f;
@@ -2070,18 +2107,19 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
     }
 
     if( imu_MagRawSubNumber>0 ) {
-        if( sens_data.magnetometer.is_available ) {
+        if( sens_data.magnetometer.is_available && lastT_mag_raw != t_mag_raw ) {
+            lastT_mag_raw = t_mag_raw;
             sensor_msgs::MagneticField mag_msg;
-            mag_msg.header.stamp = t;
+            mag_msg.header.stamp = t_mag;
             mag_msg.header.frame_id = mImuFrameId;
-            mag_msg.magnetic_field.x = sens_data.magnetometer.magnetic_field_uncalibrated.x*1e-6;
-            mag_msg.magnetic_field.y = sens_data.magnetometer.magnetic_field_uncalibrated.y*1e-6;
-            mag_msg.magnetic_field.z = sens_data.magnetometer.magnetic_field_uncalibrated.z*1e-6;
+            mag_msg.magnetic_field.x = sens_data.magnetometer.magnetic_field_uncalibrated.x*1e-6; // Tesla
+            mag_msg.magnetic_field.y = sens_data.magnetometer.magnetic_field_uncalibrated.y*1e-6; // Tesla
+            mag_msg.magnetic_field.z = sens_data.magnetometer.magnetic_field_uncalibrated.z*1e-6; // Tesla
             mag_msg.magnetic_field_covariance[0] = 0.039e-6;
             mag_msg.magnetic_field_covariance[1] = 0.0f;
             mag_msg.magnetic_field_covariance[2] = 0.0f;
-            mag_msg.magnetic_field_covariance[3] = 0.037e-6;
-            mag_msg.magnetic_field_covariance[4] = 0.0f;
+            mag_msg.magnetic_field_covariance[3] = 0.0f;
+            mag_msg.magnetic_field_covariance[4] = 0.037e-6;
             mag_msg.magnetic_field_covariance[5] = 0.0f;
             mag_msg.magnetic_field_covariance[6] = 0.0f;
             mag_msg.magnetic_field_covariance[7] = 0.0f;
@@ -2093,7 +2131,7 @@ void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
 
     if (imu_SubNumber > 0) {
         sensor_msgs::Imu imu_msg;
-        imu_msg.header.stamp = t;
+        imu_msg.header.stamp = t_imu;
         imu_msg.header.frame_id = mImuFrameId;
 
         imu_msg.orientation.x = sens_data.imu.pose.getOrientation()[0];
@@ -3027,9 +3065,9 @@ void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWra
         stat.add("Capture", "INACTIVE");
     }
 
-    if (mImuPublishing) {
-        double freq = 1000000. / mImuPeriodMean_usec->getMean();
-        double freq_perc = 100.*freq / mImuPubRate;
+    if (mSensPublishing) {
+        double freq = 1000000. / mSensPeriodMean_usec->getMean();
+        double freq_perc = 100.*freq / mSensPubRate;
         stat.addf("IMU", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
     } else {
         stat.add("IMU", "Topics not subscribed");
