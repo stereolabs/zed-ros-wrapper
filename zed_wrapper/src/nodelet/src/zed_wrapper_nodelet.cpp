@@ -516,7 +516,7 @@ void ZEDWrapperNodelet::readParameters() {
 
 
     string camera_model;
-    mNhNs.getParam("camera_model", camera_model);
+    mNhNs.getParam("general/camera_model", camera_model);
 
     if (camera_model == "zed") {
         mZedUserCamModel = sl::MODEL::ZED;
@@ -3111,6 +3111,14 @@ void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWra
         stat.add("Capture", "INACTIVE");
     }
 
+    if (mSensPublishing) {
+        double freq = 1000000. / mSensPeriodMean_usec->getMean();
+        double freq_perc = 100.*freq / mSensPubRate;
+        stat.addf("IMU", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+    } else {
+        stat.add("IMU", "Topics not subscribed");
+    }
+
     if( mSensPubRate > 0 && mZedRealCamModel == sl::MODEL::ZED2 ) {
         stat.addf("Left CMOS Temp.", "%.1f °C", mTempLeft);
         stat.addf("Right CMOS Temp.", "%.1f °C", mTempRight);
@@ -3121,14 +3129,6 @@ void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWra
     } else {
         stat.add("Left CMOS Temp.", "N/A");
         stat.add("Right CMOS Temp.", "N/A");
-    }
-
-    if (mSensPublishing) {
-        double freq = 1000000. / mSensPeriodMean_usec->getMean();
-        double freq_perc = 100.*freq / mSensPubRate;
-        stat.addf("IMU", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
-    } else {
-        stat.add("IMU", "Topics not subscribed");
     }
 
     if (mRecording) {
