@@ -1,6 +1,7 @@
 # Stereolabs ZED Camera - ROS Integration
 
-This package lets you use the ZED stereo camera with ROS. It outputs the camera left and right images, depth map, point cloud, pose information and supports the use of multiple ZED cameras.
+This package lets you use the ZED stereo cameras with ROS. It outputs the camera left and right images, depth map, point cloud, pose information and supports the use of multiple ZED cameras.
+The ZED ROS wrapper is compatible with ZED, ZED Mini and ZED2 camera models.
 
 ## Getting started
 
@@ -10,13 +11,13 @@ This package lets you use the ZED stereo camera with ROS. It outputs the camera 
 
 ### Prerequisites
 
-- Ubuntu 16.04
-- [ZED SDK **≥ 2.3**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
-- [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu)
+- Ubuntu 16.04 or newer
+- [ZED SDK **≥ 3.0**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu) or newer
 
 ### Build the program
 
-The zed_ros_wrapper is a catkin package. It depends on the following ROS packages:
+The *zed_ros_wrapper* is a catkin package. It depends on the following ROS packages:
 
 - tf2_ros
 - tf2_geometry_msgs
@@ -35,21 +36,31 @@ The zed_ros_wrapper is a catkin package. It depends on the following ROS package
 - robot_state_publisher
 - message_runtime
 
-Open a terminal and build the package:
+Open a terminal and clone the package in your catkin workspace:
+    $ mkdir -p ~/catkin_ws/src
+    $ cd ~/catkin_ws/src
+    $ git clone https://github.com/stereolabs/zed-ros-wrapper.git
+    $ cd ../
 
-    cd ~/catkin_ws/src
-    git clone https://github.com/stereolabs/zed-ros-wrapper.git
-    cd ../
-    catkin_make
-    source ./devel/setup.bash
+Automatically satisfy all the dependencies
+    $ rosdep install --from-paths src --ignore-src -r -y
+**Note**: This command magically installs all the packages that the packages in your catkin workspace depend upon
+but are missing on your computer.
+
+Compile the package
+    $ catkin_make
+    $ source ./devel/setup.bash
 
 ### Run the program
 
 To launch ZED node, use:
 
+*ZED*
     $ roslaunch zed_wrapper zed.launch
-
-**Note**: Remember to change the parameter `camera_model` to `0` if you are using a **ZED** or to `1` if you are using a **ZED Mini**
+*ZED Mini*
+    $ roslaunch zed_wrapper zedm.launch
+*ZED 2*
+    $ roslaunch zed_wrapper zed2.launch
 
  To select the ZED from its serial number
 
