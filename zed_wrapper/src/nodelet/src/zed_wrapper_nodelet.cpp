@@ -295,6 +295,9 @@ void ZEDWrapperNodelet::onInit() {
     string imu_mag_topic;
     string imu_mag_topic_raw;
     string pressure_topic = "atm_press";
+    string temp_topic_root = "temperature";
+    string temp_topic_left = temp_topic_root + "/left";
+    string temp_topic_right = temp_topic_root + "/right";
 
     if (mZedRealCamModel != sl::MODEL::ZED) {
         string imu_topic_name = "data";
@@ -420,9 +423,6 @@ void ZEDWrapperNodelet::onInit() {
             mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, static_cast<int>(mSensPubRate));
             NODELET_INFO_STREAM("Advertised on topic " << mPubImuRaw.getTopic() << " @ "
                                 << mSensPubRate << " Hz");
-            mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, static_cast<int>(mSensPubRate));
-            NODELET_INFO_STREAM("Advertised on topic " << mPubImuTemp.getTopic() << " @ "
-                                << mSensPubRate << " Hz");
             mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, MAG_FREQ);
             NODELET_INFO_STREAM("Advertised on topic " << mPubImuMag.getTopic() << " @ "
                                 << std::min(MAG_FREQ,mSensPubRate) << " Hz");
@@ -431,8 +431,21 @@ void ZEDWrapperNodelet::onInit() {
                                 << std::min(MAG_FREQ,mSensPubRate) << " Hz");
 
             if( mZedRealCamModel == sl::MODEL::ZED2 ) {
+                // IMU temperature sensor
+                mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, static_cast<int>(mSensPubRate));
+                NODELET_INFO_STREAM("Advertised on topic " << mPubImuTemp.getTopic() << " @ " << mSensPubRate << " Hz");
+
+                // Atmospheric pressure
                 mPubPressure = mNhNs.advertise<sensor_msgs::FluidPressure>(pressure_topic, static_cast<int>(BARO_FREQ));
                 NODELET_INFO_STREAM("Advertised on topic " << mPubPressure.getTopic() << " @ "
+                                    << std::min(BARO_FREQ,mSensPubRate ) << " Hz");
+
+                // CMOS sensor temperatures
+                mPubTempL = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_left, static_cast<int>(BARO_FREQ));
+                NODELET_INFO_STREAM("Advertised on topic " << mPubTempL.getTopic() << " @ "
+                                    << std::min(BARO_FREQ,mSensPubRate ) << " Hz");
+                mPubTempR = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_right, static_cast<int>(BARO_FREQ));
+                NODELET_INFO_STREAM("Advertised on topic " << mPubTempR.getTopic() << " @ "
                                     << std::min(BARO_FREQ,mSensPubRate ) << " Hz");
             }
 
@@ -1988,29 +2001,31 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
 
     uint32_t imu_SubNumber = mPubImu.getNumSubscribers();
     uint32_t imu_RawSubNumber = mPubImuRaw.getNumSubscribers();
-    uint32_t imu_TempSubNumber = mPubImuTemp.getNumSubscribers(); // TODO Check for ZED-M
+    uint32_t imu_TempSubNumber = 0;
     uint32_t imu_MagSubNumber = 0;
     uint32_t imu_MagRawSubNumber = 0;
     uint32_t pressSubNumber = 0;
+    uint32_t tempLeftSubNumber = 0;
+    uint32_t tempRightSubNumber = 0;
 
     if( mZedRealCamModel == sl::MODEL::ZED2 ) {
+        imu_TempSubNumber = mPubImuTemp.getNumSubscribers();
         imu_MagSubNumber = mPubImuMag.getNumSubscribers();
         imu_MagRawSubNumber = mPubImuMagRaw.getNumSubscribers();
         pressSubNumber = mPubPressure.getNumSubscribers();
+        tempLeftSubNumber = mPubTempL.getNumSubscribers();
+        tempRightSubNumber = mPubTempR.getNumSubscribers();
     }
 
-    if (imu_SubNumber < 1 && imu_RawSubNumber < 1 &&
-            imu_TempSubNumber<1 && pressSubNumber<1 &&
-            imu_MagSubNumber<1 && imu_MagRawSubNumber<1) {
-        return;
-    }
+    int totSub = imu_SubNumber + imu_RawSubNumber + imu_TempSubNumber + imu_MagSubNumber + imu_MagRawSubNumber +
+            pressSubNumber + tempLeftSubNumber + tempRightSubNumber;
 
-    ros::Time t_imu;
-    ros::Time t_baro;
-    ros::Time t_mag;
-    ros::Time t_mag_raw;
+    ros::Time ts_imu;
+    ros::Time ts_baro;
+    ros::Time ts_mag;
+    ros::Time ts_mag_raw;
 
-    static ros::Time lastT_baro = ros::Time();
+    static ros::Time lastTs_baro = ros::Time();
     static ros::Time lastT_mag = ros::Time();
     static ros::Time lastT_mag_raw = ros::Time();
 
@@ -2023,22 +2038,32 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
     }
 
     if (mSvoMode) {
-        t_imu = ros::Time::now();
-        t_baro = ros::Time::now();
-        t_mag = ros::Time::now();
-        t_mag_raw = ros::Time::now();
+        ts_imu = ros::Time::now();
+        ts_baro = ros::Time::now();
+        ts_mag = ros::Time::now();
+        ts_mag_raw = ros::Time::now();
     } else {
         if (mSensTimestampSync && mGrabActive) {
-            t_imu = mFrameTimestamp;
-            t_baro = mFrameTimestamp;
-            t_mag = mFrameTimestamp;
-            t_mag_raw = mFrameTimestamp;
+            ts_imu = mFrameTimestamp;
+            ts_baro = mFrameTimestamp;
+            ts_mag = mFrameTimestamp;
+            ts_mag_raw = mFrameTimestamp;
         } else {
-            t_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
-            t_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
-            t_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
-            t_mag_raw = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
+            ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
+            ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
+            ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
+            ts_mag_raw = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
         }
+    }
+
+    if( mZedRealCamModel == sl::MODEL::ZED2 ) {
+        // Update temperatures for Diagnostic
+        sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_LEFT, mTempLeft);
+        sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
+    }
+
+    if (totSub<1) { // Nothing to publish
+        return;
     }
 
     if( imu_SubNumber > 0 || imu_RawSubNumber > 0 ||
@@ -2060,7 +2085,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
 
     if (imu_TempSubNumber>0) {
         sensor_msgs::Temperature imu_temp_msg;
-        imu_temp_msg.header.stamp = t_imu;
+        imu_temp_msg.header.stamp = ts_imu;
         imu_temp_msg.header.frame_id = mImuFrameId;
         float imu_temp;
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, imu_temp);
@@ -2070,24 +2095,46 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
         mPubImuTemp.publish(imu_temp_msg);
     }
 
-    if( pressSubNumber>0 ) {
-        if( sens_data.barometer.is_available && lastT_baro != t_baro ) {
-            lastT_baro = t_baro;
+
+    if( sens_data.barometer.is_available && lastTs_baro != ts_baro ) {
+        lastTs_baro = ts_baro;
+
+        if( pressSubNumber>0 ) {
             sensor_msgs::FluidPressure press_msg;
-            press_msg.header.stamp = t_baro;
+            press_msg.header.stamp = ts_baro;
             press_msg.header.frame_id = mCameraFrameId;
             press_msg.fluid_pressure = sens_data.barometer.pressure * 1e-2; // Pascal
             press_msg.variance = 1.0585e-2;
 
             mPubPressure.publish(press_msg);
         }
+
+        if( tempLeftSubNumber>0 ) {
+            sensor_msgs::Temperature temp_msg;
+            temp_msg.header.stamp = ts_baro;
+            temp_msg.header.frame_id = mLeftCamFrameId;
+            temp_msg.temperature = static_cast<double>(mTempLeft);
+            temp_msg.variance = 0.0;
+
+            mPubTempL.publish(temp_msg);
+        }
+
+        if( tempRightSubNumber>0 ) {
+            sensor_msgs::Temperature temp_msg;
+            temp_msg.header.stamp = ts_baro;
+            temp_msg.header.frame_id = mRightCamFrameId;
+            temp_msg.temperature = static_cast<double>(mTempRight);
+            temp_msg.variance = 0.0;
+
+            mPubTempR.publish(temp_msg);
+        }
     }
 
     if( imu_MagSubNumber>0 ) {
-        if( sens_data.magnetometer.is_available && lastT_mag != t_mag ) {
-            lastT_mag = t_mag;
+        if( sens_data.magnetometer.is_available && lastT_mag != ts_mag ) {
+            lastT_mag = ts_mag;
             sensor_msgs::MagneticField mag_msg;
-            mag_msg.header.stamp = t_mag;
+            mag_msg.header.stamp = ts_mag;
             mag_msg.header.frame_id = mImuFrameId;
             mag_msg.magnetic_field.x = sens_data.magnetometer.magnetic_field_calibrated.x*1e-6; // Tesla
             mag_msg.magnetic_field.y = sens_data.magnetometer.magnetic_field_calibrated.y*1e-6; // Tesla
@@ -2107,10 +2154,10 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
     }
 
     if( imu_MagRawSubNumber>0 ) {
-        if( sens_data.magnetometer.is_available && lastT_mag_raw != t_mag_raw ) {
-            lastT_mag_raw = t_mag_raw;
+        if( sens_data.magnetometer.is_available && lastT_mag_raw != ts_mag_raw ) {
+            lastT_mag_raw = ts_mag_raw;
             sensor_msgs::MagneticField mag_msg;
-            mag_msg.header.stamp = t_mag;
+            mag_msg.header.stamp = ts_mag;
             mag_msg.header.frame_id = mImuFrameId;
             mag_msg.magnetic_field.x = sens_data.magnetometer.magnetic_field_uncalibrated.x*1e-6; // Tesla
             mag_msg.magnetic_field.y = sens_data.magnetometer.magnetic_field_uncalibrated.y*1e-6; // Tesla
@@ -2131,7 +2178,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
 
     if (imu_SubNumber > 0) {
         sensor_msgs::Imu imu_msg;
-        imu_msg.header.stamp = t_imu;
+        imu_msg.header.stamp = ts_imu;
         imu_msg.header.frame_id = mImuFrameId;
 
         imu_msg.orientation.x = sens_data.imu.pose.getOrientation()[0];
@@ -2695,7 +2742,6 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             } else {
                 mPcPublishing = false;
             }
-
             mCamDataMutex.unlock();
 
             // Publish the odometry if someone has subscribed to
@@ -3063,6 +3109,18 @@ void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWra
     } else {
         stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Waiting for data subscriber");
         stat.add("Capture", "INACTIVE");
+    }
+
+    if( mSensPubRate > 0 && mZedRealCamModel == sl::MODEL::ZED2 ) {
+        stat.addf("Left CMOS Temp.", "%.1f °C", mTempLeft);
+        stat.addf("Right CMOS Temp.", "%.1f °C", mTempRight);
+
+        if( mTempLeft>70.f || mTempRight>70.f ) {
+            stat.summary(diagnostic_msgs::DiagnosticStatus::WARN, "Camera temperature");
+        }
+    } else {
+        stat.add("Left CMOS Temp.", "N/A");
+        stat.add("Right CMOS Temp.", "N/A");
     }
 
     if (mSensPublishing) {

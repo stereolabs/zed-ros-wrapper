@@ -354,6 +354,8 @@ private:
     ros::Publisher mPubImuMag;
     ros::Publisher mPubImuMagRaw;
     ros::Publisher mPubPressure;
+    ros::Publisher mPubTempL;
+    ros::Publisher mPubTempR;
 
     // Timers
     ros::Timer mImuTimer;
@@ -570,6 +572,8 @@ private:
     boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> mDynRecServer;
 
     // Diagnostic
+    float mTempLeft = -273.15f;
+    float mTempRight = -273.15f;
     std::unique_ptr<sl_tools::CSmartMean> mElabPeriodMean_sec;
     std::unique_ptr<sl_tools::CSmartMean> mGrabPeriodMean_usec;
     std::unique_ptr<sl_tools::CSmartMean> mPcPeriodMean_usec;
