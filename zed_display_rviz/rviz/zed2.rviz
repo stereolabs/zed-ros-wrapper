@@ -504,7 +504,7 @@ Visualization Manager:
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
-      Enabled: true
+      Enabled: false
       Name: Mapping
     - Alpha: 1
       Autocompute Intensity Bounds: false
@@ -564,25 +564,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 10
+      Distance: 3.5963454246520996
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 0.7516101598739624
+        Y: 0.4063284695148468
+        Z: 0.0899573415517807
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7853981852531433
+      Pitch: 0.4853987693786621
       Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 0.7853981852531433
+      Yaw: 2.880406141281128
     Saved: ~
 Window Geometry:
   Camera view:

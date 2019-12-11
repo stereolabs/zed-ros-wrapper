@@ -54,6 +54,20 @@
 #include <zed_wrapper/set_led_status.h>
 #include <zed_wrapper/toggle_led.h>
 
+// Topics
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/FluidPressure.h>
+#include <sensor_msgs/Temperature.h>
+#include <sensor_msgs/MagneticField.h>
+#include <sensor_msgs/distortion_models.h>
+#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/point_cloud2_iterator.h>
+#include <stereo_msgs/DisparityImage.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -143,6 +157,7 @@ protected:
     void publishImuFrame(tf2::Transform imuTransform, ros::Time t);
 
     /* \brief Publish a sl::Mat image with a ros Publisher
+         * \param imgMsgPtr : the image message to publish
          * \param img : the image to publish
          * \param pubImg : the publisher object to use (different image publishers
          * exist)
@@ -151,14 +166,15 @@ protected:
          * image frames exist)
          * \param t : the ros::Time to stamp the image
          */
-    void publishImage(sl::Mat img, image_transport::CameraPublisher& pubImg, sensor_msgs::CameraInfoPtr camInfoMsg,
+    void publishImage(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img, image_transport::CameraPublisher& pubImg, sensor_msgs::CameraInfoPtr camInfoMsg,
                       string imgFrameId, ros::Time t);
 
     /* \brief Publish a sl::Mat depth image with a ros Publisher
+     * \param imgMsgPtr : the depth image topic message to publish
          * \param depth : the depth image to publish
          * \param t : the ros::Time to stamp the depth image
          */
-    void publishDepth(sl::Mat depth, ros::Time t);
+    void publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat depth, ros::Time t);
 
     /* \brief Publish a sl::Mat confidence image with a ros Publisher
          * \param conf : the confidence image to publish
@@ -583,6 +599,30 @@ private:
 
     // Messages as shared pointers to exploit Intraprocess communication advantages
     // (http://wiki.ros.org/roscpp/Overview/Publishers%20and%20Subscribers#Intraprocess_Publishing)
+    nav_msgs::OdometryPtr mOdomMsg;
+    geometry_msgs::PoseWithCovarianceStampedPtr mPoseCovMsg;
+    sensor_msgs::ImuPtr mImuMsg;
+    sensor_msgs::ImuPtr mImuRawMsg;
+    sensor_msgs::MagneticFieldPtr mMagMsg;
+    sensor_msgs::MagneticFieldPtr mMagRawMsg;
+    sensor_msgs::TemperaturePtr mTempLeftMsg;
+    sensor_msgs::TemperaturePtr mTempRightMsg;
+    sensor_msgs::TemperaturePtr mImuTempMsg;
+    sensor_msgs::FluidPressurePtr mPressMsg;
+    sensor_msgs::ImagePtr mLeftImgMsg;
+    sensor_msgs::ImagePtr mRawLeftImgMsg;
+    sensor_msgs::ImagePtr mRightImgMsg;
+    sensor_msgs::ImagePtr mRawRightImgMsg;
+    sensor_msgs::ImagePtr mRgbImgMsg;
+    sensor_msgs::ImagePtr mRawRgbImgMsg;
+    sensor_msgs::ImagePtr mConfImgMsg;
+    sensor_msgs::ImagePtr mConfMapMsg;
+    sensor_msgs::ImagePtr mStereoImgMsg;
+    sensor_msgs::ImagePtr mRawStereoImgMsg;
+    sensor_msgs::ImagePtr mDepthImgMsg;
+    sensor_msgs::ImagePtr mDisparityImgMsg;
+    stereo_msgs::DisparityImagePtr mDisparityMsg;
+
 
 }; // class ZEDROSWrapperNodelet
 } // namespace

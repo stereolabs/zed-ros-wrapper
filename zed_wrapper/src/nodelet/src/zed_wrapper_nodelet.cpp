@@ -27,19 +27,6 @@
 #include <ros/console.h>
 #endif
 
-#include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/FluidPressure.h>
-#include <sensor_msgs/Temperature.h>
-#include <sensor_msgs/MagneticField.h>
-#include <sensor_msgs/distortion_models.h>
-#include <sensor_msgs/image_encodings.h>
-#include <sensor_msgs/point_cloud2_iterator.h>
-#include <stereo_msgs/DisparityImage.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-
 namespace zed_wrapper {
 
 #ifndef DEG2RAD
@@ -369,13 +356,11 @@ void ZEDWrapperNodelet::onInit() {
     mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(mDisparityTopic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubDisparity.getTopic());
 
-    // PointCloud publisher
-    mPointcloudMsg.reset(new sensor_msgs::PointCloud2);
+    // PointCloud publisher    
     mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_topic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubCloud.getTopic());
 
     if (mMappingEnabled) {
-        mPointcloudFusedMsg.reset(new sensor_msgs::PointCloud2);
         mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
     }
@@ -1221,29 +1206,33 @@ void ZEDWrapperNodelet::start_tracking() {
 }
 
 void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t) {
-    nav_msgs::Odometry odom;
-    odom.header.stamp = t;
-    odom.header.frame_id = mOdometryFrameId; // frame
-    odom.child_frame_id = mBaseFrameId;      // camera_frame
+
+    if(!mOdomMsg) {
+        mOdomMsg = boost::make_shared<nav_msgs::Odometry>();
+    }
+
+    mOdomMsg->header.stamp = t;
+    mOdomMsg->header.frame_id = mOdometryFrameId; // frame
+    mOdomMsg->child_frame_id = mBaseFrameId;      // camera_frame
     // conversion from Tranform to message
     geometry_msgs::Transform base2odom = tf2::toMsg(odom2baseTransf);
     // Add all value in odometry message
-    odom.pose.pose.position.x = base2odom.translation.x;
-    odom.pose.pose.position.y = base2odom.translation.y;
-    odom.pose.pose.position.z = base2odom.translation.z;
-    odom.pose.pose.orientation.x = base2odom.rotation.x;
-    odom.pose.pose.orientation.y = base2odom.rotation.y;
-    odom.pose.pose.orientation.z = base2odom.rotation.z;
-    odom.pose.pose.orientation.w = base2odom.rotation.w;
+    mOdomMsg->pose.pose.position.x = base2odom.translation.x;
+    mOdomMsg->pose.pose.position.y = base2odom.translation.y;
+    mOdomMsg->pose.pose.position.z = base2odom.translation.z;
+    mOdomMsg->pose.pose.orientation.x = base2odom.rotation.x;
+    mOdomMsg->pose.pose.orientation.y = base2odom.rotation.y;
+    mOdomMsg->pose.pose.orientation.z = base2odom.rotation.z;
+    mOdomMsg->pose.pose.orientation.w = base2odom.rotation.w;
 
     // Odometry pose covariance if available
     if (!mFixedCov && mPublishPoseCovariance) {
-        for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
-            odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]);
+        for (size_t i = 0; i < mOdomMsg->pose.covariance.size(); i++) {
+            mOdomMsg->pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]);
 
             if (mTwoDMode) {
                 if (i == 14 || i == 21 || i == 28) {
-                    odom.pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
+                    mOdomMsg->pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
                 } else if ((i >= 2 && i <= 4) ||
                            (i >= 8 && i <= 10) ||
                            (i >= 12 && i <= 13) ||
@@ -1251,18 +1240,18 @@ void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& sl
                            (i >= 18 && i <= 20) ||
                            (i == 22) ||
                            (i >= 24 && i <= 27)) {
-                    odom.pose.covariance[i] = 0.0;
+                    mOdomMsg->pose.covariance[i] = 0.0;
                 }
             }
         }
     } else {
-        for (size_t i = 0; i < odom.pose.covariance.size(); i += 7) {
-            odom.pose.covariance[i] = mFixedCovValue;
+        for (size_t i = 0; i < mOdomMsg->pose.covariance.size(); i += 7) {
+            mOdomMsg->pose.covariance[i] = mFixedCovValue;
         }
     }
 
     // Publish odometry message
-    mPubOdom.publish(odom);
+    mPubOdom.publish(mOdomMsg);
 }
 
 void ZEDWrapperNodelet::publishPose(ros::Time t) {
@@ -1304,20 +1293,23 @@ void ZEDWrapperNodelet::publishPose(ros::Time t) {
     }
 
     if (mPublishPoseCovariance) {
-        if (mPubPoseCov.getNumSubscribers() > 0) {
-            geometry_msgs::PoseWithCovarianceStamped poseCov;
+        if (mPubPoseCov.getNumSubscribers() > 0) {            
 
-            poseCov.header = header;
-            poseCov.pose.pose = pose;
+            if(!mPoseCovMsg) {
+                mPoseCovMsg = boost::make_shared<geometry_msgs::PoseWithCovarianceStamped>();
+            }
+
+            mPoseCovMsg->header = header;
+            mPoseCovMsg->pose.pose = pose;
 
             // Odometry pose covariance if available
             if (!mFixedCov) {
-                for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
-                    poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+                for (size_t i = 0; i < mPoseCovMsg->pose.covariance.size(); i++) {
+                    mPoseCovMsg->pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
 
                     if (mTwoDMode) {
                         if (i == 14 || i == 21 || i == 28) {
-                            poseCov.pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
+                            mPoseCovMsg->pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
                         } else if ((i >= 2 && i <= 4) ||
                                    (i >= 8 && i <= 10) ||
                                    (i >= 12 && i <= 13) ||
@@ -1325,18 +1317,18 @@ void ZEDWrapperNodelet::publishPose(ros::Time t) {
                                    (i >= 18 && i <= 20) ||
                                    (i == 22) ||
                                    (i >= 24 && i <= 27)) {
-                            poseCov.pose.covariance[i] = 0.0;
+                            mPoseCovMsg->pose.covariance[i] = 0.0;
                         }
                     }
                 }
             } else {
-                for (size_t i = 0; i < poseCov.pose.covariance.size(); i += 7) {
-                    poseCov.pose.covariance[i] = mFixedCovValue;
+                for (size_t i = 0; i < mPoseCovMsg->pose.covariance.size(); i += 7) {
+                    mPoseCovMsg->pose.covariance[i] = mFixedCovValue;
                 }
             }
 
             // Publish pose with covariance stamped message
-            mPubPoseCov.publish(poseCov);
+            mPubPoseCov.publish(mPoseCovMsg);
         }
     }
 }
@@ -1410,70 +1402,81 @@ void ZEDWrapperNodelet::publishImuFrame(tf2::Transform imuTransform, ros::Time t
     mTransformImuBroadcaster.sendTransform(transformStamped);
 }
 
-void ZEDWrapperNodelet::publishImage(sl::Mat img,
+void ZEDWrapperNodelet::publishImage(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img,
                                      image_transport::CameraPublisher& pubImg, sensor_msgs::CameraInfoPtr camInfoMsg,
                                      string imgFrameId, ros::Time t) {
     camInfoMsg->header.stamp = t;
-    pubImg.publish(sl_tools::imageToROSmsg(img, imgFrameId, t), camInfoMsg);
+    sl_tools::imageToROSmsg( imgMsgPtr, img, imgFrameId, t);
+    pubImg.publish(imgMsgPtr, camInfoMsg);
 }
 
-void ZEDWrapperNodelet::publishDepth(sl::Mat depth, ros::Time t) {
+void ZEDWrapperNodelet::publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat depth, ros::Time t) {
 
     mDepthCamInfoMsg->header.stamp = t;
 
     if (!mOpenniDepthMode) {
-        mPubDepth.publish(*sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t), *mDepthCamInfoMsg, t);
+        sl_tools::imageToROSmsg(imgMsgPtr, depth, mDepthOptFrameId, t);
+        mPubDepth.publish(imgMsgPtr, mDepthCamInfoMsg);
         return;
     }
 
     // OPENNI CONVERSION (meter -> millimeters - float32 -> uint16)
-    sensor_msgs::ImagePtr depthMessage = boost::make_shared<sensor_msgs::Image>();
+    if(!imgMsgPtr) {
+        imgMsgPtr = boost::make_shared<sensor_msgs::Image>();
+    }
 
-    depthMessage->header.stamp = t;
-    depthMessage->header.frame_id = mDepthOptFrameId;
-    depthMessage->height = depth.getHeight();
-    depthMessage->width = depth.getWidth();
+    imgMsgPtr->header.stamp = t;
+    imgMsgPtr->header.frame_id = mDepthOptFrameId;
+    imgMsgPtr->height = depth.getHeight();
+    imgMsgPtr->width = depth.getWidth();
 
     int num = 1; // for endianness detection
-    depthMessage->is_bigendian = !(*(char*)&num == 1);
+    imgMsgPtr->is_bigendian = !(*(char*)&num == 1);
 
-    depthMessage->step = depthMessage->width * sizeof(uint16_t);
-    depthMessage->encoding = sensor_msgs::image_encodings::MONO16;
+    imgMsgPtr->step = imgMsgPtr->width * sizeof(uint16_t);
+    imgMsgPtr->encoding = sensor_msgs::image_encodings::MONO16;
 
-    size_t size = depthMessage->step * depthMessage->height;
-    depthMessage->data.resize(size);
+    size_t size = imgMsgPtr->step * imgMsgPtr->height;
+    imgMsgPtr->data.resize(size);
 
-    uint16_t* data = (uint16_t*)(&depthMessage->data[0]);
+    uint16_t* data = (uint16_t*)(&imgMsgPtr->data[0]);
 
-    int dataSize = depthMessage->width * depthMessage->height;
+    int dataSize = imgMsgPtr->width * imgMsgPtr->height;
     sl::float1* depthDataPtr = depth.getPtr<sl::float1>();
 
     for (int i = 0; i < dataSize; i++) {
         *(data++) = static_cast<uint16_t>(std::round(*(depthDataPtr++) * 1000));    // in mm, rounded
     }
 
-    mPubDepth.publish(depthMessage, mDepthCamInfoMsg);
+    mPubDepth.publish(imgMsgPtr, mDepthCamInfoMsg);
 }
 
 void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t) {
 
     sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResol);
 
-    sensor_msgs::ImagePtr disparity_image = sl_tools::imageToROSmsg(disparity, mDisparityFrameId, t);
-
-    stereo_msgs::DisparityImage msg;
-    msg.image = *disparity_image;
-    msg.header = msg.image.header;
-    msg.f = zedParam.calibration_parameters.left_cam.fx;
-    msg.T = zedParam.calibration_parameters.T.x;
-
-    if (msg.T > 0) {
-        msg.T *= -1.0f;
+    if(!mDisparityImgMsg) {
+        mDisparityImgMsg = boost::make_shared<sensor_msgs::Image>();
     }
 
-    msg.min_disparity = msg.f * msg.T / mZed.getInitParameters().depth_minimum_distance;
-    msg.max_disparity = msg.f * msg.T / mZed.getInitParameters().depth_maximum_distance;
-    mPubDisparity.publish(msg);
+    sl_tools::imageToROSmsg(mDisparityImgMsg,disparity, mDisparityFrameId, t);
+
+    if(!mDisparityMsg) {
+        mDisparityMsg = boost::make_shared<stereo_msgs::DisparityImage>();
+    }
+
+    mDisparityMsg->image = *mDisparityImgMsg;
+    mDisparityMsg->header = mDisparityMsg->image.header;
+    mDisparityMsg->f = zedParam.calibration_parameters.left_cam.fx;
+    mDisparityMsg->T = zedParam.calibration_parameters.T.x;
+
+    if (mDisparityMsg->T > 0) {
+        mDisparityMsg->T *= -1.0f;
+    }
+
+    mDisparityMsg->min_disparity = mDisparityMsg->f * mDisparityMsg->T / mZed.getInitParameters().depth_minimum_distance;
+    mDisparityMsg->max_disparity = mDisparityMsg->f * mDisparityMsg->T / mZed.getInitParameters().depth_maximum_distance;
+    mPubDisparity.publish(mDisparityMsg);
 }
 
 void ZEDWrapperNodelet::pointcloud_thread_func() {
@@ -1516,6 +1519,10 @@ void ZEDWrapperNodelet::pointcloud_thread_func() {
 }
 
 void ZEDWrapperNodelet::publishPointCloud() {
+    if( !mPointcloudMsg ) {
+        mPointcloudMsg = boost::make_shared<sensor_msgs::PointCloud2>();
+    }
+
     // Publish freq calculation
     static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
@@ -1561,6 +1568,10 @@ void ZEDWrapperNodelet::publishPointCloud() {
 }
 
 void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
+    if( !mPointcloudFusedMsg ) {
+        mPointcloudFusedMsg = boost::make_shared<sensor_msgs::PointCloud2>();
+    }
+
     uint32_t fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
 
     if (fusedCloudSubnumber == 0) {
@@ -2084,15 +2095,18 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
     }
 
     if (imu_TempSubNumber>0) {
-        sensor_msgs::Temperature imu_temp_msg;
-        imu_temp_msg.header.stamp = ts_imu;
-        imu_temp_msg.header.frame_id = mImuFrameId;
+        if(!mImuTempMsg) {
+            mImuTempMsg = boost::make_shared<sensor_msgs::Temperature>();
+        }
+
+        mImuTempMsg->header.stamp = ts_imu;
+        mImuTempMsg->header.frame_id = mImuFrameId;
         float imu_temp;
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, imu_temp);
-        imu_temp_msg.temperature = static_cast<double>(imu_temp);
-        imu_temp_msg.variance = 0.0;
+        mImuTempMsg->temperature = static_cast<double>(imu_temp);
+        mImuTempMsg->variance = 0.0;
 
-        mPubImuTemp.publish(imu_temp_msg);
+        mPubImuTemp.publish(mImuTempMsg);
     }
 
 
@@ -2100,99 +2114,122 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
         lastTs_baro = ts_baro;
 
         if( pressSubNumber>0 ) {
-            sensor_msgs::FluidPressure press_msg;
-            press_msg.header.stamp = ts_baro;
-            press_msg.header.frame_id = mCameraFrameId;
-            press_msg.fluid_pressure = sens_data.barometer.pressure * 1e-2; // Pascal
-            press_msg.variance = 1.0585e-2;
+            if(!mPressMsg) {
+                mPressMsg = boost::make_shared<sensor_msgs::FluidPressure>();
+            }
 
-            mPubPressure.publish(press_msg);
+            mPressMsg->header.stamp = ts_baro;
+            mPressMsg->header.frame_id = mCameraFrameId;
+            mPressMsg->fluid_pressure = sens_data.barometer.pressure * 1e-2; // Pascal
+            mPressMsg->variance = 1.0585e-2;
+
+            mPubPressure.publish(mPressMsg);
         }
 
         if( tempLeftSubNumber>0 ) {
-            sensor_msgs::Temperature temp_msg;
-            temp_msg.header.stamp = ts_baro;
-            temp_msg.header.frame_id = mLeftCamFrameId;
-            temp_msg.temperature = static_cast<double>(mTempLeft);
-            temp_msg.variance = 0.0;
 
-            mPubTempL.publish(temp_msg);
+            if(!mTempLeftMsg) {
+                mTempLeftMsg = boost::make_shared<sensor_msgs::Temperature>();
+            }
+
+            mTempLeftMsg->header.stamp = ts_baro;
+            mTempLeftMsg->header.frame_id = mLeftCamFrameId;
+            mTempLeftMsg->temperature = static_cast<double>(mTempLeft);
+            mTempLeftMsg->variance = 0.0;
+
+            mPubTempL.publish(mTempLeftMsg);
         }
 
         if( tempRightSubNumber>0 ) {
-            sensor_msgs::Temperature temp_msg;
-            temp_msg.header.stamp = ts_baro;
-            temp_msg.header.frame_id = mRightCamFrameId;
-            temp_msg.temperature = static_cast<double>(mTempRight);
-            temp_msg.variance = 0.0;
 
-            mPubTempR.publish(temp_msg);
+            if(!mTempRightMsg) {
+                mTempRightMsg = boost::make_shared<sensor_msgs::Temperature>();
+            }
+
+            mTempRightMsg->header.stamp = ts_baro;
+            mTempRightMsg->header.frame_id = mRightCamFrameId;
+            mTempRightMsg->temperature = static_cast<double>(mTempRight);
+            mTempRightMsg->variance = 0.0;
+
+            mPubTempR.publish(mTempRightMsg);
         }
     }
 
     if( imu_MagSubNumber>0 ) {
         if( sens_data.magnetometer.is_available && lastT_mag != ts_mag ) {
             lastT_mag = ts_mag;
-            sensor_msgs::MagneticField mag_msg;
-            mag_msg.header.stamp = ts_mag;
-            mag_msg.header.frame_id = mImuFrameId;
-            mag_msg.magnetic_field.x = sens_data.magnetometer.magnetic_field_calibrated.x*1e-6; // Tesla
-            mag_msg.magnetic_field.y = sens_data.magnetometer.magnetic_field_calibrated.y*1e-6; // Tesla
-            mag_msg.magnetic_field.z = sens_data.magnetometer.magnetic_field_calibrated.z*1e-6; // Tesla
-            mag_msg.magnetic_field_covariance[0] = 0.039e-6;
-            mag_msg.magnetic_field_covariance[1] = 0.0f;
-            mag_msg.magnetic_field_covariance[2] = 0.0f;
-            mag_msg.magnetic_field_covariance[3] = 0.0f;
-            mag_msg.magnetic_field_covariance[4] = 0.037e-6;
-            mag_msg.magnetic_field_covariance[5] = 0.0f;
-            mag_msg.magnetic_field_covariance[6] = 0.0f;
-            mag_msg.magnetic_field_covariance[7] = 0.0f;
-            mag_msg.magnetic_field_covariance[8] = 0.047e-6;
 
-            mPubImuMag.publish(mag_msg);
+            if(!mMagMsg) {
+                mMagMsg = boost::make_shared<sensor_msgs::MagneticField>();
+            }
+
+            mMagMsg->header.stamp = ts_mag;
+            mMagMsg->header.frame_id = mImuFrameId;
+            mMagMsg->magnetic_field.x = sens_data.magnetometer.magnetic_field_calibrated.x*1e-6; // Tesla
+            mMagMsg->magnetic_field.y = sens_data.magnetometer.magnetic_field_calibrated.y*1e-6; // Tesla
+            mMagMsg->magnetic_field.z = sens_data.magnetometer.magnetic_field_calibrated.z*1e-6; // Tesla
+            mMagMsg->magnetic_field_covariance[0] = 0.039e-6;
+            mMagMsg->magnetic_field_covariance[1] = 0.0f;
+            mMagMsg->magnetic_field_covariance[2] = 0.0f;
+            mMagMsg->magnetic_field_covariance[3] = 0.0f;
+            mMagMsg->magnetic_field_covariance[4] = 0.037e-6;
+            mMagMsg->magnetic_field_covariance[5] = 0.0f;
+            mMagMsg->magnetic_field_covariance[6] = 0.0f;
+            mMagMsg->magnetic_field_covariance[7] = 0.0f;
+            mMagMsg->magnetic_field_covariance[8] = 0.047e-6;
+
+            mPubImuMag.publish(mMagMsg);
         }
     }
 
     if( imu_MagRawSubNumber>0 ) {
         if( sens_data.magnetometer.is_available && lastT_mag_raw != ts_mag_raw ) {
             lastT_mag_raw = ts_mag_raw;
-            sensor_msgs::MagneticField mag_msg;
-            mag_msg.header.stamp = ts_mag;
-            mag_msg.header.frame_id = mImuFrameId;
-            mag_msg.magnetic_field.x = sens_data.magnetometer.magnetic_field_uncalibrated.x*1e-6; // Tesla
-            mag_msg.magnetic_field.y = sens_data.magnetometer.magnetic_field_uncalibrated.y*1e-6; // Tesla
-            mag_msg.magnetic_field.z = sens_data.magnetometer.magnetic_field_uncalibrated.z*1e-6; // Tesla
-            mag_msg.magnetic_field_covariance[0] = 0.039e-6;
-            mag_msg.magnetic_field_covariance[1] = 0.0f;
-            mag_msg.magnetic_field_covariance[2] = 0.0f;
-            mag_msg.magnetic_field_covariance[3] = 0.0f;
-            mag_msg.magnetic_field_covariance[4] = 0.037e-6;
-            mag_msg.magnetic_field_covariance[5] = 0.0f;
-            mag_msg.magnetic_field_covariance[6] = 0.0f;
-            mag_msg.magnetic_field_covariance[7] = 0.0f;
-            mag_msg.magnetic_field_covariance[8] = 0.047e-6;
 
-            mPubImuMagRaw.publish(mag_msg);
+            if(!mMagRawMsg) {
+                mMagRawMsg = boost::make_shared<sensor_msgs::MagneticField>();
+            }
+
+            mMagRawMsg->header.stamp = ts_mag;
+            mMagRawMsg->header.frame_id = mImuFrameId;
+            mMagRawMsg->magnetic_field.x = sens_data.magnetometer.magnetic_field_uncalibrated.x*1e-6; // Tesla
+            mMagRawMsg->magnetic_field.y = sens_data.magnetometer.magnetic_field_uncalibrated.y*1e-6; // Tesla
+            mMagRawMsg->magnetic_field.z = sens_data.magnetometer.magnetic_field_uncalibrated.z*1e-6; // Tesla
+            mMagRawMsg->magnetic_field_covariance[0] = 0.039e-6;
+            mMagRawMsg->magnetic_field_covariance[1] = 0.0f;
+            mMagRawMsg->magnetic_field_covariance[2] = 0.0f;
+            mMagRawMsg->magnetic_field_covariance[3] = 0.0f;
+            mMagRawMsg->magnetic_field_covariance[4] = 0.037e-6;
+            mMagRawMsg->magnetic_field_covariance[5] = 0.0f;
+            mMagRawMsg->magnetic_field_covariance[6] = 0.0f;
+            mMagRawMsg->magnetic_field_covariance[7] = 0.0f;
+            mMagRawMsg->magnetic_field_covariance[8] = 0.047e-6;
+
+            mPubImuMagRaw.publish(mMagRawMsg);
         }
     }
 
     if (imu_SubNumber > 0) {
-        sensor_msgs::Imu imu_msg;
-        imu_msg.header.stamp = ts_imu;
-        imu_msg.header.frame_id = mImuFrameId;
 
-        imu_msg.orientation.x = sens_data.imu.pose.getOrientation()[0];
-        imu_msg.orientation.y = sens_data.imu.pose.getOrientation()[1];
-        imu_msg.orientation.z = sens_data.imu.pose.getOrientation()[2];
-        imu_msg.orientation.w = sens_data.imu.pose.getOrientation()[3];
+        if(!mImuMsg) {
+            mImuMsg = boost::make_shared<sensor_msgs::Imu>();
+        }
 
-        imu_msg.angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
-        imu_msg.angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
-        imu_msg.angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
+        mImuMsg->header.stamp = ts_imu;
+        mImuMsg->header.frame_id = mImuFrameId;
 
-        imu_msg.linear_acceleration.x = sens_data.imu.linear_acceleration[0];
-        imu_msg.linear_acceleration.y = sens_data.imu.linear_acceleration[1];
-        imu_msg.linear_acceleration.z = sens_data.imu.linear_acceleration[2];
+        mImuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
+        mImuMsg->orientation.y = sens_data.imu.pose.getOrientation()[1];
+        mImuMsg->orientation.z = sens_data.imu.pose.getOrientation()[2];
+        mImuMsg->orientation.w = sens_data.imu.pose.getOrientation()[3];
+
+        mImuMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
+        mImuMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
+        mImuMsg->angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
+
+        mImuMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
+        mImuMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
+        mImuMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
 
         for (int i = 0; i < 3; ++i) {
 
@@ -2206,41 +2243,45 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
                 r = 2;
             }
 
-            imu_msg.orientation_covariance[i * 3 + 0] =
+            mImuMsg->orientation_covariance[i * 3 + 0] =
                     sens_data.imu.pose_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
-            imu_msg.orientation_covariance[i * 3 + 1] =
+            mImuMsg->orientation_covariance[i * 3 + 1] =
                     sens_data.imu.pose_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
-            imu_msg.orientation_covariance[i * 3 + 2] =
+            mImuMsg->orientation_covariance[i * 3 + 2] =
                     sens_data.imu.pose_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
 
-            imu_msg.linear_acceleration_covariance[i * 3 + 0] =
+            mImuMsg->linear_acceleration_covariance[i * 3 + 0] =
                     sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
-            imu_msg.linear_acceleration_covariance[i * 3 + 1] =
+            mImuMsg->linear_acceleration_covariance[i * 3 + 1] =
                     sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
-            imu_msg.linear_acceleration_covariance[i * 3 + 2] =
+            mImuMsg->linear_acceleration_covariance[i * 3 + 2] =
                     sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
 
-            imu_msg.angular_velocity_covariance[i * 3 + 0] =
+            mImuMsg->angular_velocity_covariance[i * 3 + 0] =
                     sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
-            imu_msg.angular_velocity_covariance[i * 3 + 1] =
+            mImuMsg->angular_velocity_covariance[i * 3 + 1] =
                     sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
-            imu_msg.angular_velocity_covariance[i * 3 + 2] =
+            mImuMsg->angular_velocity_covariance[i * 3 + 2] =
                     sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
         }
 
-        mPubImu.publish(imu_msg);
+        mPubImu.publish(mImuMsg);
     }
 
     if (imu_RawSubNumber > 0) {
-        sensor_msgs::Imu imu_raw_msg;
-        imu_raw_msg.header.stamp = mFrameTimestamp; // t;
-        imu_raw_msg.header.frame_id = mImuFrameId;
-        imu_raw_msg.angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
-        imu_raw_msg.angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
-        imu_raw_msg.angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
-        imu_raw_msg.linear_acceleration.x = sens_data.imu.linear_acceleration[0];
-        imu_raw_msg.linear_acceleration.y = sens_data.imu.linear_acceleration[1];
-        imu_raw_msg.linear_acceleration.z = sens_data.imu.linear_acceleration[2];
+
+        if(!mImuRawMsg) {
+            mImuRawMsg = boost::make_shared<sensor_msgs::Imu>();
+        }
+
+        mImuRawMsg->header.stamp = mFrameTimestamp; // t;
+        mImuRawMsg->header.frame_id = mImuFrameId;
+        mImuRawMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
+        mImuRawMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
+        mImuRawMsg->angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
+        mImuRawMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
+        mImuRawMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
+        mImuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
 
         for (int i = 0; i < 3; ++i) {
 
@@ -2254,24 +2295,24 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
                 r = 2;
             }
 
-            imu_raw_msg.linear_acceleration_covariance[i * 3 + 0] =
+            mImuRawMsg->linear_acceleration_covariance[i * 3 + 0] =
                     sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
-            imu_raw_msg.linear_acceleration_covariance[i * 3 + 1] =
+            mImuRawMsg->linear_acceleration_covariance[i * 3 + 1] =
                     sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
-            imu_raw_msg.linear_acceleration_covariance[i * 3 + 2] =
+            mImuRawMsg->linear_acceleration_covariance[i * 3 + 2] =
                     sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
-            imu_raw_msg.angular_velocity_covariance[i * 3 + 0] =
+            mImuRawMsg->angular_velocity_covariance[i * 3 + 0] =
                     sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
-            imu_raw_msg.angular_velocity_covariance[i * 3 + 1] =
+            mImuRawMsg->angular_velocity_covariance[i * 3 + 1] =
                     sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
-            imu_raw_msg.angular_velocity_covariance[i * 3 + 2] =
+            mImuRawMsg->angular_velocity_covariance[i * 3 + 2] =
                     sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
         }
 
-        imu_raw_msg.orientation_covariance[0] =
+        mImuRawMsg->orientation_covariance[0] =
                 -1; // Orientation data is not available in "data_raw" -> See ROS REP145
         // http://www.ros.org/reps/rep-0145.html#topics
-        mPubImuRaw.publish(imu_raw_msg);
+        mPubImuRaw.publish(mImuRawMsg);
     }
 
     // Publish IMU tf only if enabled
@@ -2630,11 +2671,17 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
 
                 if (leftSubnumber > 0) {
-                    publishImage(leftZEDMat, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, mFrameTimestamp);
+                    if(!mLeftImgMsg ) {
+                        mLeftImgMsg = boost::make_shared<sensor_msgs::Image>();
+                    }
+                    publishImage(mLeftImgMsg, leftZEDMat, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, mFrameTimestamp);
                 }
 
                 if (rgbSubnumber > 0) {
-                    publishImage(leftZEDMat, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, mFrameTimestamp); // rgb is the left image
+                    if(!mRgbImgMsg ) {
+                        mRgbImgMsg = boost::make_shared<sensor_msgs::Image>();
+                    }
+                    publishImage(mRgbImgMsg, leftZEDMat, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, mFrameTimestamp); // rgb is the left image
                 }
             }
 
@@ -2645,11 +2692,17 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
 
                 if (leftRawSubnumber > 0) {
-                    publishImage(leftZEDMat, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, mFrameTimestamp);
+                    if(!mRawLeftImgMsg ) {
+                        mRawLeftImgMsg = boost::make_shared<sensor_msgs::Image>();
+                    }
+                    publishImage(mRawLeftImgMsg, leftZEDMat, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, mFrameTimestamp);
                 }
 
                 if (rgbRawSubnumber > 0) {
-                    publishImage(leftZEDMat, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, mFrameTimestamp);
+                    if(!mRawRgbImgMsg ) {
+                        mRawRgbImgMsg = boost::make_shared<sensor_msgs::Image>();
+                    }
+                    publishImage(mRawRgbImgMsg, leftZEDMat, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, mFrameTimestamp);
                 }
             }
 
@@ -2658,8 +2711,10 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
                 // Retrieve RGBA Right image
                 mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
-
-                publishImage(rightZEDMat, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, mFrameTimestamp);
+                if(!mRightImgMsg ) {
+                    mRightImgMsg = boost::make_shared<sensor_msgs::Image>();
+                }
+                publishImage(mRightImgMsg, rightZEDMat, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, mFrameTimestamp);
             }
 
             // Publish the right image if someone has subscribed to
@@ -2667,8 +2722,10 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
                 // Retrieve RGBA Right image
                 mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
-
-                publishImage(rightZEDMat, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, mFrameTimestamp);
+                if(!mRawRightImgMsg ) {
+                    mRawRightImgMsg = boost::make_shared<sensor_msgs::Image>();
+                }
+                publishImage(mRawRightImgMsg, rightZEDMat, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, mFrameTimestamp);
             }
 
             // Stereo couple side-by-side
@@ -2677,8 +2734,11 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 // Retrieve RGBA Right image
                 mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
                 mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
-
-                mPubStereo.publish(sl_tools::imagesToROSmsg(leftZEDMat, rightZEDMat, mCameraFrameId, mFrameTimestamp));
+                if(!mStereoImgMsg ) {
+                    mStereoImgMsg = boost::make_shared<sensor_msgs::Image>();
+                }
+                sl_tools::imagesToROSmsg(mStereoImgMsg, leftZEDMat, rightZEDMat, mCameraFrameId, mFrameTimestamp);
+                mPubStereo.publish(mStereoImgMsg);
             }
 
             // Stereo RAW couple side-by-side
@@ -2687,22 +2747,27 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 // Retrieve RGBA Right image
                 mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
                 mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
-
-                mPubRawStereo.publish(sl_tools::imagesToROSmsg(leftZEDMat, rightZEDMat, mCameraFrameId, mFrameTimestamp));
+                if(!mRawStereoImgMsg ) {
+                    mRawStereoImgMsg = boost::make_shared<sensor_msgs::Image>();
+                }
+                sl_tools::imagesToROSmsg(mRawStereoImgMsg, leftZEDMat, rightZEDMat, mCameraFrameId, mFrameTimestamp);
+                mPubRawStereo.publish(mRawStereoImgMsg);
             }
 
             // Publish the depth image if someone has subscribed to
             if (depthSubnumber > 0 || disparitySubnumber > 0) {
 
                 mZed.retrieveMeasure(depthZEDMat, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResol);
-                publishDepth(depthZEDMat, mFrameTimestamp); // in meters
+                if(!mDepthImgMsg ) {
+                    mDepthImgMsg = boost::make_shared<sensor_msgs::Image>();
+                }
+                publishDepth(mDepthImgMsg, depthZEDMat, mFrameTimestamp); // in meters
             }
 
             // Publish the disparity image if someone has subscribed to
             if (disparitySubnumber > 0) {
 
                 mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResol);
-
                 publishDisparity(disparityZEDMat, mFrameTimestamp);
             }
 
@@ -2710,14 +2775,21 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             if (confImgSubnumber > 0) {
 
                 mZed.retrieveImage(confImgZEDMat, sl::VIEW::CONFIDENCE, sl::MEM::CPU, mMatResol);
-                publishImage(confImgZEDMat, mPubConfImg, mDepthCamInfoMsg, mConfidenceOptFrameId, mFrameTimestamp);
+                if(!mConfImgMsg ) {
+                    mConfImgMsg = boost::make_shared<sensor_msgs::Image>();
+                }
+                publishImage(mConfImgMsg,confImgZEDMat, mPubConfImg, mDepthCamInfoMsg, mConfidenceOptFrameId, mFrameTimestamp);
             }
 
             // Publish the confidence map if someone has subscribed to
             if (confMapSubnumber > 0) {
 
                 mZed.retrieveMeasure(confMapZEDMat, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResol);
-                mPubConfMap.publish(sl_tools::imageToROSmsg(confMapZEDMat, mConfidenceOptFrameId, mFrameTimestamp));
+                sl_tools::imageToROSmsg(mConfMapMsg,confMapZEDMat, mConfidenceOptFrameId, mFrameTimestamp);
+                if(!mConfMapMsg ) {
+                    mConfMapMsg = boost::make_shared<sensor_msgs::Image>();
+                }
+                mPubConfMap.publish(mConfMapMsg);
             }
 
             // Publish the point cloud if someone has subscribed to
