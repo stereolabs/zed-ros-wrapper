@@ -453,7 +453,7 @@ private:
     bool mColorEnhancement = true;
     sl::ERROR_CODE mConnStatus;
     sl::ERROR_CODE mGrabStatus;
-    sl::TRACKING_STATE mTrackingStatus;
+    sl::POSITIONAL_TRACKING_STATE mTrackingStatus;
     bool mSensPublishing = false;
     bool mPcPublishing = false;
 
@@ -539,7 +539,7 @@ private:
 
     // SVO recording
     bool mRecording = false;
-    sl::RecordingState mRecState;
+    sl::RecordingStatus mRecStatus;
     sl::SVO_COMPRESSION_MODE mSvoComprMode;
 
     // Streaming
@@ -580,6 +580,9 @@ private:
     std::unique_ptr<sl_tools::CSmartMean> mSensPeriodMean_usec;
 
     diagnostic_updater::Updater mDiagUpdater; // Diagnostic Updater
+
+    // Messages as shared pointers to exploit Intraprocess communication advantages
+    // (http://wiki.ros.org/roscpp/Overview/Publishers%20and%20Subscribers#Intraprocess_Publishing)
 
 }; // class ZEDROSWrapperNodelet
 } // namespace

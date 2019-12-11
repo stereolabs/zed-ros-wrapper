@@ -1,4 +1,4 @@
-# Stereolabs ZED Camera - ROS Integration
+# Stereolabs ZED Camera - ROS Integration package
 
 This package lets you use the ZED stereo cameras with ROS. It outputs the camera left and right images, depth map, point cloud, pose information and supports the use of multiple ZED cameras.
 The ZED ROS wrapper is compatible with ZED, ZED Mini and ZED2 camera models.
@@ -15,7 +15,7 @@ The ZED ROS wrapper is compatible with ZED, ZED Mini and ZED2 camera models.
 - [ZED SDK **≥ 3.0**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu) or newer
 
-### Build the program
+### Installation
 
 The *zed_ros_wrapper* is a catkin package. It depends on the following ROS packages:
 
@@ -44,14 +44,14 @@ Open a terminal and clone the package in your catkin workspace:
 
 Automatically satisfy all the dependencies
     $ rosdep install --from-paths src --ignore-src -r -y
-**Note**: This command magically installs all the packages that the packages in your catkin workspace depend upon
-but are missing on your computer.
+**Note**: This command magically installs all the packages that the packages in your catkin
+workspace depend upon but are missing on your computer.
 
 Compile the package
     $ catkin_make
     $ source ./devel/setup.bash
 
-### Run the program
+### Execution
 
 To launch ZED node, use:
 
@@ -63,12 +63,17 @@ To launch ZED node, use:
     $ roslaunch zed_wrapper zed2.launch
 
  To select the ZED from its serial number
-
     $ roslaunch zed_wrapper zed.launch serial_number:=1010 
 
 **Note**: replace 1010 with the actual SN
 
-If you want to use the `ZEDWrapperNodelet` with an external nodelet manager follow the [`zed_nodelet_example`](https://github.com/stereolabs/zed-ros-wrapper/tree/master/examples/zed_nodelet_example) approach
+**Note**: The *zed_wrapper_node* is written using the [ROS Nodelet](http://wiki.ros.org/nodelet) standard.
+If you want to use the `ZEDWrapperNodelet` with an external nodelet manager follow the
+[`zed_nodelet_example`](https://github.com/stereolabs/zed-ros-wrapper/tree/master/examples/zed_nodelet_example) approach
+
+### Parameters
+To configure the features of the ZED node you can modify the configuration YAML files in the `params` folder.
+A detailed description of each parameter is available in the [official online documentation](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html).
 
 ### Diagnostic
 The ZED node publishes diagnostic information that can be used by the robotic system using a [diagnostic_aggregator node](http://wiki.ros.org/diagnostic_aggregator).
@@ -91,7 +96,7 @@ A brief explanation of each field:
   -  `IMU`: the publishing frequency of the IMU topics, if the camera is the ZED Mini and there is at least a subscriber
 
 
-[More](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
+[Detailed information](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
 
 
 

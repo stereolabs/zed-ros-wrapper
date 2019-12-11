@@ -2504,9 +2504,9 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             mRecMutex.lock();
 
             if (mRecording) {
-                mRecState = mZed.getRecordingStatus();
+                mRecStatus = mZed.getRecordingStatus();
 
-                if (!mRecState.status) {
+                if (!mRecStatus.status) {
                     NODELET_ERROR_THROTTLE(1.0, "Error saving frame to SVO");
                 }
 
@@ -2775,8 +2775,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(mTrackingStatus));
 #endif
 
-                    if (mTrackingStatus == sl::TRACKING_STATE::OK || mTrackingStatus == sl::TRACKING_STATE::SEARCHING ||
-                            mTrackingStatus == sl::TRACKING_STATE::FPS_TOO_LOW) {
+                    if (mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK || mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING ||
+                            mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW) {
                         // Transform ZED delta odom pose in TF2 Transformation
                         geometry_msgs::Transform deltaTransf;
                         deltaTransf.translation.x = translation(0);
@@ -2834,7 +2834,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
             // Publish the zed camera pose if someone has subscribed to
             if (computeTracking) {
-                static sl::TRACKING_STATE oldStatus;
+                static sl::POSITIONAL_TRACKING_STATE oldStatus;
                 mTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
 
                 sl::Translation translation = mLastZedPose.getTranslation();
@@ -2853,8 +2853,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
 #endif
 
-                if (mTrackingStatus == sl::TRACKING_STATE::OK ||
-                        mTrackingStatus == sl::TRACKING_STATE::SEARCHING /*|| status == sl::TRACKING_STATE::FPS_TOO_LOW*/) {
+                if (mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK ||
+                        mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING /*|| status == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW*/) {
                     // Transform ZED pose in TF2 Transformation
                     geometry_msgs::Transform map2sensTransf;
 
@@ -2899,7 +2899,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     if (!(mFloorAlignment)) {
                         initOdom = mInitOdomWithPose;
                     } else {
-                        initOdom = (mTrackingStatus == sl::TRACKING_STATE::OK) & mInitOdomWithPose;
+                        initOdom = (mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK) & mInitOdomWithPose;
                     }
 
                     if (initOdom || mResetOdom) {
@@ -3132,7 +3132,7 @@ void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWra
     }
 
     if (mRecording) {
-        if (!mRecState.status) {
+        if (!mRecStatus.status) {
             if (mGrabActive) {
                 stat.add("SVO Recording", "ERROR");
                 stat.summary(diagnostic_msgs::DiagnosticStatus::WARN,
@@ -3142,8 +3142,8 @@ void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWra
             }
         } else {
             stat.add("SVO Recording", "ACTIVE");
-            stat.addf("SVO compression time", "%g msec", mRecState.average_compression_time);
-            stat.addf("SVO compression ratio", "%.1f%%", mRecState.average_compression_ratio);
+            stat.addf("SVO compression time", "%g msec", mRecStatus.average_compression_time);
+            stat.addf("SVO compression ratio", "%.1f%%", mRecStatus.average_compression_ratio);
         }
     } else {
         stat.add("SVO Recording", "NOT ACTIVE");
