@@ -2674,12 +2674,18 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     if(!mLeftImgMsg ) {
                         mLeftImgMsg = boost::make_shared<sensor_msgs::Image>();
                     }
+                    if(!mLeftCamInfoMsg) {
+                        mLeftCamInfoMsg = boost::make_shared<sensor_msgs::CameraInfo>();
+                    }
                     publishImage(mLeftImgMsg, leftZEDMat, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, mFrameTimestamp);
                 }
 
                 if (rgbSubnumber > 0) {
                     if(!mRgbImgMsg ) {
                         mRgbImgMsg = boost::make_shared<sensor_msgs::Image>();
+                    }
+                    if(!mRgbCamInfoMsg) {
+                        mRgbCamInfoMsg = boost::make_shared<sensor_msgs::CameraInfo>();
                     }
                     publishImage(mRgbImgMsg, leftZEDMat, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, mFrameTimestamp); // rgb is the left image
                 }
@@ -2695,12 +2701,18 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     if(!mRawLeftImgMsg ) {
                         mRawLeftImgMsg = boost::make_shared<sensor_msgs::Image>();
                     }
+                    if(!mLeftCamInfoRawMsg) {
+                        mLeftCamInfoRawMsg = boost::make_shared<sensor_msgs::CameraInfo>();
+                    }
                     publishImage(mRawLeftImgMsg, leftZEDMat, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, mFrameTimestamp);
                 }
 
                 if (rgbRawSubnumber > 0) {
                     if(!mRawRgbImgMsg ) {
                         mRawRgbImgMsg = boost::make_shared<sensor_msgs::Image>();
+                    }
+                    if(!mRgbCamInfoRawMsg) {
+                        mRgbCamInfoRawMsg = boost::make_shared<sensor_msgs::CameraInfo>();
                     }
                     publishImage(mRawRgbImgMsg, leftZEDMat, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, mFrameTimestamp);
                 }
@@ -2714,6 +2726,9 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 if(!mRightImgMsg ) {
                     mRightImgMsg = boost::make_shared<sensor_msgs::Image>();
                 }
+                if(!mRightCamInfoMsg) {
+                    mRightCamInfoMsg = boost::make_shared<sensor_msgs::CameraInfo>();
+                }
                 publishImage(mRightImgMsg, rightZEDMat, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, mFrameTimestamp);
             }
 
@@ -2724,6 +2739,9 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
                 if(!mRawRightImgMsg ) {
                     mRawRightImgMsg = boost::make_shared<sensor_msgs::Image>();
+                }
+                if(!mRightCamInfoRawMsg) {
+                    mRightCamInfoRawMsg = boost::make_shared<sensor_msgs::CameraInfo>();
                 }
                 publishImage(mRawRightImgMsg, rightZEDMat, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, mFrameTimestamp);
             }
@@ -2777,6 +2795,9 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 mZed.retrieveImage(confImgZEDMat, sl::VIEW::CONFIDENCE, sl::MEM::CPU, mMatResol);
                 if(!mConfImgMsg ) {
                     mConfImgMsg = boost::make_shared<sensor_msgs::Image>();
+                }
+                if(!mDepthCamInfoMsg) {
+                    mDepthCamInfoMsg = boost::make_shared<sensor_msgs::CameraInfo>();
                 }
                 publishImage(mConfImgMsg,confImgZEDMat, mPubConfImg, mDepthCamInfoMsg, mConfidenceOptFrameId, mFrameTimestamp);
             }
