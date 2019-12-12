@@ -74,6 +74,8 @@ add_service_files( FILES
     stop_remote_stream.srv
     set_led_status.srv
     toggle_led.srv
+    start_3d_mapping.srv
+    stop_3d_mapping.srv
   )
 
 generate_messages()
@@ -98,8 +100,7 @@ catkin_package(
 ###############################################################################
 # SOURCES
 
-set(TOOLS_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp)
+set(TOOLS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp)
 set(NODE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_wrapper_node.cpp)
 set(NODELET_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.cpp)
 

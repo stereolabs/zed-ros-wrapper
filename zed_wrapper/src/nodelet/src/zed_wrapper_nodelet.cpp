@@ -460,6 +460,9 @@ void ZEDWrapperNodelet::onInit() {
     mSrvSvoStartStream = mNhNs.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
     mSrvSvoStopStream = mNhNs.advertiseService("stop_remote_stream", &ZEDWrapperNodelet::on_stop_remote_stream, this);
 
+    mSrvStartMapping = mNhNs.advertiseService("start_3d_mapping", &ZEDWrapperNodelet::on_start_3d_mapping, this);
+    mSrvStopMapping = mNhNs.advertiseService("stop_3d_mapping", &ZEDWrapperNodelet::on_stop_3d_mapping, this);
+
     // Start Pointcloud thread
     mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
 
@@ -1107,11 +1110,11 @@ bool ZEDWrapperNodelet::on_reset_odometry(
     return true;
 }
 
-void ZEDWrapperNodelet::start_mapping() {
+bool ZEDWrapperNodelet::start_mapping() {
     if (!mMappingEnabled) {
         NODELET_WARN_STREAM("Cannot enable MAPPING. The parameter `mapping_enable` is set to FALSE");
 
-        return;
+        return false;
     }
 
     NODELET_INFO_STREAM("*** Starting Spatial Mapping ***");
@@ -1124,18 +1127,37 @@ void ZEDWrapperNodelet::start_mapping() {
     sl::ERROR_CODE err = mZed.enableSpatialMapping(params);
 
     if (err == sl::ERROR_CODE::SUCCESS) {
+        if(mPubFusedCloud.getTopic().empty()) {
+            string pointcloud_fused_topic = mPointCloudTopicRoot + "/fused_cloud_registered";
+            mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
+            NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
+        }
+
         mMappingActivated = true;
 
         mFusedPcTimer = mNhNs.createTimer(ros::Duration(1.0 / mFusedPcPubFreq), &ZEDWrapperNodelet::pubFusedPointCloudCallback,
                                           this);
 
         NODELET_INFO_STREAM(" * Resolution: " << params.resolution_meter << " m");
+
+        return true;
     } else {
         mMappingActivated = false;
         mFusedPcTimer.stop();
 
         NODELET_WARN("Mapping not activated: %s", sl::toString(err).c_str());
+
+        return false;
     }
+}
+
+void ZEDWrapperNodelet::stop_mapping() {
+    mFusedPcTimer.stop();
+    mMappingActivated = false;
+    mMappingEnabled = false;
+    mZed.disableSpatialMapping();
+
+    NODELET_INFO("*** Spatial Mapping stopped ***");
 }
 
 void ZEDWrapperNodelet::start_tracking() {
@@ -2453,9 +2475,11 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             }
 
             // Start the mapping?
-            if (mMappingEnabled && !mMappingActivated) {
-                start_mapping();
+            mMappingMutex.lock();
+            if (mMappingEnabled && !mMappingActivated) {                
+                start_mapping();                
             }
+            mMappingMutex.unlock();
 
             // Detect if one of the subscriber need to have the depth information
             mComputeDepth = mDepthMode != sl::DEPTH_MODE::NONE &&
@@ -3423,6 +3447,44 @@ bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
     mZed.setCameraSettings(sl::VIDEO_SETTINGS::LED_STATUS, new_status);
 
     return (new_status == 1);
+}
+
+
+bool ZEDWrapperNodelet::on_start_3d_mapping(zed_wrapper::start_3d_mapping::Request& req,
+                                            zed_wrapper::start_3d_mapping::Response& res) {
+    if( mMappingEnabled && mMappingActivated) {
+        NODELET_WARN_STREAM("Spatial mapping was just running");
+
+        res.done = false;
+        return res.done;
+    }
+
+    mMappingRes = req.resolution;
+    mFusedPcPubFreq = req.fused_pointcloud_freq;
+
+    mMappingEnabled = true;
+
+    mMappingMutex.lock();
+    res.done = start_mapping();
+    mMappingMutex.unlock();
+    return res.done;
+}
+
+bool ZEDWrapperNodelet::on_stop_3d_mapping(zed_wrapper::stop_3d_mapping::Request& req,
+                                           zed_wrapper::stop_3d_mapping::Response& res) {
+
+    if( mMappingEnabled ) {
+        mPubFusedCloud.shutdown();
+        mMappingMutex.lock();
+        stop_mapping();
+        mMappingMutex.unlock();
+
+        res.done = true;
+    } else {
+        res.done = false;
+    }
+
+    return res.done;
 }
 
 } // namespace

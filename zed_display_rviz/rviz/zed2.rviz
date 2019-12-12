@@ -14,6 +14,7 @@ Panels:
         - /Pose1/Odometry1/Covariance1/Orientation1
         - /Pose1/PoseWithCovariance1/Covariance1/Position1
         - /Pose1/PoseWithCovariance1/Covariance1/Orientation1
+        - /Mapping1
         - /Mapping1/Fused Pointcloud1
       Splitter Ratio: 0.5
     Tree Height: 500
@@ -485,7 +486,7 @@ Visualization Manager:
           Class: rviz/PointCloud2
           Color: 255; 255; 255
           Color Transformer: RGB8
-          Decay Time: 0
+          Decay Time: 5
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
@@ -579,10 +580,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4853987693786621
+      Pitch: 0.21539904177188873
       Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 2.880406141281128
+      Yaw: 2.945404291152954
     Saved: ~
 Window Geometry:
   Camera view:

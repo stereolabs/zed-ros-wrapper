@@ -53,6 +53,8 @@
 #include <zed_wrapper/stop_remote_stream.h>
 #include <zed_wrapper/set_led_status.h>
 #include <zed_wrapper/toggle_led.h>
+#include <zed_wrapper/start_3d_mapping.h>
+#include <zed_wrapper/stop_3d_mapping.h>
 
 // Topics
 #include <nav_msgs/Odometry.h>
@@ -294,6 +296,16 @@ protected:
     bool on_toggle_led(zed_wrapper::toggle_led::Request& req,
                        zed_wrapper::toggle_led::Response& res);
 
+    /* \brief Service callback to start_3d_mapping service
+         */
+    bool on_start_3d_mapping(zed_wrapper::start_3d_mapping::Request& req,
+                                zed_wrapper::start_3d_mapping::Response& res);
+
+    /* \brief Service callback to stop_3d_mapping service
+         */
+    bool on_stop_3d_mapping(zed_wrapper::stop_3d_mapping::Request& req,
+                               zed_wrapper::stop_3d_mapping::Response& res);
+
     /* \brief Utility to initialize the pose variables
          */
     bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
@@ -320,7 +332,11 @@ protected:
 
     /* \bried Start spatial mapping
          */
-    void start_mapping();
+    bool start_mapping();
+
+    /* \bried Stop spatial mapping
+         */
+    void stop_mapping();
 
     /* \brief Update Dynamic reconfigure parameters
          */
@@ -388,6 +404,8 @@ private:
     ros::ServiceServer mSrvSvoStopStream;
     ros::ServiceServer mSrvSetLedStatus;
     ros::ServiceServer mSrvToggleLed;
+    ros::ServiceServer mSrvStartMapping;
+    ros::ServiceServer mSrvStopMapping;
 
     // Camera info
     sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
@@ -573,6 +591,7 @@ private:
     std::mutex mRecMutex;
     std::mutex mPosTrkMutex;
     std::mutex mDynParMutex;
+    std::mutex mMappingMutex;
     std::condition_variable mPcDataReadyCondVar;
     bool mPcDataReady;
 
