@@ -3463,10 +3463,8 @@ bool ZEDWrapperNodelet::on_start_3d_mapping(zed_wrapper::start_3d_mapping::Reque
     mFusedPcPubFreq = req.fused_pointcloud_freq;
 
     mMappingEnabled = true;
+    res.done = true;
 
-    mMappingMutex.lock();
-    res.done = start_mapping();
-    mMappingMutex.unlock();
     return res.done;
 }
 

@@ -67,7 +67,7 @@ tracking:
     fixed_cov_value:            1e-6                                # Value used on the diagonal of the fixed covariance matrix (`fixed_covariance -> true`)
     odometry_topic:             'odom'
     init_odom_with_first_valid_pose: true                           # Enable to initialize the odometry with the first valid pose
-    path_pub_rate:              2.0                                 # Path positions punlishing frequency
+    path_pub_rate:              2.0                                 # Path positions publishing frequency
     path_max_count:             -1                                  # use '-1' for unlimited path size
     two_d_mode:                 false                                # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
     fixed_z_value:              0.00                                # Value to be used for Z coordinate if `two_d_mode` is true
@@ -76,4 +76,10 @@ mapping:
     mapping_enabled:            false                               # True to enable mapping and fused point cloud pubblication
     resolution:                 0                                   # `0`: HIGH, `1`: MEDIUM, `2`: LOW
     fused_pointcloud_freq:      1.0                                 # frequency of the publishing of the fused colored point cloud
+
+object_detection:
+    od_enabled:                 false                               # True to enable Object Detection [only ZED 2]
+    od_tracking:                true                                # Object tracking
+    od_people:                  true                                # People detection
+    oc_vehicles:                true                                # Vehicle detection
 
