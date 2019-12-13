@@ -55,6 +55,8 @@
 #include <zed_wrapper/toggle_led.h>
 #include <zed_wrapper/start_3d_mapping.h>
 #include <zed_wrapper/stop_3d_mapping.h>
+#include <zed_wrapper/start_object_detection.h>
+#include <zed_wrapper/stop_object_detection.h>
 
 // Topics
 #include <nav_msgs/Odometry.h>
@@ -299,12 +301,22 @@ protected:
     /* \brief Service callback to start_3d_mapping service
          */
     bool on_start_3d_mapping(zed_wrapper::start_3d_mapping::Request& req,
-                                zed_wrapper::start_3d_mapping::Response& res);
+                             zed_wrapper::start_3d_mapping::Response& res);
 
     /* \brief Service callback to stop_3d_mapping service
          */
     bool on_stop_3d_mapping(zed_wrapper::stop_3d_mapping::Request& req,
-                               zed_wrapper::stop_3d_mapping::Response& res);
+                            zed_wrapper::stop_3d_mapping::Response& res);
+
+    /* \brief Service callback to start_object_detection service
+         */
+    bool on_start_object_detection(zed_wrapper::start_object_detection::Request& req,
+                             zed_wrapper::start_object_detection::Response& res);
+
+    /* \brief Service callback to stop_object_detection service
+         */
+    bool on_stop_object_detection(zed_wrapper::stop_object_detection::Request& req,
+                            zed_wrapper::stop_object_detection::Response& res);
 
     /* \brief Utility to initialize the pose variables
          */
@@ -332,11 +344,33 @@ protected:
 
     /* \bried Start spatial mapping
          */
-    bool start_mapping();
+    bool start_3d_mapping();
 
     /* \bried Stop spatial mapping
          */
-    void stop_mapping();
+    void stop_3d_mapping();
+
+    /* \bried Start object detection
+         */
+    bool start_obj_detect();
+
+    /* \bried Stop object detection
+         */
+    void stop_obj_detect();
+
+    /* \brief Perform object detection and publish result
+         */
+    void detectObjects(bool publishObj, bool publishViz);
+
+    /* \brief Generates an univoque color for each object class ID
+         */
+    inline sl::float3 generateColorClass(int idx) {
+        sl::float3 clr;
+        clr.r = static_cast<uint8_t>(33 + (idx * 456262));
+        clr.g = static_cast<uint8_t>(233  + (idx * 1564684));
+        clr.b = static_cast<uint8_t>(133 + (idx * 76873242));
+        return clr / 255.f;
+    }
 
     /* \brief Update Dynamic reconfigure parameters
          */
@@ -406,6 +440,8 @@ private:
     ros::ServiceServer mSrvToggleLed;
     ros::ServiceServer mSrvStartMapping;
     ros::ServiceServer mSrvStopMapping;
+    ros::ServiceServer mSrvStartObjDet;
+    ros::ServiceServer mSrvStopObjDet;
 
     // Camera info
     sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
@@ -474,8 +510,7 @@ private:
     double mCamMaxDepth;
 
     bool mTrackingActivated;
-    bool mMappingEnabled;
-    bool mMappingActivated;
+
     bool mTrackingReady;
     bool mTwoDMode = false;
     double mFixedZValue = 0.0;
@@ -490,9 +525,6 @@ private:
     sl::POSITIONAL_TRACKING_STATE mTrackingStatus;
     bool mSensPublishing = false;
     bool mPcPublishing = false;
-
-    int mMappingRes = 0;
-    double mFusedPcPubFreq = 2.0;
 
     // Topic names
     std::string mRgbTopicRoot;
@@ -592,6 +624,7 @@ private:
     std::mutex mPosTrkMutex;
     std::mutex mDynParMutex;
     std::mutex mMappingMutex;
+    std::mutex mObjDetMutex;
     std::condition_variable mPcDataReadyCondVar;
     bool mPcDataReady;
 
@@ -613,6 +646,7 @@ private:
     std::unique_ptr<sl_tools::CSmartMean> mGrabPeriodMean_usec;
     std::unique_ptr<sl_tools::CSmartMean> mPcPeriodMean_usec;
     std::unique_ptr<sl_tools::CSmartMean> mSensPeriodMean_usec;
+    std::unique_ptr<sl_tools::CSmartMean> mObjDetPeriodMean_msec;
 
     diagnostic_updater::Updater mDiagUpdater; // Diagnostic Updater
 
@@ -642,7 +676,23 @@ private:
     sensor_msgs::ImagePtr mDisparityImgMsg;
     stereo_msgs::DisparityImagePtr mDisparityMsg;
 
+    // Spatial mapping
+    bool mMappingEnabled;
+    bool mMappingRunning;
+    int mMappingRes = 0;
+    double mFusedPcPubFreq = 2.0;
 
+    // Object Detection
+    bool mObjDetEnabled = false;
+    bool mObjDetRunning = false;
+    float mObjDetConfidence = 50.f; // TODO add to dynamic params
+    bool mObjDetTracking = true;
+    bool mObjDetPeople = true;
+    bool mObjDetVehicles = true;
+    std::vector<sl::OBJECT_CLASS> mObjDetFilter;
+
+    ros::Publisher mPubObjDet;
+    ros::Publisher mPubObjDetViz;
 }; // class ZEDROSWrapperNodelet
 } // namespace
 

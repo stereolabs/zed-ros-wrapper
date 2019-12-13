@@ -1,0 +1,5 @@
+# Stops object detection, if  automatically enabled with the parameter `object_detection/od_enabled` or with
+# the `start_papping` service
+
+---
+bool done

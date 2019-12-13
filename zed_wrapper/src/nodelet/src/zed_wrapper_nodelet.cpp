@@ -27,6 +27,12 @@
 #include <ros/console.h>
 #endif
 
+#include "zed_wrapper/object_stamped.h"
+#include "zed_wrapper/objects.h"
+
+#include "visualization_msgs/Marker.h"
+#include "visualization_msgs/MarkerArray.h"
+
 namespace zed_wrapper {
 
 #ifndef DEG2RAD
@@ -107,6 +113,10 @@ void ZEDWrapperNodelet::onInit() {
 
     string pointcloud_topic = mPointCloudTopicRoot + "/cloud_registered";
     string pointcloud_fused_topic = mPointCloudTopicRoot + "/fused_cloud_registered";
+
+    string object_det_topic_root = "obj_det";
+    string object_det_topic = object_det_topic_root + "/objects";
+    string object_det_rviz_topic = object_det_topic_root + "/object_markers";
 
     string conf_img_topic_name = "confidence_image";
     string conf_map_topic_name = "confidence_map";
@@ -356,13 +366,21 @@ void ZEDWrapperNodelet::onInit() {
     mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(mDisparityTopic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubDisparity.getTopic());
 
-    // PointCloud publisher    
+    // PointCloud publishers
     mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_topic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubCloud.getTopic());
 
     if (mMappingEnabled) {
         mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
+    }
+
+    // Object detection publishers
+    if (mObjDetEnabled) {
+        mPubObjDet = mNh.advertise<zed_wrapper::objects>(object_det_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
+        mPubObjDetViz = mNh.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << mPubObjDetViz.getTopic());
     }
 
     // Odometry and Pose publisher
@@ -463,6 +481,9 @@ void ZEDWrapperNodelet::onInit() {
     mSrvStartMapping = mNhNs.advertiseService("start_3d_mapping", &ZEDWrapperNodelet::on_start_3d_mapping, this);
     mSrvStopMapping = mNhNs.advertiseService("stop_3d_mapping", &ZEDWrapperNodelet::on_stop_3d_mapping, this);
 
+    mSrvStartObjDet = mNhNs.advertiseService("start_object_detection", &ZEDWrapperNodelet::on_start_object_detection, this);
+    mSrvStopObjDet = mNhNs.advertiseService("stop_object_detection", &ZEDWrapperNodelet::on_stop_object_detection, this);
+
     // Start Pointcloud thread
     mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
 
@@ -533,7 +554,7 @@ void ZEDWrapperNodelet::readParameters() {
     mNhNs.param<std::string>("depth/depth_topic_root", mDepthTopicRoot, "depth");
     mNhNs.param<std::string>("depth/disparity_topic", mDisparityTopic, "disparity/disparity_image");
     mNhNs.param<std::string>("depth/point_cloud_topic_root", mPointCloudTopicRoot, "point_cloud");
-    mNhNs.param<std::string>("depth/confidence_root", mConfImgRoot, "confidence");
+    mNhNs.param<std::string>("depth/confidence_topic_root", mConfImgRoot, "confidence");
 
     int depth_mode;
     mNhNs.getParam("depth/quality", depth_mode);
@@ -611,8 +632,34 @@ void ZEDWrapperNodelet::readParameters() {
     } else {
         NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
     }
-
     // <---- Mapping
+
+    // ----> Object Detection
+    mNhNs.param<bool>("object_detection/od_enabled", mObjDetEnabled, false);
+
+    if (mObjDetEnabled) {
+        NODELET_INFO_STREAM(" * Object Detection\t\t-> ENABLED");
+
+        mNhNs.getParam("object_detection/od_min_confidence", mObjDetConfidence);
+        NODELET_INFO_STREAM(" * Object confidence\t\t-> " << mObjDetConfidence);
+        mNhNs.getParam("mObjDetEnable/od_tracking", mObjDetTracking);
+        NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking?"ENABLED":"DISABLED"));
+        mNhNs.getParam("mObjDetEnable/od_people", mObjDetPeople);
+        NODELET_INFO_STREAM(" * People detection\t\t-> " << (mObjDetPeople?"ENABLED":"DISABLED"));
+        mNhNs.getParam("mObjDetEnable/oc_vehicles", mObjDetVehicles);
+        NODELET_INFO_STREAM(" * Vehicles detection\t\t-> " << (mObjDetVehicles?"ENABLED":"DISABLED"));
+
+        mObjDetFilter.clear();
+        if(mObjDetPeople) {
+            mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+        }
+        if(mObjDetVehicles) {
+            mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+        }
+    } else {
+        NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
+    }
+    // <---- Object Detection
 
 
     // ----> Sensors
@@ -894,7 +941,7 @@ bool ZEDWrapperNodelet::getCamera2BaseTransform() {
 
     } catch (tf2::TransformException& ex) {
         if (++errCount % 50 == 0) {
-            NODELET_WARN("The tf from '%s' to '%s' does not seem to be available, "
+            NODELET_WARN("The tf from '%s' to '%s' is not yet available, "
                          "will assume it as identity!",
                          mCameraFrameId.c_str(), mBaseFrameId.c_str());
             NODELET_WARN("Transform error: %s", ex.what());
@@ -937,7 +984,7 @@ bool ZEDWrapperNodelet::getSens2CameraTransform() {
                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
     } catch (tf2::TransformException& ex) {
         if (++errCount % 50 == 0) {
-            NODELET_WARN("The tf from '%s' to '%s' does not seem to be available, "
+            NODELET_WARN("The tf from '%s' to '%s' is not yet available, "
                          "will assume it as identity!",
                          mDepthFrameId.c_str(), mCameraFrameId.c_str());
             NODELET_WARN("Transform error: %s", ex.what());
@@ -981,7 +1028,7 @@ bool ZEDWrapperNodelet::getSens2BaseTransform() {
 
     } catch (tf2::TransformException& ex) {
         if (++errCount % 50 == 0) {
-            NODELET_WARN("The tf from '%s' to '%s' does not seem to be available, "
+            NODELET_WARN("The tf from '%s' to '%s' is not yet available, "
                          "will assume it as identity!",
                          mDepthFrameId.c_str(), mBaseFrameId.c_str());
             NODELET_WARN("Transform error: %s", ex.what());
@@ -1110,7 +1157,7 @@ bool ZEDWrapperNodelet::on_reset_odometry(
     return true;
 }
 
-bool ZEDWrapperNodelet::start_mapping() {
+bool ZEDWrapperNodelet::start_3d_mapping() {
     if (!mMappingEnabled) {
         NODELET_WARN_STREAM("Cannot enable MAPPING. The parameter `mapping_enable` is set to FALSE");
 
@@ -1133,7 +1180,7 @@ bool ZEDWrapperNodelet::start_mapping() {
             NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
         }
 
-        mMappingActivated = true;
+        mMappingRunning = true;
 
         mFusedPcTimer = mNhNs.createTimer(ros::Duration(1.0 / mFusedPcPubFreq), &ZEDWrapperNodelet::pubFusedPointCloudCallback,
                                           this);
@@ -1142,7 +1189,7 @@ bool ZEDWrapperNodelet::start_mapping() {
 
         return true;
     } else {
-        mMappingActivated = false;
+        mMappingRunning = false;
         mFusedPcTimer.stop();
 
         NODELET_WARN("Mapping not activated: %s", sl::toString(err).c_str());
@@ -1151,13 +1198,47 @@ bool ZEDWrapperNodelet::start_mapping() {
     }
 }
 
-void ZEDWrapperNodelet::stop_mapping() {
+void ZEDWrapperNodelet::stop_3d_mapping() {
     mFusedPcTimer.stop();
-    mMappingActivated = false;
+    mMappingRunning = false;
     mMappingEnabled = false;
     mZed.disableSpatialMapping();
 
     NODELET_INFO("*** Spatial Mapping stopped ***");
+}
+
+bool ZEDWrapperNodelet::start_obj_detect() {
+    if(!mObjDetEnabled) {
+        return false;
+    }
+
+    NODELET_INFO_STREAM("*** Starting Object Detection ***");
+
+    sl::ObjectDetectionParameters od_p;
+    od_p.enable_mask_output = false;
+    od_p.enable_tracking = mObjDetTracking;
+    od_p.image_sync = true;
+
+    sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
+
+    if (objDetError != sl::ERROR_CODE::SUCCESS) {
+        NODELET_ERROR_STREAM("Object detection error: " << sl::toString(objDetError));
+
+        mObjDetRunning = false;
+        return false;
+    }
+
+    mObjDetRunning = true;
+    return false;
+}
+
+void ZEDWrapperNodelet::stop_obj_detect() {
+    if (mObjDetRunning) {
+        NODELET_INFO_STREAM("*** Stopping Object Detection ***");
+        mObjDetRunning = false;
+        mObjDetEnabled = false;
+        mZed.disableObjectDetection();
+    }
 }
 
 void ZEDWrapperNodelet::start_tracking() {
@@ -1315,7 +1396,7 @@ void ZEDWrapperNodelet::publishPose(ros::Time t) {
     }
 
     if (mPublishPoseCovariance) {
-        if (mPubPoseCov.getNumSubscribers() > 0) {            
+        if (mPubPoseCov.getNumSubscribers() > 0) {
 
             if(!mPoseCovMsg) {
                 mPoseCovMsg = boost::make_shared<geometry_msgs::PoseWithCovarianceStamped>();
@@ -2355,7 +2436,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
             tf2::fromMsg(c2p.transform, cam_to_pose);
         } catch (tf2::TransformException& ex) {
             NODELET_WARN_THROTTLE(
-                        10.0, "The tf from '%s' to '%s' does not seem to be available. "
+                        10.0, "The tf from '%s' to '%s' is not yet available. "
                               "IMU TF not published!",
                         mCameraFrameId.c_str(), mMapFrameId.c_str());
             NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
@@ -2389,6 +2470,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
     mElabPeriodMean_sec.reset(new sl_tools::CSmartMean(mCamFrameRate));
     mGrabPeriodMean_usec.reset(new sl_tools::CSmartMean(mCamFrameRate));
     mPcPeriodMean_usec.reset(new sl_tools::CSmartMean(mCamFrameRate));
+    mObjDetPeriodMean_msec.reset(new sl_tools::CSmartMean(mCamFrameRate));
 
     // Timestamp initialization
     if (mSvoMode) {
@@ -2400,7 +2482,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
     mPrevFrameTimestamp = mFrameTimestamp;
 
     mTrackingActivated = false;
-    mMappingActivated = false;
+    mMappingRunning = false;
     mRecording = false;
 
     // Get the parameters of the ZED images
@@ -2447,13 +2529,22 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
         uint32_t odomSubnumber = mPubOdom.getNumSubscribers();
         uint32_t confImgSubnumber = mPubConfImg.getNumSubscribers();
         uint32_t confMapSubnumber = mPubConfMap.getNumSubscribers();
-        //            uint32_t imuSubnumber = mPubImu.getNumSubscribers();
-        //            uint32_t imuRawsubnumber = mPubImuRaw.getNumSubscribers();
         uint32_t pathSubNumber = mPubMapPath.getNumSubscribers() + mPubOdomPath.getNumSubscribers();
         uint32_t stereoSubNumber = mPubStereo.getNumSubscribers();
         uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers();
 
-        mGrabActive =  mRecording || mStreaming || mMappingEnabled || mTrackingActivated ||
+        uint32_t objDetSubnumber = 0;
+        uint32_t objDetVizSubnumber = 0;
+        bool objDetActive = false;
+        if (mObjDetEnabled) {
+            objDetSubnumber = mPubObjDet.getNumSubscribers();
+            objDetVizSubnumber = mPubObjDetViz.getNumSubscribers();
+            if (objDetSubnumber > 0 || objDetVizSubnumber > 0) {
+                objDetActive = true;
+            }
+        }
+
+        mGrabActive =  mRecording || mStreaming || mMappingEnabled || mObjDetEnabled || mTrackingActivated ||
                 ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
                   leftRawSubnumber + rightSubnumber + rightRawSubnumber +
                   depthSubnumber + disparitySubnumber + cloudSubnumber +
@@ -2465,8 +2556,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
         if (mGrabActive) {
             std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
-            // Note: one tracking is started is never stopped anymore
-            bool computeTracking = (mMappingEnabled || (mComputeDepth & mDepthStabilization) || poseSubnumber > 0 ||
+            // Note: ones tracking is started it is never stopped anymore to not lose tracking information
+            bool computeTracking = (mMappingEnabled || mObjDetEnabled || (mComputeDepth & mDepthStabilization) || poseSubnumber > 0 ||
                                     poseCovSubnumber > 0 || odomSubnumber > 0 || pathSubNumber > 0);
 
             // Start the tracking?
@@ -2476,10 +2567,17 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
             // Start the mapping?
             mMappingMutex.lock();
-            if (mMappingEnabled && !mMappingActivated) {                
-                start_mapping();                
+            if (mMappingEnabled && !mMappingRunning) {
+                start_3d_mapping();
             }
             mMappingMutex.unlock();
+
+            // Start the object detection?
+            mObjDetMutex.lock();
+            if (mObjDetEnabled && !mObjDetRunning) {
+                start_obj_detect();
+            }
+            mObjDetMutex.unlock();
 
             // Detect if one of the subscriber need to have the depth information
             mComputeDepth = mDepthMode != sl::DEPTH_MODE::NONE &&
@@ -2861,6 +2959,17 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             }
             mCamDataMutex.unlock();
 
+            mObjDetMutex.lock();
+            if (mObjDetRunning) {
+                std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();                
+                detectObjects(objDetSubnumber > 0, objDetVizSubnumber > 0);
+                std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+                double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+                mObjDetPeriodMean_msec->addValue(elapsed_msec);
+            }
+            mObjDetMutex.unlock();
+
             // Publish the odometry if someone has subscribed to
             if (computeTracking) {
 
@@ -3088,7 +3197,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 // Get the TF2 transformation
                 tf2::fromMsg(b2m.transform, map_to_base);
             } catch (tf2::TransformException& ex) {
-                NODELET_DEBUG("The tf from '%s' to '%s' does not seem to be available, "
+                NODELET_DEBUG("The tf from '%s' to '%s' is not yet available, "
                               "will assume it as identity!",
                               mMapFrameId.c_str(), mBaseFrameId.c_str());
                 NODELET_DEBUG("Transform error: %s", ex.what());
@@ -3192,12 +3301,20 @@ void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWra
 
             stat.addf("Processing Time", "Mean time: %.3f sec (Max. %.3f sec)", mElabPeriodMean_sec->getMean(), 1. / mCamFrameRate);
 
+            if( mSvoMode ) {
+                int frame = mZed.getSVOPosition();
+                int totFrames = mZed.getSVONumberOfFrames();
+                double svo_perc = 100.*(static_cast<double>(frame)/totFrames);
+
+                stat.addf("Playing SVO", "Frame: %d/%d (%.1f%%)", frame,totFrames, svo_perc);
+            }
+
             if (mComputeDepth) {
                 stat.add("Depth status", "ACTIVE");
 
                 if (mPcPublishing) {
                     double freq = 1000000. / mPcPeriodMean_usec->getMean();
-                    double freq_perc = 100.*freq / mCamFrameRate;
+                    double freq_perc = 100.*freq / mPointCloudFreq;
                     stat.addf("Point Cloud", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
                 } else {
                     stat.add("Point Cloud", "Topic not subscribed");
@@ -3215,6 +3332,12 @@ void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWra
                     stat.addf("Tracking status", "%s", sl::toString(mTrackingStatus).c_str());
                 } else {
                     stat.add("Tracking status", "INACTIVE");
+                }
+
+                if (mObjDetRunning) {
+                    stat.addf("Object data processing", "%.3f sec", mObjDetPeriodMean_msec->getMean() / 1000.);
+                } else {
+                    stat.add("Object Detection", "INACTIVE");
                 }
             } else {
                 stat.add("Depth status", "INACTIVE");
@@ -3452,12 +3575,14 @@ bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
 
 bool ZEDWrapperNodelet::on_start_3d_mapping(zed_wrapper::start_3d_mapping::Request& req,
                                             zed_wrapper::start_3d_mapping::Response& res) {
-    if( mMappingEnabled && mMappingActivated) {
+    if( mMappingEnabled && mMappingRunning) {
         NODELET_WARN_STREAM("Spatial mapping was just running");
 
         res.done = false;
         return res.done;
     }
+
+    mMappingRunning = false;
 
     mMappingRes = req.resolution;
     mFusedPcPubFreq = req.fused_pointcloud_freq;
@@ -3474,7 +3599,7 @@ bool ZEDWrapperNodelet::on_stop_3d_mapping(zed_wrapper::stop_3d_mapping::Request
     if( mMappingEnabled ) {
         mPubFusedCloud.shutdown();
         mMappingMutex.lock();
-        stop_mapping();
+        stop_3d_mapping();
         mMappingMutex.unlock();
 
         res.done = true;
@@ -3483,6 +3608,326 @@ bool ZEDWrapperNodelet::on_stop_3d_mapping(zed_wrapper::stop_3d_mapping::Request
     }
 
     return res.done;
+}
+
+bool ZEDWrapperNodelet::on_start_object_detection(zed_wrapper::start_object_detection::Request& req,
+                                                  zed_wrapper::start_object_detection::Response& res) {
+    if( mObjDetEnabled && mObjDetRunning) {
+        NODELET_WARN_STREAM("Object Detection was just running");
+
+        res.done = false;
+        return res.done;
+    }
+
+    mObjDetRunning = false;
+
+    req.confidence;
+    req.tracking;
+    req.people;
+    req.vehicles;
+
+    mObjDetEnabled = true;
+    res.done = true;
+
+    return res.done;
+}
+
+/* \brief Service callback to stop_object_detection service
+     */
+bool ZEDWrapperNodelet::on_stop_object_detection(zed_wrapper::stop_object_detection::Request& req,
+                                                 zed_wrapper::stop_object_detection::Response& res) {
+    if( mObjDetEnabled ) {
+        mObjDetMutex.lock();
+        stop_obj_detect();
+        mObjDetMutex.unlock();
+
+        res.done = true;
+    } else {
+        res.done = false;
+    }
+
+    return res.done;
+}
+
+void ZEDWrapperNodelet::detectObjects(bool publishObj, bool publishViz) {
+
+    sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
+    objectTracker_parameters_rt.detection_confidence_threshold = mObjDetConfidence;
+    objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
+
+    sl::Objects objects;
+
+    sl::ERROR_CODE objDetRes = mZed.retrieveObjects(objects, objectTracker_parameters_rt);
+
+    if (objDetRes != sl::ERROR_CODE::SUCCESS) {
+        NODELET_WARN_STREAM("Object Detection error: " << sl::toString(objDetRes));
+        return;
+    }
+
+    // NODELET_DEBUG_STREAM("Detected " << objects.object_list.size() << " objects");
+
+    size_t objCount = objects.object_list.size();
+
+    zed_wrapper::objects objMsg;
+
+    objMsg.objects.resize(objCount);
+
+    std_msgs::Header header;
+    header.stamp = mFrameTimestamp;
+    //header.frame_id = mCameraFrameId;
+    header.frame_id = mLeftCamFrameId;
+
+    visualization_msgs::MarkerArray objMarkersMsg;
+    //objMarkersMsg.markers.resize(objCount * 3);
+
+    for (size_t i = 0; i < objCount; i++) {
+        sl::ObjectData data = objects.object_list[i];
+
+        if (publishObj) {
+            objMsg.objects[i].header = header;
+
+            objMsg.objects[i].label = sl::toString(data.label).c_str();
+            objMsg.objects[i].label_id = data.id;
+            objMsg.objects[i].confidence = data.confidence;
+
+            objMsg.objects[i].tracking_state = static_cast<int8_t>(data.tracking_state);
+
+            objMsg.objects[i].position.x = data.position.x;
+            objMsg.objects[i].position.y = data.position.y;
+            objMsg.objects[i].position.z = data.position.z;
+
+            objMsg.objects[i].linear_vel.x = data.velocity.x;
+            objMsg.objects[i].linear_vel.y = data.velocity.y;
+            objMsg.objects[i].linear_vel.z = data.velocity.z;
+
+            for (int c = 0; c < data.bounding_box_2d.size(); c++) {
+                objMsg.objects[i].bbox_2d[c].x = data.bounding_box_2d[c].x;
+                objMsg.objects[i].bbox_2d[c].y = data.bounding_box_2d[c].y;
+                objMsg.objects[i].bbox_2d[c].z = 0.0f;
+            }
+
+            for (int c = 0; c < data.bounding_box.size(); c++) {
+                objMsg.objects[i].bbox_3d[c].x = data.bounding_box[c].x;
+                objMsg.objects[i].bbox_3d[c].y = data.bounding_box[c].y;
+                objMsg.objects[i].bbox_3d[c].z = data.bounding_box[c].z;
+            }
+        }
+
+        if (publishViz) {
+
+            if( data.bounding_box.size()!=8 ) {
+                continue; // No 3D information available
+            }
+
+            visualization_msgs::Marker bbx_marker;
+
+            bbx_marker.header = header;
+            bbx_marker.ns = "bbox";
+            bbx_marker.id = data.id;
+            bbx_marker.type = visualization_msgs::Marker::CUBE;
+            bbx_marker.action = visualization_msgs::Marker::ADD;
+            bbx_marker.pose.position.x = data.position.x;
+            bbx_marker.pose.position.y = data.position.y;
+            bbx_marker.pose.position.z = data.position.z;
+            bbx_marker.pose.orientation.x = 0.0;
+            bbx_marker.pose.orientation.y = 0.0;
+            bbx_marker.pose.orientation.z = 0.0;
+            bbx_marker.pose.orientation.w = 1.0;
+
+            bbx_marker.scale.x = fabs(data.bounding_box[0].x - data.bounding_box[1].x);
+            bbx_marker.scale.y = fabs(data.bounding_box[0].y - data.bounding_box[3].y);
+            bbx_marker.scale.z = fabs(data.bounding_box[0].z - data.bounding_box[4].z);
+            sl::float3 color = generateColorClass(data.id);
+            bbx_marker.color.b = color.b;
+            bbx_marker.color.g = color.g;
+            bbx_marker.color.r = color.r;
+            bbx_marker.color.a = 0.4;
+            bbx_marker.lifetime = ros::Duration(0.3);
+            bbx_marker.frame_locked = true;
+
+            objMarkersMsg.markers.push_back(bbx_marker);
+
+            visualization_msgs::Marker label;
+            label.header = header;
+            label.lifetime = ros::Duration(0.3);
+            label.action = visualization_msgs::Marker::ADD;
+            label.id = data.id;
+            label.ns = "label";
+            label.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+            label.scale.z = 0.1;
+
+            label.color.r = 255-color.r;
+            label.color.g = 255-color.g;
+            label.color.b = 255-color.b;
+            label.color.a = 0.75f;
+
+            label.pose.position.x = data.position.x;
+            label.pose.position.y = data.position.y;
+            label.pose.position.z = data.position.z+1.1*bbx_marker.scale.z/2;
+
+            label.text = std::to_string(data.id) + ". " + std::string(sl::toString(data.label).c_str());
+
+             objMarkersMsg.markers.push_back(label);
+
+            //            visualization_msgs::Marker lines;
+            //            visualization_msgs::Marker label;
+            //            visualization_msgs::Marker spheres;
+
+            //            lines.pose.orientation.w = label.pose.orientation.w = spheres.pose.orientation.w = 1.0;
+
+            //            lines.header = header;
+            //            lines.lifetime = ros::Duration(0.3);
+            //            lines.action = visualization_msgs::Marker::ADD;
+            //            lines.id = data.id;
+            //            lines.ns = "bbox";
+            //            lines.type = visualization_msgs::Marker::LINE_LIST;
+            //            lines.scale.x = 0.005;
+
+            //            label.header = header;
+            //            label.lifetime = ros::Duration(0.3);
+            //            label.action = visualization_msgs::Marker::ADD;
+            //            label.id = data.id;
+            //            label.ns = "label";
+            //            label.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+            //            //label.scale.x = 0.05;
+            //            //label.scale.y = 0.05;
+            //            label.scale.z = 0.1;
+
+            //            spheres.header = header;
+            //            spheres.lifetime = ros::Duration(0.3);
+            //            spheres.action = visualization_msgs::Marker::ADD;
+            //            spheres.id = data.id;
+            //            spheres.ns = "spheres";
+            //            spheres.type = visualization_msgs::Marker::SPHERE_LIST;
+            //            spheres.scale.x = 0.02;
+            //            spheres.scale.y = 0.02;
+            //            spheres.scale.z = 0.02;
+
+            //            spheres.color.r = data.tracking_state == sl::OBJECT_TRACKING_STATE::OK ?
+            //                        0.1f : (data.tracking_state == sl::OBJECT_TRACKING_STATE::SEARCHING ?
+            //                                    0.9f : 0.3f);
+            //            spheres.color.g = data.tracking_state == sl::OBJECT_TRACKING_STATE::OK ?
+            //                        0.9f : (data.tracking_state == sl::OBJECT_TRACKING_STATE::SEARCHING ?
+            //                                    0.1f : 0.3f);
+            //            spheres.color.b = data.tracking_state == sl::OBJECT_TRACKING_STATE::OK ?
+            //                        0.1f : (data.tracking_state == sl::OBJECT_TRACKING_STATE::SEARCHING ?
+            //                                    0.1f : 0.3f);
+            //            spheres.color.a = 0.75f;
+
+            //            sl::float3 color = generateColorClass(data.id);
+
+            //            lines.color.r = color.r;
+            //            lines.color.g = color.g;
+            //            lines.color.b = color.b;
+            //            lines.color.a = 0.75f;
+
+            //            label.color.r = color.r;
+            //            label.color.g = color.g;
+            //            label.color.b = color.b;
+            //            label.color.a = 0.75f;
+
+            //            label.pose.position.x = data.position.x;
+            //            label.pose.position.y = data.position.y;
+            //            label.pose.position.z = data.position.z;
+
+            //            label.text = std::to_string(data.id) + ". " + std::string(sl::toString(data.label).c_str());
+
+            //            geometry_msgs::Point p0;
+            //            geometry_msgs::Point p1;
+
+            //            // Centroid
+            //            p0.x = data.position.x;
+            //            p0.y = data.position.y;
+            //            p0.z = data.position.z;
+
+            //            spheres.points.resize(9);
+            //            spheres.points[8] = p0;;
+
+            //            lines.points.resize(24);
+
+            //            int linePtIdx = 0;
+
+            //            // Top square
+            //            for (int v = 0; v < 3; v++) {
+            //                lines.points[linePtIdx].x = data.bounding_box[v].x;
+            //                lines.points[linePtIdx].y = data.bounding_box[v].y;
+            //                lines.points[linePtIdx].z = data.bounding_box[v].z;
+            //                linePtIdx++;
+
+            //                lines.points[linePtIdx].x = data.bounding_box[v + 1].x;
+            //                lines.points[linePtIdx].y = data.bounding_box[v + 1].y;
+            //                lines.points[linePtIdx].z = data.bounding_box[v + 1].z;
+            //                linePtIdx++;
+            //            }
+
+            //            lines.points[linePtIdx].x = data.bounding_box[3].x;
+            //            lines.points[linePtIdx].y = data.bounding_box[3].y;
+            //            lines.points[linePtIdx].z = data.bounding_box[3].z;
+            //            linePtIdx++;
+
+            //            lines.points[linePtIdx].x = data.bounding_box[0].x;
+            //            lines.points[linePtIdx].y = data.bounding_box[0].y;
+            //            lines.points[linePtIdx].z = data.bounding_box[0].z;
+            //            linePtIdx++;
+
+            //            // Bottom square
+            //            for (int v = 4; v < 7; v++) {
+            //                lines.points[linePtIdx].x = data.bounding_box[v].x;
+            //                lines.points[linePtIdx].y = data.bounding_box[v].y;
+            //                lines.points[linePtIdx].z = data.bounding_box[v].z;
+            //                linePtIdx++;
+
+            //                lines.points[linePtIdx].x = data.bounding_box[v + 1].x;
+            //                lines.points[linePtIdx].y = data.bounding_box[v + 1].y;
+            //                lines.points[linePtIdx].z = data.bounding_box[v + 1].z;
+            //                linePtIdx++;
+            //            }
+
+            //            lines.points[linePtIdx].x = data.bounding_box[7].x;
+            //            lines.points[linePtIdx].y = data.bounding_box[7].y;
+            //            lines.points[linePtIdx].z = data.bounding_box[7].z;
+            //            linePtIdx++;
+
+            //            lines.points[linePtIdx].x = data.bounding_box[4].x;
+            //            lines.points[linePtIdx].y = data.bounding_box[4].y;
+            //            lines.points[linePtIdx].z = data.bounding_box[4].z;
+            //            linePtIdx++;
+
+            //            // Lateral lines and vertex spheres
+            //            for (int v = 0; v < 4; v++) {
+            //                lines.points[linePtIdx].x = data.bounding_box[v].x;
+            //                lines.points[linePtIdx].y = data.bounding_box[v].y;
+            //                lines.points[linePtIdx].z = data.bounding_box[v].z;
+            //                linePtIdx++;
+
+            //                lines.points[linePtIdx].x = data.bounding_box[v + 4].x;
+            //                lines.points[linePtIdx].y = data.bounding_box[v + 4].y;
+            //                lines.points[linePtIdx].z = data.bounding_box[v + 4].z;
+            //                linePtIdx++;
+
+            //                spheres.points[v * 2].x = data.bounding_box[v].x;
+            //                spheres.points[v * 2].y = data.bounding_box[v].y;
+            //                spheres.points[v * 2].z = data.bounding_box[v].z;
+
+            //                spheres.points[v * 2 + 1].x = data.bounding_box[v + 4].x;
+            //                spheres.points[v * 2 + 1].y = data.bounding_box[v + 4].y;
+            //                spheres.points[v * 2 + 1].z = data.bounding_box[v + 4].z;
+            //            }
+
+            //            objMarkersMsg.markers[i * 3] = lines;
+            //            objMarkersMsg.markers[i * 3 + 1] = label;
+            //            objMarkersMsg.markers[i * 3 + 2] = spheres;
+        }
+    }
+
+    if (publishObj) {
+        mPubObjDet.publish(objMsg);
+    }
+
+    if (mPubObjDetViz) {
+        mPubObjDetViz.publish(objMarkersMsg);
+    }
+
 }
 
 } // namespace

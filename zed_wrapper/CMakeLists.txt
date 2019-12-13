@@ -44,6 +44,7 @@ find_package(catkin COMPONENTS
   rosconsole
   sensor_msgs
   stereo_msgs
+  std_msgs
   dynamic_reconfigure
   tf2_ros
   nodelet
@@ -58,11 +59,17 @@ checkPackage("roscpp" "")
 checkPackage("rosconsole" "")
 checkPackage("sensor_msgs" "")
 checkPackage("stereo_msgs" "")
+checkPackage("std_msgs" "")
 checkPackage("dynamic_reconfigure" "")
 checkPackage("tf2_ros" "")
 checkPackage("nodelet" "")
 checkPackage("tf2_geometry_msgs" "")
 checkPackage("message_generation" "")
+
+add_message_files( FILES
+    object_stamped.msg
+    objects.msg
+  )
 
 add_service_files( FILES
     set_pose.srv
@@ -76,9 +83,14 @@ add_service_files( FILES
     toggle_led.srv
     start_3d_mapping.srv
     stop_3d_mapping.srv
+    start_object_detection.srv
+    stop_object_detection.srv
   )
 
-generate_messages()
+generate_messages(DEPENDENCIES
+    std_msgs
+    geometry_msgs
+)
 
 generate_dynamic_reconfigure_options(
   cfg/Zed.cfg
