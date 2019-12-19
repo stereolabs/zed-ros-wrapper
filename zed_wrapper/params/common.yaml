@@ -21,8 +21,8 @@ general:
     camera_flip:                false
     zed_id:                     0
     serial_number:              0
-    resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
-    frame_rate:                 15
+    resolution:                 3                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
+    frame_rate:                 30
     gpu_id:                     -1
     base_frame:                 'base_link'                         # must be equal to the frame_id used in the URDF file
     camera_frame:               'zed_camera_center'                 # must be equal to the frame_id used in the URDF file
@@ -42,7 +42,7 @@ video:
     color_enhancement:          true                                # This parameter enhances color spreading on R/G/B channel and increase gamma correction on black areas for a better gray segmentation in black areas. Recommended for computer's vision applications.
 
 depth:
-    quality:                    4                                   # '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY, '4': ULTRA
+    quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY, '4': ULTRA
     sensing_mode:               0                                   # '0': STANDARD, '1': FILL
     depth_stabilization:        1                                   # `0`: disabled, `1`: enabled
     openni_depth_mode:          0                                   # '0': 32bit float meters, '1': 16bit uchar millimeters
@@ -59,7 +59,7 @@ tracking:
     odometry_frame:             'odom'
     odometry_db:                ''
     spatial_memory:             true                                # Enable to detect loop closure
-    floor_alignment:            true                               # Enable to automatically calculate camera/floor offset
+    floor_alignment:            false                               # Enable to automatically calculate camera/floor offset
     initial_base_pose:          [0.0,0.0,0.0, 0.0,0.0,0.0]          # [X, Y, Z, R, P, Y]
     pose_topic:                 'pose'
     publish_pose_covariance:    true                                # Enable to publish the `pose_with_covariance` message
@@ -77,10 +77,4 @@ mapping:
     resolution:                 0                                   # `0`: HIGH, `1`: MEDIUM, `2`: LOW
     fused_pointcloud_freq:      1.0                                 # frequency of the publishing of the fused colored point cloud
 
-object_detection:
-    od_enabled:                 false                               # True to enable Object Detection [only ZED 2]
-    od_min_confidence:          50                                  # Object detection confidence level [0,100]
-    od_tracking:                true                                # Object tracking
-    od_people:                  true                                # People detection
-    oc_vehicles:                true                                # Vehicle detection
 

@@ -1208,6 +1208,11 @@ void ZEDWrapperNodelet::stop_3d_mapping() {
 }
 
 bool ZEDWrapperNodelet::start_obj_detect() {
+    if(mZedRealCamModel!=sl::MODEL::ZED2) {
+        NODELET_ERROR_STREAM( "Object detection not started. OD is available only using a ZED2 camera model");
+        return false;
+    }
+
     if(!mObjDetEnabled) {
         return false;
     }
@@ -1226,6 +1231,17 @@ bool ZEDWrapperNodelet::start_obj_detect() {
 
         mObjDetRunning = false;
         return false;
+    }
+
+    if(mPubObjDet.getTopic().empty()) {
+        string object_det_topic_root = "obj_det";
+        string object_det_topic = object_det_topic_root + "/objects";
+        string object_det_rviz_topic = object_det_topic_root + "/object_markers";
+
+        mPubObjDet = mNh.advertise<zed_wrapper::objects>(object_det_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
+        mPubObjDetViz = mNh.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
+        NODELET_INFO_STREAM("Advertised on topic " << mPubObjDetViz.getTopic());
     }
 
     mObjDetRunning = true;
@@ -3612,6 +3628,14 @@ bool ZEDWrapperNodelet::on_stop_3d_mapping(zed_wrapper::stop_3d_mapping::Request
 
 bool ZEDWrapperNodelet::on_start_object_detection(zed_wrapper::start_object_detection::Request& req,
                                                   zed_wrapper::start_object_detection::Response& res) {
+    if(mZedRealCamModel!=sl::MODEL::ZED2) {
+        mObjDetEnabled = false;
+        mObjDetRunning = false;
+
+        NODELET_ERROR_STREAM( "Object detection not started. OD is available only using a ZED2 camera model");
+        return false;
+    }
+
     if( mObjDetEnabled && mObjDetRunning) {
         NODELET_WARN_STREAM("Object Detection was just running");
 

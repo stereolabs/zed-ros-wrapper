@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>zed_ros</name>
-  <version>2.7.0</version>
+  <version>3.0.0</version>
   <description>Stereolabs zed-ros-wrapper support meta package</description>
 
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
@@ -14,7 +14,6 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <exec_depend>zed_wrapper</exec_depend>
-  <exec_depend>zed_display_rviz</exec_depend>
 
   <export>
     <metapackage />

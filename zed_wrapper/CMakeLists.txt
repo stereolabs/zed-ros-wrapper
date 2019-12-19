@@ -168,7 +168,6 @@ add_custom_target(all_files_${PROJECT_NAME} SOURCES ${all_files})
 
 roslint_cpp()
 
-
 ###############################################################################
 # INSTALL
 
