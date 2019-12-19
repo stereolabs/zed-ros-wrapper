@@ -377,9 +377,9 @@ void ZEDWrapperNodelet::onInit() {
 
     // Object detection publishers
     if (mObjDetEnabled) {
-        mPubObjDet = mNh.advertise<zed_wrapper::objects>(object_det_topic, 1);
+        mPubObjDet = mNhNs.advertise<zed_wrapper::objects>(object_det_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
-        mPubObjDetViz = mNh.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
+        mPubObjDetViz = mNhNs.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDetViz.getTopic());
     }
 
@@ -1238,9 +1238,9 @@ bool ZEDWrapperNodelet::start_obj_detect() {
         string object_det_topic = object_det_topic_root + "/objects";
         string object_det_rviz_topic = object_det_topic_root + "/object_markers";
 
-        mPubObjDet = mNh.advertise<zed_wrapper::objects>(object_det_topic, 1);
+        mPubObjDet = mNhNs.advertise<zed_wrapper::objects>(object_det_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
-        mPubObjDetViz = mNh.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
+        mPubObjDetViz = mNhNs.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDetViz.getTopic());
     }
 
