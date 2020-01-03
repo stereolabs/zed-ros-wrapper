@@ -21,8 +21,8 @@ general:
     camera_flip:                false
     zed_id:                     0
     serial_number:              0
-    resolution:                 3                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
-    frame_rate:                 30
+    resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
+    frame_rate:                 15
     gpu_id:                     -1
     base_frame:                 'base_link'                         # must be equal to the frame_id used in the URDF file
     camera_frame:               'zed_camera_center'                 # must be equal to the frame_id used in the URDF file
@@ -43,7 +43,7 @@ video:
 
 depth:
     quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY, '4': ULTRA
-    sensing_mode:               0                                   # '0': STANDARD, '1': FILL
+    sensing_mode:               0                                   # '0': STANDARD, '1': FILL (not use FILL for robotic applications)
     depth_stabilization:        1                                   # `0`: disabled, `1`: enabled
     openni_depth_mode:          0                                   # '0': 32bit float meters, '1': 16bit uchar millimeters
     depth_topic_root:           'depth'                             # default `depth/depth_registered` or `depth/depth_raw_registered` if `openni_depth_mode` is true

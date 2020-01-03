@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <geometry>
                 <mesh filename="package://zed_wrapper/urdf/models/ZED2.stl" />
             </geometry>
-            <material name="light_grey">
-                <color rgba="0.2 0.2 0.2 1.0"/>
+            <material name="dark_grey">
+                <color rgba="0.25 0.25 0.25 0.99"/>
             </material>
         </visual>
     </link>
@@ -75,16 +75,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </joint>
 
     <link name="zed_right_camera_optical_frame"/>
-
-<!-- IMU -->
-<!--
-    <joint name="imu_link_joint" type="floating">
-        <parent link="zed_camera_center"/>
-        <child link="zed_imu_link"/>
-        <origin xyz="0 0 0" rpy="0 0 0" />
-    </joint>
-
-    <link name="zed_imu_link" />
- -->
-    
 </robot>

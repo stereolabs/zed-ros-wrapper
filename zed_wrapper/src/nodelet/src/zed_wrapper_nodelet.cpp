@@ -2527,8 +2527,6 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
     // Main loop
     while (mNhNs.ok()) {
-        std::chrono::steady_clock::time_point start_elab = std::chrono::steady_clock::now();
-
         // Check for subscribers
         uint32_t rgbSubnumber = mPubRgb.getNumSubscribers();
         uint32_t rgbRawSubnumber = mPubRawRgb.getNumSubscribers();
@@ -2609,6 +2607,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             }
 
             mGrabStatus = mZed.grab(runParams);
+
+            std::chrono::steady_clock::time_point start_elab = std::chrono::steady_clock::now();
 
             // cout << toString(grab_status) << endl;
             if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {

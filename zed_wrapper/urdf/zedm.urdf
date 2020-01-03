@@ -73,13 +73,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </joint>
 
     <link name="zed_right_camera_optical_frame"/>
-
-<!-- IMU -->    
-    <joint name="imu_link_joint" type="floating">
-        <parent link="zed_camera_center"/>
-        <child link="zed_imu_link"/>
-        <origin xyz="0 0 0" rpy="0 0 0" />
-    </joint>
-    <link name="zed_imu_link" />
- 
 </robot>
