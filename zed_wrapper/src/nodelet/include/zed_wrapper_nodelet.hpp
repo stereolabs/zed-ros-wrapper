@@ -340,7 +340,7 @@ protected:
 
     /* \bried Start tracking
          */
-    void start_tracking();
+    void start_pos_tracking();
 
     /* \bried Start spatial mapping
          */

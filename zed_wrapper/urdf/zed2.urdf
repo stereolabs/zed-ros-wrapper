@@ -32,10 +32,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-                <mesh filename="package://zed_wrapper/urdf/models/ZED.stl" />
+                <mesh filename="package://zed_wrapper/urdf/models/ZED2.stl" />
             </geometry>
             <material name="light_grey">
-                <color rgba="0.8 0.8 0.8 0.8"/>
+                <color rgba="0.2 0.2 0.2 1.0"/>
             </material>
         </visual>
     </link>

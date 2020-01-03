@@ -648,14 +648,6 @@ void ZEDWrapperNodelet::readParameters() {
         NODELET_INFO_STREAM(" * People detection\t\t-> " << (mObjDetPeople?"ENABLED":"DISABLED"));
         mNhNs.getParam("mObjDetEnable/oc_vehicles", mObjDetVehicles);
         NODELET_INFO_STREAM(" * Vehicles detection\t\t-> " << (mObjDetVehicles?"ENABLED":"DISABLED"));
-
-        mObjDetFilter.clear();
-        if(mObjDetPeople) {
-            mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
-        }
-        if(mObjDetVehicles) {
-            mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
-        }
     } else {
         NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
     }
@@ -1116,7 +1108,7 @@ bool ZEDWrapperNodelet::on_set_pose(
     mZed.disablePositionalTracking();
 
     // Restart tracking
-    start_tracking();
+    start_pos_tracking();
 
     res.done = true;
     return true;
@@ -1143,7 +1135,7 @@ bool ZEDWrapperNodelet::on_reset_tracking(
     mZed.disablePositionalTracking();
 
     // Restart tracking
-    start_tracking();
+    start_pos_tracking();
 
     res.reset_done = true;
     return true;
@@ -1244,6 +1236,14 @@ bool ZEDWrapperNodelet::start_obj_detect() {
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDetViz.getTopic());
     }
 
+    mObjDetFilter.clear();
+    if(mObjDetPeople) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+    }
+    if(mObjDetVehicles) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+    }
+
     mObjDetRunning = true;
     return false;
 }
@@ -1257,7 +1257,7 @@ void ZEDWrapperNodelet::stop_obj_detect() {
     }
 }
 
-void ZEDWrapperNodelet::start_tracking() {
+void ZEDWrapperNodelet::start_pos_tracking() {
     NODELET_INFO_STREAM("*** Starting Positional Tracking ***");
 
     NODELET_INFO(" * Waiting for valid static transformations...");
@@ -2578,7 +2578,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
             // Start the tracking?
             if ((computeTracking) && !mTrackingActivated && (mDepthMode != sl::DEPTH_MODE::NONE)) {
-                start_tracking();
+                start_pos_tracking();
             }
 
             // Start the mapping?
@@ -2668,7 +2668,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                             odomSubnumber > 0;
 
                     if (computeTracking) {  // Start the tracking
-                        start_tracking();
+                        start_pos_tracking();
                     }
                 }
 
@@ -2977,7 +2977,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
             mObjDetMutex.lock();
             if (mObjDetRunning) {
-                std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();                
+                std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
                 detectObjects(objDetSubnumber > 0, objDetVizSubnumber > 0);
                 std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 
@@ -3603,6 +3603,10 @@ bool ZEDWrapperNodelet::on_start_3d_mapping(zed_wrapper::start_3d_mapping::Reque
     mMappingRes = req.resolution;
     mFusedPcPubFreq = req.fused_pointcloud_freq;
 
+    NODELET_DEBUG_STREAM(" * Mapping resolution\t\t-> " << sl::toString(
+                             static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes)));
+    NODELET_DEBUG_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
+
     mMappingEnabled = true;
     res.done = true;
 
@@ -3645,10 +3649,15 @@ bool ZEDWrapperNodelet::on_start_object_detection(zed_wrapper::start_object_dete
 
     mObjDetRunning = false;
 
-    req.confidence;
-    req.tracking;
-    req.people;
-    req.vehicles;
+    mObjDetConfidence = req.confidence;
+    mObjDetTracking = req.tracking;
+    mObjDetPeople = req.people;
+    mObjDetVehicles = req.vehicles;
+
+    NODELET_DEBUG_STREAM(" * Object min. confidence\t-> " << mObjDetConfidence);
+    NODELET_DEBUG_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking?"ENABLED":"DISABLED"));
+    NODELET_DEBUG_STREAM(" * People detection\t\t-> " << (mObjDetPeople?"ENABLED":"DISABLED"));
+    NODELET_DEBUG_STREAM(" * Vehicles detection\t\t-> " << (mObjDetVehicles?"ENABLED":"DISABLED"));
 
     mObjDetEnabled = true;
     res.done = true;
@@ -3791,7 +3800,7 @@ void ZEDWrapperNodelet::detectObjects(bool publishObj, bool publishViz) {
 
             label.text = std::to_string(data.id) + ". " + std::string(sl::toString(data.label).c_str());
 
-             objMarkersMsg.markers.push_back(label);
+            objMarkersMsg.markers.push_back(label);
 
             //            visualization_msgs::Marker lines;
             //            visualization_msgs::Marker label;
