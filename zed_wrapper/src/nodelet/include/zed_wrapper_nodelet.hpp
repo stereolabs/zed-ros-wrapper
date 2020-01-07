@@ -526,19 +526,6 @@ private:
     bool mSensPublishing = false;
     bool mPcPublishing = false;
 
-    // Topic names
-    std::string mRgbTopicRoot;
-    std::string mRightTopicRoot;
-    std::string mLeftTopicRoot;
-    std::string mDepthTopicRoot;
-    std::string mDisparityTopic;
-    std::string mPointCloudTopicRoot;
-    std::string mConfImgRoot;
-    std::string mPoseTopic;
-    std::string mOdometryTopic;
-    std::string mImuTopicRoot;
-    std::string mStereoTopicRoot;
-
     // Last frame time
     ros::Time mPrevFrameTimestamp;
     ros::Time mFrameTimestamp;

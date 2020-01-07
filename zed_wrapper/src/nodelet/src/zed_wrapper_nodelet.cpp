@@ -87,46 +87,56 @@ void ZEDWrapperNodelet::onInit() {
     readParameters();
     initTransforms();
 
+    // Set the video topic names
+    std::string rgbTopicRoot = "rgb";
+    std::string rightTopicRoot = "right";
+    std::string leftTopicRoot = "left";
+    std::string stereoTopicRoot = "stereo";
     std::string img_topic = "/image_rect_color";
     std::string img_raw_topic = "/image_raw_color";
     std::string raw_suffix = "_raw";
+    string left_topic = leftTopicRoot + img_topic;
+    string left_raw_topic = leftTopicRoot + raw_suffix + img_raw_topic;
+    string right_topic = rightTopicRoot + img_topic;
+    string right_raw_topic = rightTopicRoot + raw_suffix + img_raw_topic;
+    string rgb_topic = rgbTopicRoot + img_topic;
+    string rgb_raw_topic = rgbTopicRoot + raw_suffix + img_raw_topic;
+    string stereo_topic = stereoTopicRoot + img_topic;
+    string stereo_raw_topic = stereoTopicRoot + raw_suffix + img_raw_topic;
 
-    // Set the video topic names
-    string left_topic = mLeftTopicRoot + img_topic;
-    string left_raw_topic = mLeftTopicRoot + raw_suffix + img_raw_topic;
-    string right_topic = mRightTopicRoot + img_topic;
-    string right_raw_topic = mRightTopicRoot + raw_suffix + img_raw_topic;
-    string rgb_topic = mRgbTopicRoot + img_topic;
-    string rgb_raw_topic = mRgbTopicRoot + raw_suffix + img_raw_topic;
-    string stereo_topic = mStereoTopicRoot + img_topic;
-    string stereo_raw_topic = mStereoTopicRoot + raw_suffix + img_raw_topic;
+    // Set the disparity topic name
+    std::string disparityTopic = "disparity/disparity_image";
 
     // Set the depth topic names
-    string depth_topic = mDepthTopicRoot;
+    string depth_topic_root = "depth";
 
     if (mOpenniDepthMode) {
         NODELET_INFO_STREAM("Openni depth mode activated");
-        depth_topic += "/depth_raw_registered";
+        depth_topic_root += "/depth_raw_registered";
     } else {
-        depth_topic += "/depth_registered";
+        depth_topic_root += "/depth_registered";
     }
 
-    string pointcloud_topic = mPointCloudTopicRoot + "/cloud_registered";
-    string pointcloud_fused_topic = mPointCloudTopicRoot + "/fused_cloud_registered";
+    std::string pointCloudTopicRoot = "point_cloud";
+    string pointcloud_topic = pointCloudTopicRoot + "/cloud_registered";
+    string pointcloud_fused_topic = pointCloudTopicRoot + "/fused_cloud_registered";
 
     string object_det_topic_root = "obj_det";
     string object_det_topic = object_det_topic_root + "/objects";
     string object_det_rviz_topic = object_det_topic_root + "/object_markers";
 
+    std::string confImgRoot = "confidence";
     string conf_img_topic_name = "confidence_image";
     string conf_map_topic_name = "confidence_map";
-    string conf_img_topic = mConfImgRoot + "/" + conf_img_topic_name;
-    string conf_map_topic = mConfImgRoot + "/" + conf_map_topic_name;
+    string conf_img_topic = confImgRoot + "/" + conf_img_topic_name;
+    string conf_map_topic = confImgRoot + "/" + conf_map_topic_name;
 
     // Set the positional tracking topic names
+    std::string poseTopic = "pose";
     string pose_cov_topic;
-    pose_cov_topic = mPoseTopic + "_with_covariance";
+    pose_cov_topic = poseTopic + "_with_covariance";
 
+    std::string odometryTopic = "odom";
     string odom_path_topic = "path_odom";
     string map_path_topic = "path_map";
 
@@ -297,16 +307,17 @@ void ZEDWrapperNodelet::onInit() {
     string temp_topic_right = temp_topic_root + "/right";
 
     if (mZedRealCamModel != sl::MODEL::ZED) {
+        std::string imuTopicRoot = "imu";
         string imu_topic_name = "data";
         string imu_topic_raw_name = "data_raw";
         string imu_topic_temp_name = "temperature";
         string imu_topic_mag_name = "mag";
         string imu_topic_mag_raw_name = "mag_raw";
-        imu_topic = mImuTopicRoot + "/" + imu_topic_name;
-        imu_topic_raw = mImuTopicRoot + "/" + imu_topic_raw_name;
-        imu_temp_topic = mImuTopicRoot + "/" + imu_topic_temp_name;
-        imu_mag_topic = mImuTopicRoot + "/" + imu_topic_mag_name;
-        imu_mag_topic_raw = mImuTopicRoot + "/" + imu_topic_mag_raw_name;
+        imu_topic = imuTopicRoot + "/" + imu_topic_name;
+        imu_topic_raw = imuTopicRoot + "/" + imu_topic_raw_name;
+        imu_temp_topic = imuTopicRoot + "/" + imu_topic_temp_name;
+        imu_mag_topic = imuTopicRoot + "/" + imu_topic_mag_name;
+        imu_mag_topic_raw = imuTopicRoot + "/" + imu_topic_mag_raw_name;
     }
 
     mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
@@ -346,7 +357,7 @@ void ZEDWrapperNodelet::onInit() {
     mPubRawRight = it_zed.advertiseCamera(right_raw_topic, 1); // right raw
     NODELET_INFO_STREAM("Advertised on topic " << mPubRawRight.getTopic());
     NODELET_INFO_STREAM("Advertised on topic " << mPubRawRight.getInfoTopic());
-    mPubDepth = it_zed.advertiseCamera(depth_topic, 1); // depth
+    mPubDepth = it_zed.advertiseCamera(depth_topic_root, 1); // depth
     NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getTopic());
     NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getInfoTopic());
     mPubConfImg = it_zed.advertiseCamera(conf_img_topic, 1); // confidence image
@@ -363,7 +374,7 @@ void ZEDWrapperNodelet::onInit() {
     NODELET_INFO_STREAM("Advertised on topic " << mPubConfMap.getTopic());
 
     // Disparity publisher
-    mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(mDisparityTopic, 1);
+    mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(disparityTopic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubDisparity.getTopic());
 
     // PointCloud publishers
@@ -384,7 +395,7 @@ void ZEDWrapperNodelet::onInit() {
     }
 
     // Odometry and Pose publisher
-    mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(mPoseTopic, 1);
+    mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(poseTopic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubPose.getTopic());
 
     if (mPublishPoseCovariance) {
@@ -392,7 +403,7 @@ void ZEDWrapperNodelet::onInit() {
         NODELET_INFO_STREAM("Advertised on topic " << mPubPoseCov.getTopic());
     }
 
-    mPubOdom = mNhNs.advertise<nav_msgs::Odometry>(mOdometryTopic, 1);
+    mPubOdom = mNhNs.advertise<nav_msgs::Odometry>(odometryTopic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubOdom.getTopic());
 
     // Camera Path
@@ -544,17 +555,9 @@ void ZEDWrapperNodelet::readParameters() {
     // ----> Video
     mNhNs.getParam("video/color_enhancement", mColorEnhancement);
     NODELET_INFO_STREAM(" * Color Enhancement\t\t-> " << (mColorEnhancement ? "ENABLED" : "DISABLED"));
-    mNhNs.param<std::string>("video/rgb_topic_root", mRgbTopicRoot, "rgb");
-    mNhNs.param<std::string>("video/right_topic_root", mRightTopicRoot, "right");
-    mNhNs.param<std::string>("video/left_topic_root", mLeftTopicRoot, "left");
-    mNhNs.param<std::string>("video/stereo_topic_root", mStereoTopicRoot, "stereo");
     // <---- Video
 
     // -----> Depth
-    mNhNs.param<std::string>("depth/depth_topic_root", mDepthTopicRoot, "depth");
-    mNhNs.param<std::string>("depth/disparity_topic", mDisparityTopic, "disparity/disparity_image");
-    mNhNs.param<std::string>("depth/point_cloud_topic_root", mPointCloudTopicRoot, "point_cloud");
-    mNhNs.param<std::string>("depth/confidence_topic_root", mConfImgRoot, "confidence");
 
     int depth_mode;
     mNhNs.getParam("depth/quality", depth_mode);
@@ -575,12 +578,9 @@ void ZEDWrapperNodelet::readParameters() {
     // <----- Depth
 
     // ----> Tracking
-    mNhNs.param<std::string>("tracking/pose_topic", mPoseTopic, "pose");
-    mNhNs.param<std::string>("tracking/odometry_topic", mOdometryTopic, "odom");
-
-    mNhNs.getParam("tracking/path_pub_rate", mPathPubRate);
+    mNhNs.getParam("pos_tracking/path_pub_rate", mPathPubRate);
     NODELET_INFO_STREAM(" * Path rate\t\t\t-> " <<  mPathPubRate << " Hz");
-    mNhNs.getParam("tracking/path_max_count", mPathMaxCount);
+    mNhNs.getParam("pos_tracking/path_max_count", mPathMaxCount);
     NODELET_INFO_STREAM(" * Path history size\t\t-> " << (mPathMaxCount == -1) ? std::string("INFINITE") : std::to_string(
                                                                                      mPathMaxCount));
 
@@ -588,33 +588,33 @@ void ZEDWrapperNodelet::readParameters() {
         mPathMaxCount = 2;
     }
 
-    mNhNs.getParam("tracking/initial_base_pose", mInitialBasePose);
+    mNhNs.getParam("pos_tracking/initial_base_pose", mInitialBasePose);
 
-    mNhNs.getParam("tracking/odometry_DB", mOdometryDb);
+    mNhNs.getParam("pos_tracking/odometry_DB", mOdometryDb);
     NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mOdometryDb.c_str());
-    mNhNs.param<bool>("tracking/spatial_memory", mSpatialMemory, false);
+    mNhNs.param<bool>("pos_tracking/spatial_memory", mSpatialMemory, false);
     NODELET_INFO_STREAM(" * Spatial Memory\t\t-> " << (mSpatialMemory ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("tracking/imu_fusion", mImuFusion, true);
+    mNhNs.param<bool>("pos_tracking/imu_fusion", mImuFusion, true);
     NODELET_INFO_STREAM(" * IMU Fusion\t\t\t-> " << (mImuFusion ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("tracking/floor_alignment", mFloorAlignment, false);
+    mNhNs.param<bool>("pos_tracking/floor_alignment", mFloorAlignment, false);
     NODELET_INFO_STREAM(" * Floor alignment\t\t-> " << (mFloorAlignment ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("tracking/init_odom_with_first_valid_pose", mInitOdomWithPose, true);
+    mNhNs.param<bool>("pos_tracking/init_odom_with_first_valid_pose", mInitOdomWithPose, true);
     NODELET_INFO_STREAM(" * Init Odometry with first valid pose data -> " << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("tracking/two_d_mode", mTwoDMode, false);
+    mNhNs.param<bool>("pos_tracking/two_d_mode", mTwoDMode, false);
     NODELET_INFO_STREAM(" * Two D mode\t\t\t-> " << (mTwoDMode ? "ENABLED" : "DISABLED"));
-    mNhNs.param<double>("tracking/fixed_z_value", mFixedZValue, 0.0);
+    mNhNs.param<double>("pos_tracking/fixed_z_value", mFixedZValue, 0.0);
 
     if (mTwoDMode) {
         NODELET_INFO_STREAM(" * Fixed Z value\t\t-> " << mFixedZValue);
     }
 
-    mNhNs.getParam("tracking/publish_pose_covariance", mPublishPoseCovariance);
+    mNhNs.getParam("pos_tracking/publish_pose_covariance", mPublishPoseCovariance);
     NODELET_INFO_STREAM(" * Publish Pose Covariance\t-> " << (mPublishPoseCovariance ? "ENABLED" : "DISABLED"));
 
-    mNhNs.getParam("tracking/fixed_covariance", mFixedCov);
+    mNhNs.getParam("pos_tracking/fixed_covariance", mFixedCov);
     NODELET_INFO_STREAM(" * Fixed covariance\t\t-> " << (mFixedCov ? "ENABLED" : "DISABLED"));
 
-    mNhNs.getParam("tracking/fixed_cov_value", mFixedCovValue);
+    mNhNs.getParam("pos_tracking/fixed_cov_value", mFixedCovValue);
     NODELET_INFO_STREAM(" * Fixed cov. value\t\t-> " << mFixedCovValue);
     // <---- Tracking
 
@@ -655,7 +655,6 @@ void ZEDWrapperNodelet::readParameters() {
 
 
     // ----> Sensors
-    mNhNs.param<std::string>("sensors/imu_topic_root", mImuTopicRoot, "imu");
     mNhNs.getParam("sensors/sensors_timestamp_sync", mSensTimestampSync);
     NODELET_INFO_STREAM(" * Sensors timestamp sync\t-> " << (mSensTimestampSync ? "ENABLED" : "DISABLED"));
     mNhNs.getParam("sensors/sens_pub_rate", mSensPubRate);
@@ -682,9 +681,9 @@ void ZEDWrapperNodelet::readParameters() {
     mNhNs.param<std::string>("stream", mRemoteStreamAddr, std::string());
 
     // ----> Coordinate frames
-    mNhNs.param<std::string>("tracking/world_frame", mWorldFrameId, "map");
-    mNhNs.param<std::string>("tracking/map_frame", mMapFrameId, "map");
-    mNhNs.param<std::string>("tracking/odometry_frame", mOdometryFrameId, "odom");
+    mNhNs.param<std::string>("pos_tracking/world_frame", mWorldFrameId, "map");
+    mNhNs.param<std::string>("pos_tracking/map_frame", mMapFrameId, "map");
+    mNhNs.param<std::string>("pos_tracking/odometry_frame", mOdometryFrameId, "odom");
     mNhNs.param<std::string>("general/base_frame", mBaseFrameId, "base_link");
     mNhNs.param<std::string>("general/camera_frame", mCameraFrameId, "zed_camera_center");
     mNhNs.param<std::string>("sensors/imu_frame", mImuFrameId, "imu_link");
@@ -724,9 +723,9 @@ void ZEDWrapperNodelet::readParameters() {
     // <---- Coordinate frames
 
     // ----> TF broadcasting
-    mNhNs.param<bool>("tracking/publish_tf", mPublishTf, true);
+    mNhNs.param<bool>("pos_tracking/publish_tf", mPublishTf, true);
     NODELET_INFO_STREAM(" * Broadcast odometry TF\t-> " << (mPublishTf ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("tracking/publish_map_tf", mPublishMapTf, true);
+    mNhNs.param<bool>("pos_tracking/publish_map_tf", mPublishMapTf, true);
     NODELET_INFO_STREAM(" * Broadcast map pose TF\t-> " << (mPublishTf ? (mPublishMapTf ? "ENABLED" : "DISABLED") :
                                                                          "DISABLED"));
     // <---- TF broadcasting
@@ -1167,7 +1166,7 @@ bool ZEDWrapperNodelet::start_3d_mapping() {
 
     if (err == sl::ERROR_CODE::SUCCESS) {
         if(mPubFusedCloud.getTopic().empty()) {
-            string pointcloud_fused_topic = mPointCloudTopicRoot + "/fused_cloud_registered";
+            string pointcloud_fused_topic = "point_cloud/fused_cloud_registered";
             mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
         }
