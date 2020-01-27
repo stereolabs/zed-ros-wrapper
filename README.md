@@ -61,7 +61,7 @@ To launch the ZED node use:
     `$ roslaunch zed_wrapper zed.launch serial_number:=1010 #replace 1010 with the actual SN`
 
 ### Rviz visualization
-Example launch files to start a pre-configured Rviz environment to visualize the data of ZED, ZED Mini and ZED 2 cameras are provided in the [`zed-ros-display-rviz` repository](https://github.com/stereolabs/zed-ros-display-rviz)
+Example launch files to start a pre-configured Rviz environment to visualize the data of ZED, ZED Mini and ZED 2 cameras are provided in the [`zed-ros-examples` repository](https://github.com/stereolabs/zed-ros-examples)
     
 ### SVO recording
 [SVO recording](https://www.stereolabs.com/docs/video/#video-recording) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
