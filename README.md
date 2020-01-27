@@ -89,20 +89,20 @@ Roll and pitch and relative velocities will be fixed to zero.
 
 ## Examples and Tutorials
 Examples and tutorials are provided to better understand how to use the ZER wrapper and how to integrate it in the ROS framework.
-See the [`zed-ros-tutorials` repository](https://github.com/stereolabs/zed-ros-tutorials)
+See the [`zed-ros-examples` repository](https://github.com/stereolabs/zed-ros-examples)
 
 ### Examples
 Alongside the wrapper itself and the Rviz display, a few examples are provided to interface the ZED with other ROS packages :
 
-- [RTAB-Map](http://introlab.github.io/rtabmap/): See [zed_rtabmap_example](https://github.com/stereolabs/zed-ros-tutorials/tree/master/examples/zed_rtabmap_example/README.md)
-- ROS Nodelet, `depthimage_to_laserscan`: See [zed_nodelet_example](https://github.com/stereolabs/zed-ros-tutorials/tree/master/examples/zed_nodelet_example/README.md)
-- AR Track Alvar: See [zed_ar_track_alvar_example](https://github.com/stereolabs/zed-ros-tutorials/tree/master/examples/zed_ar_track_alvar_example/README.md)
+- [RTAB-Map](http://introlab.github.io/rtabmap/): See [zed_rtabmap_example](https://github.com/stereolabs/zed-ros-examples/tree/master/examples/zed_rtabmap_example/README.md)
+- ROS Nodelet, `depthimage_to_laserscan`: See [zed_nodelet_example](https://github.com/stereolabs/zed-ros-examples/tree/master/examples/zed_nodelet_example/README.md)
+- AR Track Alvar: See [zed_ar_track_alvar_example](https://github.com/stereolabs/zed-ros-examples/tree/master/examples/zed_ar_track_alvar_example/README.md)
 
 ### Tutorials
 
 A few tutorials are provided to understand how to use the ZED node in the ROS environment :
 
-- Video subscribing : See [zed_video_sub_tutorial](https://github.com/stereolabs/zed-ros-tutorials/tree/master/tutorials/zed_video_sub_tutorial/README.md)
-- Depth subscribing : See [zed_depth_sub_tutorial](https://github.com/stereolabs/zed-ros-tutorials/tree/master/tutorials/zed_depth_sub_tutorial/README.md)
-- Positional Tracking subscribing : See [zed_tracking_sub_tutorial](https://github.com/stereolabs/zed-ros-tutorials/tree/master/tutorials/zed_tracking_sub_tutorial/README.md)
+- Video subscribing : See [zed_video_sub_tutorial](https://github.com/stereolabs/zed-ros-examples/tree/master/tutorials/zed_video_sub_tutorial/README.md)
+- Depth subscribing : See [zed_depth_sub_tutorial](https://github.com/stereolabs/zed-ros-examples/tree/master/tutorials/zed_depth_sub_tutorial/README.md)
+- Positional Tracking subscribing : See [zed_tracking_sub_tutorial](https://github.com/stereolabs/zed-ros-examples/tree/master/tutorials/zed_tracking_sub_tutorial/README.md)
 
