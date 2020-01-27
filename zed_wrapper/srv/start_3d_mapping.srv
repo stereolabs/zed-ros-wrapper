@@ -1,0 +1,10 @@
+# Starts 3D fused pointcloud generation, if not automatically enabled with the parameter `mapping/mapping_enabled`
+
+# Resolution of the fused pointcloud [`0`: HIGH, `1`: MEDIUM, `2`: LOW]
+uint8 resolution
+
+# Frequency of the publishing of the fused colored point cloud
+float32 fused_pointcloud_freq
+
+---
+bool done

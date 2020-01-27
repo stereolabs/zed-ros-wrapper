@@ -19,8 +19,8 @@ function(checkPackage package customMessage)
     endif()
 endfunction(checkPackage)
 
-find_package(ZED 2.3)
-checkPackage("ZED" "ZED SDK not found, install it from:\n https://www.stereolabs.com/developers/")
+find_package(ZED 3)
+checkPackage("ZED" "ZED SDK v3.x not found, install it from:\n https://www.stereolabs.com/developers/")
 
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
 if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # Jetson TX
@@ -44,6 +44,7 @@ find_package(catkin COMPONENTS
   rosconsole
   sensor_msgs
   stereo_msgs
+  std_msgs
   dynamic_reconfigure
   tf2_ros
   nodelet
@@ -58,11 +59,17 @@ checkPackage("roscpp" "")
 checkPackage("rosconsole" "")
 checkPackage("sensor_msgs" "")
 checkPackage("stereo_msgs" "")
+checkPackage("std_msgs" "")
 checkPackage("dynamic_reconfigure" "")
 checkPackage("tf2_ros" "")
 checkPackage("nodelet" "")
 checkPackage("tf2_geometry_msgs" "")
 checkPackage("message_generation" "")
+
+add_message_files( FILES
+    object_stamped.msg
+    objects.msg
+  )
 
 add_service_files( FILES
     set_pose.srv
@@ -74,9 +81,16 @@ add_service_files( FILES
     stop_remote_stream.srv
     set_led_status.srv
     toggle_led.srv
+    start_3d_mapping.srv
+    stop_3d_mapping.srv
+    start_object_detection.srv
+    stop_object_detection.srv
   )
 
-generate_messages()
+generate_messages(DEPENDENCIES
+    std_msgs
+    geometry_msgs
+)
 
 generate_dynamic_reconfigure_options(
   cfg/Zed.cfg
@@ -98,8 +112,7 @@ catkin_package(
 ###############################################################################
 # SOURCES
 
-set(TOOLS_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp)
+set(TOOLS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp)
 set(NODE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_wrapper_node.cpp)
 set(NODELET_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/nodelet/src/zed_wrapper_nodelet.cpp)
 
@@ -154,7 +167,6 @@ FILE(GLOB_RECURSE all_files ${CMAKE_SOURCE_DIR}/*)
 add_custom_target(all_files_${PROJECT_NAME} SOURCES ${all_files})
 
 roslint_cpp()
-
 
 ###############################################################################
 # INSTALL

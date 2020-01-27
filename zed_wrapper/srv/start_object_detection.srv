@@ -1,0 +1,18 @@
+# Starts object detection, if not automatically enabled with the parameter `object_detection/od_enabled`
+
+# Minimum Confidence level
+float32 confidence
+
+# Object tracking
+bool tracking
+
+# Detect people
+bool people
+
+# Detect vehicles
+bool vehicles
+
+
+
+---
+bool done

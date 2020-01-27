@@ -1,0 +1,25 @@
+# params/zed2_yaml
+# Parameters for Stereolabs ZED2 camera
+---
+
+general:
+    camera_model: 'zed2'
+
+depth:
+    min_depth:                  0.7             # Min: 0.2, Max: 3.0 - Default 0.7 - Note: reducing this value will require MUCH MORE computational power and RAM memory
+    max_depth:                  20.0            # Max: 40.0
+
+pos_tracking:
+    imu_fusion:                 true            # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
+
+sensors:
+    imu_frame:                  'zed_imu_link'  # must be equal to the frame_id used in the URDF file
+    sens_pub_rate:              400.0           # max value 400 Hz
+    sensors_timestamp_sync:     false           # Synchronize Sensors messages timestamp with latest received frame
+
+object_detection:
+    od_enabled:                 false           # True to enable Object Detection [only ZED 2]
+    od_min_confidence:          50              # Object detection confidence level [0,100]
+    od_tracking:                true            # Object tracking
+    od_people:                  true            # People detection
+    oc_vehicles:                true            # Vehicle detection

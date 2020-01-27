@@ -56,22 +56,24 @@ namespace sl_tools {
     /* \brief Convert StereoLabs timestamp to ROS timestamp
      *  \param t : Stereolabs timestamp to be converted
      */
-    ros::Time slTime2Ros(sl::timeStamp t);
+    ros::Time slTime2Ros(sl::Timestamp t);
 
     /* \brief sl::Mat to ros message conversion
+     * \param imgMsgPtr : the image topic message to publish
      * \param img : the image to publish
      * \param frameId : the id of the reference frame of the image
      * \param t : the ros::Time to stamp the image
      */
-    sensor_msgs::ImagePtr imageToROSmsg(sl::Mat img, std::string frameId, ros::Time t);
+    void imageToROSmsg(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img, std::string frameId, ros::Time t);
 
     /* \brief Two sl::Mat to ros message conversion
+     * \param imgMsgPtr : the image topic message to publish
      * \param left : the left image to publish
      * \param right : the right image to publish
      * \param frameId : the id of the reference frame of the image
      * \param t : the ros::Time to stamp the image
      */
-    sensor_msgs::ImagePtr imagesToROSmsg(sl::Mat left, sl::Mat right, std::string frameId, ros::Time t);
+    void imagesToROSmsg(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat left, sl::Mat right, std::string frameId, ros::Time t);
 
     /* \brief String tokenization
      */

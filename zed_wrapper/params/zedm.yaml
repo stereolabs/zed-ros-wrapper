@@ -2,19 +2,17 @@
 # Parameters for Stereolabs ZED mini camera
 ---
 
-camera_model: 'zedm'
-
-# Dynamic parameters cannot have a namespace
-max_depth:                      10.0                 # Dynamic
+general:
+    camera_model: 'zedm'
 
 depth:
-    min_depth:                  0.1             # Min: 0.1, Max: 3.0
+    min_depth:                  0.35            # Min: 0.1, Max: 3.0 - Default 0.3 - Note: reducing this value will require MUCH MORE computational power and RAM memory
+    max_depth:                  10.0            # Max: 20.0
 
-tracking:
+pos_tracking:
     imu_fusion:                 true            # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
 
-imu:
+sensors:
     imu_frame:                  'zed_imu_link'  # must be equal to the frame_id used in the URDF file
-    imu_topic_root:             'imu'           # default `imu/data` (with fused orientation) and `imu/data_raw` (only accelerations and gyro speeds)
-    imu_pub_rate:               100.0           # max value 800 Hz
-    imu_timestamp_sync:         false           # Synchronize IMU message timestamp with latest received frame
+    sens_pub_rate:              400.0           # max value 400 Hz
+    sensors_timestamp_sync:     false           # Synchronize Sensors messages timestamp with latest received frame

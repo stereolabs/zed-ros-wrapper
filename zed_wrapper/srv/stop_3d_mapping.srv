@@ -1,0 +1,5 @@
+# Stops 3D fused pointcloud generation, if  automatically enabled with the parameter `mapping/mapping_enabled` or with
+# the `start_object_detection` service
+
+---
+bool done
