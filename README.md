@@ -18,6 +18,8 @@ This package lets you use the ZED stereo camera with ROS. It outputs the camera 
 - [ZED SDK **≥ 3.0**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu) or [ROS Melodic](http://wiki.ros.org/melodic/Installation/Ubuntu)
 
+*Note:* an older version of the wrapper compatible with the **SDK v2.8.x** is available [here](https://github.com/stereolabs/zed-ros-wrapper/releases/tag/v2.x)
+
 ### Build the program
 
 The zed_ros_wrapper is a catkin package. It depends on the following ROS packages:
