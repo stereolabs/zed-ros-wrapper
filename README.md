@@ -53,17 +53,26 @@ Open a terminal, clone the repository, update the dependencies and build the pac
 
 ### Run the program
 
-To launch the ZED node use:
+To launch the ZED node use
 
-  - ZED camera: `$ roslaunch zed_wrapper zed.launch`
-  - ZED Mini camera: `$ roslaunch zed_wrapper zedm.launch`
-  - ZED2 camera: `$ roslaunch zed_wrapper zed2.launch`
+ZED camera:
 
- To select the ZED from its serial number: 
-    `$ roslaunch zed_wrapper zed.launch serial_number:=1010 #replace 1010 with the actual SN`
+    $ roslaunch zed_wrapper zed.launch
+   
+ZED Mini camera:
+
+    $ roslaunch zed_wrapper zedm.launch
+   
+ZED2 camera:
+
+    $ roslaunch zed_wrapper zed2.launch
+
+ To select the ZED from its serial number:
+ 
+     $ roslaunch zed_wrapper zed.launch serial_number:=1010 #replace 1010 with the actual SN
 
 ### Rviz visualization
-Example launch files to start a pre-configured Rviz environment to visualize the data of ZED, ZED Mini and ZED 2 cameras are provided in the [`zed-ros-examples` repository](https://github.com/stereolabs/zed-ros-examples/tree/v3.0/zed_display_rviz)
+Example launch files to start a pre-configured Rviz environment to visualize the data of ZED, ZED Mini and ZED 2 cameras are provided in the [`zed-ros-examples` repository](https://github.com/stereolabs/zed-ros-examples/tree/master/zed_display_rviz)
     
 ### SVO recording
 [SVO recording](https://www.stereolabs.com/docs/video/#video-recording) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
@@ -71,8 +80,10 @@ Example launch files to start a pre-configured Rviz environment to visualize the
 
 ### Object Detection
 The SDK v3.0 introduces the Object Detection and Tracking module. **The Object Detection module is available only with a ZED 2 camera**. 
-The Object Detection can be enabled automatically when the node start setting the parameter `object_detection/od_enabled` to `true` in the file `zed2.yaml`.
-The Object Detection can be enabled/disabled manually calling the services `start_object_detection` and `stop_object_detection`.
+
+The Object Detection can be enabled *automatically* when the node start setting the parameter `object_detection/od_enabled` to `true` in the file `zed2.yaml`.
+
+The Object Detection can be enabled/disabled *manually* calling the services `start_object_detection` and `stop_object_detection`.
 
 ### Spatial Mapping
 The Spatial Mapping can be enabled automatically when the node start setting the parameter `mapping/mapping_enabled` to `true` in the file `common.yaml`.
@@ -104,7 +115,9 @@ Alongside the wrapper itself and the Rviz display, a few examples are provided t
 
 A few tutorials are provided to understand how to use the ZED node in the ROS environment :
 
-- Video subscribing : See [zed_video_sub_tutorial](https://github.com/stereolabs/zed-ros-examples/tree/master/tutorials/zed_video_sub_tutorial/README.md)
-- Depth subscribing : See [zed_depth_sub_tutorial](https://github.com/stereolabs/zed-ros-examples/tree/master/tutorials/zed_depth_sub_tutorial/README.md)
-- Positional Tracking subscribing : See [zed_tracking_sub_tutorial](https://github.com/stereolabs/zed-ros-examples/tree/master/tutorials/zed_tracking_sub_tutorial/README.md)
+ - [Image subscription tutorial](https://github.com/stereolabs/zed-ros-examples/tree/master/tutorials/zed_video_sub_tutorial/README.md)
+ - [Depth subscription tutorial](https://github.com/stereolabs/zed-ros-examples/tree/master/tutorials/zed_depth_sub_tutorial/README.md)
+ - [Tracking subscription tutorial](https://github.com/stereolabs/zed-ros-examples/tree/master/tutorials/zed_tracking_sub_tutorial/README.md) 
+ - [Sensors data subscription tutorial](https://github.com/stereolabs/zed-ros-examples/blob/master/tutorials/zed_sensors_sub_tutorial/README.md) 
+ - [Object detection subscription tutorial](https://github.com/stereolabs/zed-ros-examples/blob/master/tutorials/zed_obj_det_sub_tutorial/README.md) 
 
