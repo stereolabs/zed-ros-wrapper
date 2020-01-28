@@ -3,7 +3,7 @@ LATEST CHANGES
 
 SDK v3.0 (2020-01-27)
 ---------------------
-- Added a new repository [`zed-ros-examples`](https://github.com/stereolabs/zed-ros-examples) to keep separated the main ZED Wrapper node for Examples and Tutorials in order to be able to have a clean robot installation
+- Added a new repository [`zed-ros-examples`](https://github.com/stereolabs/zed-ros-examples) to keep separated the main ZED Wrapper node from Examples and Tutorials. A clean robot installation is now allowed
 - ZED 2 support
 - Color enhancement support
 - Max range is not a dynamic parameter anymore
