@@ -5,4 +5,4 @@ build:
   before_script: 
     - cp $(pwd)/* /home/ros/src/ -Rf
   script: 
-    - cd /home/ros/ ; source "/opt/ros/kinetic/setup.bash"; catkin_make
+    - cd /home/ros/ ; source "/opt/ros/melodic/setup.bash"; catkin_make
