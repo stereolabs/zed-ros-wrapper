@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-Copyright (c) 2018, STEREOLABS.
+Copyright (c) 2020, STEREOLABS.
 
 All rights reserved.
 
@@ -18,6 +18,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
     <!-- Camera Model -->
+    <arg name="camera_name"           default="zed" />
     <arg name="node_name"             default="zed_node" />
 
     <!-- Camera Model -->
@@ -36,7 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <!-- ROS URDF description of the ZED -->
     <group if="$(arg publish_urdf)">
-        <param name="zed_description" textfile="$(find zed_wrapper)/urdf/$(arg camera_model).urdf" />
+        <param name="zed_description"
+               command="$(find xacro)/xacro --inorder '$(find zed_wrapper)/urdf/zed_descr.urdf.xacro'
+                        camera_name:=$(arg camera_name)
+                        camera_model:=$(arg camera_model)"
+        />
+
         <node name="zed_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" required="true">
             <remap from="robot_description" to="zed_description" />
         </node>
@@ -46,16 +52,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <rosparam file="$(find zed_wrapper)/params/common.yaml" command="load" />
         <rosparam file="$(find zed_wrapper)/params/$(arg camera_model).yaml" command="load" />
 
+        <!-- Camera name -->
+        <param name="general/camera_name"               value="$(arg camera_name)" />
+
         <!-- SVO file path -->
-        <param name="svo_file"          value="$(arg svo_file)" />
+        <param name="general/svo_file"                  value="$(arg svo_file)" />
 
         <!-- Remote stream -->
-        <param name="stream"            value="$(arg stream)" />
+        <param name="general/stream"                    value="$(arg stream)" />
 
         <!-- Camera ID -->
-        <param name="general/zed_id"             value="$(arg camera_id)" />
+        <param name="general/zed_id"                    value="$(arg camera_id)" />
 
         <!-- GPU ID -->
-        <param name="general/gpu_id"             value="$(arg gpu_id)" />
+        <param name="general/gpu_id"                    value="$(arg gpu_id)" />
     </node>
 </launch>

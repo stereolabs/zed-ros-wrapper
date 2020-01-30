@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2018, STEREOLABS.
+// Copyright (c) 2020, STEREOLABS.
 //
 // All rights reserved.
 //
@@ -508,6 +508,8 @@ void ZEDWrapperNodelet::readParameters() {
 
     // ----> General
     // Get parameters from param files
+    mNhNs.getParam("general/camera_name", mCameraName);
+    NODELET_INFO_STREAM(" * Camera Name\t\t\t-> " << mCameraName.c_str());
     int resol;
     mNhNs.getParam("general/resolution", resol);
     mCamResol = static_cast<sl::RESOLUTION>(resol);
@@ -685,12 +687,14 @@ void ZEDWrapperNodelet::readParameters() {
     mNhNs.param<std::string>("pos_tracking/map_frame", mMapFrameId, "map");
     mNhNs.param<std::string>("pos_tracking/odometry_frame", mOdometryFrameId, "odom");
     mNhNs.param<std::string>("general/base_frame", mBaseFrameId, "base_link");
-    mNhNs.param<std::string>("general/camera_frame", mCameraFrameId, "zed_camera_center");
-    mNhNs.param<std::string>("sensors/imu_frame", mImuFrameId, "imu_link");
-    mNhNs.param<std::string>("general/left_camera_frame", mLeftCamFrameId, "left_camera_frame");
-    mNhNs.param<std::string>("general/left_camera_optical_frame", mLeftCamOptFrameId, "left_camera_optical_frame");
-    mNhNs.param<std::string>("general/right_camera_frame", mRightCamFrameId, "right_camera_frame");
-    mNhNs.param<std::string>("general/right_camera_optical_frame", mRightCamOptFrameId, "right_camera_optical_frame");
+
+    mCameraFrameId = mCameraName + "_camera_center";
+    mImuFrameId = mCameraName + "_imu_link";
+    mLeftCamFrameId = mCameraName + "_left_camera_frame";
+    mLeftCamOptFrameId = mCameraName + "_left_camera_optical_frame";
+    mRightCamFrameId = mCameraName + "_right_camera_frame";
+    mRightCamOptFrameId = mCameraName + "_right_camera_optical_frame";
+
     mDepthFrameId = mLeftCamFrameId;
     mDepthOptFrameId = mLeftCamOptFrameId;
 

@@ -3,7 +3,7 @@
 
 ///////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2018, STEREOLABS.
+// Copyright (c) 2020, STEREOLABS.
 //
 // All rights reserved.
 //
@@ -490,6 +490,7 @@ private:
     bool mCameraSelfCalib;
 
     // Launch file parameters
+    std::string mCameraName;
     sl::RESOLUTION mCamResol;
     int mCamFrameRate;
     sl::DEPTH_MODE mDepthMode;

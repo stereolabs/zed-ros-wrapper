@@ -13,7 +13,6 @@ pos_tracking:
     imu_fusion:                 true            # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
 
 sensors:
-    imu_frame:                  'zed_imu_link'  # must be equal to the frame_id used in the URDF file
     sens_pub_rate:              400.0           # max value 400 Hz
     sensors_timestamp_sync:     false           # Synchronize Sensors messages timestamp with latest received frame
 

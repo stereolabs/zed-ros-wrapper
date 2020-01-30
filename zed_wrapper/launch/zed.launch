@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-Copyright (c) 2018, STEREOLABS.
+Copyright (c) 2020, STEREOLABS.
 
 All rights reserved.
 
@@ -24,13 +24,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="camera_model"         default="zed" /> <!-- 'zed' or 'zedm' -->
     <arg name="publish_urdf"         default="true" />
 
-    <group ns="zed">
+    <arg name="camera_name"          default="zed" />
+
+    <group ns="$(arg camera_name)">
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+            <arg name="camera_name"        value="$(arg camera_name)" />
             <arg name="svo_file"            value="$(arg svo_file)" />
             <arg name="stream"              value="$(arg stream)" />
             <arg name="node_name"           value="$(arg node_name)" />
             <arg name="camera_model"        value="$(arg camera_model)" />
-            <arg name="publish_urdf"        value="$(arg publish_urdf)" />
+            <arg name="publish_urdf"        value="$(arg publish_urdf)" />            
         </include>
     </group>
 </launch>

@@ -18,21 +18,17 @@ mat_resize_factor:          1.0                                 # Dynamic
 point_cloud_freq:           15.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `frame_rate` value)
 
 general:
-    camera_flip:                false
+    camera_name:                zed                                 # A name for the camera (can be different from camera model and node name)
     zed_id:                     0
     serial_number:              0
     resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
     frame_rate:                 15
     gpu_id:                     -1
     base_frame:                 'base_link'                         # must be equal to the frame_id used in the URDF file
-    camera_frame:               'zed_camera_center'                 # must be equal to the frame_id used in the URDF file
-    left_camera_frame:          'zed_left_camera_frame'             # must be equal to the frame_id used in the URDF file
-    left_camera_optical_frame:  'zed_left_camera_optical_frame'     # must be equal to the frame_id used in the URDF file
-    right_camera_frame:         'zed_right_camera_frame'            # must be equal to the frame_id used in the URDF file
-    right_camera_optical_frame: 'zed_right_camera_optical_frame'    # must be equal to the frame_id used in the URDF file
     verbose:                    true
     svo_compression:            2                                   # `0`: LOSSLESS, `1`: AVCHD, `2`: HEVC
     self_calib:                 true                                # enable/disable self calibration at starting
+    camera_flip:                false
 
 video:
     color_enhancement:          true                                # Enhances color spreading on R/G/B channel and increase gamma correction on black areas for a better gray segmentation in black areas. Recommended for computer's vision applications.

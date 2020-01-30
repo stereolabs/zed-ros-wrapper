@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-Copyright (c) 2018, STEREOLABS.
+Copyright (c) 2020, STEREOLABS.
 
 All rights reserved.
 
@@ -17,14 +17,25 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
-    <arg name="node_name_1"          default="zed_node_1" />
-    <arg name="node_name_2"          default="zed_node_2" />
+    <arg name="camera_name_1"          default="zed1" />
+    <arg name="camera_name_2"          default="zed2" />
+
+    <arg name="node_name_1"          default="${camera_name_1}_node" />
+    <arg name="node_name_2"          default="${camera_name_2}_node" />
+
     <arg name="camera_model_1"       default="zed" /> <!-- 'zed' or 'zedm' -->
     <arg name="camera_model_2"       default="zedm" /> <!-- 'zed' or 'zedm' -->
+
     <arg name="publish_urdf"         default="true" />
 
-    <group ns="zed_1">
+
+<group ns="$(arg camera_name)">
+    <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+
+
+    <group ns="${camera_name_1}">
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+            <arg name="camera_name"        value="$(arg camera_name_1)" />
             <arg name="node_name"           value="$(arg node_name_1)" />
             <arg name="camera_model"        value="$(arg camera_model_1)" />
             <arg name="publish_urdf"        value="$(arg publish_urdf)" />
@@ -33,8 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         </include>
     </group>
 
-    <group ns="zed_2">
+    <group ns="${camera_name_2}">
         <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+            <arg name="camera_name"        value="$(arg camera_name_2)" />
             <arg name="node_name"           value="$(arg node_name_2)" />
             <arg name="camera_model"        value="$(arg camera_model_2)" />
             <arg name="publish_urdf"        value="$(arg publish_urdf)" />
