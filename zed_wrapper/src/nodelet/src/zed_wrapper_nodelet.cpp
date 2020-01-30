@@ -1883,8 +1883,8 @@ void ZEDWrapperNodelet::updateDynamicReconfigure() {
     config.auto_exposure_gain = mCamAutoExposure;
     config.auto_whitebalance = mCamAutoWB;
     config.brightness = mCamBrightness;
-    config.confidence = mCamConfidence;
-    config.contrast = mCamContrast;
+    config.depth_confidence = mCamConfidence;
+    config.depth_confidence = mCamContrast;
     config.exposure = mCamExposure;
     config.gain = mCamGain;
     config.hue = mCamHue;
@@ -1934,7 +1934,7 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
         break;
 
     case CONFIDENCE:
-        mCamConfidence = config.confidence;
+        mCamConfidence = config.depth_confidence;
         NODELET_INFO("Reconfigure confidence threshold: %d", mCamConfidence);
         mDynParMutex.unlock();
         //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");

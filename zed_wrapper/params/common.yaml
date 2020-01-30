@@ -13,7 +13,7 @@ gain:                       100                                 # Dynamic - work
 exposure:                   100                                 # Dynamic - works only if `auto_exposure_gain` is false
 auto_whitebalance:          true                                # Dynamic
 whitebalance_temperature:   4200                                # Dynamic - works only if `auto_whitebalance` is false
-confidence:                 97                                  # Dynamic
+depth_confidence:           97                                  # Dynamic
 mat_resize_factor:          1.0                                 # Dynamic
 point_cloud_freq:           15.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `frame_rate` value)
 
