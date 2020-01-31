@@ -117,9 +117,10 @@ void ZEDWrapperNodelet::onInit() {
         depth_topic_root += "/depth_registered";
     }
 
-    std::string pointCloudTopicRoot = "point_cloud";
-    string pointcloud_topic = pointCloudTopicRoot + "/cloud_registered";
-    string pointcloud_fused_topic = pointCloudTopicRoot + "/fused_cloud_registered";
+
+    string pointcloud_topic = "point_cloud/cloud_registered";
+
+    string pointcloud_fused_topic = "mapping/fused_cloud";
 
     string object_det_topic_root = "obj_det";
     string object_det_topic = object_det_topic_root + "/objects";
@@ -594,8 +595,8 @@ void ZEDWrapperNodelet::readParameters() {
 
     mNhNs.getParam("pos_tracking/odometry_DB", mOdometryDb);
     NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mOdometryDb.c_str());
-    mNhNs.param<bool>("pos_tracking/spatial_memory", mSpatialMemory, false);
-    NODELET_INFO_STREAM(" * Spatial Memory\t\t-> " << (mSpatialMemory ? "ENABLED" : "DISABLED"));
+    mNhNs.param<bool>("pos_tracking/area_memory", mAreaMemory, false);
+    NODELET_INFO_STREAM(" * Spatial Memory\t\t-> " << (mAreaMemory ? "ENABLED" : "DISABLED"));
     mNhNs.param<bool>("pos_tracking/imu_fusion", mImuFusion, true);
     NODELET_INFO_STREAM(" * IMU Fusion\t\t\t-> " << (mImuFusion ? "ENABLED" : "DISABLED"));
     mNhNs.param<bool>("pos_tracking/floor_alignment", mFloorAlignment, false);
@@ -1170,7 +1171,7 @@ bool ZEDWrapperNodelet::start_3d_mapping() {
 
     if (err == sl::ERROR_CODE::SUCCESS) {
         if(mPubFusedCloud.getTopic().empty()) {
-            string pointcloud_fused_topic = "point_cloud/fused_cloud_registered";
+            string pointcloud_fused_topic = "mapping/fused_cloud";
             mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
         }
@@ -1310,7 +1311,7 @@ void ZEDWrapperNodelet::start_pos_tracking() {
     mPoseSmoothing = false; // Always false. Pose Smoothing is to be enabled only for VR/AR applications
     trackParams.enable_pose_smoothing = mPoseSmoothing;
 
-    trackParams.enable_area_memory = mSpatialMemory;
+    trackParams.enable_area_memory = mAreaMemory;
     trackParams.enable_imu_fusion = mImuFusion;
     trackParams.initial_world_transform = mInitialPoseSl;
 

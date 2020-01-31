@@ -26,12 +26,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Arguments -->
     <xacro:arg name="camera_name"   default="zed" />
     <xacro:arg name="camera_model"  default="zed" />
-    <xacro:arg name="pos_x"             default="0.0" />
-    <xacro:arg name="pos_y"             default="0.0" />
-    <xacro:arg name="pos_z"             default="0.0" />
-    <xacro:arg name="roll"          default="0.0" />
-    <xacro:arg name="pitch"         default="0.0" />
-    <xacro:arg name="yaw"           default="0.0" />
+    <xacro:arg name="cam_pos_x"     default="0.0" />
+    <xacro:arg name="cam_pos_y"     default="0.0" />
+    <xacro:arg name="cam_pos_z"     default="0.0" />
+    <xacro:arg name="cam_roll"      default="0.0" />
+    <xacro:arg name="cam_pitch"     default="0.0" />
+    <xacro:arg name="cam_yaw"       default="0.0" />
 
     <!-- Properties -->
     <xacro:property name="M_PI"     value="3.1415926535897931" />
@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <joint name="$(arg camera_name)_camera_center_joint" type="fixed">
         <parent link="base_link"/>
         <child link="$(arg camera_name)_camera_center"/>
-        <origin xyz="$(arg pos_x) $(arg pos_y) $(arg pos_z)" rpy="$(arg roll) $(arg pitch) $(arg yaw)" />
+        <origin xyz="$(arg cam_pos_x) $(arg cam_pos_y) $(arg cam_pos_z)" rpy="$(arg cam_roll) $(arg cam_pitch) $(arg cam_yaw)" />
     </joint>
 
     <link name="$(arg camera_name)_camera_center">
@@ -68,7 +68,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </link>
 
 <!-- Left Camera -->
-
     <joint name="$(arg camera_name)_left_camera_joint" type="fixed">
         <parent link="$(arg camera_name)_camera_center"/>
         <child link="$(arg camera_name)_left_camera_frame"/>
@@ -86,7 +85,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <link name="$(arg camera_name)_left_camera_optical_frame"/>
 
 <!-- Right Camera -->
-
     <joint name="$(arg camera_name)_right_camera_joint" type="fixed">
         <parent link="$(arg camera_name)_camera_center"/>
         <child link="$(arg camera_name)_right_camera_frame"/>
