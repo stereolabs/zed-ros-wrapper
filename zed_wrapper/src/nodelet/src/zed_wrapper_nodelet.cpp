@@ -1952,7 +1952,7 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
 
     case CONTRAST:
         mCamContrast = config.contrast;
-        NODELET_INFO("Reconfigure image brightness: %d", mCamBrightness);
+        NODELET_INFO("Reconfigure image contrast: %d", mCamContrast);
         mDynParMutex.unlock();
         //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
