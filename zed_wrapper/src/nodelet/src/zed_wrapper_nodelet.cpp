@@ -776,6 +776,9 @@ void ZEDWrapperNodelet::readParameters() {
     if (mCamAutoExposure) {
         mTriggerAutoExposure = true;
     }
+    if (mCamAutoWB) {
+        mTriggerAutoWB = true;
+    }
     // <---- Dynamic
 
 }
