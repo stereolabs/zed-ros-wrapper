@@ -362,9 +362,6 @@ void ZEDWrapperNodelet::onInit() {
     mPubDepth = it_zed.advertiseCamera(depth_topic_root, 1); // depth
     NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getTopic());
     NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getInfoTopic());
-    mPubConfImg = it_zed.advertiseCamera(conf_img_topic, 1); // confidence image
-    NODELET_INFO_STREAM("Advertised on topic " << mPubConfImg.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubConfImg.getInfoTopic());
 
     mPubStereo = it_zed.advertise(stereo_topic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubStereo.getTopic());
@@ -2530,7 +2527,6 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
         uint32_t poseSubnumber = mPubPose.getNumSubscribers();
         uint32_t poseCovSubnumber = mPubPoseCov.getNumSubscribers();
         uint32_t odomSubnumber = mPubOdom.getNumSubscribers();
-        uint32_t confImgSubnumber = mPubConfImg.getNumSubscribers();
         uint32_t confMapSubnumber = mPubConfMap.getNumSubscribers();
         uint32_t pathSubNumber = mPubMapPath.getNumSubscribers() + mPubOdomPath.getNumSubscribers();
         uint32_t stereoSubNumber = mPubStereo.getNumSubscribers();
@@ -2551,7 +2547,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
                   leftRawSubnumber + rightSubnumber + rightRawSubnumber +
                   depthSubnumber + disparitySubnumber + cloudSubnumber +
-                  poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
+                  poseSubnumber + poseCovSubnumber + odomSubnumber +
                   confMapSubnumber /*+ imuSubnumber + imuRawsubnumber*/ + pathSubNumber +
                   stereoSubNumber + stereoRawSubNumber) > 0);
 
@@ -2585,8 +2581,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             // Detect if one of the subscriber need to have the depth information
             mComputeDepth = mDepthMode != sl::DEPTH_MODE::NONE &&
                     ((depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber +
-                      poseSubnumber + poseCovSubnumber + odomSubnumber + confImgSubnumber +
-                      confMapSubnumber) > 0);
+                      poseSubnumber + poseCovSubnumber + odomSubnumber + confMapSubnumber) > 0);
 
             if (mComputeDepth) {
                 runParams.confidence_threshold = mCamConfidence;
@@ -2914,19 +2909,6 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
                 mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResol);
                 publishDisparity(disparityZEDMat, mFrameTimestamp);
-            }
-
-            // Publish the confidence image if someone has subscribed to
-            if (confImgSubnumber > 0) {
-
-                mZed.retrieveImage(confImgZEDMat, sl::VIEW::CONFIDENCE, sl::MEM::CPU, mMatResol);
-                if(!mConfImgMsg ) {
-                    mConfImgMsg = boost::make_shared<sensor_msgs::Image>();
-                }
-                if(!mDepthCamInfoMsg) {
-                    mDepthCamInfoMsg = boost::make_shared<sensor_msgs::CameraInfo>();
-                }
-                publishImage(mConfImgMsg,confImgZEDMat, mPubConfImg, mDepthCamInfoMsg, mConfidenceOptFrameId, mFrameTimestamp);
             }
 
             // Publish the confidence map if someone has subscribed to

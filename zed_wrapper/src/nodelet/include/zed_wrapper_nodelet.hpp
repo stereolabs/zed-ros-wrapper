@@ -180,12 +180,6 @@ protected:
          */
     void publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat depth, ros::Time t);
 
-    /* \brief Publish a sl::Mat confidence image with a ros Publisher
-         * \param conf : the confidence image to publish
-         * \param t : the ros::Time to stamp the depth image
-         */
-    void publishConf(sl::Mat conf, ros::Time t);
-
     /* \brief Publish a single pointCloud with a ros Publisher
          */
     void publishPointCloud();
@@ -400,7 +394,6 @@ private:
     image_transport::CameraPublisher mPubRight; //
     image_transport::CameraPublisher mPubRawRight; //
     image_transport::CameraPublisher mPubDepth; //
-    image_transport::CameraPublisher mPubConfImg; //
     image_transport::Publisher mPubStereo;
     image_transport::Publisher mPubRawStereo;
 

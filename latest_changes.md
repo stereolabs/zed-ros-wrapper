@@ -7,6 +7,7 @@ XACRO (2020-01-31)
 - Fixed auto white balance at node start (thanks to @kjaget)
 - Removed `fixed_covariance` and `fixed_cov_value` parameters (not required anymore)
 - Removed `sens_pub_rate` parameter
+- Removed `confidence_image`
 
 
 SDK v3.0 (2020-01-27)
