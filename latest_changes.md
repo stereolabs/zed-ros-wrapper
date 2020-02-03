@@ -8,6 +8,7 @@ XACRO (2020-01-31)
 - Removed `fixed_covariance` and `fixed_cov_value` parameters (not required anymore)
 - Removed `sens_pub_rate` parameter
 - Removed `confidence_image`
+- Removed `color_enhancement` parameter, always ON be default
 
 
 SDK v3.0 (2020-01-27)

@@ -222,7 +222,7 @@ void ZEDWrapperNodelet::onInit() {
     mZedParams.depth_maximum_distance = static_cast<float>(mCamMaxDepth);
     mZedParams.camera_disable_self_calib = !mCameraSelfCalib;
 
-    mZedParams.enable_image_enhancement = mColorEnhancement;
+    mZedParams.enable_image_enhancement = true; // Always active
 
     mDiagUpdater.add("ZED Diagnostic", this, &ZEDWrapperNodelet::updateDiagnostic);
     mDiagUpdater.setHardwareID("ZED camera");
@@ -554,12 +554,9 @@ void ZEDWrapperNodelet::readParameters() {
     // <---- General
 
     // ----> Video
-    mNhNs.getParam("video/color_enhancement", mColorEnhancement);
-    NODELET_INFO_STREAM(" * Color Enhancement\t\t-> " << (mColorEnhancement ? "ENABLED" : "DISABLED"));
     // <---- Video
 
     // -----> Depth
-
     int depth_mode;
     mNhNs.getParam("depth/quality", depth_mode);
     mDepthMode = static_cast<sl::DEPTH_MODE>(depth_mode);
