@@ -1,6 +1,14 @@
 LATEST CHANGES
 ==============
 
+XACRO (2020-01-31)
+------------------
+- Added xacro support
+- Fixed auto white balance at node start (thanks to @kjaget)
+- Removed `fixed_covariance` and `fixed_cov_value` parameters (not required anymore)
+- Removed `sens_pub_rate` parameter
+
+
 SDK v3.0 (2020-01-27)
 ---------------------
 - Added a new repository [`zed-ros-examples`](https://github.com/stereolabs/zed-ros-examples) to keep separated the main ZED Wrapper node from Examples and Tutorials. A clean robot installation is now allowed

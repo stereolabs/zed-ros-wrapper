@@ -302,7 +302,7 @@ void ZEDWrapperNodelet::onInit() {
     string imu_temp_topic;
     string imu_mag_topic;
     string imu_mag_topic_raw;
-    string pressure_topic = "atm_press";
+    string pressure_topic;
     string temp_topic_root = "temperature";
     string temp_topic_left = temp_topic_root + "/left";
     string temp_topic_right = temp_topic_root + "/right";
@@ -311,14 +311,15 @@ void ZEDWrapperNodelet::onInit() {
         std::string imuTopicRoot = "imu";
         string imu_topic_name = "data";
         string imu_topic_raw_name = "data_raw";
-        string imu_topic_temp_name = "temperature";
         string imu_topic_mag_name = "mag";
         string imu_topic_mag_raw_name = "mag_raw";
+        string pressure_topic_name = "atm_press";
         imu_topic = imuTopicRoot + "/" + imu_topic_name;
         imu_topic_raw = imuTopicRoot + "/" + imu_topic_raw_name;
-        imu_temp_topic = imuTopicRoot + "/" + imu_topic_temp_name;
+        imu_temp_topic = temp_topic_root + "/" + imuTopicRoot;
         imu_mag_topic = imuTopicRoot + "/" + imu_topic_mag_name;
         imu_mag_topic_raw = imuTopicRoot + "/" + imu_topic_mag_raw_name;
+        pressure_topic = /*imuTopicRoot + "/" +*/ pressure_topic_name;
     }
 
     mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
@@ -613,12 +614,6 @@ void ZEDWrapperNodelet::readParameters() {
 
     mNhNs.getParam("pos_tracking/publish_pose_covariance", mPublishPoseCovariance);
     NODELET_INFO_STREAM(" * Publish Pose Covariance\t-> " << (mPublishPoseCovariance ? "ENABLED" : "DISABLED"));
-
-    mNhNs.getParam("pos_tracking/fixed_covariance", mFixedCov);
-    NODELET_INFO_STREAM(" * Fixed covariance\t\t-> " << (mFixedCov ? "ENABLED" : "DISABLED"));
-
-    mNhNs.getParam("pos_tracking/fixed_cov_value", mFixedCovValue);
-    NODELET_INFO_STREAM(" * Fixed cov. value\t\t-> " << mFixedCovValue);
     // <---- Tracking
 
     // ----> Mapping
@@ -1349,7 +1344,7 @@ void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& sl
     mOdomMsg->pose.pose.orientation.w = base2odom.rotation.w;
 
     // Odometry pose covariance if available
-    if (!mFixedCov && mPublishPoseCovariance) {
+    if (mPublishPoseCovariance) {
         for (size_t i = 0; i < mOdomMsg->pose.covariance.size(); i++) {
             mOdomMsg->pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]);
 
@@ -1366,10 +1361,6 @@ void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& sl
                     mOdomMsg->pose.covariance[i] = 0.0;
                 }
             }
-        }
-    } else {
-        for (size_t i = 0; i < mOdomMsg->pose.covariance.size(); i += 7) {
-            mOdomMsg->pose.covariance[i] = mFixedCovValue;
         }
     }
 
@@ -1426,27 +1417,21 @@ void ZEDWrapperNodelet::publishPose(ros::Time t) {
             mPoseCovMsg->pose.pose = pose;
 
             // Odometry pose covariance if available
-            if (!mFixedCov) {
-                for (size_t i = 0; i < mPoseCovMsg->pose.covariance.size(); i++) {
-                    mPoseCovMsg->pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+            for (size_t i = 0; i < mPoseCovMsg->pose.covariance.size(); i++) {
+                mPoseCovMsg->pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
 
-                    if (mTwoDMode) {
-                        if (i == 14 || i == 21 || i == 28) {
-                            mPoseCovMsg->pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
-                        } else if ((i >= 2 && i <= 4) ||
-                                   (i >= 8 && i <= 10) ||
-                                   (i >= 12 && i <= 13) ||
-                                   (i >= 15 && i <= 16) ||
-                                   (i >= 18 && i <= 20) ||
-                                   (i == 22) ||
-                                   (i >= 24 && i <= 27)) {
-                            mPoseCovMsg->pose.covariance[i] = 0.0;
-                        }
+                if (mTwoDMode) {
+                    if (i == 14 || i == 21 || i == 28) {
+                        mPoseCovMsg->pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
+                    } else if ((i >= 2 && i <= 4) ||
+                               (i >= 8 && i <= 10) ||
+                               (i >= 12 && i <= 13) ||
+                               (i >= 15 && i <= 16) ||
+                               (i >= 18 && i <= 20) ||
+                               (i == 22) ||
+                               (i >= 24 && i <= 27)) {
+                        mPoseCovMsg->pose.covariance[i] = 0.0;
                     }
-                }
-            } else {
-                for (size_t i = 0; i < mPoseCovMsg->pose.covariance.size(); i += 7) {
-                    mPoseCovMsg->pose.covariance[i] = mFixedCovValue;
                 }
             }
 

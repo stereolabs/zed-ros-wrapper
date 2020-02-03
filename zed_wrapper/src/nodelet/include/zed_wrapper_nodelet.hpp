@@ -501,7 +501,7 @@ private:
     std::string mOdometryDb;
     std::string mSvoFilepath;
     std::string mRemoteStreamAddr;
-    double mSensPubRate;
+    double mSensPubRate = 400.0;
     bool mSensTimestampSync;
     double mPathPubRate;
     int mPathMaxCount;
@@ -515,8 +515,6 @@ private:
     bool mTrackingReady;
     bool mTwoDMode = false;
     double mFixedZValue = 0.0;
-    bool mFixedCov = true;
-    double mFixedCovValue = 1e-6;
     bool mFloorAlignment = false;
     bool mImuFusion = true;
     bool mGrabActive = false; // Indicate if camera grabbing is active (at least one topic subscribed)
