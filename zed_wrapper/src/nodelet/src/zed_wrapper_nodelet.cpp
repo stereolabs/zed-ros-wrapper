@@ -127,9 +127,7 @@ void ZEDWrapperNodelet::onInit() {
     string object_det_rviz_topic = object_det_topic_root + "/object_markers";
 
     std::string confImgRoot = "confidence";
-    string conf_img_topic_name = "confidence_image";
     string conf_map_topic_name = "confidence_map";
-    string conf_img_topic = confImgRoot + "/" + conf_img_topic_name;
     string conf_map_topic = confImgRoot + "/" + conf_map_topic_name;
 
     // Set the positional tracking topic names
@@ -616,9 +614,12 @@ void ZEDWrapperNodelet::readParameters() {
     if (mMappingEnabled) {
         NODELET_INFO_STREAM(" * Mapping\t\t\t-> ENABLED");
 
-        mNhNs.getParam("mapping/resolution", mMappingRes);
-        NODELET_INFO_STREAM(" * Mapping resolution\t\t-> " << sl::toString(
-                                static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes)));
+        mNhNs.getParam("mapping/resolution_m", mMappingRes);        
+        NODELET_INFO_STREAM(" * Mapping resolution\t\t-> " << mMappingRes << " m" );
+
+        mNhNs.getParam("mapping/max_mapping_range_m", mMaxMappingRange);
+        NODELET_INFO_STREAM(" * Mapping max range\t\t-> " << mMaxMappingRange << " m" << ((mMaxMappingRange < 0.0)?" [AUTO]":""));
+
         mNhNs.getParam("mapping/fused_pointcloud_freq", mFusedPcPubFreq);
         NODELET_INFO_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
     } else {
@@ -641,7 +642,7 @@ void ZEDWrapperNodelet::readParameters() {
         mNhNs.getParam("mObjDetEnable/oc_vehicles", mObjDetVehicles);
         NODELET_INFO_STREAM(" * Vehicles detection\t\t-> " << (mObjDetVehicles?"ENABLED":"DISABLED"));
     } else {
-        NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
+        NODELET_INFO_STREAM(" * Object Detection\t\t-> DISABLED");
     }
     // <---- Object Detection
 
@@ -655,6 +656,8 @@ void ZEDWrapperNodelet::readParameters() {
 
     // ----> SVO
     mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
+    NODELET_INFO_STREAM(" * SVO input file: \t\t-> " << mSvoFilepath.c_str());
+
     int svo_compr = 0;
     mNhNs.getParam("general/svo_compression", svo_compr);
 
@@ -1144,8 +1147,6 @@ bool ZEDWrapperNodelet::on_reset_odometry(
 
 bool ZEDWrapperNodelet::start_3d_mapping() {
     if (!mMappingEnabled) {
-        NODELET_WARN_STREAM("Cannot enable MAPPING. The parameter `mapping_enable` is set to FALSE");
-
         return false;
     }
 
@@ -1154,7 +1155,30 @@ bool ZEDWrapperNodelet::start_3d_mapping() {
     sl::SpatialMappingParameters params;
     params.map_type = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::FUSED_POINT_CLOUD;
     params.use_chunk_only = true;
-    params.set(static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes));
+
+    if(mMappingRes < sl::SpatialMappingParameters::allowed_resolution.first) {
+        NODELET_WARN_STREAM( "'mapping/resolution_m' value (" << mMappingRes << " m) is lower than the allowed resolution values. Fixed automatically" );
+        mMappingRes = sl::SpatialMappingParameters::allowed_resolution.first;
+    }
+    if(mMappingRes > sl::SpatialMappingParameters::allowed_resolution.second) {
+        NODELET_WARN_STREAM( "'mapping/resolution_m' value (" << mMappingRes << " m) is higher than the allowed resolution values. Fixed automatically" );
+        mMappingRes = sl::SpatialMappingParameters::allowed_resolution.second;
+    }
+
+    params.resolution_meter = mMappingRes;
+
+    if(mMaxMappingRange < 0) {
+        mMaxMappingRange = sl::SpatialMappingParameters::getRecommendedRange( mMappingRes, mZed );
+        NODELET_INFO_STREAM("Mapping: max range set to " << mMaxMappingRange << " m for a resolution of " << mMappingRes << " m"  );
+    } else if(mMaxMappingRange < sl::SpatialMappingParameters::allowed_range.first) {
+        NODELET_WARN_STREAM( "'mapping/max_mapping_range_m' value (" << mMaxMappingRange << " m) is lower than the allowed resolution values. Fixed automatically" );
+        mMaxMappingRange = sl::SpatialMappingParameters::allowed_range.first;
+    } else if(mMaxMappingRange > sl::SpatialMappingParameters::allowed_range.second) {
+        NODELET_WARN_STREAM( "'mapping/max_mapping_range_m' value (" << mMaxMappingRange << " m) is higher than the allowed resolution values. Fixed automatically" );
+        mMaxMappingRange = sl::SpatialMappingParameters::allowed_range.second;
+    }
+
+    params.range_meter = mMaxMappingRange;
 
     sl::ERROR_CODE err = mZed.enableSpatialMapping(params);
 
@@ -1171,6 +1195,8 @@ bool ZEDWrapperNodelet::start_3d_mapping() {
                                           this);
 
         NODELET_INFO_STREAM(" * Resolution: " << params.resolution_meter << " m");
+        NODELET_INFO_STREAM(" * Max Mapping Range: " << params.range_meter << " m");
+        NODELET_INFO_STREAM(" * Map point cloud publishing rate: " << mFusedPcPubFreq << " Hz");
 
         return true;
     } else {
@@ -3569,11 +3595,16 @@ bool ZEDWrapperNodelet::on_start_3d_mapping(zed_wrapper::start_3d_mapping::Reque
     mMappingRunning = false;
 
     mMappingRes = req.resolution;
+    mMaxMappingRange = req.max_mapping_range;
     mFusedPcPubFreq = req.fused_pointcloud_freq;
 
-    NODELET_DEBUG_STREAM(" * Mapping resolution\t\t-> " << sl::toString(
-                             static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes)));
-    NODELET_DEBUG_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
+    NODELET_DEBUG_STREAM(" * Received mapping resolution\t\t-> " << mMappingRes << " m");
+
+
+
+    NODELET_DEBUG_STREAM(" * Received mapping max range\t-> " << mMaxMappingRange << " m" );
+
+    NODELET_DEBUG_STREAM(" * Received fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
 
     mMappingEnabled = true;
     res.done = true;

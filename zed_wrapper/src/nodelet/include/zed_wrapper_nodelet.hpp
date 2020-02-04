@@ -657,7 +657,8 @@ private:
     // Spatial mapping
     bool mMappingEnabled;
     bool mMappingRunning;
-    int mMappingRes = 0;
+    float mMappingRes = 0.1;
+    float mMaxMappingRange = -1;
     double mFusedPcPubFreq = 2.0;
 
     // Object Detection
