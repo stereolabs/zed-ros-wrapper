@@ -70,10 +70,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="general/camera_name"               value="$(arg camera_name)" />
 
         <!-- SVO file path -->
-        <param name="general/svo_file"                  value="$(arg svo_file)" />
+        <param name="svo_file"                          value="$(arg svo_file)" />
 
         <!-- Remote stream -->
-        <param name="general/stream"                    value="$(arg stream)" />
+        <param name="stream"                            value="$(arg stream)" />
 
         <!-- Camera ID -->
         <param name="general/zed_id"                    value="$(arg camera_id)" />
