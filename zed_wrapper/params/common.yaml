@@ -56,9 +56,9 @@ pos_tracking:
     fixed_z_value:              0.00                            # Value to be used for Z coordinate if `two_d_mode` is true
 
 mapping:
-    mapping_enabled:            true                           # True to enable mapping and fused point cloud pubblication
-    resolution_m:               0.01                             # maps resolution in meters [0.01f, 0.2f]
+    mapping_enabled:            false                           # True to enable mapping and fused point cloud pubblication
+    resolution_m:               0.05                            # maps resolution in meters [0.01f, 0.2f]
     max_mapping_range_m:        -1                              # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
-    fused_pointcloud_freq:      2.0                             # frequency of the publishing of the fused colored point cloud
+    fused_pointcloud_freq:      1.0                             # frequency of the publishing of the fused colored point cloud
 
 

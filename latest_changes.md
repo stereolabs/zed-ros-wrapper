@@ -1,14 +1,19 @@
 LATEST CHANGES
 ==============
 
-XACRO (2020-01-31)
-------------------
-- Added xacro support
+XACRO and more (2020-01-31)
+---------------------------
+- Added xacro support for parametric URDF 
+- Removed redundant URDFs and added a single parametric URDF based on xacro
 - Fixed auto white balance at node start (thanks to @kjaget)
 - Removed `fixed_covariance` and `fixed_cov_value` parameters (not required anymore)
 - Removed `sens_pub_rate` parameter
 - Removed `confidence_image`
 - Removed `color_enhancement` parameter, always ON be default
+- Mapping does not use presets for resolution, but a float value in [0.01,0.2]
+- Added new parameter `max_mapping_range_m` for mapping (set to `-1` for auto calculation)
+- Moved "multi-camera" launch file in `zed-ros-examples/examples/zed_multicamera_example` 
+- Added current GPU ID to Diagnostic information
 
 
 SDK v3.0 (2020-01-27)

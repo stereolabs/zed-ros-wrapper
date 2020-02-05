@@ -248,6 +248,11 @@ void ZEDWrapperNodelet::onInit() {
     }
     NODELET_INFO_STREAM(" ...  " << sl::toString( mZedRealCamModel) << " ready");
 
+    CUdevice devid;
+    cuCtxGetDevice(&mGpuId);
+
+    NODELET_INFO_STREAM("ZED SDK running on GPU #" << mGpuId);
+
     // Disable AEC_AGC and Auto Whitebalance to trigger it if use set to automatic
     mZed.setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC, 0);
     mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, 0);
@@ -320,7 +325,7 @@ void ZEDWrapperNodelet::onInit() {
         pressure_topic = /*imuTopicRoot + "/" +*/ pressure_topic_name;
     }
 
-    mDiagUpdater.setHardwareIDf("%s-%d", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber);
+    mDiagUpdater.setHardwareIDf("%s - s/n: %d [GPU #%d]", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber, mGpuId);
 
     // ----> Dynamic Reconfigure parameters
     mDynRecServer = boost::make_shared<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>>(mDynServerMutex);
@@ -425,7 +430,7 @@ void ZEDWrapperNodelet::onInit() {
     }
 
     // Sensor publishers
-    if (!mSvoMode) {
+    /*if (!mSvoMode)*/ {
         if (mSensPubRate > 0 && mZedRealCamModel != sl::MODEL::ZED) {
             // IMU Publishers
             mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, static_cast<int>(mSensPubRate));
@@ -2723,7 +2728,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             }
 
             // ----> Camera Settings
-            if( mFrameCount%5 == 0 ) {
+            if( !mSvoMode && mFrameCount%5 == 0 ) {
                 //NODELET_DEBUG_STREAM( "[" << mFrameCount << "] device_poll_thread_func MUTEX LOCK");
                 mDynParMutex.lock();
                 bool update_dyn_params = false;
