@@ -13,7 +13,7 @@ gain:                       100                                 # Dynamic - work
 exposure:                   100                                 # Dynamic - works only if `auto_exposure_gain` is false
 auto_whitebalance:          true                                # Dynamic
 whitebalance_temperature:   4200                                # Dynamic - works only if `auto_whitebalance` is false
-depth_confidence:           97                                  # Dynamic
+depth_confidence:           80                                  # Dynamic
 mat_resize_factor:          1.0                                 # Dynamic
 point_cloud_freq:           15.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `frame_rate` value)
 
@@ -33,7 +33,7 @@ general:
 #video:
 
 depth:
-    quality:                    1                               # '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY, '4': ULTRA
+    quality:                    1                               # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA
     sensing_mode:               0                               # '0': STANDARD, '1': FILL (not use FILL for robotic applications)
     depth_stabilization:        1                               # `0`: disabled, `1`: enabled
     openni_depth_mode:          0                               # '0': 32bit float meters, '1': 16bit uchar millimeters
@@ -50,7 +50,7 @@ pos_tracking:
     initial_base_pose:          [0.0,0.0,0.0, 0.0,0.0,0.0]      # Initial position of the `base_frame` -> [X, Y, Z, R, P, Y]
     publish_pose_covariance:    true                            # Enable to publish the `pose_with_covariance` message
     init_odom_with_first_valid_pose: true                       # Enable to initialize the odometry with the first valid pose
-    path_pub_rate:              2.0                             # Path positions publishing frequency
+    path_pub_rate:              2.0                             # Camera trajectory publishing frequency
     path_max_count:             -1                              # use '-1' for unlimited path size
     two_d_mode:                 false                           # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
     fixed_z_value:              0.00                            # Value to be used for Z coordinate if `two_d_mode` is true

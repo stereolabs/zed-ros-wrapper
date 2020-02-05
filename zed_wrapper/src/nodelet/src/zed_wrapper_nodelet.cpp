@@ -619,7 +619,7 @@ void ZEDWrapperNodelet::readParameters() {
     if (mMappingEnabled) {
         NODELET_INFO_STREAM(" * Mapping\t\t\t-> ENABLED");
 
-        mNhNs.getParam("mapping/resolution_m", mMappingRes);        
+        mNhNs.getParam("mapping/resolution_m", mMappingRes);
         NODELET_INFO_STREAM(" * Mapping resolution\t\t-> " << mMappingRes << " m" );
 
         mNhNs.getParam("mapping/max_mapping_range_m", mMaxMappingRange);
@@ -733,8 +733,8 @@ void ZEDWrapperNodelet::readParameters() {
     // <---- TF broadcasting
 
     // ----> Dynamic
-    mNhNs.getParam("confidence", mCamConfidence);
-    NODELET_INFO_STREAM(" * [DYN] confidence\t\t-> " << mCamConfidence);
+    mNhNs.getParam("depth_confidence", mCamDepthConfidence);
+    NODELET_INFO_STREAM(" * [DYN] Depth confidence\t-> " << mCamDepthConfidence);
 
     mNhNs.getParam("mat_resize_factor", mCamMatResizeFactor);
     if (mCamMatResizeFactor < 0.1) {
@@ -1894,7 +1894,7 @@ void ZEDWrapperNodelet::updateDynamicReconfigure() {
     config.auto_exposure_gain = mCamAutoExposure;
     config.auto_whitebalance = mCamAutoWB;
     config.brightness = mCamBrightness;
-    config.depth_confidence = mCamConfidence;
+    config.depth_confidence = mCamDepthConfidence;
     config.depth_confidence = mCamContrast;
     config.exposure = mCamExposure;
     config.gain = mCamGain;
@@ -1945,8 +1945,8 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
         break;
 
     case CONFIDENCE:
-        mCamConfidence = config.depth_confidence;
-        NODELET_INFO("Reconfigure confidence threshold: %d", mCamConfidence);
+        mCamDepthConfidence = config.depth_confidence;
+        NODELET_INFO("Reconfigure confidence threshold: %d", mCamDepthConfidence);
         mDynParMutex.unlock();
         //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
@@ -2175,10 +2175,19 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
 
     sl::SensorsData sens_data;
 
-    if (mSensTimestampSync && mGrabActive) {
-        mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
+    if(mSvoMode) {
+        if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE) != sl::ERROR_CODE::SUCCESS )
+            return;
     } else {
-        mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+        if ( mSensTimestampSync && mGrabActive) {
+            if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE) != sl::ERROR_CODE::SUCCESS )
+                return;
+        } else if ( !mSensTimestampSync ) {
+            if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT) != sl::ERROR_CODE::SUCCESS )
+                return;
+        } else {
+            return;
+        }
     }
 
     if (mSvoMode) {
@@ -2612,7 +2621,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                       poseSubnumber + poseCovSubnumber + odomSubnumber + confMapSubnumber) > 0);
 
             if (mComputeDepth) {
-                runParams.confidence_threshold = mCamConfidence;
+                runParams.confidence_threshold = mCamDepthConfidence;
                 runParams.enable_depth = true; // Ask to compute the depth
             } else {
                 runParams.enable_depth = false; // Ask to not compute the depth

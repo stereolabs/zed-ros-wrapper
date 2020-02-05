@@ -567,7 +567,7 @@ private:
     int mCamWB          = 4200;
 
     double mCamMatResizeFactor = 1.0;
-    int mCamConfidence = 100;
+    int mCamDepthConfidence = 80;
     double mPointCloudFreq = 15.;
 
     // flags
