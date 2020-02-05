@@ -101,7 +101,7 @@ The value of the coordinate Z for odometry and pose will have a fixed value (par
 Roll and pitch and relative velocities will be fixed to zero.
 
 ## Examples and Tutorials
-Examples and tutorials are provided to better understand how to use the ZER wrapper and how to integrate it in the ROS framework.
+Examples and tutorials are provided to better understand how to use the ZED wrapper and how to integrate it in the ROS framework.
 See the [`zed-ros-examples` repository](https://github.com/stereolabs/zed-ros-examples)
 
 ### Examples
