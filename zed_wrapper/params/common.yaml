@@ -14,7 +14,6 @@ exposure:                   100                                 # Dynamic - work
 auto_whitebalance:          true                                # Dynamic
 whitebalance_temperature:   4200                                # Dynamic - works only if `auto_whitebalance` is false
 depth_confidence:           80                                  # Dynamic
-mat_resize_factor:          1.0                                 # Dynamic
 point_cloud_freq:           15.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `frame_rate` value)
 
 general:
@@ -30,13 +29,15 @@ general:
     self_calib:                 true                            # enable/disable self calibration at starting
     camera_flip:                false
 
-#video:
+video:
+    img_resample_factor:        0.3                             # Resample factor for images [0.01,1.0] The SDK works with native image sizes, but publishes rescaled image.
 
 depth:
     quality:                    1                               # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA
     sensing_mode:               0                               # '0': STANDARD, '1': FILL (not use FILL for robotic applications)
     depth_stabilization:        1                               # `0`: disabled, `1`: enabled
     openni_depth_mode:          0                               # '0': 32bit float meters, '1': 16bit uchar millimeters
+    map_resample_factor:        0.5                             # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
 
 pos_tracking:
     publish_tf:                 true                            # publish `odom -> base_link` TF

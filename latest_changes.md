@@ -8,12 +8,16 @@ XACRO and more (2020-01-31)
 - Fixed auto white balance at node start (thanks to @kjaget)
 - Removed `fixed_covariance` and `fixed_cov_value` parameters (not required anymore)
 - Removed `sens_pub_rate` parameter
-- Removed `confidence_image`
-- Removed `color_enhancement` parameter, always ON be default
-- Mapping does not use presets for resolution, but a float value in [0.01,0.2]
-- Added new parameter `max_mapping_range_m` for mapping (set to `-1` for auto calculation)
-- Moved "multi-camera" launch file in `zed-ros-examples/examples/zed_multicamera_example` 
+- Removed `confidence_image` message
+- Removed `color_enhancement` parameter, always ON by default
+- Mapping does not use presets for resolution, but a float value in range [0.01,0.2]
+- Added new parameter `max_mapping_range_m` for mapping depth range (set to `-1` for auto calculation)
+- Moved "multi-camera" launch file in [`zed-ros-examples`](https://github.com/stereolabs/zed-ros-examples/examples/zed_multicamera_example) 
 - Added current GPU ID to Diagnostic information
+- The `confidence` dynamic parameter is now called `depth_confidence`
+- Removed dynamic parametes `map_resize_factor`
+- Added new parameter `video/img_resample_factor`
+- Added new parameter `depth/map_resample_factor`
 
 
 SDK v3.0 (2020-01-27)

@@ -557,6 +557,8 @@ void ZEDWrapperNodelet::readParameters() {
     // <---- General
 
     // ----> Video
+    mNhNs.getParam("video/img_resample_factor", mCamImageResizeFactor);
+    NODELET_INFO_STREAM(" * Image resample factor\t-> " << mCamImageResizeFactor);
     // <---- Video
 
     // -----> Depth
@@ -576,6 +578,8 @@ void ZEDWrapperNodelet::readParameters() {
     NODELET_INFO_STREAM(" * Minimum depth\t\t-> " <<  mCamMinDepth << " m");
     mNhNs.getParam("depth/max_depth", mCamMaxDepth);
     NODELET_INFO_STREAM(" * Maximum depth\t\t-> " << mCamMaxDepth << " m");
+    mNhNs.getParam("depth/map_resample_factor", mCamDepthResizeFactor);
+    NODELET_INFO_STREAM(" * Depth resample factor\t-> " << mCamDepthResizeFactor);
     // <----- Depth
 
     // ----> Tracking
@@ -735,17 +739,6 @@ void ZEDWrapperNodelet::readParameters() {
     // ----> Dynamic
     mNhNs.getParam("depth_confidence", mCamDepthConfidence);
     NODELET_INFO_STREAM(" * [DYN] Depth confidence\t-> " << mCamDepthConfidence);
-
-    mNhNs.getParam("mat_resize_factor", mCamMatResizeFactor);
-    if (mCamMatResizeFactor < 0.1) {
-        mCamMatResizeFactor = 0.1;
-        NODELET_WARN_STREAM("Minimum allowed values for 'mat_resize_factor' is 0.1");
-    }
-    if (mCamMatResizeFactor > 1.0) {
-        mCamMatResizeFactor = 1.0;
-        NODELET_WARN_STREAM("Maximum allowed values for 'mat_resize_factor' is 1.0");
-    }
-    NODELET_INFO_STREAM(" * [DYN] mat_resize_factor\t-> " << mCamMatResizeFactor);
 
     mNhNs.getParam("point_cloud_freq", mPointCloudFreq);
     NODELET_INFO_STREAM(" * [DYN] point_cloud_freq\t-> " << mPointCloudFreq << " Hz");
@@ -1586,7 +1579,7 @@ void ZEDWrapperNodelet::publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat de
 
 void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t) {
 
-    sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResol);
+    sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResolDepth);
 
     if(!mDisparityImgMsg) {
         mDisparityImgMsg = boost::make_shared<sensor_msgs::Image>();
@@ -1668,18 +1661,18 @@ void ZEDWrapperNodelet::publishPointCloud() {
     // Initialize Point Cloud message
     // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
-    int ptsCount = mMatResol.width * mMatResol.height;
+    int ptsCount = mMatResolDepth.width * mMatResolDepth.height;
 
     mPointcloudMsg->header.stamp = mPointCloudTime;
 
-    if (mPointcloudMsg->width != mMatResol.width || mPointcloudMsg->height != mMatResol.height) {
+    if (mPointcloudMsg->width != mMatResolDepth.width || mPointcloudMsg->height != mMatResolDepth.height) {
         mPointcloudMsg->header.frame_id = mPointCloudFrameId; // Set the header values of the ROS message
 
         mPointcloudMsg->is_bigendian = false;
         mPointcloudMsg->is_dense = false;
 
-        mPointcloudMsg->width = mMatResol.width;
-        mPointcloudMsg->height = mMatResol.height;
+        mPointcloudMsg->width = mMatResolDepth.width;
+        mPointcloudMsg->height = mMatResolDepth.height;
 
         sensor_msgs::PointCloud2Modifier modifier(*mPointcloudMsg);
         modifier.setPointCloud2Fields(4,
@@ -1814,9 +1807,9 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
     sl::CalibrationParameters zedParam;
 
     if (rawParam) {
-        zedParam = zed.getCameraInformation(mMatResol).calibration_parameters_raw;
+        zedParam = zed.getCameraInformation(mMatResolVideo).calibration_parameters_raw;
     } else {
-        zedParam = zed.getCameraInformation(mMatResol).calibration_parameters;
+        zedParam = zed.getCameraInformation(mMatResolVideo).calibration_parameters;
     }
 
     float baseline = zedParam.T[0];
@@ -1880,10 +1873,49 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
     rightCamInfoMsg->P[5] = static_cast<double>(zedParam.right_cam.fy);
     rightCamInfoMsg->P[6] = static_cast<double>(zedParam.right_cam.cy);
     rightCamInfoMsg->P[10] = 1.0;
-    leftCamInfoMsg->width = rightCamInfoMsg->width = static_cast<uint32_t>(mMatResol.width);
-    leftCamInfoMsg->height = rightCamInfoMsg->height = static_cast<uint32_t>(mMatResol.height);
+    leftCamInfoMsg->width = rightCamInfoMsg->width = static_cast<uint32_t>(mMatResolVideo.width);
+    leftCamInfoMsg->height = rightCamInfoMsg->height = static_cast<uint32_t>(mMatResolVideo.height);
     leftCamInfoMsg->header.frame_id = leftFrameId;
     rightCamInfoMsg->header.frame_id = rightFrameId;
+}
+
+void ZEDWrapperNodelet::fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg,
+                                         string frame_id ) {
+    sl::CalibrationParameters zedParam;
+
+    zedParam = zed.getCameraInformation(mMatResolDepth).calibration_parameters;
+
+    float baseline = zedParam.T[0];
+    depth_info_msg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+    depth_info_msg->D.resize(5);
+    depth_info_msg->D[0] = zedParam.left_cam.disto[0];   // k1
+    depth_info_msg->D[1] = zedParam.left_cam.disto[1];   // k2
+    depth_info_msg->D[2] = zedParam.left_cam.disto[4];   // k3
+    depth_info_msg->D[3] = zedParam.left_cam.disto[2];   // p1
+    depth_info_msg->D[4] = zedParam.left_cam.disto[3];   // p2
+    depth_info_msg->K.fill(0.0);
+    depth_info_msg->K[0] = static_cast<double>(zedParam.left_cam.fx);
+    depth_info_msg->K[2] = static_cast<double>(zedParam.left_cam.cx);
+    depth_info_msg->K[4] = static_cast<double>(zedParam.left_cam.fy);
+    depth_info_msg->K[5] = static_cast<double>(zedParam.left_cam.cy);
+    depth_info_msg->K[8] = 1.0;
+    depth_info_msg->R.fill(0.0);
+
+    for (size_t i = 0; i < 3; i++) {
+        // identity
+        depth_info_msg->R[i + i * 3] = 1;
+    }
+
+    depth_info_msg->P.fill(0.0);
+    depth_info_msg->P[0] = static_cast<double>(zedParam.left_cam.fx);
+    depth_info_msg->P[2] = static_cast<double>(zedParam.left_cam.cx);
+    depth_info_msg->P[5] = static_cast<double>(zedParam.left_cam.fy);
+    depth_info_msg->P[6] = static_cast<double>(zedParam.left_cam.cy);
+    depth_info_msg->P[10] = 1.0;
+    // http://docs.ros.org/api/sensor_msgs/html/msg/CameraInfo.html
+    depth_info_msg->width = static_cast<uint32_t>(mMatResolDepth.width);
+    depth_info_msg->height = static_cast<uint32_t>(mMatResolDepth.height);
+    depth_info_msg->header.frame_id = frame_id;
 }
 
 void ZEDWrapperNodelet::updateDynamicReconfigure() {
@@ -1899,7 +1931,6 @@ void ZEDWrapperNodelet::updateDynamicReconfigure() {
     config.exposure = mCamExposure;
     config.gain = mCamGain;
     config.hue = mCamHue;
-    config.mat_resize_factor = mCamMatResizeFactor;
     config.saturation = mCamSaturation;
     config.sharpness = mCamSharpness;
     config.whitebalance_temperature = mCamWB/100;
@@ -1919,30 +1950,30 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
     DynParams param = static_cast<DynParams>(level);
 
     switch (param) {
-    case MAT_RESIZE_FACTOR: {
-        mCamMatResizeFactor = config.mat_resize_factor;
-        NODELET_INFO("Reconfigure mat_resize_factor: %g", mCamMatResizeFactor);
-        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
-        mDynParMutex.unlock();
+//    case MAT_RESIZE_FACTOR: {
+//        mCamMatResizeFactor = config.mat_resize_factor;
+//        NODELET_INFO("Reconfigure mat_resize_factor: %g", mCamMatResizeFactor);
+//        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
+//        mDynParMutex.unlock();
 
-        mCamDataMutex.lock();
-        size_t w = static_cast<size_t>(mCamWidth * mCamMatResizeFactor);
-        size_t h = static_cast<size_t>(mCamHeight * mCamMatResizeFactor);
-        mMatResol = sl::Resolution(w,h);
-        NODELET_DEBUG_STREAM("Data Mat size : " << mMatResol.width << "x" << mMatResol.height);
+//        mCamDataMutex.lock();
+//        size_t w = static_cast<size_t>(mCamWidth * mCamMatResizeFactor);
+//        size_t h = static_cast<size_t>(mCamHeight * mCamMatResizeFactor);
+//        mMatResol = sl::Resolution(w,h);
+//        NODELET_DEBUG_STREAM("Data Mat size : " << mMatResol.width << "x" << mMatResol.height);
 
-        // Update Camera Info
-        fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId,
-                    mRightCamOptFrameId);
-        fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
-                    mRightCamOptFrameId, true);
-        mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg; // the reference camera is
-        // the Left one (next to
-        // the ZED logo)
-        mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
-        mCamDataMutex.unlock();
-    }
-        break;
+//        // Update Camera Info
+//        fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId,
+//                    mRightCamOptFrameId);
+//        fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
+//                    mRightCamOptFrameId, true);
+//        mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg; // the reference camera is
+//        // the Left one (next to
+//        // the ZED logo)
+//        mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
+//        mCamDataMutex.unlock();
+//    }
+//        break;
 
     case CONFIDENCE:
         mCamDepthConfidence = config.depth_confidence;
@@ -2528,20 +2559,24 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
     mCamWidth = mZed.getCameraInformation().camera_resolution.width;
     mCamHeight = mZed.getCameraInformation().camera_resolution.height;
     NODELET_DEBUG_STREAM("Camera Frame size : " << mCamWidth << "x" << mCamHeight);
-    int w = static_cast<int>(mCamWidth * mCamMatResizeFactor);
-    int h = static_cast<int>(mCamHeight * mCamMatResizeFactor);
-    mMatResol = sl::Resolution(w,h);
-    NODELET_DEBUG_STREAM("Data Mat size : " << mMatResol.width << "x" << mMatResol.height);
+    int v_w = static_cast<int>(mCamWidth * mCamImageResizeFactor);
+    int v_h = static_cast<int>(mCamHeight * mCamImageResizeFactor);
+    mMatResolVideo = sl::Resolution(v_w,v_h);
+    NODELET_DEBUG_STREAM("Image Mat size : " << mMatResolVideo.width << "x" << mMatResolVideo.height);
+    int d_w = static_cast<int>(mCamWidth * mCamDepthResizeFactor);
+    int d_h = static_cast<int>(mCamHeight * mCamDepthResizeFactor);
+    mMatResolDepth = sl::Resolution(d_w,d_h);
+    NODELET_DEBUG_STREAM("Depth Mat size : " << mMatResolDepth.width << "x" << mMatResolDepth.height);
 
     // Create and fill the camera information messages
-    fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId,
-                mRightCamOptFrameId);
+    fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId, mRightCamOptFrameId);
     fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
                 mRightCamOptFrameId, true);
+    fillCamDepthInfo(mZed,mDepthCamInfoMsg,mLeftCamOptFrameId);
 
     // the reference camera is the Left one (next to the ZED logo)
 
-    mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg;
+    mRgbCamInfoMsg = mLeftCamInfoMsg;
     mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
 
     sl::RuntimeParameters runParams;
@@ -2827,7 +2862,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             if (leftSubnumber > 0 || rgbSubnumber > 0) {
 
                 // Retrieve RGBA Left image
-                mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
+                mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
 
                 if (leftSubnumber > 0) {
                     if(!mLeftImgMsg ) {
@@ -2854,7 +2889,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             if (leftRawSubnumber > 0 || rgbRawSubnumber > 0) {
 
                 // Retrieve RGBA Left image
-                mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
+                mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
 
                 if (leftRawSubnumber > 0) {
                     if(!mRawLeftImgMsg ) {
@@ -2881,7 +2916,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             if (rightSubnumber > 0) {
 
                 // Retrieve RGBA Right image
-                mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
+                mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
                 if(!mRightImgMsg ) {
                     mRightImgMsg = boost::make_shared<sensor_msgs::Image>();
                 }
@@ -2895,7 +2930,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             if (rightRawSubnumber > 0) {
 
                 // Retrieve RGBA Right image
-                mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
+                mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
                 if(!mRawRightImgMsg ) {
                     mRawRightImgMsg = boost::make_shared<sensor_msgs::Image>();
                 }
@@ -2909,8 +2944,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             if (stereoSubNumber > 0) {
 
                 // Retrieve RGBA Right image
-                mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
-                mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
+                mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
+                mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
                 if(!mStereoImgMsg ) {
                     mStereoImgMsg = boost::make_shared<sensor_msgs::Image>();
                 }
@@ -2922,8 +2957,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             if (stereoRawSubNumber > 0) {
 
                 // Retrieve RGBA Right image
-                mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
-                mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
+                mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+                mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
                 if(!mRawStereoImgMsg ) {
                     mRawStereoImgMsg = boost::make_shared<sensor_msgs::Image>();
                 }
@@ -2934,7 +2969,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             // Publish the depth image if someone has subscribed to
             if (depthSubnumber > 0 || disparitySubnumber > 0) {
 
-                mZed.retrieveMeasure(depthZEDMat, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResol);
+                mZed.retrieveMeasure(depthZEDMat, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
                 if(!mDepthImgMsg ) {
                     mDepthImgMsg = boost::make_shared<sensor_msgs::Image>();
                 }
@@ -2944,14 +2979,14 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             // Publish the disparity image if someone has subscribed to
             if (disparitySubnumber > 0) {
 
-                mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResol);
+                mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
                 publishDisparity(disparityZEDMat, mFrameTimestamp);
             }
 
             // Publish the confidence map if someone has subscribed to
             if (confMapSubnumber > 0) {
 
-                mZed.retrieveMeasure(confMapZEDMat, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResol);
+                mZed.retrieveMeasure(confMapZEDMat, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
                 sl_tools::imageToROSmsg(mConfMapMsg,confMapZEDMat, mConfidenceOptFrameId, mFrameTimestamp);
                 if(!mConfMapMsg ) {
                     mConfMapMsg = boost::make_shared<sensor_msgs::Image>();
@@ -2968,7 +3003,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 std::unique_lock<std::mutex> lock(mPcMutex, std::defer_lock);
 
                 if (lock.try_lock()) {
-                    mZed.retrieveMeasure(mCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatResol);
+                    mZed.retrieveMeasure(mCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatResolDepth);
 
                     mPointCloudFrameId = mDepthFrameId;
                     mPointCloudTime = mFrameTimestamp;

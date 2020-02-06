@@ -84,7 +84,7 @@ namespace zed_wrapper {
 class ZEDWrapperNodelet : public nodelet::Nodelet {
 
     typedef enum _dyn_params {
-        MAT_RESIZE_FACTOR   = 0,
+        //MAT_RESIZE_FACTOR   = 0,
         CONFIDENCE          = 1,
         POINTCLOUD_FREQ     = 2,
         BRIGHTNESS          = 3,
@@ -216,6 +216,16 @@ protected:
                      sensor_msgs::CameraInfoPtr rightCamInfoMsg,
                      string leftFrameId, string rightFrameId,
                      bool rawParam = false);
+
+    /* \brief Get the information of the ZED cameras and store them in an
+         * information message for depth topics
+         * \param zed : the sl::zed::Camera* pointer to an instance
+         * \param depth_info_msg : the information message to fill with the left
+         * camera informations
+         * \param frame_id : the id of the reference frame of the left camera
+         */
+    void fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg,
+                     string frame_id );
 
     /* \bried Check if FPS and Resolution chosen by user are correct.
          *        Modifies FPS to match correct value.
@@ -566,9 +576,11 @@ private:
     bool mCamAutoWB     = true;
     int mCamWB          = 4200;
 
-    double mCamMatResizeFactor = 1.0;
     int mCamDepthConfidence = 80;
     double mPointCloudFreq = 15.;
+
+    double mCamImageResizeFactor = 1.0;
+    double mCamDepthResizeFactor = 1.0;
 
     // flags
     bool mTriggerAutoExposure = true;
@@ -592,7 +604,8 @@ private:
     // Mat
     int mCamWidth;
     int mCamHeight;
-    sl::Resolution mMatResol;
+    sl::Resolution mMatResolVideo;
+    sl::Resolution mMatResolDepth;
 
     // Thread Sync
     std::mutex mCloseZedMutex;
