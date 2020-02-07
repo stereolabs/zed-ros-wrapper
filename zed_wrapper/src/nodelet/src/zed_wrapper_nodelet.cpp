@@ -637,18 +637,18 @@ void ZEDWrapperNodelet::readParameters() {
     // <---- Mapping
 
     // ----> Object Detection
-    mNhNs.param<bool>("object_detection/od_enabled", mObjDetEnabled, false);
+    mNhNs.param<bool>("object_detection/object_tracking_enabled", mObjDetEnabled, false);
 
     if (mObjDetEnabled) {
         NODELET_INFO_STREAM(" * Object Detection\t\t-> ENABLED");
 
-        mNhNs.getParam("object_detection/od_min_confidence", mObjDetConfidence);
+        mNhNs.getParam("object_detection/confidence_threshold", mObjDetConfidence);
         NODELET_INFO_STREAM(" * Object confidence\t\t-> " << mObjDetConfidence);
-        mNhNs.getParam("mObjDetEnable/od_tracking", mObjDetTracking);
+        mNhNs.getParam("mObjDetEnable/object_tracking_enabled", mObjDetTracking);
         NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking?"ENABLED":"DISABLED"));
-        mNhNs.getParam("mObjDetEnable/od_people", mObjDetPeople);
+        mNhNs.getParam("mObjDetEnable/people_detection", mObjDetPeople);
         NODELET_INFO_STREAM(" * People detection\t\t-> " << (mObjDetPeople?"ENABLED":"DISABLED"));
-        mNhNs.getParam("mObjDetEnable/oc_vehicles", mObjDetVehicles);
+        mNhNs.getParam("mObjDetEnable/vehicle_detection", mObjDetVehicles);
         NODELET_INFO_STREAM(" * Vehicles detection\t\t-> " << (mObjDetVehicles?"ENABLED":"DISABLED"));
     } else {
         NODELET_INFO_STREAM(" * Object Detection\t\t-> DISABLED");

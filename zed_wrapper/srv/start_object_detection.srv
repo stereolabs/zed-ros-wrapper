@@ -1,4 +1,4 @@
-# Starts object detection, if not automatically enabled with the parameter `object_detection/od_enabled`
+# Starts object detection, if not automatically enabled with the parameter `object_detection/object_tracking_enabled`
 
 # Minimum Confidence level
 float32 confidence

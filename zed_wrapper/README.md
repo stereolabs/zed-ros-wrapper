@@ -68,7 +68,7 @@ A detailed description of each parameter is available in the [official online do
 
 ### Object Detection
 The SDK v3.0 introduces the Object Detection and Tracking module. **The Object Detection module is available only with a ZED 2 camera**. 
-The Object Detection can be enabled automatically when the node start setting the parameter `object_detection/od_enabled` to `true` in the file `zed2.yaml`.
+The Object Detection can be enabled automatically when the node start setting the parameter `object_detection/object_tracking_enabled` to `true` in the file `zed2.yaml`.
 The Object Detection can be enabled/disabled manually calling the services `start_object_detection` and `stop_object_detection`.
 
 ### Spatial Mapping

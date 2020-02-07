@@ -18,6 +18,7 @@ XACRO and more (2020-01-31)
 - Removed dynamic parametes `map_resize_factor`
 - Added new parameter `video/img_resample_factor`
 - Added new parameter `depth/map_resample_factor`
+- Updated the names for the parameters of the Object Detection module [only ZED2]
 
 
 SDK v3.0 (2020-01-27)
