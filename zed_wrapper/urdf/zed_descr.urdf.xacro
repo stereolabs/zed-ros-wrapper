@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+
+<!--
+Copyright (c) 2020, STEREOLABS.
+
+All rights reserved.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<robot name="stereolabs_camera" xmlns:xacro="http://ros.org/wiki/xacro">
+
+<!-- Includes -->
+    <xacro:include filename="$(find zed_wrapper)/urdf/include/materials.urdf.xacro" />
+
+    <!-- Arguments -->
+    <xacro:arg name="camera_name"   default="zed" />
+    <xacro:arg name="camera_model"  default="zed" />
+    <xacro:arg name="cam_pos_x"     default="0.0" />
+    <xacro:arg name="cam_pos_y"     default="0.0" />
+    <xacro:arg name="cam_pos_z"     default="0.0" />
+    <xacro:arg name="cam_roll"      default="0.0" />
+    <xacro:arg name="cam_pitch"     default="0.0" />
+    <xacro:arg name="cam_yaw"       default="0.0" />
+
+    <!-- Properties -->
+    <xacro:property name="M_PI"     value="3.1415926535897931" />
+    <xacro:property name="model"    value="$(arg camera_model)" />
+
+    <xacro:if value="${model == 'zed'}">
+        <xacro:property name="baseline" value="0.12" />
+    </xacro:if>
+    <xacro:if value="${model == 'zedm'}">
+        <xacro:property name="baseline" value="0.06" />
+    </xacro:if>
+    <xacro:if value="${model == 'zed2'}">
+        <xacro:property name="baseline" value="0.12" />
+    </xacro:if>
+
+<!-- base_link -->
+    <link name="base_link" />
+
+<!-- Camera Center -->
+    <joint name="$(arg camera_name)_camera_center_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="$(arg camera_name)_camera_center"/>
+        <origin xyz="$(arg cam_pos_x) $(arg cam_pos_y) $(arg cam_pos_z)" rpy="$(arg cam_roll) $(arg cam_pitch) $(arg cam_yaw)" />
+    </joint>
+
+    <link name="$(arg camera_name)_camera_center">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://zed_wrapper/urdf/models/${model}.stl" />
+            </geometry>
+            <material name="${model}_mat" />
+        </visual>
+    </link>
+
+<!-- Left Camera -->
+    <joint name="$(arg camera_name)_left_camera_joint" type="fixed">
+        <parent link="$(arg camera_name)_camera_center"/>
+        <child link="$(arg camera_name)_left_camera_frame"/>
+        <origin xyz="0 ${baseline/2} 0" rpy="0 0 0" />
+    </joint>
+
+    <link name="$(arg camera_name)_left_camera_frame" />
+
+    <joint name="$(arg camera_name)_left_camera_optical_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+        <parent link="$(arg camera_name)_left_camera_frame"/>
+        <child link="$(arg camera_name)_left_camera_optical_frame"/>
+    </joint>
+
+    <link name="$(arg camera_name)_left_camera_optical_frame"/>
+
+<!-- Right Camera -->
+    <joint name="$(arg camera_name)_right_camera_joint" type="fixed">
+        <parent link="$(arg camera_name)_camera_center"/>
+        <child link="$(arg camera_name)_right_camera_frame"/>
+        <origin xyz="0 -${baseline/2} 0" rpy="0 0 0" />
+    </joint>
+
+    <link name="$(arg camera_name)_right_camera_frame" />
+
+    <joint name="$(arg camera_name)_right_camera_optical_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+        <parent link="$(arg camera_name)_right_camera_frame"/>
+        <child link="$(arg camera_name)_right_camera_optical_frame"/>
+    </joint>
+
+    <link name="$(arg camera_name)_right_camera_optical_frame"/>
+</robot>
