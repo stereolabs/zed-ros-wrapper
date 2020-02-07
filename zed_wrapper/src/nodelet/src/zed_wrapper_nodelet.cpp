@@ -637,7 +637,7 @@ void ZEDWrapperNodelet::readParameters() {
     // <---- Mapping
 
     // ----> Object Detection
-    mNhNs.param<bool>("object_detection/object_tracking_enabled", mObjDetEnabled, false);
+    mNhNs.param<bool>("object_detection/od_enabled", mObjDetEnabled, false);
 
     if (mObjDetEnabled) {
         NODELET_INFO_STREAM(" * Object Detection\t\t-> ENABLED");

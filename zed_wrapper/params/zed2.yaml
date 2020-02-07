@@ -16,7 +16,7 @@ sensors:
     sensors_timestamp_sync:     false           # Synchronize Sensors messages timestamp with latest received frame
 
 object_detection:
-    object_tracking_enabled:    false           # True to enable Object Detection [only ZED 2]
+    od_enabled:                 false           # True to enable Object Detection [only ZED 2]
     confidence_threshold:       50              # Minimum value of the detection confidence of an object [0,100]
     object_tracking_enabled:    true            # Enable/disable the tracking of the detected objects
     people_detection:           true            # Enable/disable the detection of persons
