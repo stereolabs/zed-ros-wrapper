@@ -1157,26 +1157,34 @@ bool ZEDWrapperNodelet::start_3d_mapping() {
     params.map_type = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::FUSED_POINT_CLOUD;
     params.use_chunk_only = true;
 
-    if(mMappingRes < sl::SpatialMappingParameters::allowed_resolution.first) {
+    sl::SpatialMappingParameters spMapPar;
+
+    float lRes = spMapPar.allowed_resolution.first;
+    float hRes = spMapPar.allowed_resolution.second;
+
+    if(mMappingRes < lRes) {
         NODELET_WARN_STREAM( "'mapping/resolution_m' value (" << mMappingRes << " m) is lower than the allowed resolution values. Fixed automatically" );
-        mMappingRes = sl::SpatialMappingParameters::allowed_resolution.first;
+        mMappingRes = lRes;
     }
-    if(mMappingRes > sl::SpatialMappingParameters::allowed_resolution.second) {
+    if(mMappingRes > hRes) {
         NODELET_WARN_STREAM( "'mapping/resolution_m' value (" << mMappingRes << " m) is higher than the allowed resolution values. Fixed automatically" );
-        mMappingRes = sl::SpatialMappingParameters::allowed_resolution.second;
+        mMappingRes = hRes;
     }
 
     params.resolution_meter = mMappingRes;
 
+    float lRng = spMapPar.allowed_range.first;
+    float hRng = spMapPar.allowed_range.second;
+
     if(mMaxMappingRange < 0) {
         mMaxMappingRange = sl::SpatialMappingParameters::getRecommendedRange( mMappingRes, mZed );
         NODELET_INFO_STREAM("Mapping: max range set to " << mMaxMappingRange << " m for a resolution of " << mMappingRes << " m"  );
-    } else if(mMaxMappingRange < sl::SpatialMappingParameters::allowed_range.first) {
+    } else if(mMaxMappingRange < lRng) {
         NODELET_WARN_STREAM( "'mapping/max_mapping_range_m' value (" << mMaxMappingRange << " m) is lower than the allowed resolution values. Fixed automatically" );
-        mMaxMappingRange = sl::SpatialMappingParameters::allowed_range.first;
-    } else if(mMaxMappingRange > sl::SpatialMappingParameters::allowed_range.second) {
+        mMaxMappingRange = lRng;
+    } else if(mMaxMappingRange > hRng) {
         NODELET_WARN_STREAM( "'mapping/max_mapping_range_m' value (" << mMaxMappingRange << " m) is higher than the allowed resolution values. Fixed automatically" );
-        mMaxMappingRange = sl::SpatialMappingParameters::allowed_range.second;
+        mMaxMappingRange = hRng;
     }
 
     params.range_meter = mMaxMappingRange;
