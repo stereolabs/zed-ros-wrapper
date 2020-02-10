@@ -7,7 +7,8 @@ brightness:                 4                                   # Dynamic
 contrast:                   4                                   # Dynamic
 hue:                        0                                   # Dynamic
 saturation:                 4                                   # Dynamic
-sharpness:                  3                                   # Dynamic
+sharpness:                  4                                   # Dynamic
+gamma:                      8                                   # Dynamic - Requires SDK >=v3.1
 auto_exposure_gain:         true                                # Dynamic
 gain:                       100                                 # Dynamic - works only if `auto_exposure_gain` is false
 exposure:                   100                                 # Dynamic - works only if `auto_exposure_gain` is false
