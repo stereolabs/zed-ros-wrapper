@@ -138,17 +138,11 @@ link_directories(${CUDA_LIBRARY_DIRS})
 ###############################################################################
 # EXECUTABLE
 
-if(NOT DEFINED CUDA_NPP_LIBRARIES_ZED)
-    #To deal with cuda 9 nppi libs and previous versions of ZED SDK
-    set(CUDA_NPP_LIBRARIES_ZED ${CUDA_npp_LIBRARY} ${CUDA_npps_LIBRARY} ${CUDA_nppi_LIBRARY})   
-endif()
-
-
 add_definitions(-std=c++11)
 set(LINK_LIBRARIES
   ${catkin_LIBRARIES}
   ${ZED_LIBRARIES}
-  ${CUDA_LIBRARIES} ${CUDA_NPP_LIBRARIES_ZED}
+  ${CUDA_LIBRARIES}
   )
 
 add_library(ZEDWrapper ${TOOLS_SRC} ${NODELET_SRC})
