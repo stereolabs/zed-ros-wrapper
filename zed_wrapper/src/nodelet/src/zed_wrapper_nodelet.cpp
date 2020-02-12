@@ -578,7 +578,7 @@ void ZEDWrapperNodelet::readParameters() {
     NODELET_INFO_STREAM(" * Minimum depth\t\t-> " <<  mCamMinDepth << " m");
     mNhNs.getParam("depth/max_depth", mCamMaxDepth);
     NODELET_INFO_STREAM(" * Maximum depth\t\t-> " << mCamMaxDepth << " m");
-    mNhNs.getParam("depth/map_resample_factor", mCamDepthResizeFactor);
+    mNhNs.getParam("depth/depth_resample_factor", mCamDepthResizeFactor);
     NODELET_INFO_STREAM(" * Depth resample factor\t-> " << mCamDepthResizeFactor);
     // <----- Depth
 

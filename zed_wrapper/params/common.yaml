@@ -37,7 +37,7 @@ depth:
     sensing_mode:               0                               # '0': STANDARD, '1': FILL (not use FILL for robotic applications)
     depth_stabilization:        1                               # `0`: disabled, `1`: enabled
     openni_depth_mode:          0                               # '0': 32bit float meters, '1': 16bit uchar millimeters
-    map_resample_factor:        1.0                             # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
+    depth_resample_factor:        1.0                             # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
 
 pos_tracking:
     publish_tf:                 true                            # publish `odom -> base_link` TF
