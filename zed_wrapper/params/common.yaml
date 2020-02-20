@@ -48,7 +48,6 @@ pos_tracking:
     area_memory:                true                            # Enable to detect loop closure
     floor_alignment:            false                           # Enable to automatically calculate camera/floor offset
     initial_base_pose:          [0.0,0.0,0.0, 0.0,0.0,0.0]      # Initial position of the `base_frame` -> [X, Y, Z, R, P, Y]
-    publish_pose_covariance:    true                            # Enable to publish the `pose_with_covariance` message
     init_odom_with_first_valid_pose: true                       # Enable to initialize the odometry with the first valid pose
     path_pub_rate:              2.0                             # Camera trajectory publishing frequency
     path_max_count:             -1                              # use '-1' for unlimited path size

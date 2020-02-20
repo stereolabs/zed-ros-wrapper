@@ -400,10 +400,9 @@ void ZEDWrapperNodelet::onInit() {
     mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(poseTopic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubPose.getTopic());
 
-    if (mPublishPoseCovariance) {
-        mPubPoseCov = mNhNs.advertise<geometry_msgs::PoseWithCovarianceStamped>(pose_cov_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubPoseCov.getTopic());
-    }
+    mPubPoseCov = mNhNs.advertise<geometry_msgs::PoseWithCovarianceStamped>(pose_cov_topic, 1);
+    NODELET_INFO_STREAM("Advertised on topic " << mPubPoseCov.getTopic());
+
 
     mPubOdom = mNhNs.advertise<nav_msgs::Odometry>(odometryTopic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubOdom.getTopic());
@@ -612,9 +611,6 @@ void ZEDWrapperNodelet::readParameters() {
     if (mTwoDMode) {
         NODELET_INFO_STREAM(" * Fixed Z value\t\t-> " << mFixedZValue);
     }
-
-    mNhNs.getParam("pos_tracking/publish_pose_covariance", mPublishPoseCovariance);
-    NODELET_INFO_STREAM(" * Publish Pose Covariance\t-> " << (mPublishPoseCovariance ? "ENABLED" : "DISABLED"));
     // <---- Tracking
 
     // ----> Mapping
@@ -1370,23 +1366,22 @@ void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& sl
     mOdomMsg->pose.pose.orientation.z = base2odom.rotation.z;
     mOdomMsg->pose.pose.orientation.w = base2odom.rotation.w;
 
-    // Odometry pose covariance if available
-    if (mPublishPoseCovariance) {
-        for (size_t i = 0; i < mOdomMsg->pose.covariance.size(); i++) {
-            mOdomMsg->pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]);
+    // Odometry pose covariance
 
-            if (mTwoDMode) {
-                if (i == 14 || i == 21 || i == 28) {
-                    mOdomMsg->pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
-                } else if ((i >= 2 && i <= 4) ||
-                           (i >= 8 && i <= 10) ||
-                           (i >= 12 && i <= 13) ||
-                           (i >= 15 && i <= 16) ||
-                           (i >= 18 && i <= 20) ||
-                           (i == 22) ||
-                           (i >= 24 && i <= 27)) {
-                    mOdomMsg->pose.covariance[i] = 0.0;
-                }
+    for (size_t i = 0; i < mOdomMsg->pose.covariance.size(); i++) {
+        mOdomMsg->pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]);
+
+        if (mTwoDMode) {
+            if (i == 14 || i == 21 || i == 28) {
+                mOdomMsg->pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
+            } else if ((i >= 2 && i <= 4) ||
+                       (i >= 8 && i <= 10) ||
+                       (i >= 12 && i <= 13) ||
+                       (i >= 15 && i <= 16) ||
+                       (i >= 18 && i <= 20) ||
+                       (i == 22) ||
+                       (i >= 24 && i <= 27)) {
+                mOdomMsg->pose.covariance[i] = 0.0;
             }
         }
     }
@@ -1433,39 +1428,38 @@ void ZEDWrapperNodelet::publishPose(ros::Time t) {
         mPubPose.publish(poseNoCov);
     }
 
-    if (mPublishPoseCovariance) {
-        if (mPubPoseCov.getNumSubscribers() > 0) {
+    if (mPubPoseCov.getNumSubscribers() > 0) {
 
-            if(!mPoseCovMsg) {
-                mPoseCovMsg = boost::make_shared<geometry_msgs::PoseWithCovarianceStamped>();
-            }
+        if(!mPoseCovMsg) {
+            mPoseCovMsg = boost::make_shared<geometry_msgs::PoseWithCovarianceStamped>();
+        }
 
-            mPoseCovMsg->header = header;
-            mPoseCovMsg->pose.pose = pose;
+        mPoseCovMsg->header = header;
+        mPoseCovMsg->pose.pose = pose;
 
-            // Odometry pose covariance if available
-            for (size_t i = 0; i < mPoseCovMsg->pose.covariance.size(); i++) {
-                mPoseCovMsg->pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
+        // Odometry pose covariance if available
+        for (size_t i = 0; i < mPoseCovMsg->pose.covariance.size(); i++) {
+            mPoseCovMsg->pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
 
-                if (mTwoDMode) {
-                    if (i == 14 || i == 21 || i == 28) {
-                        mPoseCovMsg->pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
-                    } else if ((i >= 2 && i <= 4) ||
-                               (i >= 8 && i <= 10) ||
-                               (i >= 12 && i <= 13) ||
-                               (i >= 15 && i <= 16) ||
-                               (i >= 18 && i <= 20) ||
-                               (i == 22) ||
-                               (i >= 24 && i <= 27)) {
-                        mPoseCovMsg->pose.covariance[i] = 0.0;
-                    }
+            if (mTwoDMode) {
+                if (i == 14 || i == 21 || i == 28) {
+                    mPoseCovMsg->pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
+                } else if ((i >= 2 && i <= 4) ||
+                           (i >= 8 && i <= 10) ||
+                           (i >= 12 && i <= 13) ||
+                           (i >= 15 && i <= 16) ||
+                           (i >= 18 && i <= 20) ||
+                           (i == 22) ||
+                           (i >= 24 && i <= 27)) {
+                    mPoseCovMsg->pose.covariance[i] = 0.0;
                 }
             }
-
-            // Publish pose with covariance stamped message
-            mPubPoseCov.publish(mPoseCovMsg);
         }
+
+        // Publish pose with covariance stamped message
+        mPubPoseCov.publish(mPoseCovMsg);
     }
+
 }
 
 void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t) {
@@ -1959,30 +1953,30 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
     DynParams param = static_cast<DynParams>(level);
 
     switch (param) {
-//    case MAT_RESIZE_FACTOR: {
-//        mCamMatResizeFactor = config.mat_resize_factor;
-//        NODELET_INFO("Reconfigure mat_resize_factor: %g", mCamMatResizeFactor);
-//        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
-//        mDynParMutex.unlock();
+    //    case MAT_RESIZE_FACTOR: {
+    //        mCamMatResizeFactor = config.mat_resize_factor;
+    //        NODELET_INFO("Reconfigure mat_resize_factor: %g", mCamMatResizeFactor);
+    //        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
+    //        mDynParMutex.unlock();
 
-//        mCamDataMutex.lock();
-//        size_t w = static_cast<size_t>(mCamWidth * mCamMatResizeFactor);
-//        size_t h = static_cast<size_t>(mCamHeight * mCamMatResizeFactor);
-//        mMatResol = sl::Resolution(w,h);
-//        NODELET_DEBUG_STREAM("Data Mat size : " << mMatResol.width << "x" << mMatResol.height);
+    //        mCamDataMutex.lock();
+    //        size_t w = static_cast<size_t>(mCamWidth * mCamMatResizeFactor);
+    //        size_t h = static_cast<size_t>(mCamHeight * mCamMatResizeFactor);
+    //        mMatResol = sl::Resolution(w,h);
+    //        NODELET_DEBUG_STREAM("Data Mat size : " << mMatResol.width << "x" << mMatResol.height);
 
-//        // Update Camera Info
-//        fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId,
-//                    mRightCamOptFrameId);
-//        fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
-//                    mRightCamOptFrameId, true);
-//        mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg; // the reference camera is
-//        // the Left one (next to
-//        // the ZED logo)
-//        mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
-//        mCamDataMutex.unlock();
-//    }
-//        break;
+    //        // Update Camera Info
+    //        fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId,
+    //                    mRightCamOptFrameId);
+    //        fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
+    //                    mRightCamOptFrameId, true);
+    //        mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg; // the reference camera is
+    //        // the Left one (next to
+    //        // the ZED logo)
+    //        mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
+    //        mCamDataMutex.unlock();
+    //    }
+    //        break;
 
     case CONFIDENCE:
         mCamDepthConfidence = config.depth_confidence;

@@ -590,7 +590,6 @@ private:
     bool mAreaMemory;
     bool mInitOdomWithPose;
     bool mResetOdom = false;
-    bool mPublishPoseCovariance = true;
 
     // SVO recording
     bool mRecording = false;
