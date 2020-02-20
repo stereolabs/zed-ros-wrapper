@@ -44,7 +44,7 @@ pos_tracking:
     publish_map_tf:             true                            # publish `map -> odom` TF
     map_frame:                  'map'
     odometry_frame:             'odom'
-    odometry_db:                ''
+    area_memory_db_path:                ''
     area_memory:                true                            # Enable to detect loop closure
     floor_alignment:            false                           # Enable to automatically calculate camera/floor offset
     initial_base_pose:          [0.0,0.0,0.0, 0.0,0.0,0.0]      # Initial position of the `base_frame` -> [X, Y, Z, R, P, Y]

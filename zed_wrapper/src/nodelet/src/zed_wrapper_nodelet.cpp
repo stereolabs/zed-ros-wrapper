@@ -594,8 +594,8 @@ void ZEDWrapperNodelet::readParameters() {
 
     mNhNs.getParam("pos_tracking/initial_base_pose", mInitialBasePose);
 
-    mNhNs.getParam("pos_tracking/odometry_DB", mOdometryDb);
-    NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mOdometryDb.c_str());
+    mNhNs.getParam("pos_tracking/area_memory_db_path", mAreaMemDbPath);
+    NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mAreaMemDbPath.c_str());
     mNhNs.param<bool>("pos_tracking/area_memory", mAreaMemory, false);
     NODELET_INFO_STREAM(" * Spatial Memory\t\t-> " << (mAreaMemory ? "ENABLED" : "DISABLED"));
     mNhNs.param<bool>("pos_tracking/imu_fusion", mImuFusion, true);
@@ -1316,15 +1316,15 @@ void ZEDWrapperNodelet::start_pos_tracking() {
                  mInitialPoseSl.getOrientation().ox, mInitialPoseSl.getOrientation().oy,
                  mInitialPoseSl.getOrientation().oz, mInitialPoseSl.getOrientation().ow);
 
-    if (mOdometryDb != "" && !sl_tools::file_exist(mOdometryDb)) {
-        mOdometryDb = "";
-        NODELET_WARN("odometry_DB path doesn't exist or is unreachable.");
+    if (mAreaMemDbPath != "" && !sl_tools::file_exist(mAreaMemDbPath)) {
+        mAreaMemDbPath = "";
+        NODELET_WARN("area_memory_db_path path doesn't exist or is unreachable.");
     }
 
     // Tracking parameters
     sl::PositionalTrackingParameters trackParams;
 
-    trackParams.area_file_path = mOdometryDb.c_str();
+    trackParams.area_file_path = mAreaMemDbPath.c_str();
 
     mPoseSmoothing = false; // Always false. Pose Smoothing is to be enabled only for VR/AR applications
     trackParams.enable_pose_smoothing = mPoseSmoothing;

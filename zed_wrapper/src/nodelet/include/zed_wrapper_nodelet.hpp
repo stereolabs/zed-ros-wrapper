@@ -500,7 +500,7 @@ private:
     int mGpuId;
     int mZedId;
     int mDepthStabilization;
-    std::string mOdometryDb;
+    std::string mAreaMemDbPath;
     std::string mSvoFilepath;
     std::string mRemoteStreamAddr;
     double mSensPubRate = 400.0;
