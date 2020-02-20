@@ -49,9 +49,9 @@ find_package(catkin COMPONENTS
   tf2_ros
   nodelet
   tf2_geometry_msgs
-  message_generation
-  diagnostic_updater
+  diagnostic_updater  
   roslint
+  zed_interfaces
 )
 
 checkPackage("image_transport" "")
@@ -64,33 +64,6 @@ checkPackage("dynamic_reconfigure" "")
 checkPackage("tf2_ros" "")
 checkPackage("nodelet" "")
 checkPackage("tf2_geometry_msgs" "")
-checkPackage("message_generation" "")
-
-add_message_files( FILES
-    object_stamped.msg
-    objects.msg
-  )
-
-add_service_files( FILES
-    set_pose.srv
-    reset_odometry.srv
-    reset_tracking.srv
-    start_svo_recording.srv
-    stop_svo_recording.srv
-    start_remote_stream.srv
-    stop_remote_stream.srv
-    set_led_status.srv
-    toggle_led.srv
-    start_3d_mapping.srv
-    stop_3d_mapping.srv
-    start_object_detection.srv
-    stop_object_detection.srv
-  )
-
-generate_messages(DEPENDENCIES
-    std_msgs
-    geometry_msgs
-)
 
 generate_dynamic_reconfigure_options(
   cfg/Zed.cfg
@@ -107,6 +80,7 @@ catkin_package(
     tf2_ros
     tf2_geometry_msgs
     message_runtime
+    zed_interfaces
 )
 
 ###############################################################################
@@ -147,11 +121,13 @@ set(LINK_LIBRARIES
 
 add_library(ZEDWrapper ${TOOLS_SRC} ${NODELET_SRC})
 target_link_libraries(ZEDWrapper ${LINK_LIBRARIES})
-add_dependencies(ZEDWrapper ${${PROJECT_NAME}_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+add_dependencies(ZEDWrapper ${catkin_EXPORTED_TARGETS})
+add_dependencies(ZEDWrapper ${PROJECT_NAME}_gencfg)
 
 add_executable(zed_wrapper_node ${NODE_SRC})
 target_link_libraries(zed_wrapper_node ZEDWrapper ${LINK_LIBRARIES})
-add_dependencies(zed_wrapper_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+add_dependencies(zed_wrapper_node ${catkin_EXPORTED_TARGETS})
+add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)
 
 ###############################################################################
 

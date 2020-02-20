@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+v3.1
+-----
+- Add new package `zed_interfaces` with isolated declarations of custom messages, services and actions
+
 XACRO and more (2020-01-31)
 ---------------------------
 - Added xacro support for parametric URDF 

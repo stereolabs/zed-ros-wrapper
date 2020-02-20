@@ -27,8 +27,8 @@
 #include <ros/console.h>
 #endif
 
-#include "zed_wrapper/object_stamped.h"
-#include "zed_wrapper/objects.h"
+#include "zed_interfaces/object_stamped.h"
+#include "zed_interfaces/objects.h"
 
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
@@ -390,7 +390,7 @@ void ZEDWrapperNodelet::onInit() {
 
     // Object detection publishers
     if (mObjDetEnabled) {
-        mPubObjDet = mNhNs.advertise<zed_wrapper::objects>(object_det_topic, 1);
+        mPubObjDet = mNhNs.advertise<zed_interfaces::objects>(object_det_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
         mPubObjDetViz = mNhNs.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDetViz.getTopic());
@@ -1082,8 +1082,8 @@ bool ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr,
 }
 
 bool ZEDWrapperNodelet::on_set_pose(
-        zed_wrapper::set_pose::Request& req,
-        zed_wrapper::set_pose::Response& res) {
+        zed_interfaces::set_pose::Request& req,
+        zed_interfaces::set_pose::Response& res) {
     mInitialBasePose.resize(6);
     mInitialBasePose[0] = req.x;
     mInitialBasePose[1] = req.y;
@@ -1112,8 +1112,8 @@ bool ZEDWrapperNodelet::on_set_pose(
 }
 
 bool ZEDWrapperNodelet::on_reset_tracking(
-        zed_wrapper::reset_tracking::Request& req,
-        zed_wrapper::reset_tracking::Response& res) {
+        zed_interfaces::reset_tracking::Request& req,
+        zed_interfaces::reset_tracking::Response& res) {
     if (!mTrackingActivated) {
         res.reset_done = false;
         return false;
@@ -1139,8 +1139,8 @@ bool ZEDWrapperNodelet::on_reset_tracking(
 }
 
 bool ZEDWrapperNodelet::on_reset_odometry(
-        zed_wrapper::reset_odometry::Request& req,
-        zed_wrapper::reset_odometry::Response& res) {
+        zed_interfaces::reset_odometry::Request& req,
+        zed_interfaces::reset_odometry::Response& res) {
     mResetOdom = true;
     res.reset_done = true;
     return true;
@@ -1258,7 +1258,7 @@ bool ZEDWrapperNodelet::start_obj_detect() {
         string object_det_topic = object_det_topic_root + "/objects";
         string object_det_rviz_topic = object_det_topic_root + "/object_markers";
 
-        mPubObjDet = mNhNs.advertise<zed_wrapper::objects>(object_det_topic, 1);
+        mPubObjDet = mNhNs.advertise<zed_interfaces::objects>(object_det_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
         mPubObjDetViz = mNhNs.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDetViz.getTopic());
@@ -3460,8 +3460,8 @@ void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWra
     }
 }
 
-bool ZEDWrapperNodelet::on_start_svo_recording(zed_wrapper::start_svo_recording::Request& req,
-                                               zed_wrapper::start_svo_recording::Response& res) {
+bool ZEDWrapperNodelet::on_start_svo_recording(zed_interfaces::start_svo_recording::Request& req,
+                                               zed_interfaces::start_svo_recording::Response& res) {
     std::lock_guard<std::mutex> lock(mRecMutex);
 
     if (mRecording) {
@@ -3523,8 +3523,8 @@ bool ZEDWrapperNodelet::on_start_svo_recording(zed_wrapper::start_svo_recording:
     return true;
 }
 
-bool ZEDWrapperNodelet::on_stop_svo_recording(zed_wrapper::stop_svo_recording::Request& req,
-                                              zed_wrapper::stop_svo_recording::Response& res) {
+bool ZEDWrapperNodelet::on_stop_svo_recording(zed_interfaces::stop_svo_recording::Request& req,
+                                              zed_interfaces::stop_svo_recording::Response& res) {
     std::lock_guard<std::mutex> lock(mRecMutex);
 
     if (!mRecording) {
@@ -3543,8 +3543,8 @@ bool ZEDWrapperNodelet::on_stop_svo_recording(zed_wrapper::stop_svo_recording::R
     return true;
 }
 
-bool ZEDWrapperNodelet::on_start_remote_stream(zed_wrapper::start_remote_stream::Request& req,
-                                               zed_wrapper::start_remote_stream::Response& res) {
+bool ZEDWrapperNodelet::on_start_remote_stream(zed_interfaces::start_remote_stream::Request& req,
+                                               zed_interfaces::start_remote_stream::Response& res) {
     if (mStreaming) {
         res.result = false;
         res.info = "SVO remote streaming was just active";
@@ -3603,8 +3603,8 @@ bool ZEDWrapperNodelet::on_start_remote_stream(zed_wrapper::start_remote_stream:
     return true;
 }
 
-bool ZEDWrapperNodelet::on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
-                                              zed_wrapper::stop_remote_stream::Response& res) {
+bool ZEDWrapperNodelet::on_stop_remote_stream(zed_interfaces::stop_remote_stream::Request& req,
+                                              zed_interfaces::stop_remote_stream::Response& res) {
     if (mStreaming) {
         mZed.disableStreaming();
     }
@@ -3616,8 +3616,8 @@ bool ZEDWrapperNodelet::on_stop_remote_stream(zed_wrapper::stop_remote_stream::R
     return true;
 }
 
-bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& req,
-                                          zed_wrapper::set_led_status::Response& res) {
+bool ZEDWrapperNodelet::on_set_led_status(zed_interfaces::set_led_status::Request& req,
+                                          zed_interfaces::set_led_status::Response& res) {
     if (mCamFwVersion < 1523) {
         NODELET_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
         return false;
@@ -3628,8 +3628,8 @@ bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& 
     return true;
 }
 
-bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
-                                      zed_wrapper::toggle_led::Response& res) {
+bool ZEDWrapperNodelet::on_toggle_led(zed_interfaces::toggle_led::Request& req,
+                                      zed_interfaces::toggle_led::Response& res) {
     if (mCamFwVersion < 1523) {
         NODELET_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
         return false;
@@ -3643,8 +3643,8 @@ bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
 }
 
 
-bool ZEDWrapperNodelet::on_start_3d_mapping(zed_wrapper::start_3d_mapping::Request& req,
-                                            zed_wrapper::start_3d_mapping::Response& res) {
+bool ZEDWrapperNodelet::on_start_3d_mapping(zed_interfaces::start_3d_mapping::Request& req,
+                                            zed_interfaces::start_3d_mapping::Response& res) {
     if( mMappingEnabled && mMappingRunning) {
         NODELET_WARN_STREAM("Spatial mapping was just running");
 
@@ -3672,8 +3672,8 @@ bool ZEDWrapperNodelet::on_start_3d_mapping(zed_wrapper::start_3d_mapping::Reque
     return res.done;
 }
 
-bool ZEDWrapperNodelet::on_stop_3d_mapping(zed_wrapper::stop_3d_mapping::Request& req,
-                                           zed_wrapper::stop_3d_mapping::Response& res) {
+bool ZEDWrapperNodelet::on_stop_3d_mapping(zed_interfaces::stop_3d_mapping::Request& req,
+                                           zed_interfaces::stop_3d_mapping::Response& res) {
 
     if( mMappingEnabled ) {
         mPubFusedCloud.shutdown();
@@ -3689,8 +3689,8 @@ bool ZEDWrapperNodelet::on_stop_3d_mapping(zed_wrapper::stop_3d_mapping::Request
     return res.done;
 }
 
-bool ZEDWrapperNodelet::on_start_object_detection(zed_wrapper::start_object_detection::Request& req,
-                                                  zed_wrapper::start_object_detection::Response& res) {
+bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_detection::Request& req,
+                                                  zed_interfaces::start_object_detection::Response& res) {
     if(mZedRealCamModel!=sl::MODEL::ZED2) {
         mObjDetEnabled = false;
         mObjDetRunning = false;
@@ -3726,8 +3726,8 @@ bool ZEDWrapperNodelet::on_start_object_detection(zed_wrapper::start_object_dete
 
 /* \brief Service callback to stop_object_detection service
      */
-bool ZEDWrapperNodelet::on_stop_object_detection(zed_wrapper::stop_object_detection::Request& req,
-                                                 zed_wrapper::stop_object_detection::Response& res) {
+bool ZEDWrapperNodelet::on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
+                                                 zed_interfaces::stop_object_detection::Response& res) {
     if( mObjDetEnabled ) {
         mObjDetMutex.lock();
         stop_obj_detect();
@@ -3760,7 +3760,7 @@ void ZEDWrapperNodelet::detectObjects(bool publishObj, bool publishViz) {
 
     size_t objCount = objects.object_list.size();
 
-    zed_wrapper::objects objMsg;
+    zed_interfaces::objects objMsg;
 
     objMsg.objects.resize(objCount);
 

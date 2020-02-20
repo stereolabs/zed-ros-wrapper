@@ -23,11 +23,13 @@
   <depend>image_transport</depend>
   <depend>dynamic_reconfigure</depend>
   <depend>nodelet</depend>
-  <depend>diagnostic_updater</depend>  
+  <depend>diagnostic_updater</depend> 
 
+  <build_depend>zed_interfaces</build_depend>
   <build_depend>message_generation</build_depend>
   <build_depend>roslint</build_depend>
-
+ 
+  <exec_depend>zed_interfaces</exec_depend>
   <exec_depend>xacro</exec_depend>
   <exec_depend>urdf</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>

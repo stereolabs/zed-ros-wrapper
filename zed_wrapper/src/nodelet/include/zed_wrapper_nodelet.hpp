@@ -44,19 +44,19 @@
 #include <zed_wrapper/ZedConfig.h>
 
 // Services
-#include <zed_wrapper/reset_tracking.h>
-#include <zed_wrapper/set_pose.h>
-#include <zed_wrapper/reset_odometry.h>
-#include <zed_wrapper/start_svo_recording.h>
-#include <zed_wrapper/stop_svo_recording.h>
-#include <zed_wrapper/start_remote_stream.h>
-#include <zed_wrapper/stop_remote_stream.h>
-#include <zed_wrapper/set_led_status.h>
-#include <zed_wrapper/toggle_led.h>
-#include <zed_wrapper/start_3d_mapping.h>
-#include <zed_wrapper/stop_3d_mapping.h>
-#include <zed_wrapper/start_object_detection.h>
-#include <zed_wrapper/stop_object_detection.h>
+#include <zed_interfaces/reset_tracking.h>
+#include <zed_interfaces/set_pose.h>
+#include <zed_interfaces/reset_odometry.h>
+#include <zed_interfaces/start_svo_recording.h>
+#include <zed_interfaces/stop_svo_recording.h>
+#include <zed_interfaces/start_remote_stream.h>
+#include <zed_interfaces/stop_remote_stream.h>
+#include <zed_interfaces/set_led_status.h>
+#include <zed_interfaces/toggle_led.h>
+#include <zed_interfaces/start_3d_mapping.h>
+#include <zed_interfaces/stop_3d_mapping.h>
+#include <zed_interfaces/start_object_detection.h>
+#include <zed_interfaces/stop_object_detection.h>
 
 // Topics
 #include <nav_msgs/Odometry.h>
@@ -255,72 +255,72 @@ protected:
          * Tracking pose is reinitialized to the value available in the ROS Param
          * server
          */
-    bool on_reset_tracking(zed_wrapper::reset_tracking::Request&  req,
-                           zed_wrapper::reset_tracking::Response& res);
+    bool on_reset_tracking(zed_interfaces::reset_tracking::Request&  req,
+                           zed_interfaces::reset_tracking::Response& res);
 
     /* \brief Service callback to reset_odometry service
          *        Odometry is reset to clear drift and odometry frame gets the latest
          * pose
          *        from ZED tracking.
          */
-    bool on_reset_odometry(zed_wrapper::reset_odometry::Request&  req,
-                           zed_wrapper::reset_odometry::Response& res);
+    bool on_reset_odometry(zed_interfaces::reset_odometry::Request&  req,
+                           zed_interfaces::reset_odometry::Response& res);
 
     /* \brief Service callback to set_pose service
          *        Tracking pose is set to the new values
          */
-    bool on_set_pose(zed_wrapper::set_pose::Request& req,
-                     zed_wrapper::set_pose::Response& res);
+    bool on_set_pose(zed_interfaces::set_pose::Request& req,
+                     zed_interfaces::set_pose::Response& res);
 
     /* \brief Service callback to start_svo_recording service
          */
-    bool on_start_svo_recording(zed_wrapper::start_svo_recording::Request& req,
-                                zed_wrapper::start_svo_recording::Response& res);
+    bool on_start_svo_recording(zed_interfaces::start_svo_recording::Request& req,
+                                zed_interfaces::start_svo_recording::Response& res);
 
     /* \brief Service callback to stop_svo_recording service
          */
-    bool on_stop_svo_recording(zed_wrapper::stop_svo_recording::Request& req,
-                               zed_wrapper::stop_svo_recording::Response& res);
+    bool on_stop_svo_recording(zed_interfaces::stop_svo_recording::Request& req,
+                               zed_interfaces::stop_svo_recording::Response& res);
 
     /* \brief Service callback to start_remote_stream service
          */
-    bool on_start_remote_stream(zed_wrapper::start_remote_stream::Request& req,
-                                zed_wrapper::start_remote_stream::Response& res);
+    bool on_start_remote_stream(zed_interfaces::start_remote_stream::Request& req,
+                                zed_interfaces::start_remote_stream::Response& res);
 
     /* \brief Service callback to stop_remote_stream service
          */
-    bool on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
-                               zed_wrapper::stop_remote_stream::Response& res);
+    bool on_stop_remote_stream(zed_interfaces::stop_remote_stream::Request& req,
+                               zed_interfaces::stop_remote_stream::Response& res);
 
     /* \brief Service callback to set_led_status service
          */
-    bool on_set_led_status(zed_wrapper::set_led_status::Request& req,
-                           zed_wrapper::set_led_status::Response& res);
+    bool on_set_led_status(zed_interfaces::set_led_status::Request& req,
+                           zed_interfaces::set_led_status::Response& res);
 
     /* \brief Service callback to toggle_led service
          */
-    bool on_toggle_led(zed_wrapper::toggle_led::Request& req,
-                       zed_wrapper::toggle_led::Response& res);
+    bool on_toggle_led(zed_interfaces::toggle_led::Request& req,
+                       zed_interfaces::toggle_led::Response& res);
 
     /* \brief Service callback to start_3d_mapping service
          */
-    bool on_start_3d_mapping(zed_wrapper::start_3d_mapping::Request& req,
-                             zed_wrapper::start_3d_mapping::Response& res);
+    bool on_start_3d_mapping(zed_interfaces::start_3d_mapping::Request& req,
+                             zed_interfaces::start_3d_mapping::Response& res);
 
     /* \brief Service callback to stop_3d_mapping service
          */
-    bool on_stop_3d_mapping(zed_wrapper::stop_3d_mapping::Request& req,
-                            zed_wrapper::stop_3d_mapping::Response& res);
+    bool on_stop_3d_mapping(zed_interfaces::stop_3d_mapping::Request& req,
+                            zed_interfaces::stop_3d_mapping::Response& res);
 
     /* \brief Service callback to start_object_detection service
          */
-    bool on_start_object_detection(zed_wrapper::start_object_detection::Request& req,
-                             zed_wrapper::start_object_detection::Response& res);
+    bool on_start_object_detection(zed_interfaces::start_object_detection::Request& req,
+                             zed_interfaces::start_object_detection::Response& res);
 
     /* \brief Service callback to stop_object_detection service
          */
-    bool on_stop_object_detection(zed_wrapper::stop_object_detection::Request& req,
-                            zed_wrapper::stop_object_detection::Response& res);
+    bool on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
+                            zed_interfaces::stop_object_detection::Response& res);
 
     /* \brief Utility to initialize the pose variables
          */
