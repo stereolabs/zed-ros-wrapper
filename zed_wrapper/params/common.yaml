@@ -57,8 +57,8 @@ pos_tracking:
 
 mapping:
     mapping_enabled:            false                           # True to enable mapping and fused point cloud pubblication
-    resolution_m:               0.05                            # maps resolution in meters [0.01f, 0.2f]
-    max_mapping_range_m:        -1                              # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
+    resolution:                 0.05                            # maps resolution in meters [0.01f, 0.2f]
+    max_mapping_range:          -1                              # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
     fused_pointcloud_freq:      1.0                             # frequency of the publishing of the fused colored point cloud
 
 

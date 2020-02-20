@@ -623,10 +623,10 @@ void ZEDWrapperNodelet::readParameters() {
     if (mMappingEnabled) {
         NODELET_INFO_STREAM(" * Mapping\t\t\t-> ENABLED");
 
-        mNhNs.getParam("mapping/resolution_m", mMappingRes);
+        mNhNs.getParam("mapping/resolution", mMappingRes);
         NODELET_INFO_STREAM(" * Mapping resolution\t\t-> " << mMappingRes << " m" );
 
-        mNhNs.getParam("mapping/max_mapping_range_m", mMaxMappingRange);
+        mNhNs.getParam("mapping/max_mapping_range", mMaxMappingRange);
         NODELET_INFO_STREAM(" * Mapping max range\t\t-> " << mMaxMappingRange << " m" << ((mMaxMappingRange < 0.0)?" [AUTO]":""));
 
         mNhNs.getParam("mapping/fused_pointcloud_freq", mFusedPcPubFreq);
@@ -1161,11 +1161,11 @@ bool ZEDWrapperNodelet::start_3d_mapping() {
     float hRes = spMapPar.allowed_resolution.second;
 
     if(mMappingRes < lRes) {
-        NODELET_WARN_STREAM( "'mapping/resolution_m' value (" << mMappingRes << " m) is lower than the allowed resolution values. Fixed automatically" );
+        NODELET_WARN_STREAM( "'mapping/resolution' value (" << mMappingRes << " m) is lower than the allowed resolution values. Fixed automatically" );
         mMappingRes = lRes;
     }
     if(mMappingRes > hRes) {
-        NODELET_WARN_STREAM( "'mapping/resolution_m' value (" << mMappingRes << " m) is higher than the allowed resolution values. Fixed automatically" );
+        NODELET_WARN_STREAM( "'mapping/resolution' value (" << mMappingRes << " m) is higher than the allowed resolution values. Fixed automatically" );
         mMappingRes = hRes;
     }
 
