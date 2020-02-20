@@ -556,7 +556,7 @@ void ZEDWrapperNodelet::readParameters() {
     // <---- General
 
     // ----> Video
-    mNhNs.getParam("video/img_resample_factor", mCamImageResizeFactor);
+    mNhNs.getParam("video/img_downsample_factor", mCamImageResizeFactor);
     NODELET_INFO_STREAM(" * Image resample factor\t-> " << mCamImageResizeFactor);
     // <---- Video
 
@@ -577,7 +577,7 @@ void ZEDWrapperNodelet::readParameters() {
     NODELET_INFO_STREAM(" * Minimum depth\t\t-> " <<  mCamMinDepth << " m");
     mNhNs.getParam("depth/max_depth", mCamMaxDepth);
     NODELET_INFO_STREAM(" * Maximum depth\t\t-> " << mCamMaxDepth << " m");
-    mNhNs.getParam("depth/depth_resample_factor", mCamDepthResizeFactor);
+    mNhNs.getParam("depth/depth_downsample_factor", mCamDepthResizeFactor);
     NODELET_INFO_STREAM(" * Depth resample factor\t-> " << mCamDepthResizeFactor);
     // <----- Depth
 

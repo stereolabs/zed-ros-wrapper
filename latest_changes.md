@@ -4,6 +4,9 @@ LATEST CHANGES
 v3.1
 -----
 - Add new package `zed_interfaces` with isolated declarations of custom messages, services and actions
+- Removed not used `world_frame` parameter
+- Removed `publish_pose_covariance` parameter, now covariance for pose and odometry is always published
+- Removed `_m` from parameters `mapping/resolution_m` and `mapping/max_mapping_range_m`
 
 XACRO and more (2020-01-31)
 ---------------------------
