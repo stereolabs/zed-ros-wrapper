@@ -685,7 +685,6 @@ void ZEDWrapperNodelet::readParameters() {
     mNhNs.param<std::string>("stream", mRemoteStreamAddr, std::string());
 
     // ----> Coordinate frames
-    mNhNs.param<std::string>("pos_tracking/world_frame", mWorldFrameId, "map");
     mNhNs.param<std::string>("pos_tracking/map_frame", mMapFrameId, "map");
     mNhNs.param<std::string>("pos_tracking/odometry_frame", mOdometryFrameId, "odom");
     mNhNs.param<std::string>("general/base_frame", mBaseFrameId, "base_link");
@@ -710,7 +709,6 @@ void ZEDWrapperNodelet::readParameters() {
     mConfidenceOptFrameId = mDepthOptFrameId;
 
     // Print TF frames
-    NODELET_INFO_STREAM(" * world_frame\t\t\t-> " << mWorldFrameId);
     NODELET_INFO_STREAM(" * map_frame\t\t\t-> " << mMapFrameId);
     NODELET_INFO_STREAM(" * odometry_frame\t\t-> " << mOdometryFrameId);
     NODELET_INFO_STREAM(" * base_frame\t\t\t-> " << mBaseFrameId);
@@ -1409,7 +1407,7 @@ void ZEDWrapperNodelet::publishPose(ros::Time t) {
 
     std_msgs::Header header;
     header.stamp = mFrameTimestamp;
-    header.frame_id = mWorldFrameId;
+    header.frame_id = mMapFrameId;
     geometry_msgs::Pose pose;
 
     // conversion from Tranform to message
@@ -1742,7 +1740,7 @@ void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
     if (mPointcloudFusedMsg->width != ptsCount || mPointcloudFusedMsg->height != 1) {
         // Initialize Point Cloud message
         // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
-        mPointcloudFusedMsg->header.frame_id = mWorldFrameId; // Set the header values of the ROS message
+        mPointcloudFusedMsg->header.frame_id = mMapFrameId; // Set the header values of the ROS message
 
         mPointcloudFusedMsg->is_bigendian = false;
         mPointcloudFusedMsg->is_dense = false;
@@ -2109,7 +2107,7 @@ void ZEDWrapperNodelet::pathPubCallback(const ros::TimerEvent& e) {
     geometry_msgs::PoseStamped mapPose;
 
     odomPose.header.stamp = mFrameTimestamp;
-    odomPose.header.frame_id = mWorldFrameId; // frame
+    odomPose.header.frame_id = mMapFrameId; // frame
     // conversion from Tranform to message
     geometry_msgs::Transform base2odom = tf2::toMsg(mOdom2BaseTransf);
     // Add all value in Pose message
@@ -2122,7 +2120,7 @@ void ZEDWrapperNodelet::pathPubCallback(const ros::TimerEvent& e) {
     odomPose.pose.orientation.w = base2odom.rotation.w;
 
     mapPose.header.stamp = mFrameTimestamp;
-    mapPose.header.frame_id = mWorldFrameId; // frame
+    mapPose.header.frame_id = mMapFrameId; // frame
     // conversion from Tranform to message
     geometry_msgs::Transform base2map = tf2::toMsg(mMap2BaseTransf);
     // Add all value in Pose message
@@ -2156,7 +2154,7 @@ void ZEDWrapperNodelet::pathPubCallback(const ros::TimerEvent& e) {
 
     if (mapPathSub > 0) {
         nav_msgs::Path mapPath;
-        mapPath.header.frame_id = mWorldFrameId;
+        mapPath.header.frame_id = mMapFrameId;
         mapPath.header.stamp = mFrameTimestamp;
         mapPath.poses = mMapPath;
 
@@ -2165,7 +2163,7 @@ void ZEDWrapperNodelet::pathPubCallback(const ros::TimerEvent& e) {
 
     if (odomPathSub > 0) {
         nav_msgs::Path odomPath;
-        odomPath.header.frame_id = mWorldFrameId;
+        odomPath.header.frame_id = mMapFrameId;
         odomPath.header.stamp = mFrameTimestamp;
         odomPath.poses = mOdomPath;
 

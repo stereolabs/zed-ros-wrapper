@@ -475,7 +475,6 @@ private:
     std::string mCloudFrameId;
     std::string mPointCloudFrameId;
 
-    std::string mWorldFrameId;
     std::string mMapFrameId;
     std::string mOdometryFrameId;
     std::string mBaseFrameId;
