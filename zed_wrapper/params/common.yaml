@@ -14,6 +14,7 @@ exposure:                   100                                 # Dynamic - work
 auto_whitebalance:          true                                # Dynamic
 whitebalance_temperature:   4200                                # Dynamic - works only if `auto_whitebalance` is false
 depth_confidence:           80                                  # Dynamic
+depth_texture_conf:         HD1080                              # Dynamic
 point_cloud_freq:           15.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `frame_rate` value)
 
 general:

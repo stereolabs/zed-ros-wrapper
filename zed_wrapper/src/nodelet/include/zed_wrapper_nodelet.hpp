@@ -86,17 +86,18 @@ class ZEDWrapperNodelet : public nodelet::Nodelet {
     typedef enum _dyn_params {
         //MAT_RESIZE_FACTOR   = 0,
         CONFIDENCE          = 1,
-        POINTCLOUD_FREQ     = 2,
-        BRIGHTNESS          = 3,
-        CONTRAST            = 4,
-        HUE                 = 5,
-        SATURATION          = 6,
-        SHARPNESS           = 7,
-        AUTO_EXP_GAIN       = 8,
-        GAIN                = 9,
-        EXPOSURE            = 10,
-        AUTO_WB             = 11,
-        WB_TEMP             = 12
+        TEXTURE_CONF        = 2,
+        POINTCLOUD_FREQ     = 3,
+        BRIGHTNESS          = 4,
+        CONTRAST            = 5,
+        HUE                 = 6,
+        SATURATION          = 7,
+        SHARPNESS           = 8,
+        AUTO_EXP_GAIN       = 9,
+        GAIN                = 10,
+        EXPOSURE            = 11,
+        AUTO_WB             = 12,
+        WB_TEMP             = 13
     } DynParams;
 
 public:
@@ -576,6 +577,7 @@ private:
     int mCamWB          = 4200;
 
     int mCamDepthConfidence = 80;
+    int mCamDepthTextureConf = 100;
     double mPointCloudFreq = 15.;
 
     double mCamImageResizeFactor = 1.0;

@@ -733,6 +733,8 @@ void ZEDWrapperNodelet::readParameters() {
     // ----> Dynamic
     mNhNs.getParam("depth_confidence", mCamDepthConfidence);
     NODELET_INFO_STREAM(" * [DYN] Depth confidence\t-> " << mCamDepthConfidence);
+    mNhNs.getParam("depth_texture_conf", mCamDepthTextureConf);
+    NODELET_INFO_STREAM(" * [DYN] Depth texture conf.\t-> " << mCamDepthTextureConf);
 
     mNhNs.getParam("point_cloud_freq", mPointCloudFreq);
     NODELET_INFO_STREAM(" * [DYN] point_cloud_freq\t-> " << mPointCloudFreq << " Hz");
@@ -1930,7 +1932,8 @@ void ZEDWrapperNodelet::updateDynamicReconfigure() {
     config.auto_whitebalance = mCamAutoWB;
     config.brightness = mCamBrightness;
     config.depth_confidence = mCamDepthConfidence;
-    config.depth_confidence = mCamContrast;
+    config.depth_texture_conf = mCamDepthTextureConf;
+    config.contrast = mCamContrast;
     config.exposure = mCamExposure;
     config.gain = mCamGain;
     config.hue = mCamHue;
@@ -1981,6 +1984,13 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
     case CONFIDENCE:
         mCamDepthConfidence = config.depth_confidence;
         NODELET_INFO("Reconfigure confidence threshold: %d", mCamDepthConfidence);
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
+        break;
+
+    case TEXTURE_CONF:
+        mCamDepthTextureConf = config.depth_texture_conf;
+        NODELET_INFO("Reconfigure texture confidence threshold: %d", mCamDepthTextureConf);
         mDynParMutex.unlock();
         //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
@@ -2660,6 +2670,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
             if (mComputeDepth) {
                 runParams.confidence_threshold = mCamDepthConfidence;
+                runParams.textureness_confidence_threshold = mCamDepthTextureConf;
                 runParams.enable_depth = true; // Ask to compute the depth
             } else {
                 runParams.enable_depth = false; // Ask to not compute the depth
