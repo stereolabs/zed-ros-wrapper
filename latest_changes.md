@@ -5,8 +5,13 @@ v3.1
 -----
 - Add new package `zed_interfaces` with isolated declarations of custom messages, services and actions
 - Removed not used `world_frame` parameter
-- Removed `publish_pose_covariance` parameter, now covariance for pose and odometry is always published
+- Removed the`publish_pose_covariance` parameter, now covariance for pose and odometry is always published
 - Removed `_m` from parameters `mapping/resolution_m` and `mapping/max_mapping_range_m`
+- Renamed the parameter `depth_resample_factor` to `depth_downsample_factor`
+- Renamed the parameter `img_resample_factor` to `img_downsample_factor`
+- Ranamed the parameter `odometry_db` to `area_memory_db_path`
+
+
 
 XACRO and more (2020-01-31)
 ---------------------------
