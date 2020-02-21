@@ -304,7 +304,7 @@ void ZEDWrapperNodelet::onInit() {
     string imu_topic_raw;
     string imu_temp_topic;
     string imu_mag_topic;
-    string imu_mag_topic_raw;
+    //string imu_mag_topic_raw;
     string pressure_topic;
     string temp_topic_root = "temperature";
     string temp_topic_left = temp_topic_root + "/left";
@@ -315,13 +315,13 @@ void ZEDWrapperNodelet::onInit() {
         string imu_topic_name = "data";
         string imu_topic_raw_name = "data_raw";
         string imu_topic_mag_name = "mag";
-        string imu_topic_mag_raw_name = "mag_raw";
+        //string imu_topic_mag_raw_name = "mag_raw";
         string pressure_topic_name = "atm_press";
         imu_topic = imuTopicRoot + "/" + imu_topic_name;
         imu_topic_raw = imuTopicRoot + "/" + imu_topic_raw_name;
         imu_temp_topic = temp_topic_root + "/" + imuTopicRoot;
         imu_mag_topic = imuTopicRoot + "/" + imu_topic_mag_name;
-        imu_mag_topic_raw = imuTopicRoot + "/" + imu_topic_mag_raw_name;
+        //imu_mag_topic_raw = imuTopicRoot + "/" + imu_topic_mag_raw_name;
         pressure_topic = /*imuTopicRoot + "/" +*/ pressure_topic_name;
     }
 
@@ -441,9 +441,9 @@ void ZEDWrapperNodelet::onInit() {
             mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, MAG_FREQ);
             NODELET_INFO_STREAM("Advertised on topic " << mPubImuMag.getTopic() << " @ "
                                 << std::min(MAG_FREQ,mSensPubRate) << " Hz");
-            mPubImuMagRaw = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic_raw, static_cast<int>(MAG_FREQ));
-            NODELET_INFO_STREAM("Advertised on topic " << mPubImuMagRaw.getTopic() << " @ "
-                                << std::min(MAG_FREQ,mSensPubRate) << " Hz");
+            //mPubImuMagRaw = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic_raw, static_cast<int>(MAG_FREQ));
+            //NODELET_INFO_STREAM("Advertised on topic " << mPubImuMagRaw.getTopic() << " @ "
+            //                    << std::min(MAG_FREQ,mSensPubRate) << " Hz");
 
             if( mZedRealCamModel == sl::MODEL::ZED2 ) {
                 // IMU temperature sensor
@@ -691,6 +691,11 @@ void ZEDWrapperNodelet::readParameters() {
     mLeftCamOptFrameId = mCameraName + "_left_camera_optical_frame";
     mRightCamFrameId = mCameraName + "_right_camera_frame";
     mRightCamOptFrameId = mCameraName + "_right_camera_optical_frame";
+
+    mBaroFrameId = mCameraName + "_baro_link";
+    mMagFrameId = mCameraName + "_mag_link";
+    mTempLeftFrameId = mCameraName + "_temp_left_link";
+    mTempRightFrameId = mCameraName + "_temp_right_link";
 
     mDepthFrameId = mLeftCamFrameId;
     mDepthOptFrameId = mLeftCamOptFrameId;
@@ -2208,7 +2213,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
     uint32_t imu_RawSubNumber = mPubImuRaw.getNumSubscribers();
     uint32_t imu_TempSubNumber = 0;
     uint32_t imu_MagSubNumber = 0;
-    uint32_t imu_MagRawSubNumber = 0;
+    //uint32_t imu_MagRawSubNumber = 0;
     uint32_t pressSubNumber = 0;
     uint32_t tempLeftSubNumber = 0;
     uint32_t tempRightSubNumber = 0;
@@ -2216,13 +2221,13 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
     if( mZedRealCamModel == sl::MODEL::ZED2 ) {
         imu_TempSubNumber = mPubImuTemp.getNumSubscribers();
         imu_MagSubNumber = mPubImuMag.getNumSubscribers();
-        imu_MagRawSubNumber = mPubImuMagRaw.getNumSubscribers();
+        //imu_MagRawSubNumber = mPubImuMagRaw.getNumSubscribers();
         pressSubNumber = mPubPressure.getNumSubscribers();
         tempLeftSubNumber = mPubTempL.getNumSubscribers();
         tempRightSubNumber = mPubTempR.getNumSubscribers();
     }
 
-    int totSub = imu_SubNumber + imu_RawSubNumber + imu_TempSubNumber + imu_MagSubNumber + imu_MagRawSubNumber +
+    int totSub = imu_SubNumber + imu_RawSubNumber + imu_TempSubNumber + imu_MagSubNumber + /*imu_MagRawSubNumber +*/
             pressSubNumber + tempLeftSubNumber + tempRightSubNumber;
 
     ros::Time ts_imu;
@@ -2232,7 +2237,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
 
     static ros::Time lastTs_baro = ros::Time();
     static ros::Time lastT_mag = ros::Time();
-    static ros::Time lastT_mag_raw = ros::Time();
+    //static ros::Time lastT_mag_raw = ros::Time();
 
     sl::SensorsData sens_data;
 
@@ -2255,7 +2260,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
         ts_imu = ros::Time::now();
         ts_baro = ros::Time::now();
         ts_mag = ros::Time::now();
-        ts_mag_raw = ros::Time::now();
+        //ts_mag_raw = ros::Time::now();
     } else {
         if (mSensTimestampSync && mGrabActive) {
             ts_imu = mFrameTimestamp;
@@ -2266,7 +2271,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
             ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
             ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
             ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
-            ts_mag_raw = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
+            //ts_mag_raw = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
         }
     }
 
@@ -2282,7 +2287,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
 
     if( imu_SubNumber > 0 || imu_RawSubNumber > 0 ||
             imu_TempSubNumber > 0 || pressSubNumber > 0 ||
-            imu_MagSubNumber > 0 || imu_MagRawSubNumber > 0 ) {
+            imu_MagSubNumber > 0 /*|| imu_MagRawSubNumber > 0*/ ) {
         // Publish freq calculation
         static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
@@ -2322,7 +2327,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
             }
 
             mPressMsg->header.stamp = ts_baro;
-            mPressMsg->header.frame_id = mCameraFrameId;
+            mPressMsg->header.frame_id = mBaroFrameId;
             mPressMsg->fluid_pressure = sens_data.barometer.pressure * 1e-2; // Pascal
             mPressMsg->variance = 1.0585e-2;
 
@@ -2336,7 +2341,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
             }
 
             mTempLeftMsg->header.stamp = ts_baro;
-            mTempLeftMsg->header.frame_id = mLeftCamFrameId;
+            mTempLeftMsg->header.frame_id = mTempLeftFrameId;
             mTempLeftMsg->temperature = static_cast<double>(mTempLeft);
             mTempLeftMsg->variance = 0.0;
 
@@ -2350,7 +2355,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
             }
 
             mTempRightMsg->header.stamp = ts_baro;
-            mTempRightMsg->header.frame_id = mRightCamFrameId;
+            mTempRightMsg->header.frame_id = mTempRightFrameId;
             mTempRightMsg->temperature = static_cast<double>(mTempRight);
             mTempRightMsg->variance = 0.0;
 
@@ -2367,7 +2372,7 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
             }
 
             mMagMsg->header.stamp = ts_mag;
-            mMagMsg->header.frame_id = mImuFrameId;
+            mMagMsg->header.frame_id = mMagFrameId;
             mMagMsg->magnetic_field.x = sens_data.magnetometer.magnetic_field_calibrated.x*1e-6; // Tesla
             mMagMsg->magnetic_field.y = sens_data.magnetometer.magnetic_field_calibrated.y*1e-6; // Tesla
             mMagMsg->magnetic_field.z = sens_data.magnetometer.magnetic_field_calibrated.z*1e-6; // Tesla
@@ -2385,32 +2390,32 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
         }
     }
 
-    if( imu_MagRawSubNumber>0 ) {
-        if( sens_data.magnetometer.is_available && lastT_mag_raw != ts_mag_raw ) {
-            lastT_mag_raw = ts_mag_raw;
+//    if( imu_MagRawSubNumber>0 ) {
+//        if( sens_data.magnetometer.is_available && lastT_mag_raw != ts_mag_raw ) {
+//            lastT_mag_raw = ts_mag_raw;
 
-            if(!mMagRawMsg) {
-                mMagRawMsg = boost::make_shared<sensor_msgs::MagneticField>();
-            }
+//            if(!mMagRawMsg) {
+//                mMagRawMsg = boost::make_shared<sensor_msgs::MagneticField>();
+//            }
 
-            mMagRawMsg->header.stamp = ts_mag;
-            mMagRawMsg->header.frame_id = mImuFrameId;
-            mMagRawMsg->magnetic_field.x = sens_data.magnetometer.magnetic_field_uncalibrated.x*1e-6; // Tesla
-            mMagRawMsg->magnetic_field.y = sens_data.magnetometer.magnetic_field_uncalibrated.y*1e-6; // Tesla
-            mMagRawMsg->magnetic_field.z = sens_data.magnetometer.magnetic_field_uncalibrated.z*1e-6; // Tesla
-            mMagRawMsg->magnetic_field_covariance[0] = 0.039e-6;
-            mMagRawMsg->magnetic_field_covariance[1] = 0.0f;
-            mMagRawMsg->magnetic_field_covariance[2] = 0.0f;
-            mMagRawMsg->magnetic_field_covariance[3] = 0.0f;
-            mMagRawMsg->magnetic_field_covariance[4] = 0.037e-6;
-            mMagRawMsg->magnetic_field_covariance[5] = 0.0f;
-            mMagRawMsg->magnetic_field_covariance[6] = 0.0f;
-            mMagRawMsg->magnetic_field_covariance[7] = 0.0f;
-            mMagRawMsg->magnetic_field_covariance[8] = 0.047e-6;
+//            mMagRawMsg->header.stamp = ts_mag;
+//            mMagRawMsg->header.frame_id = mImuFrameId;
+//            mMagRawMsg->magnetic_field.x = sens_data.magnetometer.magnetic_field_uncalibrated.x*1e-6; // Tesla
+//            mMagRawMsg->magnetic_field.y = sens_data.magnetometer.magnetic_field_uncalibrated.y*1e-6; // Tesla
+//            mMagRawMsg->magnetic_field.z = sens_data.magnetometer.magnetic_field_uncalibrated.z*1e-6; // Tesla
+//            mMagRawMsg->magnetic_field_covariance[0] = 0.039e-6;
+//            mMagRawMsg->magnetic_field_covariance[1] = 0.0f;
+//            mMagRawMsg->magnetic_field_covariance[2] = 0.0f;
+//            mMagRawMsg->magnetic_field_covariance[3] = 0.0f;
+//            mMagRawMsg->magnetic_field_covariance[4] = 0.037e-6;
+//            mMagRawMsg->magnetic_field_covariance[5] = 0.0f;
+//            mMagRawMsg->magnetic_field_covariance[6] = 0.0f;
+//            mMagRawMsg->magnetic_field_covariance[7] = 0.0f;
+//            mMagRawMsg->magnetic_field_covariance[8] = 0.047e-6;
 
-            mPubImuMagRaw.publish(mMagRawMsg);
-        }
-    }
+//            mPubImuMagRaw.publish(mMagRawMsg);
+//        }
+//    }
 
     if (imu_SubNumber > 0) {
 

@@ -423,7 +423,7 @@ private:
     ros::Publisher mPubImuRaw;
     ros::Publisher mPubImuTemp;
     ros::Publisher mPubImuMag;
-    ros::Publisher mPubImuMagRaw;
+    //ros::Publisher mPubImuMagRaw;
     ros::Publisher mPubPressure;
     ros::Publisher mPubTempL;
     ros::Publisher mPubTempR;
@@ -480,13 +480,18 @@ private:
     std::string mMapFrameId;
     std::string mOdometryFrameId;
     std::string mBaseFrameId;
-    std::string mCameraFrameId;
+    std::string mCameraFrameId;    
 
     std::string mRightCamFrameId;
     std::string mRightCamOptFrameId;
     std::string mLeftCamFrameId;
     std::string mLeftCamOptFrameId;
     std::string mImuFrameId;
+
+    std::string mBaroFrameId;
+    std::string mMagFrameId;
+    std::string mTempLeftFrameId;
+    std::string mTempRightFrameId;
 
     bool mPublishTf;
     bool mPublishMapTf;
@@ -650,7 +655,7 @@ private:
     sensor_msgs::ImuPtr mImuMsg;
     sensor_msgs::ImuPtr mImuRawMsg;
     sensor_msgs::MagneticFieldPtr mMagMsg;
-    sensor_msgs::MagneticFieldPtr mMagRawMsg;
+    //sensor_msgs::MagneticFieldPtr mMagRawMsg;
     sensor_msgs::TemperaturePtr mTempLeftMsg;
     sensor_msgs::TemperaturePtr mTempRightMsg;
     sensor_msgs::TemperaturePtr mImuTempMsg;
