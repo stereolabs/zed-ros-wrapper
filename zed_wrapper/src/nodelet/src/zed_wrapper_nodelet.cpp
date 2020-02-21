@@ -910,15 +910,13 @@ bool ZEDWrapperNodelet::getCamera2BaseTransform() {
     NODELET_DEBUG("Getting static TF from '%s' to '%s'", mCameraFrameId.c_str(), mBaseFrameId.c_str());
 
     mCamera2BaseTransfValid = false;
-    static int errCount = 0;
 
     // ----> Static transforms
     // Sensor to Base link
     try {
-
         // Save the transformation
         geometry_msgs::TransformStamped c2b =
-                mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, ros::Time(0), ros::Duration(2));
+                mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, ros::Time(0), ros::Duration(0.1));
 
         // Get the TF2 transformation
         tf2::fromMsg(c2b.transform, mCamera2BaseTransf);
@@ -934,20 +932,21 @@ bool ZEDWrapperNodelet::getCamera2BaseTransform() {
                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
     } catch (tf2::TransformException& ex) {
-        if (++errCount % 50 == 0) {
-            NODELET_WARN("The tf from '%s' to '%s' is not yet available, "
-                         "will assume it as identity!",
-                         mCameraFrameId.c_str(), mBaseFrameId.c_str());
-            NODELET_WARN("Transform error: %s", ex.what());
-        }
+        NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+        NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
+                              mCameraFrameId.c_str(), mBaseFrameId.c_str());
+        NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of an instance "
+                              "of the `robot_state_publisher` node publishing the correct static TF transformations "
+                              "or a modified URDF not correctly reproducing the ZED "
+                              "TF chain '%s' -> '%s' -> '%s'",
+                              mBaseFrameId.c_str(), mCameraFrameId.c_str(),mDepthFrameId.c_str());
+
 
         mCamera2BaseTransf.setIdentity();
         return false;
     }
 
     // <---- Static transforms
-
-    errCount = 0;
     mCamera2BaseTransfValid = true;
     return true;
 }
@@ -956,14 +955,13 @@ bool ZEDWrapperNodelet::getSens2CameraTransform() {
     NODELET_DEBUG("Getting static TF from '%s' to '%s'", mDepthFrameId.c_str(), mCameraFrameId.c_str());
 
     mSensor2CameraTransfValid = false;
-    static int errCount = 0;
 
     // ----> Static transforms
     // Sensor to Camera Center
     try {
         // Save the transformation
         geometry_msgs::TransformStamped s2c =
-                mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, ros::Time(0), ros::Duration(2));
+                mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, ros::Time(0), ros::Duration(0.1));
         // Get the TF2 transformation
         tf2::fromMsg(s2c.transform, mSensor2CameraTransf);
 
@@ -977,12 +975,14 @@ bool ZEDWrapperNodelet::getSens2CameraTransform() {
         NODELET_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
     } catch (tf2::TransformException& ex) {
-        if (++errCount % 50 == 0) {
-            NODELET_WARN("The tf from '%s' to '%s' is not yet available, "
-                         "will assume it as identity!",
-                         mDepthFrameId.c_str(), mCameraFrameId.c_str());
-            NODELET_WARN("Transform error: %s", ex.what());
-        }
+        NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+        NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
+                              mDepthFrameId.c_str(), mCameraFrameId.c_str());
+        NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of an instance "
+                              "of the `robot_state_publisher` node publishing the correct static TF transformations "
+                              "or a modified URDF not correctly reproducing the ZED "
+                              "TF chain '%s' -> '%s' -> '%s'",
+                              mBaseFrameId.c_str(), mCameraFrameId.c_str(),mDepthFrameId.c_str());
 
         mSensor2CameraTransf.setIdentity();
         return false;
@@ -990,7 +990,6 @@ bool ZEDWrapperNodelet::getSens2CameraTransform() {
 
     // <---- Static transforms
 
-    errCount = 0;
     mSensor2CameraTransfValid = true;
     return true;
 }
@@ -999,14 +998,13 @@ bool ZEDWrapperNodelet::getSens2BaseTransform() {
     NODELET_DEBUG("Getting static TF from '%s' to '%s'", mDepthFrameId.c_str(), mBaseFrameId.c_str());
 
     mSensor2BaseTransfValid = false;
-    static int errCount = 0;
 
     // ----> Static transforms
     // Sensor to Base link
     try {
         // Save the transformation
         geometry_msgs::TransformStamped s2b =
-                mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, ros::Time(0), ros::Duration(2));
+                mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, ros::Time(0), ros::Duration(0.1));
         // Get the TF2 transformation
         tf2::fromMsg(s2b.transform, mSensor2BaseTransf);
 
@@ -1021,12 +1019,14 @@ bool ZEDWrapperNodelet::getSens2BaseTransform() {
                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
     } catch (tf2::TransformException& ex) {
-        if (++errCount % 50 == 0) {
-            NODELET_WARN("The tf from '%s' to '%s' is not yet available, "
-                         "will assume it as identity!",
-                         mDepthFrameId.c_str(), mBaseFrameId.c_str());
-            NODELET_WARN("Transform error: %s", ex.what());
-        }
+        NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+        NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
+                              mDepthFrameId.c_str(), mBaseFrameId.c_str());
+        NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of an instance "
+                              "of the `robot_state_publisher` node publishing the correct static TF transformations "
+                              "or a modified URDF not correctly reproducing the ZED "
+                              "TF chain '%s' -> '%s' -> '%s'",
+                              mBaseFrameId.c_str(), mCameraFrameId.c_str(),mDepthFrameId.c_str());
 
         mSensor2BaseTransf.setIdentity();
         return false;
@@ -1034,7 +1034,6 @@ bool ZEDWrapperNodelet::getSens2BaseTransform() {
 
     // <---- Static transforms
 
-    errCount = 0;
     mSensor2BaseTransfValid = true;
     return true;
 }
@@ -2390,32 +2389,32 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
         }
     }
 
-//    if( imu_MagRawSubNumber>0 ) {
-//        if( sens_data.magnetometer.is_available && lastT_mag_raw != ts_mag_raw ) {
-//            lastT_mag_raw = ts_mag_raw;
+    //    if( imu_MagRawSubNumber>0 ) {
+    //        if( sens_data.magnetometer.is_available && lastT_mag_raw != ts_mag_raw ) {
+    //            lastT_mag_raw = ts_mag_raw;
 
-//            if(!mMagRawMsg) {
-//                mMagRawMsg = boost::make_shared<sensor_msgs::MagneticField>();
-//            }
+    //            if(!mMagRawMsg) {
+    //                mMagRawMsg = boost::make_shared<sensor_msgs::MagneticField>();
+    //            }
 
-//            mMagRawMsg->header.stamp = ts_mag;
-//            mMagRawMsg->header.frame_id = mImuFrameId;
-//            mMagRawMsg->magnetic_field.x = sens_data.magnetometer.magnetic_field_uncalibrated.x*1e-6; // Tesla
-//            mMagRawMsg->magnetic_field.y = sens_data.magnetometer.magnetic_field_uncalibrated.y*1e-6; // Tesla
-//            mMagRawMsg->magnetic_field.z = sens_data.magnetometer.magnetic_field_uncalibrated.z*1e-6; // Tesla
-//            mMagRawMsg->magnetic_field_covariance[0] = 0.039e-6;
-//            mMagRawMsg->magnetic_field_covariance[1] = 0.0f;
-//            mMagRawMsg->magnetic_field_covariance[2] = 0.0f;
-//            mMagRawMsg->magnetic_field_covariance[3] = 0.0f;
-//            mMagRawMsg->magnetic_field_covariance[4] = 0.037e-6;
-//            mMagRawMsg->magnetic_field_covariance[5] = 0.0f;
-//            mMagRawMsg->magnetic_field_covariance[6] = 0.0f;
-//            mMagRawMsg->magnetic_field_covariance[7] = 0.0f;
-//            mMagRawMsg->magnetic_field_covariance[8] = 0.047e-6;
+    //            mMagRawMsg->header.stamp = ts_mag;
+    //            mMagRawMsg->header.frame_id = mImuFrameId;
+    //            mMagRawMsg->magnetic_field.x = sens_data.magnetometer.magnetic_field_uncalibrated.x*1e-6; // Tesla
+    //            mMagRawMsg->magnetic_field.y = sens_data.magnetometer.magnetic_field_uncalibrated.y*1e-6; // Tesla
+    //            mMagRawMsg->magnetic_field.z = sens_data.magnetometer.magnetic_field_uncalibrated.z*1e-6; // Tesla
+    //            mMagRawMsg->magnetic_field_covariance[0] = 0.039e-6;
+    //            mMagRawMsg->magnetic_field_covariance[1] = 0.0f;
+    //            mMagRawMsg->magnetic_field_covariance[2] = 0.0f;
+    //            mMagRawMsg->magnetic_field_covariance[3] = 0.0f;
+    //            mMagRawMsg->magnetic_field_covariance[4] = 0.037e-6;
+    //            mMagRawMsg->magnetic_field_covariance[5] = 0.0f;
+    //            mMagRawMsg->magnetic_field_covariance[6] = 0.0f;
+    //            mMagRawMsg->magnetic_field_covariance[7] = 0.0f;
+    //            mMagRawMsg->magnetic_field_covariance[8] = 0.047e-6;
 
-//            mPubImuMagRaw.publish(mMagRawMsg);
-//        }
-//    }
+    //            mPubImuMagRaw.publish(mMagRawMsg);
+    //        }
+    //    }
 
     if (imu_SubNumber > 0) {
 
@@ -2540,11 +2539,14 @@ void ZEDWrapperNodelet::sensPubCallback(const ros::TimerEvent& e) {
             // Get the TF2 transformation
             tf2::fromMsg(c2p.transform, cam_to_pose);
         } catch (tf2::TransformException& ex) {
-            NODELET_WARN_THROTTLE(
-                        10.0, "The tf from '%s' to '%s' is not yet available. "
-                              "IMU TF not published!",
-                        mCameraFrameId.c_str(), mMapFrameId.c_str());
             NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+            NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
+                        mCameraFrameId.c_str(), mMapFrameId.c_str());
+            NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of an instance "
+                                  "of the `robot_state_publisher` node publishing the correct static TF transformations "
+                                  "or a modified URDF not correctly reproducing the ZED "
+                                  "TF chain '%s' -> '%s' -> '%s'",
+                                  mBaseFrameId.c_str(), mCameraFrameId.c_str(),mDepthFrameId.c_str());
             return;
         }
 
@@ -3296,10 +3298,9 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 // Get the TF2 transformation
                 tf2::fromMsg(b2m.transform, map_to_base);
             } catch (tf2::TransformException& ex) {
-                NODELET_DEBUG("The tf from '%s' to '%s' is not yet available, "
-                              "will assume it as identity!",
+                NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+                NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
                               mMapFrameId.c_str(), mBaseFrameId.c_str());
-                NODELET_DEBUG("Transform error: %s", ex.what());
             }
 
             double roll, pitch, yaw;
