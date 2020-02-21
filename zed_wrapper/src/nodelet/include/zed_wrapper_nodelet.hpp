@@ -93,11 +93,12 @@ class ZEDWrapperNodelet : public nodelet::Nodelet {
         HUE                 = 6,
         SATURATION          = 7,
         SHARPNESS           = 8,
-        AUTO_EXP_GAIN       = 9,
-        GAIN                = 10,
-        EXPOSURE            = 11,
-        AUTO_WB             = 12,
-        WB_TEMP             = 13
+        GAMMA               = 9,
+        AUTO_EXP_GAIN       = 10,
+        GAIN                = 11,
+        EXPOSURE            = 12,
+        AUTO_WB             = 13,
+        WB_TEMP             = 14
     } DynParams;
 
 public:
@@ -570,6 +571,7 @@ private:
     int mCamHue         = 0;
     int mCamSaturation  = 4;
     int mCamSharpness   = 3;
+    int mCamGamma       = 1;
     bool mCamAutoExposure = true;
     int mCamGain        = 100;
     int mCamExposure    = 100;
@@ -677,7 +679,7 @@ private:
     // Object Detection
     bool mObjDetEnabled = false;
     bool mObjDetRunning = false;
-    float mObjDetConfidence = 50.f; // TODO add to dynamic params
+    float mObjDetConfidence = 50.f;
     bool mObjDetTracking = true;
     bool mObjDetPeople = true;
     bool mObjDetVehicles = true;

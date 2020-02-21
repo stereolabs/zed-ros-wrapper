@@ -3,14 +3,16 @@ LATEST CHANGES
 
 v3.1
 -----
-- Add new package `zed_interfaces` with isolated declarations of custom messages, services and actions
+- Added new package `zed_interfaces` with isolated declarations of custom messages, services and actions
 - Removed not used `world_frame` parameter
 - Removed the`publish_pose_covariance` parameter, now covariance for pose and odometry is always published
 - Removed `_m` from parameters `mapping/resolution_m` and `mapping/max_mapping_range_m`
 - Renamed the parameter `depth_resample_factor` to `depth_downsample_factor`
 - Renamed the parameter `img_resample_factor` to `img_downsample_factor`
-- Ranamed the parameter `odometry_db` to `area_memory_db_path`
-
+- Renamed the parameter `odometry_db` to `area_memory_db_path`
+- Added new dynamic parameter `gamma` for Gamma Control
+- Added new dynamic parameter `depth_texture_conf` to filter depth according to textureness information
+- Added new TF frames for all the sensors available on ZED2
 
 
 XACRO and more (2020-01-31)
@@ -24,7 +26,7 @@ XACRO and more (2020-01-31)
 - Removed `color_enhancement` parameter, always ON by default
 - Mapping does not use presets for resolution, but a float value in range [0.01,0.2]
 - Added new parameter `max_mapping_range_m` for mapping depth range (set to `-1` for auto calculation)
-- Moved "multi-camera" launch file in [`zed-ros-examples`](https://github.com/stereolabs/zed-ros-examples/examples/zed_multicamera_example) 
+- Moved "multi-camera" launch file in [`zed-ros-examples`](https://github.com/stereolabs/zed-ros-examples/tree/master/examples/zed_multicamera_example) 
 - Added current GPU ID to Diagnostic information
 - The `confidence` dynamic parameter is now called `depth_confidence`
 - Removed dynamic parametes `map_resize_factor`
