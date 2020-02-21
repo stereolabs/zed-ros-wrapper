@@ -12,7 +12,7 @@ XACRO and more (2020-01-31)
 - Removed `color_enhancement` parameter, always ON by default
 - Mapping does not use presets for resolution, but a float value in range [0.01,0.2]
 - Added new parameter `max_mapping_range_m` for mapping depth range (set to `-1` for auto calculation)
-- Moved "multi-camera" launch file in [`zed-ros-examples`](https://github.com/stereolabs/zed-ros-examples/examples/zed_multicamera_example) 
+- Moved "multi-camera" launch file in [`zed-ros-examples`](https://github.com/stereolabs/zed-ros-examples/tree/master/examples/zed_multicamera_example) 
 - Added current GPU ID to Diagnostic information
 - The `confidence` dynamic parameter is now called `depth_confidence`
 - Removed dynamic parametes `map_resize_factor`

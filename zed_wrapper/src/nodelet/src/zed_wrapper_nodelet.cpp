@@ -753,6 +753,10 @@ void ZEDWrapperNodelet::readParameters() {
     NODELET_INFO_STREAM(" * [DYN] saturation\t\t-> " << mCamSaturation);
     mNhNs.getParam("sharpness", mCamSharpness);
     NODELET_INFO_STREAM(" * [DYN] sharpness\t\t-> " << mCamSharpness);
+#if (ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION>=1)
+    mNhNs.getParam("gamma", mCamGamma);
+    NODELET_INFO_STREAM(" * [DYN] gamma\t\t-> " << mCamGamma);
+#endif
     mNhNs.getParam("auto_exposure_gain", mCamAutoExposure);
     NODELET_INFO_STREAM(" * [DYN] auto_exposure_gain\t-> " << (mCamAutoExposure ? "ENABLED" : "DISABLED"));
     mNhNs.getParam("gain", mCamGain);
@@ -1938,12 +1942,13 @@ void ZEDWrapperNodelet::updateDynamicReconfigure() {
     config.auto_whitebalance = mCamAutoWB;
     config.brightness = mCamBrightness;
     config.depth_confidence = mCamDepthConfidence;
-    config.depth_confidence = mCamContrast;
+    config.contrast = mCamContrast;
     config.exposure = mCamExposure;
     config.gain = mCamGain;
     config.hue = mCamHue;
     config.saturation = mCamSaturation;
     config.sharpness = mCamSharpness;
+    config.gamma = mCamGamma;
     config.whitebalance_temperature = mCamWB/100;
     config.point_cloud_freq = mPointCloudFreq;
     mDynParMutex.unlock();
@@ -2033,6 +2038,18 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
         NODELET_INFO("Reconfigure image sharpness: %d", mCamSharpness);
         mDynParMutex.unlock();
         //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
+        break;
+
+    case GAMMA:
+#if (ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION>=1)
+        mCamGamma = config.gamma;
+        NODELET_INFO("Reconfigure image gamma: %d", mCamGamma);
+        mDynParMutex.unlock();
+        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
+#else
+        NODELET_DEBUG_STREAM( "Gamma Control is not available for SDK older that v3.1");
+        mDynParMutex.unlock();
+#endif
         break;
 
     case AUTO_EXP_GAIN:
@@ -2683,12 +2700,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 // the zed have been disconnected) and
                 // re-initialize the ZED
 
-                // TODO CHECK THAT NOT TOO MUCH ERROR MESSAGES ARE GENERATED
                 NODELET_INFO_STREAM_ONCE(toString(mGrabStatus));
-
-                //                    if (mGrabStatus != sl::ERROR_CODE::NOT_A_NEW_FRAME) {
-                //                        NODELET_INFO_STREAM_ONCE(toString(mGrabStatus));
-                //                    }
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
@@ -2822,6 +2834,15 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     NODELET_DEBUG_STREAM( "mCamSharpness changed: " << mCamSharpness << " <- " << sharpness);
                     update_dyn_params = true;
                 }
+
+#if (ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION>=1)
+                int gamma = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAMMA);
+                if( gamma != mCamGamma ) {
+                    mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAMMA, mCamGamma);
+                    NODELET_DEBUG_STREAM( "mCamGamma changed: " << mCamGamma << " <- " << gamma);
+                    update_dyn_params = true;
+                }
+#endif
 
                 if (mCamAutoExposure) {
                     if( mTriggerAutoExposure ) {
