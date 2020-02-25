@@ -1,7 +1,19 @@
 LATEST CHANGES
 ==============
 
-
+v3.1
+-----
+- Added new package `zed_interfaces` with isolated declarations of custom messages, services and actions
+- Removed not used `world_frame` parameter
+- Removed the`publish_pose_covariance` parameter, now covariance for pose and odometry is always published
+- Removed `_m` from parameters `mapping/resolution_m` and `mapping/max_mapping_range_m`
+- Renamed the parameter `depth_resample_factor` to `depth_downsample_factor`
+- Renamed the parameter `img_resample_factor` to `img_downsample_factor`
+- Renamed the parameter `odometry_db` to `area_memory_db_path`
+- Added new dynamic parameter `gamma` for Gamma Control
+- Added new dynamic parameter `depth_texture_conf` to filter depth according to textureness information
+- Added new TF frames for all the sensors available on ZED2
+- Added Gray images publishing
 
 XACRO and more (2020-01-31)
 ---------------------------
@@ -21,8 +33,6 @@ XACRO and more (2020-01-31)
 - Added new parameter `video/img_resample_factor`
 - Added new parameter `depth/map_resample_factor`
 - Updated the names for the parameters of the Object Detection module [only ZED2]
-- Gray images publishing
-
 
 SDK v3.0 (2020-01-27)
 ---------------------
