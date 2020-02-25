@@ -13,9 +13,9 @@ auto_exposure_gain:         true                                # Dynamic
 gain:                       100                                 # Dynamic - works only if `auto_exposure_gain` is false
 exposure:                   100                                 # Dynamic - works only if `auto_exposure_gain` is false
 auto_whitebalance:          true                                # Dynamic
-whitebalance_temperature:   4200                                # Dynamic - works only if `auto_whitebalance` is false
+whitebalance_temperature:   42                                  # Dynamic - works only if `auto_whitebalance` is false
 depth_confidence:           100                                 # Dynamic
-depth_texture_conf:         HD1080                              # Dynamic
+depth_texture_conf:         100                                 # Dynamic
 point_cloud_freq:           15.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `frame_rate` value)
 
 general:
@@ -32,21 +32,21 @@ general:
     camera_flip:                false
 
 video:
-    img_downsample_factor:        1.0                             # Resample factor for images [0.01,1.0] The SDK works with native image sizes, but publishes rescaled image.
+    img_downsample_factor:      1.0                             # Resample factor for images [0.01,1.0] The SDK works with native image sizes, but publishes rescaled image.
 
 depth:
     quality:                    1                               # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA
     sensing_mode:               0                               # '0': STANDARD, '1': FILL (not use FILL for robotic applications)
     depth_stabilization:        1                               # `0`: disabled, `1`: enabled
     openni_depth_mode:          0                               # '0': 32bit float meters, '1': 16bit uchar millimeters
-    depth_downsample_factor:        1.0                             # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
+    depth_downsample_factor:    1.0                             # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
 
 pos_tracking:
     publish_tf:                 true                            # publish `odom -> base_link` TF
     publish_map_tf:             true                            # publish `map -> odom` TF
     map_frame:                  'map'
     odometry_frame:             'odom'
-    area_memory_db_path:                ''
+    area_memory_db_path:        ''
     area_memory:                true                            # Enable to detect loop closure
     floor_alignment:            false                           # Enable to automatically calculate camera/floor offset
     initial_base_pose:          [0.0,0.0,0.0, 0.0,0.0,0.0]      # Initial position of the `base_frame` -> [X, Y, Z, R, P, Y]
