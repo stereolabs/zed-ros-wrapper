@@ -2658,12 +2658,12 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
         uint32_t leftRawSubnumber = mPubRawLeft.getNumSubscribers();
         uint32_t rightSubnumber = mPubRight.getNumSubscribers();
         uint32_t rightRawSubnumber = mPubRawRight.getNumSubscribers();
-        uint32_t rgbGraySubnumber = mPubRgb.getNumSubscribers();
-        uint32_t rgbGrayRawSubnumber = mPubRawRgb.getNumSubscribers();
-        uint32_t leftGraySubnumber = mPubLeft.getNumSubscribers();
-        uint32_t leftGrayRawSubnumber = mPubRawLeft.getNumSubscribers();
-        uint32_t rightGraySubnumber = mPubRight.getNumSubscribers();
-        uint32_t rightGrayRawSubnumber = mPubRawRight.getNumSubscribers();
+        uint32_t rgbGraySubnumber = mPubRgbGray.getNumSubscribers();
+        uint32_t rgbGrayRawSubnumber = mPubRawRgbGray.getNumSubscribers();
+        uint32_t leftGraySubnumber = mPubLeftGray.getNumSubscribers();
+        uint32_t leftGrayRawSubnumber = mPubRawLeftGray.getNumSubscribers();
+        uint32_t rightGraySubnumber = mPubRightGray.getNumSubscribers();
+        uint32_t rightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers();
         uint32_t depthSubnumber = mPubDepth.getNumSubscribers();
         uint32_t disparitySubnumber = mPubDisparity.getNumSubscribers();
         uint32_t cloudSubnumber = mPubCloud.getNumSubscribers();
@@ -2972,18 +2972,18 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 // Retrieve RGBA Left image
                 mZed.retrieveImage(leftGrayZEDMat, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
 
-                if (leftSubnumber > 0) {
+                if (leftGraySubnumber > 0) {
                     if(!mLeftGrayImgMsg ) {
                         mLeftGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
                     }
                     if(!mLeftCamInfoMsg) {
                         mLeftCamInfoMsg = boost::make_shared<sensor_msgs::CameraInfo>();
                     }
-                    publishImage(mLeftGrayImgMsg, leftZEDMat, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId,
+                    publishImage(mLeftGrayImgMsg, leftGrayZEDMat, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId,
                                  mFrameTimestamp);
                 }
 
-                if (rgbSubnumber > 0) {
+                if (rgbGraySubnumber > 0) {
                     if(!mRgbGrayImgMsg ) {
                         mRgbGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
                     }
@@ -3071,7 +3071,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             if (rightGraySubnumber > 0) {
 
                 // Retrieve RGBA Right image
-                mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
+                mZed.retrieveImage(rightGrayZEDMat, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
                 if(!mRightGrayImgMsg ) {
                     mRightGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
                 }
