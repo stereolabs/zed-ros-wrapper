@@ -94,6 +94,8 @@ void ZEDWrapperNodelet::onInit() {
     std::string stereoTopicRoot = "stereo";
     std::string img_topic = "/image_rect_color";
     std::string img_raw_topic = "/image_raw_color";
+    std::string img_gray_topic = "/image_rect_gray";
+    std::string img_raw_gray_topic_ = "/image_raw_gray";
     std::string raw_suffix = "_raw";
     string left_topic = leftTopicRoot + img_topic;
     string left_raw_topic = leftTopicRoot + raw_suffix + img_raw_topic;
@@ -103,6 +105,12 @@ void ZEDWrapperNodelet::onInit() {
     string rgb_raw_topic = rgbTopicRoot + raw_suffix + img_raw_topic;
     string stereo_topic = stereoTopicRoot + img_topic;
     string stereo_raw_topic = stereoTopicRoot + raw_suffix + img_raw_topic;
+    string left_gray_topic = leftTopicRoot + img_gray_topic;
+    string left_raw_gray_topic = leftTopicRoot + raw_suffix + img_raw_gray_topic_;
+    string right_gray_topic = rightTopicRoot + img_gray_topic;
+    string right_raw_gray_topic = rightTopicRoot + raw_suffix + img_raw_gray_topic_;
+    string rgb_gray_topic = rgbTopicRoot + img_gray_topic;
+    string rgb_raw_gray_topic = rgbTopicRoot + raw_suffix + img_raw_gray_topic_;
 
     // Set the disparity topic name
     std::string disparityTopic = "disparity/disparity_image";
@@ -362,6 +370,26 @@ void ZEDWrapperNodelet::onInit() {
     mPubRawRight = it_zed.advertiseCamera(right_raw_topic, 1); // right raw
     NODELET_INFO_STREAM("Advertised on topic " << mPubRawRight.getTopic());
     NODELET_INFO_STREAM("Advertised on topic " << mPubRawRight.getInfoTopic());
+
+    mPubRgbGray = it_zed.advertiseCamera(rgb_gray_topic, 1); // rgb
+    NODELET_INFO_STREAM("Advertised on topic " << mPubRgbGray.getTopic());
+    NODELET_INFO_STREAM("Advertised on topic " << mPubRgbGray.getInfoTopic());
+    mPubRawRgbGray = it_zed.advertiseCamera(rgb_raw_gray_topic, 1); // rgb raw
+    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgbGray.getTopic());
+    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgbGray.getInfoTopic());
+    mPubLeftGray = it_zed.advertiseCamera(left_gray_topic, 1); // left
+    NODELET_INFO_STREAM("Advertised on topic " << mPubLeftGray.getTopic());
+    NODELET_INFO_STREAM("Advertised on topic " << mPubLeftGray.getInfoTopic());
+    mPubRawLeftGray = it_zed.advertiseCamera(left_raw_gray_topic, 1); // left raw
+    NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeftGray.getTopic());
+    NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeftGray.getInfoTopic());
+    mPubRightGray = it_zed.advertiseCamera(right_gray_topic, 1); // right
+    NODELET_INFO_STREAM("Advertised on topic " << mPubRightGray.getTopic());
+    NODELET_INFO_STREAM("Advertised on topic " << mPubRightGray.getInfoTopic());
+    mPubRawRightGray = it_zed.advertiseCamera(right_raw_gray_topic, 1); // right raw
+    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRightGray.getTopic());
+    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRightGray.getInfoTopic());
+
     mPubDepth = it_zed.advertiseCamera(depth_topic_root, 1); // depth
     NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getTopic());
     NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getInfoTopic());
@@ -2609,7 +2637,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
     sl::RuntimeParameters runParams;
     runParams.sensing_mode = static_cast<sl::SENSING_MODE>(mCamSensingMode);
-    sl::Mat leftZEDMat, rightZEDMat, depthZEDMat, disparityZEDMat, confImgZEDMat, confMapZEDMat;
+    sl::Mat leftZEDMat, rightZEDMat, leftGrayZEDMat, rightGrayZEDMat,
+            depthZEDMat, disparityZEDMat, confImgZEDMat, confMapZEDMat;
 
     // Main loop
     while (mNhNs.ok()) {
@@ -2620,6 +2649,12 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
         uint32_t leftRawSubnumber = mPubRawLeft.getNumSubscribers();
         uint32_t rightSubnumber = mPubRight.getNumSubscribers();
         uint32_t rightRawSubnumber = mPubRawRight.getNumSubscribers();
+        uint32_t rgbGraySubnumber = mPubRgb.getNumSubscribers();
+        uint32_t rgbGrayRawSubnumber = mPubRawRgb.getNumSubscribers();
+        uint32_t leftGraySubnumber = mPubLeft.getNumSubscribers();
+        uint32_t leftGrayRawSubnumber = mPubRawLeft.getNumSubscribers();
+        uint32_t rightGraySubnumber = mPubRight.getNumSubscribers();
+        uint32_t rightGrayRawSubnumber = mPubRawRight.getNumSubscribers();
         uint32_t depthSubnumber = mPubDepth.getNumSubscribers();
         uint32_t disparitySubnumber = mPubDisparity.getNumSubscribers();
         uint32_t cloudSubnumber = mPubCloud.getNumSubscribers();
@@ -2646,6 +2681,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
         mGrabActive =  mRecording || mStreaming || mMappingEnabled || mObjDetEnabled || mTrackingActivated ||
                 ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
                   leftRawSubnumber + rightSubnumber + rightRawSubnumber +
+                  rgbGraySubnumber + rgbGrayRawSubnumber + leftGraySubnumber +
+                  leftGrayRawSubnumber + rightGraySubnumber + rightGrayRawSubnumber +
                   depthSubnumber + disparitySubnumber + cloudSubnumber +
                   poseSubnumber + poseCovSubnumber + odomSubnumber +
                   confMapSubnumber /*+ imuSubnumber + imuRawsubnumber*/ + pathSubNumber +
@@ -2903,7 +2940,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     if(!mLeftCamInfoMsg) {
                         mLeftCamInfoMsg = boost::make_shared<sensor_msgs::CameraInfo>();
                     }
-                    publishImage(mLeftImgMsg, leftZEDMat, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, mFrameTimestamp);
+                    publishImage(mLeftImgMsg, leftZEDMat, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId,
+                                 mFrameTimestamp);
                 }
 
                 if (rgbSubnumber > 0) {
@@ -2913,7 +2951,37 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     if(!mRgbCamInfoMsg) {
                         mRgbCamInfoMsg = boost::make_shared<sensor_msgs::CameraInfo>();
                     }
-                    publishImage(mRgbImgMsg, leftZEDMat, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, mFrameTimestamp); // rgb is the left image
+                    publishImage(mRgbImgMsg, leftZEDMat, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId,
+                                 mFrameTimestamp); // rgb is the left image
+                }
+            }
+
+            // Publish the left == rgb GRAY image if someone has subscribed to
+            if (leftGraySubnumber > 0 || rgbGraySubnumber > 0) {
+
+                // Retrieve RGBA Left image
+                mZed.retrieveImage(leftGrayZEDMat, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
+
+                if (leftSubnumber > 0) {
+                    if(!mLeftGrayImgMsg ) {
+                        mLeftGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+                    }
+                    if(!mLeftCamInfoMsg) {
+                        mLeftCamInfoMsg = boost::make_shared<sensor_msgs::CameraInfo>();
+                    }
+                    publishImage(mLeftGrayImgMsg, leftZEDMat, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId,
+                                 mFrameTimestamp);
+                }
+
+                if (rgbSubnumber > 0) {
+                    if(!mRgbGrayImgMsg ) {
+                        mRgbGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+                    }
+                    if(!mRgbCamInfoMsg) {
+                        mRgbCamInfoMsg = boost::make_shared<sensor_msgs::CameraInfo>();
+                    }
+                    publishImage(mRgbGrayImgMsg, leftGrayZEDMat, mPubRgbGray, mRgbCamInfoMsg, mDepthOptFrameId,
+                                 mFrameTimestamp); // rgb is the left image
                 }
             }
 
@@ -2930,7 +2998,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     if(!mLeftCamInfoRawMsg) {
                         mLeftCamInfoRawMsg = boost::make_shared<sensor_msgs::CameraInfo>();
                     }
-                    publishImage(mRawLeftImgMsg, leftZEDMat, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, mFrameTimestamp);
+                    publishImage(mRawLeftImgMsg, leftZEDMat, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId,
+                                 mFrameTimestamp);
                 }
 
                 if (rgbRawSubnumber > 0) {
@@ -2940,7 +3009,37 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     if(!mRgbCamInfoRawMsg) {
                         mRgbCamInfoRawMsg = boost::make_shared<sensor_msgs::CameraInfo>();
                     }
-                    publishImage(mRawRgbImgMsg, leftZEDMat, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, mFrameTimestamp);
+                    publishImage(mRawRgbImgMsg, leftZEDMat, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId,
+                                 mFrameTimestamp);
+                }
+            }
+
+            // Publish the left_raw == rgb_raw GRAY image if someone has subscribed to
+            if (leftGrayRawSubnumber > 0 || rgbGrayRawSubnumber > 0) {
+
+                // Retrieve RGBA Left image
+                mZed.retrieveImage(leftGrayZEDMat, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+
+                if (leftGrayRawSubnumber > 0) {
+                    if(!mRawLeftGrayImgMsg ) {
+                        mRawLeftGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+                    }
+                    if(!mLeftCamInfoRawMsg) {
+                        mLeftCamInfoRawMsg = boost::make_shared<sensor_msgs::CameraInfo>();
+                    }
+                    publishImage(mRawLeftGrayImgMsg, leftGrayZEDMat, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId,
+                                 mFrameTimestamp);
+                }
+
+                if (rgbGrayRawSubnumber > 0) {
+                    if(!mRawRgbGrayImgMsg ) {
+                        mRawRgbGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+                    }
+                    if(!mRgbCamInfoRawMsg) {
+                        mRgbCamInfoRawMsg = boost::make_shared<sensor_msgs::CameraInfo>();
+                    }
+                    publishImage(mRawRgbGrayImgMsg, leftGrayZEDMat, mPubRawRgbGray, mRgbCamInfoRawMsg, mDepthOptFrameId,
+                                 mFrameTimestamp);
                 }
             }
 
@@ -2958,7 +3057,21 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 publishImage(mRightImgMsg, rightZEDMat, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, mFrameTimestamp);
             }
 
-            // Publish the right image if someone has subscribed to
+            // Publish the right image GRAY if someone has subscribed to
+            if (rightGraySubnumber > 0) {
+
+                // Retrieve RGBA Right image
+                mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
+                if(!mRightGrayImgMsg ) {
+                    mRightGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+                }
+                if(!mRightCamInfoMsg) {
+                    mRightCamInfoMsg = boost::make_shared<sensor_msgs::CameraInfo>();
+                }
+                publishImage(mRightGrayImgMsg, rightGrayZEDMat, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, mFrameTimestamp);
+            }
+
+            // Publish the right raw image if someone has subscribed to
             if (rightRawSubnumber > 0) {
 
                 // Retrieve RGBA Right image
@@ -2970,6 +3083,20 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     mRightCamInfoRawMsg = boost::make_shared<sensor_msgs::CameraInfo>();
                 }
                 publishImage(mRawRightImgMsg, rightZEDMat, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, mFrameTimestamp);
+            }
+
+            // Publish the right raw image GRAY if someone has subscribed to
+            if (rightGrayRawSubnumber > 0) {
+
+                // Retrieve RGBA Right image
+                mZed.retrieveImage(rightGrayZEDMat, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+                if(!mRawRightGrayImgMsg ) {
+                    mRawRightGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+                }
+                if(!mRightCamInfoRawMsg) {
+                    mRightCamInfoRawMsg = boost::make_shared<sensor_msgs::CameraInfo>();
+                }
+                publishImage(mRawRightGrayImgMsg, rightGrayZEDMat, mPubRawRightGray, mRightCamInfoRawMsg, mRightCamOptFrameId, mFrameTimestamp);
             }
 
             // Stereo couple side-by-side

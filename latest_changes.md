@@ -1,6 +1,8 @@
 LATEST CHANGES
 ==============
 
+
+
 XACRO and more (2020-01-31)
 ---------------------------
 - Added xacro support for parametric URDF 
@@ -19,6 +21,7 @@ XACRO and more (2020-01-31)
 - Added new parameter `video/img_resample_factor`
 - Added new parameter `depth/map_resample_factor`
 - Updated the names for the parameters of the Object Detection module [only ZED2]
+- Gray images publishing
 
 
 SDK v3.0 (2020-01-27)
