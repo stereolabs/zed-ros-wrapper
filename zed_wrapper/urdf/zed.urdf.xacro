@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+
+<!--
+Copyright (c) 2020, STEREOLABS.
+
+All rights reserved.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<robot name="stereolabs_camera" xmlns:xacro="http://ros.org/wiki/xacro">
+
+<!-- Includes -->
+    <xacro:include filename="$(find zed_wrapper)/urdf/include/materials.urdf.xacro" />
+
+    <xacro:macro name="zed" params="camera_name camera_model parent *joint_pose">
+
+        <!-- Properties -->
+        <xacro:property name="M_PI"     value="3.1415926535897931" />
+
+        <xacro:if value="${camera_model == 'zed'}">
+            <xacro:property name="baseline" value="0.12" />
+        </xacro:if>
+        <xacro:if value="${camera_model == 'zedm'}">
+            <xacro:property name="baseline" value="0.06" />
+        </xacro:if>
+        <xacro:if value="${camera_model == 'zed2'}">
+            <xacro:property name="baseline" value="0.12" />
+        </xacro:if>
+
+<!-- Camera Center -->
+        <joint name="${camera_name}_camera_center_joint" type="fixed">
+            <parent link="${parent}"/>
+            <child link="${camera_name}_camera_center"/>
+            <xacro:insert_block name="joint_pose"/>
+        </joint>
+
+        <link name="${camera_name}_camera_center">
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <mesh filename="package://zed_wrapper/urdf/models/${camera_model}.stl" />
+                </geometry>
+                <material name="${camera_model}_mat" />
+            </visual>
+        </link>
+
+<!-- Left Camera -->
+        <joint name="${camera_name}_left_camera_joint" type="fixed">
+            <parent link="${camera_name}_camera_center"/>
+            <child link="${camera_name}_left_camera_frame"/>
+            <origin xyz="0 ${baseline/2} 0" rpy="0 0 0" />
+        </joint>
+
+        <link name="${camera_name}_left_camera_frame" />
+
+        <joint name="${camera_name}_left_camera_optical_joint" type="fixed">
+            <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+            <parent link="${camera_name}_left_camera_frame"/>
+            <child link="${camera_name}_left_camera_optical_frame"/>
+        </joint>
+
+        <link name="${camera_name}_left_camera_optical_frame"/>
+
+<!-- Right Camera -->
+        <joint name="${camera_name}_right_camera_joint" type="fixed">
+            <parent link="${camera_name}_camera_center"/>
+            <child link="${camera_name}_right_camera_frame"/>
+            <origin xyz="0 -${baseline/2} 0" rpy="0 0 0" />
+        </joint>
+
+        <link name="${camera_name}_right_camera_frame" />
+
+        <joint name="${camera_name}_right_camera_optical_joint" type="fixed">
+            <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+            <parent link="${camera_name}_right_camera_frame"/>
+            <child link="${camera_name}_right_camera_optical_frame"/>
+        </joint>
+
+        <link name="${camera_name}_right_camera_optical_frame"/>
+    </xacro:macro>
+</robot>
