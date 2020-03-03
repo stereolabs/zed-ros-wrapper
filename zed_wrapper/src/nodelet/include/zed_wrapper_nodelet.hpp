@@ -606,6 +606,7 @@ private:
     bool mAreaMemory;
     bool mInitOdomWithPose;
     bool mResetOdom = false;
+    bool mUseOldExtrinsic = false;
 
     // SVO recording
     bool mRecording = false;

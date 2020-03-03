@@ -277,8 +277,11 @@ void ZEDWrapperNodelet::onInit() {
             NODELET_WARN("Camera model does not match user parameter. Please modify "
                          "the value of the parameter 'camera_model' to 'zedm'");
         }
-
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
         mSlCamImuTransf = mZed.getCameraInformation().camera_imu_transform;
+#else
+        mSlCamImuTransf = mZed.getCameraInformation().sensors_configuration.camera_imu_transform;
+#endif
 
         NODELET_INFO( "Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str() );
     } else if (mZedRealCamModel == sl::MODEL::ZED2) {
@@ -287,7 +290,11 @@ void ZEDWrapperNodelet::onInit() {
                          "the value of the parameter 'camera_model' to 'zed2'");
         }
 
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
         mSlCamImuTransf = mZed.getCameraInformation().camera_imu_transform;
+#else
+        mSlCamImuTransf = mZed.getCameraInformation().sensors_configuration.camera_imu_transform;
+#endif
 
         NODELET_INFO( "Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str() );
     }
@@ -297,10 +304,19 @@ void ZEDWrapperNodelet::onInit() {
     NODELET_INFO_STREAM(" * Serial Number -> " << mZedSerialNumber);
 
     if (!mSvoMode) {
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
         mCamFwVersion = mZed.getCameraInformation().camera_firmware_version;
+#else
+        mCamFwVersion = mZed.getCameraInformation().camera_configuration.firmware_version;
+#endif
+
         NODELET_INFO_STREAM(" * Camera FW Version -> " << mCamFwVersion);
         if(mZedRealCamModel!=sl::MODEL::ZED) {
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
             mSensFwVersion = mZed.getCameraInformation().sensors_firmware_version;
+#else
+            mSensFwVersion = mZed.getCameraInformation().sensors_configuration.firmware_version;
+#endif
             NODELET_INFO_STREAM(" * Sensors FW Version -> " << mSensFwVersion);
         }
     } else {
@@ -613,6 +629,9 @@ void ZEDWrapperNodelet::readParameters() {
     // ----> Video
     mNhNs.getParam("video/img_downsample_factor", mCamImageResizeFactor);
     NODELET_INFO_STREAM(" * Image resample factor\t-> " << mCamImageResizeFactor);
+
+    mNhNs.getParam("video/extrinsic_in_camera_frame", mUseOldExtrinsic);
+    NODELET_INFO_STREAM(" * Extrinsic param. frame\t-> " << (mUseOldExtrinsic?"X RIGHT - Y DOWN - Z FWD":"X FWD - Y LEFT - Z UP"));
     // <---- Video
 
     // -----> Depth
@@ -1661,8 +1680,14 @@ void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t) {
 
     mDisparityMsg->image = *mDisparityImgMsg;
     mDisparityMsg->header = mDisparityMsg->image.header;
+
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
     mDisparityMsg->f = zedParam.calibration_parameters.left_cam.fx;
     mDisparityMsg->T = zedParam.calibration_parameters.T.x;
+#else
+    mDisparityMsg->f = zedParam.camera_configuration.calibration_parameters.left_cam.fx;
+    mDisparityMsg->T = zedParam.camera_configuration.calibration_parameters.T.x;
+#endif
 
     if (mDisparityMsg->T > 0) {
         mDisparityMsg->T *= -1.0f;
@@ -1874,11 +1899,19 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
                                     string rightFrameId, bool rawParam /*= false*/) {
     sl::CalibrationParameters zedParam;
 
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
     if (rawParam) {
-        zedParam = zed.getCameraInformation(mMatResolVideo).calibration_parameters_raw;
+        zedParam = zed.getCameraInformation(mMatResolVideo).calibration_parameters_raw; // ok
     } else {
-        zedParam = zed.getCameraInformation(mMatResolVideo).calibration_parameters;
+        zedParam = zed.getCameraInformation(mMatResolVideo).calibration_parameters; // ok
     }
+#else
+    if (rawParam) {
+        zedParam = zed.getCameraInformation(mMatResolVideo).camera_configuration.calibration_parameters_raw;
+    } else {
+        zedParam = zed.getCameraInformation(mMatResolVideo).camera_configuration.calibration_parameters;
+    }
+#endif
 
     float baseline = zedParam.T[0];
     leftCamInfoMsg->distortion_model =
@@ -1918,6 +1951,7 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
         leftCamInfoMsg->R[i + i * 3] = 1;
     }
 
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
     if (rawParam) {
         std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
         float* p = R_.data();
@@ -1926,6 +1960,22 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
             rightCamInfoMsg->R[i] = p[i];
         }
     }
+#else
+    if (rawParam) {
+        if(mUseOldExtrinsic) { // Camera frame (Z forward, Y down, X right)
+            std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
+            float* p = R_.data();
+
+            for (int i = 0; i < 9; i++) {
+                rightCamInfoMsg->R[i] = p[i];
+            }
+        } else { // ROS frame (X forward, Z up, Y left)
+            for (int i = 0; i < 9; i++) {
+                rightCamInfoMsg->R[i] = zedParam.stereo_transform.getRotationMatrix().r[i];
+            }
+        }
+    }
+#endif
 
     leftCamInfoMsg->P.fill(0.0);
     rightCamInfoMsg->P.fill(0.0);
@@ -1951,7 +2001,11 @@ void ZEDWrapperNodelet::fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInf
                                          string frame_id ) {
     sl::CalibrationParameters zedParam;
 
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
     zedParam = zed.getCameraInformation(mMatResolDepth).calibration_parameters;
+#else
+    zedParam = zed.getCameraInformation(mMatResolDepth).camera_configuration.calibration_parameters;
+#endif
 
     float baseline = zedParam.T[0];
     depth_info_msg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
@@ -2648,8 +2702,13 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
     mRecording = false;
 
     // Get the parameters of the ZED images
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
     mCamWidth = mZed.getCameraInformation().camera_resolution.width;
     mCamHeight = mZed.getCameraInformation().camera_resolution.height;
+#else
+    mCamWidth = mZed.getCameraInformation().camera_configuration.resolution.width;
+    mCamHeight = mZed.getCameraInformation().camera_configuration.resolution.height;
+#endif
     NODELET_DEBUG_STREAM("Camera Frame size : " << mCamWidth << "x" << mCamHeight);
     int v_w = static_cast<int>(mCamWidth * mCamImageResizeFactor);
     int v_h = static_cast<int>(mCamHeight * mCamImageResizeFactor);

@@ -33,6 +33,7 @@ general:
 
 video:
     img_downsample_factor:      1.0                             # Resample factor for images [0.01,1.0] The SDK works with native image sizes, but publishes rescaled image.
+    extrinsic_in_camera_frame:  true                            # if `false` extrinsic parameter in `camera_info` will use ROS native frame (X FORWARD, Z UP) instead of the camera frame (Z FORWARD, Y DOWN) [`true` use old behavior as for version < v3.1]
 
 depth:
     quality:                    1                               # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA
