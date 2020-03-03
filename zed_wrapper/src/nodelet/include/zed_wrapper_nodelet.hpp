@@ -590,7 +590,7 @@ private:
     bool mCamAutoWB     = true;
     int mCamWB          = 4200;
 
-    int mCamDepthConfidence = 100;
+    int mCamDepthConfidence = 50;
     int mCamDepthTextureConf = 100;
     double mPointCloudFreq = 15.;
 
