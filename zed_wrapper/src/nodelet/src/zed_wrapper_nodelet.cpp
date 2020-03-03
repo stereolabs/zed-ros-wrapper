@@ -248,7 +248,7 @@ void ZEDWrapperNodelet::onInit() {
     }
     NODELET_INFO_STREAM(" ...  " << sl::toString( mZedRealCamModel) << " ready");
 
-    CUdevice devid;
+    //CUdevice devid;
     cuCtxGetDevice(&mGpuId);
 
     NODELET_INFO_STREAM("ZED SDK running on GPU #" << mGpuId);
@@ -270,18 +270,18 @@ void ZEDWrapperNodelet::onInit() {
                          "the value of the parameter 'camera_model' to 'zedm'");
         }
 
-        sl::Transform cam_imu_tr = mZed.getCameraInformation().camera_imu_transform;
+        mSlCamImuTransf = mZed.getCameraInformation().camera_imu_transform;
 
-        printf( "Camera-IMU Transform: \n %s", cam_imu_tr.getInfos().c_str() );
+        NODELET_INFO( "Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str() );
     } else if (mZedRealCamModel == sl::MODEL::ZED2) {
         if (mZedUserCamModel != mZedRealCamModel) {
             NODELET_WARN("Camera model does not match user parameter. Please modify "
                          "the value of the parameter 'camera_model' to 'zed2'");
         }
 
-        sl::Transform cam_imu_tr = mZed.getCameraInformation().camera_imu_transform;
+        mSlCamImuTransf = mZed.getCameraInformation().camera_imu_transform;
 
-        printf( "Camera-IMU Transform: \n %s", cam_imu_tr.getInfos().c_str() );
+        NODELET_INFO( "Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str() );
     }
 
     NODELET_INFO_STREAM(" * CAMERA MODEL\t -> " << sl::toString(mZedRealCamModel).c_str());
@@ -476,6 +476,33 @@ void ZEDWrapperNodelet::onInit() {
                         << mSensPubRate << " Hz"
                         << " but ZED camera model does not support IMU data publishing.");
         }
+
+        // Publish camera imu transform in a latched topic
+         if (mZedRealCamModel != sl::MODEL::ZED) {
+            string cam_imu_tr_topic = "camera_imu_transform";
+            mPubCamImuTransf = mNhNs.advertise<geometry_msgs::Transform>( cam_imu_tr_topic, 1, true );
+
+            sl::Orientation sl_rot = mSlCamImuTransf.getOrientation();
+            sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
+
+            mCameraImuTransfMgs = boost::make_shared<geometry_msgs::Transform>();
+
+            mCameraImuTransfMgs->rotation.x = sl_rot.ox;
+            mCameraImuTransfMgs->rotation.y = sl_rot.oy;
+            mCameraImuTransfMgs->rotation.z = sl_rot.oz;
+            mCameraImuTransfMgs->rotation.w = sl_rot.ow;
+
+            mCameraImuTransfMgs->translation.x = sl_tr.x;
+            mCameraImuTransfMgs->translation.y = sl_tr.y;
+            mCameraImuTransfMgs->translation.z = sl_tr.z;
+
+            NODELET_DEBUG( "Camera-IMU Rotation: \n %s", sl_rot.getRotationMatrix().getInfos().c_str() );
+            NODELET_DEBUG( "Camera-IMU Translation: \n %g %g %g", sl_tr.x, sl_tr.y, sl_tr.z );
+
+            mPubCamImuTransf.publish( mCameraImuTransfMgs );
+
+            NODELET_INFO_STREAM("Advertised on topic " << mPubCamImuTransf.getTopic() << " [LATCHED]");
+         }
     }
 
     // Services

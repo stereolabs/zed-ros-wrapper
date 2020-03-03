@@ -409,7 +409,6 @@ private:
     image_transport::Publisher mPubStereo;
     image_transport::Publisher mPubRawStereo;
 
-
     ros::Publisher mPubConfMap; //
     ros::Publisher mPubDisparity; //
     ros::Publisher mPubCloud;
@@ -427,6 +426,7 @@ private:
     ros::Publisher mPubPressure;
     ros::Publisher mPubTempL;
     ros::Publisher mPubTempR;
+    ros::Publisher mPubCamImuTransf;
 
     // Timers
     ros::Timer mImuTimer;
@@ -455,7 +455,7 @@ private:
     sensor_msgs::CameraInfoPtr mRgbCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mLeftCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mRightCamInfoRawMsg;
-    sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;
+    sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;    
 
     // ROS TF
     tf2_ros::TransformBroadcaster mTransformPoseBroadcaster;
@@ -673,6 +673,9 @@ private:
     sensor_msgs::ImagePtr mDepthImgMsg;
     sensor_msgs::ImagePtr mDisparityImgMsg;
     stereo_msgs::DisparityImagePtr mDisparityMsg;
+
+    geometry_msgs::TransformPtr mCameraImuTransfMgs;
+    sl::Transform mSlCamImuTransf;
 
     // Spatial mapping
     bool mMappingEnabled;
