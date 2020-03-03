@@ -3,7 +3,7 @@
 ---
 
 general:
-    camera_model: 'zedm'
+    camera_model:               'zedm'
 
 depth:
     min_depth:                  0.35            # Min: 0.1, Max: 3.0 - Default 0.3 - Note: reducing this value wil require more computational power and GPU memory

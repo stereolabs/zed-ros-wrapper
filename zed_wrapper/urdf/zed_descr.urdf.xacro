@@ -24,8 +24,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <xacro:include filename="$(find zed_wrapper)/urdf/include/materials.urdf.xacro" />
 
     <!-- Arguments -->
+
+
     <xacro:arg name="camera_name"   default="zed" />
     <xacro:arg name="camera_model"  default="zed" />
+    <xacro:arg name="base_frame"    default="base_link" />
     <xacro:arg name="cam_pos_x"     default="0.0" />
     <xacro:arg name="cam_pos_y"     default="0.0" />
     <xacro:arg name="cam_pos_z"     default="0.0" />
@@ -48,11 +51,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </xacro:if>
 
 <!-- base_link -->
-    <link name="base_link" />
+    <link name="$(arg base_frame)" />
 
 <!-- Camera Center -->
     <joint name="$(arg camera_name)_camera_center_joint" type="fixed">
-        <parent link="base_link"/>
+        <parent link="$(arg base_frame)"/>
         <child link="$(arg camera_name)_camera_center"/>
         <origin xyz="$(arg cam_pos_x) $(arg cam_pos_y) $(arg cam_pos_z)" rpy="$(arg cam_roll) $(arg cam_pitch) $(arg cam_yaw)" />
     </joint>

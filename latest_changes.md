@@ -15,6 +15,8 @@ v3.1
 - Added new TF frames for all the sensors available on ZED2
 - Added publishers for gray images 
 - Added publisher for Camera to IMU transform: `/<camera_name>/<node_name>/camera_imu_transform`
+- Default value for `depth_confidence` changed from 100 to 50
+- Added `base_frame` as launch parameter to propagate the value of the parameter in the Xacro description
 
 XACRO and more (2020-01-31)
 ---------------------------
