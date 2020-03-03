@@ -507,7 +507,7 @@ void ZEDWrapperNodelet::onInit() {
 
         // Publish camera imu transform in a latched topic
          if (mZedRealCamModel != sl::MODEL::ZED) {
-            string cam_imu_tr_topic = "camera_imu_transform";
+            string cam_imu_tr_topic = "left_cam_imu_transform";
             mPubCamImuTransf = mNhNs.advertise<geometry_msgs::Transform>( cam_imu_tr_topic, 1, true );
 
             sl::Orientation sl_rot = mSlCamImuTransf.getOrientation();
