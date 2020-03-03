@@ -409,6 +409,13 @@ private:
     image_transport::Publisher mPubStereo;
     image_transport::Publisher mPubRawStereo;
 
+    image_transport::CameraPublisher mPubRgbGray;
+    image_transport::CameraPublisher mPubRawRgbGray;
+    image_transport::CameraPublisher mPubLeftGray;
+    image_transport::CameraPublisher mPubRawLeftGray;
+    image_transport::CameraPublisher mPubRightGray;
+    image_transport::CameraPublisher mPubRawRightGray;
+
     ros::Publisher mPubConfMap; //
     ros::Publisher mPubDisparity; //
     ros::Publisher mPubCloud;
@@ -666,6 +673,12 @@ private:
     sensor_msgs::ImagePtr mRawRightImgMsg;
     sensor_msgs::ImagePtr mRgbImgMsg;
     sensor_msgs::ImagePtr mRawRgbImgMsg;
+    sensor_msgs::ImagePtr mLeftGrayImgMsg;
+    sensor_msgs::ImagePtr mRawLeftGrayImgMsg;
+    sensor_msgs::ImagePtr mRightGrayImgMsg;
+    sensor_msgs::ImagePtr mRawRightGrayImgMsg;
+    sensor_msgs::ImagePtr mRgbGrayImgMsg;
+    sensor_msgs::ImagePtr mRawRgbGrayImgMsg;
     sensor_msgs::ImagePtr mConfImgMsg;
     sensor_msgs::ImagePtr mConfMapMsg;
     sensor_msgs::ImagePtr mStereoImgMsg;

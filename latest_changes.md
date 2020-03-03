@@ -13,7 +13,8 @@ v3.1
 - Added new dynamic parameter `gamma` for Gamma Control
 - Added new dynamic parameter `depth_texture_conf` to filter depth according to textureness information
 - Added new TF frames for all the sensors available on ZED2
-
+- Added publishers for gray images 
+- Added publisher for Camera to IMU transform: `/<camera_name>/<node_name>/camera_imu_transform`
 
 XACRO and more (2020-01-31)
 ---------------------------
@@ -33,7 +34,6 @@ XACRO and more (2020-01-31)
 - Added new parameter `video/img_resample_factor`
 - Added new parameter `depth/map_resample_factor`
 - Updated the names for the parameters of the Object Detection module [only ZED2]
-
 
 SDK v3.0 (2020-01-27)
 ---------------------
