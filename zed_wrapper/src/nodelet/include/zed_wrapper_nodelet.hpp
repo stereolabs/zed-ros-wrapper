@@ -1,4 +1,4 @@
-﻿#ifndef ZED_WRAPPER_NODELET_H
+#ifndef ZED_WRAPPER_NODELET_H
 #define ZED_WRAPPER_NODELET_H
 
 ///////////////////////////////////////////////////////////////////////////
@@ -84,9 +84,9 @@ namespace zed_wrapper {
 class ZEDWrapperNodelet : public nodelet::Nodelet {
 
     typedef enum _dyn_params {
-        //MAT_RESIZE_FACTOR   = 0,
+        DATAPUB_FREQ        = 0,
         CONFIDENCE          = 1,
-        TEXTURE_CONF        = 2,
+        TEXTURE_CONF        = 2,        
         POINTCLOUD_FREQ     = 3,
         BRIGHTNESS          = 4,
         CONTRAST            = 5,
@@ -238,15 +238,20 @@ protected:
          */
     void dynamicReconfCallback(zed_wrapper::ZedConfig& config, uint32_t level);
 
+    /* \brief Callback to publish Video and Depth data
+         * \param e : the ros::TimerEvent binded to the callback
+         */
+    void pubVideoDepthCallback(const ros::TimerEvent& e);
+
     /* \brief Callback to publish Path data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
-    void pathPubCallback(const ros::TimerEvent& e);
+    void pubPathCallback(const ros::TimerEvent& e);
 
     /* \brief Callback to publish Sensor Data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
-    void sensPubCallback(const ros::TimerEvent& e);
+    void pubSensCallback(const ros::TimerEvent& e);
 
     /* \brief Callback to update node diagnostic status
          * \param stat : node status
@@ -439,6 +444,7 @@ private:
     ros::Timer mImuTimer;
     ros::Timer mPathTimer;
     ros::Timer mFusedPcTimer;
+    ros::Timer mVideoDepthTimer;
 
     // Services
     ros::ServiceServer mSrvSetInitPose;
@@ -593,6 +599,7 @@ private:
     int mCamDepthConfidence = 50;
     int mCamDepthTextureConf = 100;
     double mPointCloudFreq = 15.;
+    double mVideoDepthFreq = 15.;
 
     double mCamImageResizeFactor = 1.0;
     double mCamDepthResizeFactor = 1.0;
@@ -607,6 +614,8 @@ private:
     bool mInitOdomWithPose;
     bool mResetOdom = false;
     bool mUseOldExtrinsic = false;
+    bool mUpdateDynParams = false;
+    bool mPublishingData = false;
 
     // SVO recording
     bool mRecording = false;
@@ -650,6 +659,7 @@ private:
     float mTempRight = -273.15f;
     std::unique_ptr<sl_tools::CSmartMean> mElabPeriodMean_sec;
     std::unique_ptr<sl_tools::CSmartMean> mGrabPeriodMean_usec;
+    std::unique_ptr<sl_tools::CSmartMean> mVideoDepthPeriodMean_sec;
     std::unique_ptr<sl_tools::CSmartMean> mPcPeriodMean_usec;
     std::unique_ptr<sl_tools::CSmartMean> mSensPeriodMean_usec;
     std::unique_ptr<sl_tools::CSmartMean> mObjDetPeriodMean_msec;

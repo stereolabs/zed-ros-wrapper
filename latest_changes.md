@@ -10,6 +10,8 @@ v3.1
 - Renamed the parameter `depth_resample_factor` to `depth_downsample_factor`
 - Renamed the parameter `img_resample_factor` to `img_downsample_factor`
 - Renamed the parameter `odometry_db` to `area_memory_db_path`
+- Renamed the parameter `frame_rate` to `grab_frame_rate`
+- Added new dynamic parameter `pub_frame_rate` to reduce Video and Depth publishing frequency respect to grabbing frame rate [`grab_frame_rate`]
 - Added new dynamic parameter `gamma` for Gamma Control
 - Added new dynamic parameter `depth_texture_conf` to filter depth according to textureness information
 - Added new TF frames for all the sensors available on ZED2
