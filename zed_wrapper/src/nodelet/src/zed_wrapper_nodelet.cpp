@@ -338,6 +338,8 @@ void ZEDWrapperNodelet::onInit() {
     mDynServerMutex.lock();
     mDynRecServer->updateConfig(config);
     mDynServerMutex.unlock();
+
+    updateDynamicReconfigure();
     // <---- Dynamic Reconfigure parameters
 
     // Create all the publishers
@@ -1957,6 +1959,8 @@ void ZEDWrapperNodelet::updateDynamicReconfigure() {
     mDynRecServer->updateConfig(config);
     mDynServerMutex.unlock();
 
+    mUpdateDynParams = false;
+
     //NODELET_DEBUG_STREAM( "updateDynamicReconfigure MUTEX UNLOCK");
 }
 
@@ -1966,30 +1970,30 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
     DynParams param = static_cast<DynParams>(level);
 
     switch (param) {
-//    case MAT_RESIZE_FACTOR: {
-//        mCamMatResizeFactor = config.mat_resize_factor;
-//        NODELET_INFO("Reconfigure mat_resize_factor: %g", mCamMatResizeFactor);
-//        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
-//        mDynParMutex.unlock();
+    //    case MAT_RESIZE_FACTOR: {
+    //        mCamMatResizeFactor = config.mat_resize_factor;
+    //        NODELET_INFO("Reconfigure mat_resize_factor: %g", mCamMatResizeFactor);
+    //        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
+    //        mDynParMutex.unlock();
 
-//        mCamDataMutex.lock();
-//        size_t w = static_cast<size_t>(mCamWidth * mCamMatResizeFactor);
-//        size_t h = static_cast<size_t>(mCamHeight * mCamMatResizeFactor);
-//        mMatResol = sl::Resolution(w,h);
-//        NODELET_DEBUG_STREAM("Data Mat size : " << mMatResol.width << "x" << mMatResol.height);
+    //        mCamDataMutex.lock();
+    //        size_t w = static_cast<size_t>(mCamWidth * mCamMatResizeFactor);
+    //        size_t h = static_cast<size_t>(mCamHeight * mCamMatResizeFactor);
+    //        mMatResol = sl::Resolution(w,h);
+    //        NODELET_DEBUG_STREAM("Data Mat size : " << mMatResol.width << "x" << mMatResol.height);
 
-//        // Update Camera Info
-//        fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId,
-//                    mRightCamOptFrameId);
-//        fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
-//                    mRightCamOptFrameId, true);
-//        mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg; // the reference camera is
-//        // the Left one (next to
-//        // the ZED logo)
-//        mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
-//        mCamDataMutex.unlock();
-//    }
-//        break;
+    //        // Update Camera Info
+    //        fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId,
+    //                    mRightCamOptFrameId);
+    //        fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
+    //                    mRightCamOptFrameId, true);
+    //        mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg; // the reference camera is
+    //        // the Left one (next to
+    //        // the ZED logo)
+    //        mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
+    //        mCamDataMutex.unlock();
+    //    }
+    //        break;
 
     case CONFIDENCE:
         mCamDepthConfidence = config.depth_confidence;
@@ -1999,8 +2003,16 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
         break;
 
     case POINTCLOUD_FREQ:
-        mPointCloudFreq = config.point_cloud_freq;
-        NODELET_INFO("Reconfigure point cloud frequency: %g", mPointCloudFreq);
+        if(config.point_cloud_freq>mCamFrameRate) {
+            mPointCloudFreq = mCamFrameRate;
+            NODELET_WARN_STREAM( "'point_cloud_freq' cannot be major than camera grabbing framerate. Set to " << mPointCloudFreq );
+
+            mUpdateDynParams = true;
+        } else {
+            mPointCloudFreq = config.point_cloud_freq;
+            NODELET_INFO("Reconfigure point cloud pub. frequency: %g", mPointCloudFreq);
+        }
+
         mDynParMutex.unlock();
         //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
@@ -2798,41 +2810,40 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             if( !mSvoMode && mFrameCount%5 == 0 ) {
                 //NODELET_DEBUG_STREAM( "[" << mFrameCount << "] device_poll_thread_func MUTEX LOCK");
                 mDynParMutex.lock();
-                bool update_dyn_params = false;
 
                 int brightness = mZed.getCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS);
                 if( brightness != mCamBrightness ) {
                     mZed.setCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, mCamBrightness);
                     NODELET_DEBUG_STREAM( "mCamBrightness changed: " << mCamBrightness << " <- " << brightness);
-                    update_dyn_params = true;
+                    mUpdateDynParams = true;
                 }
 
                 int contrast = mZed.getCameraSettings(sl::VIDEO_SETTINGS::CONTRAST);
                 if( contrast != mCamContrast ) {
                     mZed.setCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, mCamContrast);
                     NODELET_DEBUG_STREAM( "mCamContrast changed: " << mCamContrast << " <- " << contrast);
-                    update_dyn_params = true;
+                    mUpdateDynParams = true;
                 }
 
                 int hue = mZed.getCameraSettings(sl::VIDEO_SETTINGS::HUE);
                 if( hue != mCamHue ) {
                     mZed.setCameraSettings(sl::VIDEO_SETTINGS::HUE, mCamHue);
                     NODELET_DEBUG_STREAM( "mCamHue changed: " << mCamHue << " <- " << hue);
-                    update_dyn_params = true;
+                    mUpdateDynParams = true;
                 }
 
                 int saturation = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SATURATION);
                 if( saturation != mCamSaturation ) {
                     mZed.setCameraSettings(sl::VIDEO_SETTINGS::SATURATION, mCamSaturation);
                     NODELET_DEBUG_STREAM( "mCamSaturation changed: " << mCamSaturation << " <- " << saturation);
-                    update_dyn_params = true;
+                    mUpdateDynParams = true;
                 }
 
                 int sharpness = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS);
                 if( sharpness != mCamSharpness ) {
                     mZed.setCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS, mCamSharpness);
                     NODELET_DEBUG_STREAM( "mCamSharpness changed: " << mCamSharpness << " <- " << sharpness);
-                    update_dyn_params = true;
+                    mUpdateDynParams = true;
                 }
 
 #if (ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION>=1)
@@ -2840,7 +2851,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 if( gamma != mCamGamma ) {
                     mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAMMA, mCamGamma);
                     NODELET_DEBUG_STREAM( "mCamGamma changed: " << mCamGamma << " <- " << gamma);
-                    update_dyn_params = true;
+                    mUpdateDynParams = true;
                 }
 #endif
 
@@ -2854,14 +2865,14 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     if (exposure != mCamExposure) {
                         mZed.setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, mCamExposure);
                         NODELET_DEBUG_STREAM( "mCamExposure changed: " << mCamExposure << " <- " << exposure);
-                        update_dyn_params = true;
+                        mUpdateDynParams = true;
                     }
 
                     int gain = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAIN);
                     if (gain != mCamGain) {
                         mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAIN, mCamGain);
                         NODELET_DEBUG_STREAM( "mCamGain changed: " << mCamGain << " <- " << gain);
-                        update_dyn_params = true;
+                        mUpdateDynParams = true;
                     }
                 }
 
@@ -2875,16 +2886,16 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     if (wb != mCamWB) {
                         mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, mCamWB);
                         NODELET_DEBUG_STREAM( "mCamWB changed: " << mCamWB << " <- " << wb);
-                        update_dyn_params = true;
+                        mUpdateDynParams = true;
                     }
                 }
                 mDynParMutex.unlock();
                 //NODELET_DEBUG_STREAM( "device_poll_thread_func MUTEX UNLOCK");
+            }
 
-                if(update_dyn_params) {
-                    NODELET_DEBUG( "Update Dynamic Parameters");
-                    updateDynamicReconfigure();
-                }
+            if(mUpdateDynParams) {
+                NODELET_DEBUG( "Update Dynamic Parameters");
+                updateDynamicReconfigure();
             }
             // <---- Camera Settings
 
