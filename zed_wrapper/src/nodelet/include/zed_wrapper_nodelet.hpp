@@ -578,7 +578,7 @@ private:
     bool mCamAutoWB     = true;
     int mCamWB          = 4200;
 
-    int mCamDepthConfidence = 80;
+    int mCamDepthConfidence = 50;
     double mPointCloudFreq = 15.;
 
     double mCamImageResizeFactor = 1.0;
@@ -594,6 +594,7 @@ private:
     bool mInitOdomWithPose;
     bool mResetOdom = false;
     bool mPublishPoseCovariance = true;
+    bool mUpdateDynParams = false;
 
     // SVO recording
     bool mRecording = false;
