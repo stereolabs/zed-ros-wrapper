@@ -2086,8 +2086,6 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
     DynParams param = static_cast<DynParams>(level);
 
     switch (param) {
-<<<<<<< HEAD
-
     case DATAPUB_FREQ:
         if(config.pub_frame_rate>mCamFrameRate) {
             mVideoDepthFreq = mCamFrameRate;
@@ -2104,32 +2102,6 @@ void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, ui
         mDynParMutex.unlock();
         //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
         break;
-=======
-    //    case MAT_RESIZE_FACTOR: {
-    //        mCamMatResizeFactor = config.mat_resize_factor;
-    //        NODELET_INFO("Reconfigure mat_resize_factor: %g", mCamMatResizeFactor);
-    //        //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
-    //        mDynParMutex.unlock();
-
-    //        mCamDataMutex.lock();
-    //        size_t w = static_cast<size_t>(mCamWidth * mCamMatResizeFactor);
-    //        size_t h = static_cast<size_t>(mCamHeight * mCamMatResizeFactor);
-    //        mMatResol = sl::Resolution(w,h);
-    //        NODELET_DEBUG_STREAM("Data Mat size : " << mMatResol.width << "x" << mMatResol.height);
-
-    //        // Update Camera Info
-    //        fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId,
-    //                    mRightCamOptFrameId);
-    //        fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
-    //                    mRightCamOptFrameId, true);
-    //        mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg; // the reference camera is
-    //        // the Left one (next to
-    //        // the ZED logo)
-    //        mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
-    //        mCamDataMutex.unlock();
-    //    }
-    //        break;
->>>>>>> master
 
     case CONFIDENCE:
         mCamDepthConfidence = config.depth_confidence;
