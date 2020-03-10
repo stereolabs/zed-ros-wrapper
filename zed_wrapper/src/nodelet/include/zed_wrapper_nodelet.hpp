@@ -597,7 +597,10 @@ private:
     int mCamWB          = 4200;
 
     int mCamDepthConfidence = 50;
+<<<<<<< HEAD
     int mCamDepthTextureConf = 100;
+=======
+>>>>>>> master
     double mPointCloudFreq = 15.;
     double mVideoDepthFreq = 15.;
 
@@ -613,9 +616,14 @@ private:
     bool mAreaMemory;
     bool mInitOdomWithPose;
     bool mResetOdom = false;
+<<<<<<< HEAD
     bool mUseOldExtrinsic = false;
     bool mUpdateDynParams = false;
     bool mPublishingData = false;
+=======
+    bool mPublishPoseCovariance = true;
+    bool mUpdateDynParams = false;
+>>>>>>> master
 
     // SVO recording
     bool mRecording = false;

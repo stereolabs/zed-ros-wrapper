@@ -20,6 +20,10 @@ v3.1
 - Default value for `depth_confidence` changed from 100 to 50
 - Added `base_frame` as launch parameter to propagate the value of the parameter in the Xacro description
 
+Bug fix (2020-03-06)
+--------------------
+- Fix default value for dynamic parameters not set from `common.yaml`
+
 XACRO and more (2020-01-31)
 ---------------------------
 - Added xacro support for parametric URDF 
