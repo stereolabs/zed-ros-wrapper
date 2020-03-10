@@ -21,10 +21,6 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-/****************************************************************************************************
- ** This sample is a wrapper for the ZED library in order to use the ZED Camera with ROS.          **
- ** A set of parameters can be specified in the launch file.                                       **
- ****************************************************************************************************/
 #include "sl_tools.h"
 
 #include <sl/Camera.hpp>
@@ -41,7 +37,7 @@
 #include <diagnostic_updater/diagnostic_updater.h>
 
 // Dynamic reconfiguration
-#include <zed_wrapper/ZedConfig.h>
+#include <zed_nodelets/ZedConfig.h>
 
 // Services
 #include <zed_interfaces/reset_tracking.h>
@@ -79,7 +75,7 @@
 
 using namespace std;
 
-namespace zed_wrapper {
+namespace zed_nodelets {
 
 class ZEDWrapperNodelet : public nodelet::Nodelet {
 
@@ -236,7 +232,7 @@ protected:
 
     /* \brief Callback to handle dynamic reconfigure events in ROS
          */
-    void dynamicReconfCallback(zed_wrapper::ZedConfig& config, uint32_t level);
+    void dynamicReconfCallback(zed_nodelets::ZedConfig& config, uint32_t level);
 
     /* \brief Callback to publish Video and Depth data
          * \param e : the ros::TimerEvent binded to the callback
@@ -652,7 +648,7 @@ private:
 
     // Dynamic reconfigure
     boost::recursive_mutex mDynServerMutex; // To avoid Dynamic Reconfigure Server warning
-    boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> mDynRecServer;
+    boost::shared_ptr<dynamic_reconfigure::Server<zed_nodelets::ZedConfig>> mDynRecServer;
 
     // Diagnostic
     float mTempLeft = -273.15f;
@@ -723,6 +719,7 @@ private:
 } // namespace
 
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(zed_wrapper::ZEDWrapperNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS(zed_nodelets::ZEDWrapperNodelet, nodelet::Nodelet);
+
 
 #endif // ZED_WRAPPER_NODELET_H

@@ -27,13 +27,13 @@
 #include <ros/console.h>
 #endif
 
-#include "zed_interfaces/object_stamped.h"
-#include "zed_interfaces/objects.h"
+#include "zed_interfaces/ObjectStamped.h"
+#include "zed_interfaces/Objects.h"
 
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
 
-namespace zed_wrapper {
+namespace zed_nodelets {
 
 #ifndef DEG2RAD
 #define DEG2RAD 0.017453293
@@ -56,7 +56,6 @@ ZEDWrapperNodelet::~ZEDWrapperNodelet() {
 }
 
 void ZEDWrapperNodelet::onInit() {
-
 
     // Node handlers
     mNh = getMTNodeHandle();
@@ -353,12 +352,12 @@ void ZEDWrapperNodelet::onInit() {
     mDiagUpdater.setHardwareIDf("%s - s/n: %d [GPU #%d]", sl::toString(mZedRealCamModel).c_str(), mZedSerialNumber, mGpuId);
 
     // ----> Dynamic Reconfigure parameters
-    mDynRecServer = boost::make_shared<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>>(mDynServerMutex);
-    dynamic_reconfigure::Server<zed_wrapper::ZedConfig>::CallbackType f;
+    mDynRecServer = boost::make_shared<dynamic_reconfigure::Server<zed_nodelets::ZedConfig>>(mDynServerMutex);
+    dynamic_reconfigure::Server<zed_nodelets::ZedConfig>::CallbackType f;
     f = boost::bind(&ZEDWrapperNodelet::dynamicReconfCallback, this, _1, _2);
     mDynRecServer->setCallback(f);
     // Update parameters
-    zed_wrapper::ZedConfig config;
+    zed_nodelets::ZedConfig config;
     mDynRecServer->getConfigDefault(config);
     mDynServerMutex.lock();
     mDynRecServer->updateConfig(config);
@@ -437,7 +436,7 @@ void ZEDWrapperNodelet::onInit() {
 
     // Object detection publishers
     if (mObjDetEnabled) {
-        mPubObjDet = mNhNs.advertise<zed_interfaces::objects>(object_det_topic, 1);
+        mPubObjDet = mNhNs.advertise<zed_interfaces::Objects>(object_det_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
         mPubObjDetViz = mNhNs.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDetViz.getTopic());
@@ -1345,7 +1344,7 @@ bool ZEDWrapperNodelet::start_obj_detect() {
         string object_det_topic = object_det_topic_root + "/objects";
         string object_det_rviz_topic = object_det_topic_root + "/object_markers";
 
-        mPubObjDet = mNhNs.advertise<zed_interfaces::objects>(object_det_topic, 1);
+        mPubObjDet = mNhNs.advertise<zed_interfaces::Objects>(object_det_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
         mPubObjDetViz = mNhNs.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDetViz.getTopic());
@@ -1922,7 +1921,7 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
     }
 #endif
 
-    float baseline = zedParam.T[0];
+    float baseline = zedParam.getCameraBaseline();
     leftCamInfoMsg->distortion_model =
             sensor_msgs::distortion_models::PLUMB_BOB;
     rightCamInfoMsg->distortion_model =
@@ -2016,7 +2015,7 @@ void ZEDWrapperNodelet::fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInf
     zedParam = zed.getCameraInformation(mMatResolDepth).camera_configuration.calibration_parameters;
 #endif
 
-    float baseline = zedParam.T[0];
+    float baseline = zedParam.getCameraBaseline();
     depth_info_msg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
     depth_info_msg->D.resize(5);
     depth_info_msg->D[0] = zedParam.left_cam.disto[0];   // k1
@@ -2052,7 +2051,7 @@ void ZEDWrapperNodelet::fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInf
 void ZEDWrapperNodelet::updateDynamicReconfigure() {
     //NODELET_DEBUG_STREAM( "updateDynamicReconfigure MUTEX LOCK");
     mDynParMutex.lock();
-    zed_wrapper::ZedConfig config;
+    zed_nodelets::ZedConfig config;
 
     config.auto_exposure_gain = mCamAutoExposure;
     config.auto_whitebalance = mCamAutoWB;
@@ -2080,7 +2079,7 @@ void ZEDWrapperNodelet::updateDynamicReconfigure() {
     //NODELET_DEBUG_STREAM( "updateDynamicReconfigure MUTEX UNLOCK");
 }
 
-void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, uint32_t level) {
+void ZEDWrapperNodelet::dynamicReconfCallback(zed_nodelets::ZedConfig& config, uint32_t level) {
     //NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX LOCK");
     mDynParMutex.lock();
     DynParams param = static_cast<DynParams>(level);
@@ -3014,8 +3013,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
     // Create and fill the camera information messages
     fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId, mRightCamOptFrameId);
-    fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
-                mRightCamOptFrameId, true);
+    fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId, mRightCamOptFrameId, true);
     fillCamDepthInfo(mZed,mDepthCamInfoMsg,mLeftCamOptFrameId);
 
     // the reference camera is the Left one (next to the ZED logo)
@@ -4071,7 +4069,7 @@ void ZEDWrapperNodelet::detectObjects(bool publishObj, bool publishViz) {
 
     size_t objCount = objects.object_list.size();
 
-    zed_interfaces::objects objMsg;
+    zed_interfaces::Objects objMsg;
 
     objMsg.objects.resize(objCount);
 

@@ -1,6 +1,14 @@
 LATEST CHANGES
 ==============
 
+New feature: zed_nodelets
+-------------------------
+- Added the new `zed_interfaces/RGBDSensors` custom topic that contains RGB, Depth, IMU and Magnetometer synchronized topics
+- Added a new package `zed_nodelets` that contains the main `zed_nodelets/ZEDWrapperNodelet` and new nodelets
+- Added a new nodelet `zed_nodelets/RgbdSensorsSyncNodelet` that subscribes to RGB, Depth, IMU and Magnetometer topics and republish them in a single synchronized message
+- Renamed `zed_interfaces/objects` to `zed_interfaces/Objects`
+- Renamed `zed_interfaces/object_stamped` to `zed_interfaces/ObjectStamped`
+
 v3.1
 -----
 - Added new package `zed_interfaces` with isolated declarations of custom messages, services and actions

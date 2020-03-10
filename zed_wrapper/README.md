@@ -31,7 +31,6 @@ The zed_ros_wrapper is a catkin package. It depends on the following ROS package
    - urdf
    - sensor_msgs
    - image_transport
-   - roslint
    - diagnostic_updater
    - dynamic_reconfigure
    - tf2_ros
