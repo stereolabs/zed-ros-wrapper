@@ -61,18 +61,49 @@ void RgbdSensorsSyncNodelet::onInit() {
     readParameters();
 
     if( mUseApproxSync ) {
+        NODELET_DEBUG( "Using Approximate Time sync");
+
         if( mUseImu && mUseMag ) {
+            NODELET_DEBUG("RGB + Depth + IMU + Magnetometer Sync" );
 
         } else if( mUseImu ) {
+            NODELET_DEBUG("RGB + Depth + IMU Sync" );
+
 
         } else if( mUseMag ) {
+            NODELET_DEBUG("RGB + Depth + Magnetometer Sync" );
+
 
         } else {
+            NODELET_DEBUG("RGB + Depth Sync" );
+
 
         }
 
     } else {
+        NODELET_DEBUG( "Using Exact Time sync");
 
+        if( mUseApproxSync ) {
+            NODELET_DEBUG( "Using Approximate Time sync");
+
+            if( mUseImu && mUseMag ) {
+                NODELET_DEBUG("RGB + Depth + IMU + Magnetometer Sync" );
+
+            } else if( mUseImu ) {
+                NODELET_DEBUG("RGB + Depth + IMU Sync" );
+
+
+            } else if( mUseMag ) {
+                NODELET_DEBUG("RGB + Depth + Magnetometer Sync" );
+
+
+            } else {
+                NODELET_DEBUG("RGB + Depth Sync" );
+
+
+            }
+
+        }
     }
 }
 
@@ -84,10 +115,10 @@ void RgbdSensorsSyncNodelet::readParameters() {
     mNhNs.param("sub_imu", mUseImu, mUseImu);
     mNhNs.param("sub_mag", mUseMag, mUseMag);
 
-    NODELET_INFO(" * approx_sync -> %s",, mUseApproxSync?"true":"false");
-    NODELET_INFO(" * queue_size  -> %d", getName().c_str(), mQueueSize);
-    NODELET_INFO(" * sub_imu -> %s", getName().c_str(), mUseImu?"true":"false");
-    NODELET_INFO(" * sub_mag -> %s", getName().c_str(), mUseMag?"true":"false");
+    NODELET_INFO(" * approx_sync -> %s", mUseApproxSync?"true":"false");
+    NODELET_INFO(" * queue_size  -> %d", mQueueSize);
+    NODELET_INFO(" * sub_imu -> %s", mUseImu?"true":"false");
+    NODELET_INFO(" * sub_mag -> %s", mUseMag?"true":"false");
 }
 
 }
