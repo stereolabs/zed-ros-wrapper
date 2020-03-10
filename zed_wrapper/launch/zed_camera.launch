@@ -27,6 +27,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Remote stream -->
     <arg name="stream"                default="" /> <!-- <arg name="stream" default="<ip_address>:<port>"> -->
 
+    <!-- Base frame -->
+    <arg name="base_frame"            default="base_link" />
+
     <!-- Publish ZED urdf -->
     <arg name="publish_urdf"          default="true" />
 
@@ -49,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                command="$(find xacro)/xacro '$(find zed_wrapper)/urdf/zed_descr.urdf.xacro'
                         camera_name:=$(arg camera_name)
                         camera_model:=$(arg camera_model)
+                        base_frame:=$(arg base_frame)
                         cam_pos_x:=$(arg cam_pos_x)
                         cam_pos_y:=$(arg cam_pos_y)
                         cam_pos_z:=$(arg cam_pos_z)
@@ -68,6 +72,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- Camera name -->
         <param name="general/camera_name"               value="$(arg camera_name)" />
+
+        <!-- Base frame -->
+        <param name="general/base_frame"                value="$(arg base_frame)" />
 
         <!-- SVO file path -->
         <param name="svo_file"                          value="$(arg svo_file)" />

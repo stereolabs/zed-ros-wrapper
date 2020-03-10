@@ -1,4 +1,4 @@
-﻿#ifndef ZED_WRAPPER_NODELET_H
+#ifndef ZED_WRAPPER_NODELET_H
 #define ZED_WRAPPER_NODELET_H
 
 ///////////////////////////////////////////////////////////////////////////
@@ -44,19 +44,19 @@
 #include <zed_wrapper/ZedConfig.h>
 
 // Services
-#include <zed_wrapper/reset_tracking.h>
-#include <zed_wrapper/set_pose.h>
-#include <zed_wrapper/reset_odometry.h>
-#include <zed_wrapper/start_svo_recording.h>
-#include <zed_wrapper/stop_svo_recording.h>
-#include <zed_wrapper/start_remote_stream.h>
-#include <zed_wrapper/stop_remote_stream.h>
-#include <zed_wrapper/set_led_status.h>
-#include <zed_wrapper/toggle_led.h>
-#include <zed_wrapper/start_3d_mapping.h>
-#include <zed_wrapper/stop_3d_mapping.h>
-#include <zed_wrapper/start_object_detection.h>
-#include <zed_wrapper/stop_object_detection.h>
+#include <zed_interfaces/reset_tracking.h>
+#include <zed_interfaces/set_pose.h>
+#include <zed_interfaces/reset_odometry.h>
+#include <zed_interfaces/start_svo_recording.h>
+#include <zed_interfaces/stop_svo_recording.h>
+#include <zed_interfaces/start_remote_stream.h>
+#include <zed_interfaces/stop_remote_stream.h>
+#include <zed_interfaces/set_led_status.h>
+#include <zed_interfaces/toggle_led.h>
+#include <zed_interfaces/start_3d_mapping.h>
+#include <zed_interfaces/stop_3d_mapping.h>
+#include <zed_interfaces/start_object_detection.h>
+#include <zed_interfaces/stop_object_detection.h>
 
 // Topics
 #include <nav_msgs/Odometry.h>
@@ -84,20 +84,21 @@ namespace zed_wrapper {
 class ZEDWrapperNodelet : public nodelet::Nodelet {
 
     typedef enum _dyn_params {
-        //MAT_RESIZE_FACTOR   = 0,
+        DATAPUB_FREQ        = 0,
         CONFIDENCE          = 1,
-        POINTCLOUD_FREQ     = 2,
-        BRIGHTNESS          = 3,
-        CONTRAST            = 4,
-        HUE                 = 5,
-        SATURATION          = 6,
-        SHARPNESS           = 7,
-        GAMMA               = 8,
-        AUTO_EXP_GAIN       = 9,
-        GAIN                = 10,
-        EXPOSURE            = 11,
-        AUTO_WB             = 12,
-        WB_TEMP             = 13
+        TEXTURE_CONF        = 2,        
+        POINTCLOUD_FREQ     = 3,
+        BRIGHTNESS          = 4,
+        CONTRAST            = 5,
+        HUE                 = 6,
+        SATURATION          = 7,
+        SHARPNESS           = 8,
+        GAMMA               = 9,
+        AUTO_EXP_GAIN       = 10,
+        GAIN                = 11,
+        EXPOSURE            = 12,
+        AUTO_WB             = 13,
+        WB_TEMP             = 14
     } DynParams;
 
 public:
@@ -237,15 +238,20 @@ protected:
          */
     void dynamicReconfCallback(zed_wrapper::ZedConfig& config, uint32_t level);
 
+    /* \brief Callback to publish Video and Depth data
+         * \param e : the ros::TimerEvent binded to the callback
+         */
+    void pubVideoDepthCallback(const ros::TimerEvent& e);
+
     /* \brief Callback to publish Path data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
-    void pathPubCallback(const ros::TimerEvent& e);
+    void pubPathCallback(const ros::TimerEvent& e);
 
     /* \brief Callback to publish Sensor Data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
-    void sensPubCallback(const ros::TimerEvent& e);
+    void pubSensCallback(const ros::TimerEvent& e);
 
     /* \brief Callback to update node diagnostic status
          * \param stat : node status
@@ -256,72 +262,72 @@ protected:
          * Tracking pose is reinitialized to the value available in the ROS Param
          * server
          */
-    bool on_reset_tracking(zed_wrapper::reset_tracking::Request&  req,
-                           zed_wrapper::reset_tracking::Response& res);
+    bool on_reset_tracking(zed_interfaces::reset_tracking::Request&  req,
+                           zed_interfaces::reset_tracking::Response& res);
 
     /* \brief Service callback to reset_odometry service
          *        Odometry is reset to clear drift and odometry frame gets the latest
          * pose
          *        from ZED tracking.
          */
-    bool on_reset_odometry(zed_wrapper::reset_odometry::Request&  req,
-                           zed_wrapper::reset_odometry::Response& res);
+    bool on_reset_odometry(zed_interfaces::reset_odometry::Request&  req,
+                           zed_interfaces::reset_odometry::Response& res);
 
     /* \brief Service callback to set_pose service
          *        Tracking pose is set to the new values
          */
-    bool on_set_pose(zed_wrapper::set_pose::Request& req,
-                     zed_wrapper::set_pose::Response& res);
+    bool on_set_pose(zed_interfaces::set_pose::Request& req,
+                     zed_interfaces::set_pose::Response& res);
 
     /* \brief Service callback to start_svo_recording service
          */
-    bool on_start_svo_recording(zed_wrapper::start_svo_recording::Request& req,
-                                zed_wrapper::start_svo_recording::Response& res);
+    bool on_start_svo_recording(zed_interfaces::start_svo_recording::Request& req,
+                                zed_interfaces::start_svo_recording::Response& res);
 
     /* \brief Service callback to stop_svo_recording service
          */
-    bool on_stop_svo_recording(zed_wrapper::stop_svo_recording::Request& req,
-                               zed_wrapper::stop_svo_recording::Response& res);
+    bool on_stop_svo_recording(zed_interfaces::stop_svo_recording::Request& req,
+                               zed_interfaces::stop_svo_recording::Response& res);
 
     /* \brief Service callback to start_remote_stream service
          */
-    bool on_start_remote_stream(zed_wrapper::start_remote_stream::Request& req,
-                                zed_wrapper::start_remote_stream::Response& res);
+    bool on_start_remote_stream(zed_interfaces::start_remote_stream::Request& req,
+                                zed_interfaces::start_remote_stream::Response& res);
 
     /* \brief Service callback to stop_remote_stream service
          */
-    bool on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
-                               zed_wrapper::stop_remote_stream::Response& res);
+    bool on_stop_remote_stream(zed_interfaces::stop_remote_stream::Request& req,
+                               zed_interfaces::stop_remote_stream::Response& res);
 
     /* \brief Service callback to set_led_status service
          */
-    bool on_set_led_status(zed_wrapper::set_led_status::Request& req,
-                           zed_wrapper::set_led_status::Response& res);
+    bool on_set_led_status(zed_interfaces::set_led_status::Request& req,
+                           zed_interfaces::set_led_status::Response& res);
 
     /* \brief Service callback to toggle_led service
          */
-    bool on_toggle_led(zed_wrapper::toggle_led::Request& req,
-                       zed_wrapper::toggle_led::Response& res);
+    bool on_toggle_led(zed_interfaces::toggle_led::Request& req,
+                       zed_interfaces::toggle_led::Response& res);
 
     /* \brief Service callback to start_3d_mapping service
          */
-    bool on_start_3d_mapping(zed_wrapper::start_3d_mapping::Request& req,
-                             zed_wrapper::start_3d_mapping::Response& res);
+    bool on_start_3d_mapping(zed_interfaces::start_3d_mapping::Request& req,
+                             zed_interfaces::start_3d_mapping::Response& res);
 
     /* \brief Service callback to stop_3d_mapping service
          */
-    bool on_stop_3d_mapping(zed_wrapper::stop_3d_mapping::Request& req,
-                            zed_wrapper::stop_3d_mapping::Response& res);
+    bool on_stop_3d_mapping(zed_interfaces::stop_3d_mapping::Request& req,
+                            zed_interfaces::stop_3d_mapping::Response& res);
 
     /* \brief Service callback to start_object_detection service
          */
-    bool on_start_object_detection(zed_wrapper::start_object_detection::Request& req,
-                             zed_wrapper::start_object_detection::Response& res);
+    bool on_start_object_detection(zed_interfaces::start_object_detection::Request& req,
+                             zed_interfaces::start_object_detection::Response& res);
 
     /* \brief Service callback to stop_object_detection service
          */
-    bool on_stop_object_detection(zed_wrapper::stop_object_detection::Request& req,
-                            zed_wrapper::stop_object_detection::Response& res);
+    bool on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
+                            zed_interfaces::stop_object_detection::Response& res);
 
     /* \brief Utility to initialize the pose variables
          */
@@ -408,6 +414,12 @@ private:
     image_transport::Publisher mPubStereo;
     image_transport::Publisher mPubRawStereo;
 
+    image_transport::CameraPublisher mPubRgbGray;
+    image_transport::CameraPublisher mPubRawRgbGray;
+    image_transport::CameraPublisher mPubLeftGray;
+    image_transport::CameraPublisher mPubRawLeftGray;
+    image_transport::CameraPublisher mPubRightGray;
+    image_transport::CameraPublisher mPubRawRightGray;
 
     ros::Publisher mPubConfMap; //
     ros::Publisher mPubDisparity; //
@@ -422,15 +434,17 @@ private:
     ros::Publisher mPubImuRaw;
     ros::Publisher mPubImuTemp;
     ros::Publisher mPubImuMag;
-    ros::Publisher mPubImuMagRaw;
+    //ros::Publisher mPubImuMagRaw;
     ros::Publisher mPubPressure;
     ros::Publisher mPubTempL;
     ros::Publisher mPubTempR;
+    ros::Publisher mPubCamImuTransf;
 
     // Timers
     ros::Timer mImuTimer;
     ros::Timer mPathTimer;
     ros::Timer mFusedPcTimer;
+    ros::Timer mVideoDepthTimer;
 
     // Services
     ros::ServiceServer mSrvSetInitPose;
@@ -454,7 +468,7 @@ private:
     sensor_msgs::CameraInfoPtr mRgbCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mLeftCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mRightCamInfoRawMsg;
-    sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;
+    sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;    
 
     // ROS TF
     tf2_ros::TransformBroadcaster mTransformPoseBroadcaster;
@@ -476,17 +490,21 @@ private:
     std::string mCloudFrameId;
     std::string mPointCloudFrameId;
 
-    std::string mWorldFrameId;
     std::string mMapFrameId;
     std::string mOdometryFrameId;
     std::string mBaseFrameId;
-    std::string mCameraFrameId;
+    std::string mCameraFrameId;    
 
     std::string mRightCamFrameId;
     std::string mRightCamOptFrameId;
     std::string mLeftCamFrameId;
     std::string mLeftCamOptFrameId;
     std::string mImuFrameId;
+
+    std::string mBaroFrameId;
+    std::string mMagFrameId;
+    std::string mTempLeftFrameId;
+    std::string mTempRightFrameId;
 
     bool mPublishTf;
     bool mPublishMapTf;
@@ -502,7 +520,7 @@ private:
     int mGpuId;
     int mZedId;
     int mDepthStabilization;
-    std::string mOdometryDb;
+    std::string mAreaMemDbPath;
     std::string mSvoFilepath;
     std::string mRemoteStreamAddr;
     double mSensPubRate = 400.0;
@@ -579,7 +597,10 @@ private:
     int mCamWB          = 4200;
 
     int mCamDepthConfidence = 50;
+    int mCamDepthTextureConf = 100;
+
     double mPointCloudFreq = 15.;
+    double mVideoDepthFreq = 15.;
 
     double mCamImageResizeFactor = 1.0;
     double mCamDepthResizeFactor = 1.0;
@@ -593,8 +614,10 @@ private:
     bool mAreaMemory;
     bool mInitOdomWithPose;
     bool mResetOdom = false;
-    bool mPublishPoseCovariance = true;
+    bool mUseOldExtrinsic = false;
     bool mUpdateDynParams = false;
+    bool mPublishingData = false;
+
 
     // SVO recording
     bool mRecording = false;
@@ -638,6 +661,7 @@ private:
     float mTempRight = -273.15f;
     std::unique_ptr<sl_tools::CSmartMean> mElabPeriodMean_sec;
     std::unique_ptr<sl_tools::CSmartMean> mGrabPeriodMean_usec;
+    std::unique_ptr<sl_tools::CSmartMean> mVideoDepthPeriodMean_sec;
     std::unique_ptr<sl_tools::CSmartMean> mPcPeriodMean_usec;
     std::unique_ptr<sl_tools::CSmartMean> mSensPeriodMean_usec;
     std::unique_ptr<sl_tools::CSmartMean> mObjDetPeriodMean_msec;
@@ -651,7 +675,7 @@ private:
     sensor_msgs::ImuPtr mImuMsg;
     sensor_msgs::ImuPtr mImuRawMsg;
     sensor_msgs::MagneticFieldPtr mMagMsg;
-    sensor_msgs::MagneticFieldPtr mMagRawMsg;
+    //sensor_msgs::MagneticFieldPtr mMagRawMsg;
     sensor_msgs::TemperaturePtr mTempLeftMsg;
     sensor_msgs::TemperaturePtr mTempRightMsg;
     sensor_msgs::TemperaturePtr mImuTempMsg;
@@ -662,6 +686,12 @@ private:
     sensor_msgs::ImagePtr mRawRightImgMsg;
     sensor_msgs::ImagePtr mRgbImgMsg;
     sensor_msgs::ImagePtr mRawRgbImgMsg;
+    sensor_msgs::ImagePtr mLeftGrayImgMsg;
+    sensor_msgs::ImagePtr mRawLeftGrayImgMsg;
+    sensor_msgs::ImagePtr mRightGrayImgMsg;
+    sensor_msgs::ImagePtr mRawRightGrayImgMsg;
+    sensor_msgs::ImagePtr mRgbGrayImgMsg;
+    sensor_msgs::ImagePtr mRawRgbGrayImgMsg;
     sensor_msgs::ImagePtr mConfImgMsg;
     sensor_msgs::ImagePtr mConfMapMsg;
     sensor_msgs::ImagePtr mStereoImgMsg;
@@ -669,6 +699,9 @@ private:
     sensor_msgs::ImagePtr mDepthImgMsg;
     sensor_msgs::ImagePtr mDisparityImgMsg;
     stereo_msgs::DisparityImagePtr mDisparityMsg;
+
+    geometry_msgs::TransformPtr mCameraImuTransfMgs;
+    sl::Transform mSlCamImuTransf;
 
     // Spatial mapping
     bool mMappingEnabled;
