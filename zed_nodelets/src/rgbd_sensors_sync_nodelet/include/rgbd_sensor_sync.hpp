@@ -34,6 +34,9 @@
 #include <message_filters/sync_policies/exact_time.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
+#include <image_transport/image_transport.h>
+#include <image_transport/subscriber_filter.h>
+
 #include "zed_interfaces/RGBDSensors.h"
 
 namespace zed_nodelets {
@@ -46,17 +49,27 @@ public:
 
 protected:
     /* \brief Initialization function called by the Nodelet base class
-         */
+     */
     virtual void onInit();
 
     /* \brief Reads parameters from the param server
-         */
+     */
     void readParameters();
+
+    /* \brief Callback for full topics synchronization
+     */
+    void callbackFull(
+            const sensor_msgs::ImageConstPtr& rgb,
+            const sensor_msgs::ImageConstPtr& depth,
+            const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
+            const sensor_msgs::CameraInfoConstPtr& depthCameraInfo,
+            const sensor_msgs::ImuConstPtr& imu,
+            const sensor_msgs::MagneticFieldConstPtr& mag );
 
 private:
     // Node handlers
     ros::NodeHandle mNh;    // Node handler
-    ros::NodeHandle mNhNs;  // Private Node handler
+    ros::NodeHandle mNhP;  // Private Node handler
 
     // Output message
     zed_interfaces::RGBDSensorsPtr mOutSyncMsg; // Output message
@@ -70,8 +83,8 @@ private:
     sensor_msgs::ImuPtr mInMagMsg;              // Input Magnetometer message
 
     // Subscribers
-    message_filters::Subscriber<sensor_msgs::Image> mSubRgbImage;
-    message_filters::Subscriber<sensor_msgs::Image> mSubDepthImage;
+    image_transport::SubscriberFilter mSubRgbImage;
+    image_transport::SubscriberFilter mSubDepthImage;
     message_filters::Subscriber<sensor_msgs::CameraInfo> mSubRgbCamInfo;
     message_filters::Subscriber<sensor_msgs::CameraInfo> mSubDepthCamInfo;
     message_filters::Subscriber<sensor_msgs::Imu> mSubImu;
@@ -94,10 +107,11 @@ private:
     message_filters::Synchronizer<ExactRgbdSyncPolicy>* mExactRgbdSync = nullptr;
 
     // Params
+    std::string mZedNodeletName = "zed_node";
     bool mUseApproxSync = true;
     bool mUseImu = true;
     bool mUseMag = true;
-    int mQueueSize = 10;
+    int mQueueSize = 50;
 };
 
 }
