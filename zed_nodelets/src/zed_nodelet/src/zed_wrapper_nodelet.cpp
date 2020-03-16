@@ -219,7 +219,7 @@ void ZEDWrapperNodelet::onInit() {
     }
 
     mZedParams.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
-    NODELET_INFO_STREAM(" * Camera coordinate system\t-> COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD");
+    NODELET_INFO_STREAM(" * Camera coordinate system\t-> " << sl::toString(mZedParams.coordinate_system));
 
     mZedParams.coordinate_units = sl::UNIT::METER;
     mZedParams.depth_mode = static_cast<sl::DEPTH_MODE>(mDepthMode);
@@ -720,14 +720,13 @@ void ZEDWrapperNodelet::readParameters() {
 
     if (mObjDetEnabled) {
         NODELET_INFO_STREAM(" * Object Detection\t\t-> ENABLED");
-
         mNhNs.getParam("object_detection/confidence_threshold", mObjDetConfidence);
         NODELET_INFO_STREAM(" * Object confidence\t\t-> " << mObjDetConfidence);
-        mNhNs.getParam("mObjDetEnable/object_tracking_enabled", mObjDetTracking);
+        mNhNs.getParam("object_detection/object_tracking_enabled", mObjDetTracking);
         NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking?"ENABLED":"DISABLED"));
-        mNhNs.getParam("mObjDetEnable/people_detection", mObjDetPeople);
+        mNhNs.getParam("object_detection/people_detection", mObjDetPeople);
         NODELET_INFO_STREAM(" * People detection\t\t-> " << (mObjDetPeople?"ENABLED":"DISABLED"));
-        mNhNs.getParam("mObjDetEnable/vehicle_detection", mObjDetVehicles);
+        mNhNs.getParam("object_detection/vehicle_detection", mObjDetVehicles);
         NODELET_INFO_STREAM(" * Vehicles detection\t\t-> " << (mObjDetVehicles?"ENABLED":"DISABLED"));
     } else {
         NODELET_INFO_STREAM(" * Object Detection\t\t-> DISABLED");
@@ -1372,6 +1371,8 @@ bool ZEDWrapperNodelet::start_obj_detect() {
     if(mObjDetVehicles) {
         mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
     }
+
+
 
     mObjDetRunning = true;
     return false;

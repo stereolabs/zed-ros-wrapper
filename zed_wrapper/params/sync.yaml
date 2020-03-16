@@ -1,0 +1,9 @@
+# params/sync.yaml
+# Parameters for the nodelet zed_nodelets/RgbdSensorsSyncNodelet
+---
+
+zed_nodelet_name:   'zed_node'      # Default name of the ZEDWrapperNodelet publishing topics (normally overwritten in launch file)
+approx_sync:        true            # Use approximate synchronization for the input topics. If `false` all the message must have the same timestamp, this is almost impossible if subscribing also to IMU and Magnetometer topics and the parameter `sensors_timestamp_sync` is false in the ZED nodelet
+queue_size:         600             # Size of message queue for each synchronized topic (more than 1 second of buffer for IMU data)
+sub_imu:            true            # Synchronize IMU messages
+sub_mag:            true            # Synchronize Magnetometer messages

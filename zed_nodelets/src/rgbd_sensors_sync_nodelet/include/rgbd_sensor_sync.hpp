@@ -66,21 +66,39 @@ protected:
             const sensor_msgs::ImuConstPtr& imu,
             const sensor_msgs::MagneticFieldConstPtr& mag );
 
+    /* \brief Callback for RGBD topics synchronization
+     */
+    void callbackRGBD(
+            const sensor_msgs::ImageConstPtr& rgb,
+            const sensor_msgs::ImageConstPtr& depth,
+            const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
+            const sensor_msgs::CameraInfoConstPtr& depthCameraInfo );
+
+    /* \brief Callback for RGBD + IMU topics synchronization
+     */
+    void callbackRGBDIMU(
+            const sensor_msgs::ImageConstPtr& rgb,
+            const sensor_msgs::ImageConstPtr& depth,
+            const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
+            const sensor_msgs::CameraInfoConstPtr& depthCameraInfo,
+            const sensor_msgs::ImuConstPtr& imu);
+
+    /* \brief Callback for RGBD + Mag topics synchronization
+     */
+    void callbackRGBDMag(
+            const sensor_msgs::ImageConstPtr& rgb,
+            const sensor_msgs::ImageConstPtr& depth,
+            const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
+            const sensor_msgs::CameraInfoConstPtr& depthCameraInfo,
+            const sensor_msgs::MagneticFieldConstPtr& mag );
+
 private:
     // Node handlers
     ros::NodeHandle mNh;    // Node handler
     ros::NodeHandle mNhP;  // Private Node handler
 
-    // Output message
-    zed_interfaces::RGBDSensorsPtr mOutSyncMsg; // Output message
-
-    // Input messages
-    sensor_msgs::ImagePtr mInRgbImgMsg;         // Input RGB image message
-    sensor_msgs::ImagePtr mInDepthImgMsg;       // Input Depth image message
-    sensor_msgs::ImagePtr mInRgbCamInfoMsg;     // Input RGB Camera Info message
-    sensor_msgs::ImagePtr mInDepthCamInfoMsg;   // Input Depth Camera Info message
-    sensor_msgs::ImuPtr mInImuMsg;              // Input IMU message
-    sensor_msgs::ImuPtr mInMagMsg;              // Input Magnetometer message
+    // Publishers
+    ros::Publisher mPubRaw;
 
     // Subscribers
     image_transport::SubscriberFilter mSubRgbImage;
@@ -93,17 +111,21 @@ private:
     // Approx sync policies
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::CameraInfo, sensor_msgs::Imu, sensor_msgs::MagneticField> ApproxFullSyncPolicy;
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::CameraInfo, sensor_msgs::Imu> ApproxRgbdImuSyncPolicy;
+    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::CameraInfo, sensor_msgs::MagneticField> ApproxRgbdMagSyncPolicy;
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::CameraInfo> ApproxRgbdSyncPolicy;
     message_filters::Synchronizer<ApproxFullSyncPolicy>* mApproxFullSync = nullptr;
     message_filters::Synchronizer<ApproxRgbdImuSyncPolicy>* mApproxRgbdImuSync = nullptr;
+    message_filters::Synchronizer<ApproxRgbdMagSyncPolicy>* mApproxRgbdMagSync = nullptr;
     message_filters::Synchronizer<ApproxRgbdSyncPolicy>* mApproxRgbdSync = nullptr;
 
     // Exact sync policies
     typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::CameraInfo, sensor_msgs::Imu, sensor_msgs::MagneticField> ExactFullSyncPolicy;
     typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::CameraInfo, sensor_msgs::Imu> ExactRgbdImuSyncPolicy;
+    typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::CameraInfo, sensor_msgs::MagneticField> ExactRgbdMagSyncPolicy;
     typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::CameraInfo> ExactRgbdSyncPolicy;
     message_filters::Synchronizer<ExactFullSyncPolicy>* mExactFullSync = nullptr;
     message_filters::Synchronizer<ExactRgbdImuSyncPolicy>* mExactRgbdImuSync = nullptr;
+    message_filters::Synchronizer<ExactRgbdMagSyncPolicy>* mExactRgbdMagSync = nullptr;
     message_filters::Synchronizer<ExactRgbdSyncPolicy>* mExactRgbdSync = nullptr;
 
     // Params
