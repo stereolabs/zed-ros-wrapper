@@ -457,6 +457,7 @@ private:
     ros::ServiceServer mSrvStartObjDet;
     ros::ServiceServer mSrvStopObjDet;
 
+    // ----> Topics (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
     // Camera info
     sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
     sensor_msgs::CameraInfoPtr mLeftCamInfoMsg;
@@ -464,7 +465,11 @@ private:
     sensor_msgs::CameraInfoPtr mRgbCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mLeftCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mRightCamInfoRawMsg;
-    sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;    
+    sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;
+
+    // Camera IMU transform
+    geometry_msgs::TransformPtr mCameraImuTransfMgs;
+    // <---- Topics
 
     // ROS TF
     tf2_ros::TransformBroadcaster mTransformPoseBroadcaster;
@@ -546,7 +551,7 @@ private:
     ros::Time mPrevFrameTimestamp;
     ros::Time mFrameTimestamp;
 
-    //Tracking variables
+    // Positional Tracking variables
     sl::Pose mLastZedPose; // Sensor to Map transform
     sl::Transform mInitialPoseSl;
     std::vector<float> mInitialBasePose;
@@ -640,10 +645,8 @@ private:
     bool mPcDataReady;
 
     // Point cloud variables
-    sl::Mat mCloud;
-    sensor_msgs::PointCloud2Ptr mPointcloudMsg;
-    sl::FusedPointCloud mFusedPC;
-    sensor_msgs::PointCloud2Ptr mPointcloudFusedMsg;
+    sl::Mat mCloud;    
+    sl::FusedPointCloud mFusedPC;    
     ros::Time mPointCloudTime;
 
     // Dynamic reconfigure
@@ -662,39 +665,7 @@ private:
 
     diagnostic_updater::Updater mDiagUpdater; // Diagnostic Updater
 
-    // Messages as shared pointers to exploit Intraprocess communication advantages
-    // (http://wiki.ros.org/roscpp/Overview/Publishers%20and%20Subscribers#Intraprocess_Publishing)
-    nav_msgs::OdometryPtr mOdomMsg;
-    geometry_msgs::PoseWithCovarianceStampedPtr mPoseCovMsg;
-    sensor_msgs::ImuPtr mImuMsg;
-    sensor_msgs::ImuPtr mImuRawMsg;
-    sensor_msgs::MagneticFieldPtr mMagMsg;
-    //sensor_msgs::MagneticFieldPtr mMagRawMsg;
-    sensor_msgs::TemperaturePtr mTempLeftMsg;
-    sensor_msgs::TemperaturePtr mTempRightMsg;
-    sensor_msgs::TemperaturePtr mImuTempMsg;
-    sensor_msgs::FluidPressurePtr mPressMsg;
-    sensor_msgs::ImagePtr mLeftImgMsg;
-    sensor_msgs::ImagePtr mRawLeftImgMsg;
-    sensor_msgs::ImagePtr mRightImgMsg;
-    sensor_msgs::ImagePtr mRawRightImgMsg;
-    sensor_msgs::ImagePtr mRgbImgMsg;
-    sensor_msgs::ImagePtr mRawRgbImgMsg;
-    sensor_msgs::ImagePtr mLeftGrayImgMsg;
-    sensor_msgs::ImagePtr mRawLeftGrayImgMsg;
-    sensor_msgs::ImagePtr mRightGrayImgMsg;
-    sensor_msgs::ImagePtr mRawRightGrayImgMsg;
-    sensor_msgs::ImagePtr mRgbGrayImgMsg;
-    sensor_msgs::ImagePtr mRawRgbGrayImgMsg;
-    sensor_msgs::ImagePtr mConfImgMsg;
-    sensor_msgs::ImagePtr mConfMapMsg;
-    sensor_msgs::ImagePtr mStereoImgMsg;
-    sensor_msgs::ImagePtr mRawStereoImgMsg;
-    sensor_msgs::ImagePtr mDepthImgMsg;
-    sensor_msgs::ImagePtr mDisparityImgMsg;
-    stereo_msgs::DisparityImagePtr mDisparityMsg;
-
-    geometry_msgs::TransformPtr mCameraImuTransfMgs;
+    // Camera IMU transform
     sl::Transform mSlCamImuTransf;
 
     // Spatial mapping
