@@ -50,11 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="nodelet_manager_name"  default="$(arg camera_name)_nodelet_manager" />
 
     <group ns="$(arg camera_name)">
-        <!-- Nodelet Manager 1-->
+        <!-- Nodelet Manager -->
         <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen" />
-
-        <!-- Nodelet Manager 2-->
-        <node pkg="nodelet" type="nodelet" name="sync_nodelet_manager"  args="manager" output="screen" />
 
         <!-- ROS URDF description of the ZED -->
         <group if="$(arg publish_urdf)">
@@ -77,7 +74,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         </group>
 
         <!-- Start zed_nodelets/RgbdSensorsSyncNodelet -->
-        <node pkg="nodelet" type="nodelet" name="$(arg node_name)_sync" args="load zed_nodelets/RgbdSensorsSyncNodelet sync_nodelet_manager" output="screen">
+        <node pkg="nodelet" type="nodelet" name="$(arg node_name)_sync" args="load zed_nodelets/RgbdSensorsSyncNodelet $(arg nodelet_manager_name)" output="screen">
             <rosparam file="$(find zed_wrapper)/params/sync.yaml" command="load" />
 
             <!-- ZED Nodelet Name -->

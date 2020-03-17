@@ -54,8 +54,8 @@ RgbdSensorsSyncNodelet::~RgbdSensorsSyncNodelet() {
 
 void RgbdSensorsSyncNodelet::onInit() {
     // Node handlers
-    mNh = getMTNodeHandle();
-    mNhP = getMTPrivateNodeHandle();
+    mNh = getNodeHandle();
+    mNhP = getPrivateNodeHandle();
 
 #ifndef NDEBUG
     if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,
