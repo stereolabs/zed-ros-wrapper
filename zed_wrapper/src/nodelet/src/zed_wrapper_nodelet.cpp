@@ -721,11 +721,11 @@ void ZEDWrapperNodelet::readParameters() {
 
         mNhNs.getParam("object_detection/confidence_threshold", mObjDetConfidence);
         NODELET_INFO_STREAM(" * Object confidence\t\t-> " << mObjDetConfidence);
-        mNhNs.getParam("mObjDetEnable/object_tracking_enabled", mObjDetTracking);
+        mNhNs.getParam("object_detection/object_tracking_enabled", mObjDetTracking);
         NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking?"ENABLED":"DISABLED"));
-        mNhNs.getParam("mObjDetEnable/people_detection", mObjDetPeople);
+        mNhNs.getParam("object_detection/people_detection", mObjDetPeople);
         NODELET_INFO_STREAM(" * People detection\t\t-> " << (mObjDetPeople?"ENABLED":"DISABLED"));
-        mNhNs.getParam("mObjDetEnable/vehicle_detection", mObjDetVehicles);
+        mNhNs.getParam("object_detection/vehicle_detection", mObjDetVehicles);
         NODELET_INFO_STREAM(" * Vehicles detection\t\t-> " << (mObjDetVehicles?"ENABLED":"DISABLED"));
     } else {
         NODELET_INFO_STREAM(" * Object Detection\t\t-> DISABLED");
@@ -1015,7 +1015,7 @@ bool ZEDWrapperNodelet::getCamera2BaseTransform() {
                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
     } catch (tf2::TransformException& ex) {
-        NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+        NODELET_DEBUG_THROTTLE(1.0, "[getCamera2BaseTransform] Transform error: %s", ex.what());
         NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
                               mCameraFrameId.c_str(), mBaseFrameId.c_str());
         NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of an instance "
@@ -1058,7 +1058,7 @@ bool ZEDWrapperNodelet::getSens2CameraTransform() {
         NODELET_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
     } catch (tf2::TransformException& ex) {
-        NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+        NODELET_DEBUG_THROTTLE(1.0, "[getSens2CameraTransform] Transform error: %s", ex.what());
         NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
                               mDepthFrameId.c_str(), mCameraFrameId.c_str());
         NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of an instance "
@@ -1102,7 +1102,7 @@ bool ZEDWrapperNodelet::getSens2BaseTransform() {
                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
     } catch (tf2::TransformException& ex) {
-        NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+        NODELET_DEBUG_THROTTLE(1.0, "[getSens2BaseTransform] Transform error: %s", ex.what());
         NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
                               mDepthFrameId.c_str(), mBaseFrameId.c_str());
         NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of an instance "
@@ -1321,6 +1321,11 @@ bool ZEDWrapperNodelet::start_obj_detect() {
     }
 
     if(!mObjDetEnabled) {
+        return false;
+    }
+
+    if( !mCamera2BaseTransfValid || !mSensor2CameraTransfValid || !mSensor2BaseTransfValid) {
+        NODELET_DEBUG( "Tracking transforms not yet ready, OD starting postponed");
         return false;
     }
 
@@ -2598,10 +2603,6 @@ void ZEDWrapperNodelet::pubPathCallback(const ros::TimerEvent& e) {
 
 void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
 
-    if (mStreaming) {
-        return;
-    }
-
     std::lock_guard<std::mutex> lock(mCloseZedMutex);
 
     if (!mZed.isOpened()) {
@@ -2939,7 +2940,7 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
             // Get the TF2 transformation
             tf2::fromMsg(c2p.transform, cam_to_pose);
         } catch (tf2::TransformException& ex) {
-            NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+            NODELET_DEBUG_THROTTLE(1.0, "[pubSensCallback] Transform error: %s", ex.what());
             NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
                                   mCameraFrameId.c_str(), mMapFrameId.c_str());
             NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of an instance "

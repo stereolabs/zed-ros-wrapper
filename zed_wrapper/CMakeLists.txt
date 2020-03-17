@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 2.8.7)
 
 project(zed_wrapper)
 
+#Fix for QtCretor
+list(APPEND CMAKE_PREFIX_PATH "/opt/ros/$ENV{ROS_DISTRO}/")
+
 # if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
 IF(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release)
