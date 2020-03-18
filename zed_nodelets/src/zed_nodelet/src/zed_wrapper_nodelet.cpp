@@ -1700,7 +1700,7 @@ void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t) {
     disparityMsg->T = zedParam.calibration_parameters.T.x;
 #else
     disparityMsg->f = zedParam.camera_configuration.calibration_parameters.left_cam.fx;
-    disparityMsg->T = zedParam.calibration_parameters.getCameraBaseline();
+    disparityMsg->T = zedParam.camera_configuration.calibration_parameters.getCameraBaseline();
 #endif
 
     if (disparityMsg->T > 0) {
