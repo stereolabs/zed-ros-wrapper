@@ -17,50 +17,62 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 <launch>
-    <!-- Camera Model and Name -->
+    <!-- Camera Model and Name -->    
     <arg name="camera_name"           default="zed" /> <!-- The name you want -->
     <arg name="camera_model"          default="zed" /> <!-- 'zed' or 'zedm' or 'zed2' -->
+    <arg name="node_name"             default="zed_node" />
 
     <!-- Load SVO file -->
     <arg name="svo_file"              default="" /><!-- <arg name="svo_file" default="path/to/svo/file.svo"> -->
-
     <!-- Remote stream -->
     <arg name="stream"                default="" /> <!-- <arg name="stream" default="<ip_address>:<port>"> -->
 
+    <!-- Base frame -->
+    <arg name="base_frame"            default="base_link" />
 
     <!-- Publish ZED urdf -->
     <arg name="publish_urdf"          default="true" />
 
+    <arg name="camera_id"             default="0" />
+    <arg name="gpu_id"                default="-1" />
+
+    <!-- Position respect to base frame (i.e. "base_link) -->
+    <arg name="cam_pos_x"             default="0.0" />
+    <arg name="cam_pos_y"             default="0.0" />
+    <arg name="cam_pos_z"             default="0.0" />
+
+    <!-- Orientation respect to base frame (i.e. "base_link) -->
+    <arg name="cam_roll"              default="0.0" />
+    <arg name="cam_pitch"             default="0.0" />
+    <arg name="cam_yaw"               default="0.0" />
+
+    <!-- NOTE: THE NODELET MANAGER MUST BE STARTED EXTERNALLY. SEE "zed_nodelet_example" -->
+
+    <!-- Name of the Nodelet Manager -->
     <arg name="nodelet_manager_name"  default="zed_nodelet_manager" />
-    <arg name="node_name"             default="zed_node" />
 
-    <group ns="$(arg camera_name)">
-        <!-- Nodelet Manager -->
-        <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen" />
+    <!-- ROS URDF description of the ZED -->
+    <group if="$(arg publish_urdf)">
+        <param name="$(arg camera_name)_description"
+               command="$(find xacro)/xacro '$(find zed_wrapper)/urdf/zed_descr.urdf.xacro'
+                        camera_name:=$(arg camera_name)
+                        camera_model:=$(arg camera_model)"
+        />
 
-        <!-- ROS URDF description of the ZED -->
-        <group if="$(arg publish_urdf)">
-            <param name="zed_description"
-                   command="$(find xacro)/xacro '$(find zed_wrapper)/urdf/zed_descr.urdf.xacro'
-                            camera_name:=$(arg camera_name)
-                            camera_model:=$(arg camera_model)"
-            />
-
-            <node name="zed_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" required="true">
-                <remap from="robot_description" to="zed_description" />
-            </node>
-        </group>
-
-        <node pkg="nodelet" type="nodelet" name="$(arg node_name)" args="load zed_nodelets/ZEDWrapperNodelet $(arg nodelet_manager_name)" output="screen">
-            <rosparam file="$(find zed_wrapper)/params/common.yaml" command="load" />
-            <rosparam file="$(find zed_wrapper)/params/$(arg camera_model).yaml" command="load" />
-
-            <!-- Camera name -->
-            <param name="general/camera_name"       value="$(arg camera_name)" />
-            <!-- SVO file path -->
-            <param name="svo_file"                  value="$(arg svo_file)" />
-            <!-- Remote stream -->
-            <param name="stream"                    value="$(arg stream)" />
+        <node name="$(arg camera_name)_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" required="true">
+            <remap from="robot_description" to="$(arg camera_name)_description" />
         </node>
     </group>
+
+    <node pkg="nodelet" type="nodelet" name="$(arg node_name)" args="load zed_nodelets/ZEDWrapperNodelet $(arg nodelet_manager_name)" output="screen">
+        <rosparam file="$(find zed_wrapper)/params/common.yaml" command="load" />
+        <rosparam file="$(find zed_wrapper)/params/$(arg camera_model).yaml" command="load" />
+
+        <!-- Camera name -->
+        <param name="general/camera_name"       value="$(arg camera_name)" />
+        <!-- SVO file path -->
+        <param name="svo_file"                  value="$(arg svo_file)" />
+        <!-- Remote stream -->
+        <param name="stream"                    value="$(arg stream)" />
+    </node>
 </launch>

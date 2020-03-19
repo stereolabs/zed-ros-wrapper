@@ -61,8 +61,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         cam_yaw:=$(arg cam_yaw)"
         />
 
-        <node name="zed_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" required="true">
-            <remap from="robot_description" to="zed_description" />
+        <node name="$(arg camera_name)_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" required="true">
+            <remap from="robot_description" to="$(arg camera_name)_description" />
         </node>
     </group>
 
