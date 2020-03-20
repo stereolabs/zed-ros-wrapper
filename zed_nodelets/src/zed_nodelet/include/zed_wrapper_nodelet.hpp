@@ -21,10 +21,6 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-/****************************************************************************************************
- ** This sample is a wrapper for the ZED library in order to use the ZED Camera with ROS.          **
- ** A set of parameters can be specified in the launch file.                                       **
- ****************************************************************************************************/
 #include "sl_tools.h"
 
 #include <sl/Camera.hpp>
@@ -41,7 +37,7 @@
 #include <diagnostic_updater/diagnostic_updater.h>
 
 // Dynamic reconfiguration
-#include <zed_wrapper/ZedConfig.h>
+#include <zed_nodelets/ZedConfig.h>
 
 // Services
 #include <zed_interfaces/reset_tracking.h>
@@ -79,7 +75,7 @@
 
 using namespace std;
 
-namespace zed_wrapper {
+namespace zed_nodelets {
 
 class ZEDWrapperNodelet : public nodelet::Nodelet {
 
@@ -236,7 +232,7 @@ protected:
 
     /* \brief Callback to handle dynamic reconfigure events in ROS
          */
-    void dynamicReconfCallback(zed_wrapper::ZedConfig& config, uint32_t level);
+    void dynamicReconfCallback(zed_nodelets::ZedConfig& config, uint32_t level);
 
     /* \brief Callback to publish Video and Depth data
          * \param e : the ros::TimerEvent binded to the callback
@@ -461,6 +457,7 @@ private:
     ros::ServiceServer mSrvStartObjDet;
     ros::ServiceServer mSrvStopObjDet;
 
+    // ----> Topics (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
     // Camera info
     sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
     sensor_msgs::CameraInfoPtr mLeftCamInfoMsg;
@@ -469,6 +466,9 @@ private:
     sensor_msgs::CameraInfoPtr mLeftCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mRightCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;    
+
+    geometry_msgs::TransformPtr mCameraImuTransfMgs;
+    // <---- Topics
 
     // ROS TF
     tf2_ros::TransformBroadcaster mTransformPoseBroadcaster;
@@ -550,7 +550,7 @@ private:
     ros::Time mPrevFrameTimestamp;
     ros::Time mFrameTimestamp;
 
-    //Tracking variables
+    // Positional Tracking variables
     sl::Pose mLastZedPose; // Sensor to Map transform
     sl::Transform mInitialPoseSl;
     std::vector<float> mInitialBasePose;
@@ -598,7 +598,6 @@ private:
 
     int mCamDepthConfidence = 50;
     int mCamDepthTextureConf = 100;
-
     double mPointCloudFreq = 15.;
     double mVideoDepthFreq = 15.;
 
@@ -617,7 +616,6 @@ private:
     bool mUseOldExtrinsic = false;
     bool mUpdateDynParams = false;
     bool mPublishingData = false;
-
 
     // SVO recording
     bool mRecording = false;
@@ -646,15 +644,13 @@ private:
     bool mPcDataReady;
 
     // Point cloud variables
-    sl::Mat mCloud;
-    sensor_msgs::PointCloud2Ptr mPointcloudMsg;
-    sl::FusedPointCloud mFusedPC;
-    sensor_msgs::PointCloud2Ptr mPointcloudFusedMsg;
+    sl::Mat mCloud;    
+    sl::FusedPointCloud mFusedPC;    
     ros::Time mPointCloudTime;
 
     // Dynamic reconfigure
     boost::recursive_mutex mDynServerMutex; // To avoid Dynamic Reconfigure Server warning
-    boost::shared_ptr<dynamic_reconfigure::Server<zed_wrapper::ZedConfig>> mDynRecServer;
+    boost::shared_ptr<dynamic_reconfigure::Server<zed_nodelets::ZedConfig>> mDynRecServer;
 
     // Diagnostic
     float mTempLeft = -273.15f;
@@ -668,40 +664,8 @@ private:
 
     diagnostic_updater::Updater mDiagUpdater; // Diagnostic Updater
 
-    // Messages as shared pointers to exploit Intraprocess communication advantages
-    // (http://wiki.ros.org/roscpp/Overview/Publishers%20and%20Subscribers#Intraprocess_Publishing)
-    nav_msgs::OdometryPtr mOdomMsg;
-    geometry_msgs::PoseWithCovarianceStampedPtr mPoseCovMsg;
-    sensor_msgs::ImuPtr mImuMsg;
-    sensor_msgs::ImuPtr mImuRawMsg;
-    sensor_msgs::MagneticFieldPtr mMagMsg;
-    //sensor_msgs::MagneticFieldPtr mMagRawMsg;
-    sensor_msgs::TemperaturePtr mTempLeftMsg;
-    sensor_msgs::TemperaturePtr mTempRightMsg;
-    sensor_msgs::TemperaturePtr mImuTempMsg;
-    sensor_msgs::FluidPressurePtr mPressMsg;
-    sensor_msgs::ImagePtr mLeftImgMsg;
-    sensor_msgs::ImagePtr mRawLeftImgMsg;
-    sensor_msgs::ImagePtr mRightImgMsg;
-    sensor_msgs::ImagePtr mRawRightImgMsg;
-    sensor_msgs::ImagePtr mRgbImgMsg;
-    sensor_msgs::ImagePtr mRawRgbImgMsg;
-    sensor_msgs::ImagePtr mLeftGrayImgMsg;
-    sensor_msgs::ImagePtr mRawLeftGrayImgMsg;
-    sensor_msgs::ImagePtr mRightGrayImgMsg;
-    sensor_msgs::ImagePtr mRawRightGrayImgMsg;
-    sensor_msgs::ImagePtr mRgbGrayImgMsg;
-    sensor_msgs::ImagePtr mRawRgbGrayImgMsg;
-    sensor_msgs::ImagePtr mConfImgMsg;
-    sensor_msgs::ImagePtr mConfMapMsg;
-    sensor_msgs::ImagePtr mStereoImgMsg;
-    sensor_msgs::ImagePtr mRawStereoImgMsg;
-    sensor_msgs::ImagePtr mDepthImgMsg;
-    sensor_msgs::ImagePtr mDisparityImgMsg;
-    stereo_msgs::DisparityImagePtr mDisparityMsg;
-
-    geometry_msgs::TransformPtr mCameraImuTransfMgs;
-    sl::Transform mSlCamImuTransf;
+    // Camera IMU transform
+    sl::Transform mSlCamImuTransf;    
 
     // Spatial mapping
     bool mMappingEnabled;
@@ -725,6 +689,7 @@ private:
 } // namespace
 
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(zed_wrapper::ZEDWrapperNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS(zed_nodelets::ZEDWrapperNodelet, nodelet::Nodelet);
+
 
 #endif // ZED_WRAPPER_NODELET_H

@@ -1,0 +1,19 @@
+<library path="lib/libZEDNodelets">
+    <class name="zed_nodelets/ZEDWrapperNodelet"
+         type="zed_nodelets::ZEDWrapperNodelet"
+         base_class_type="nodelet::Nodelet">
+    <description>This is the main nodelet of the ROS interface for Stereolabs ZED Camera.</description>
+    </class>
+
+    <class name="zed_nodelets/RgbdSensorsSyncNodelet"
+           type="zed_nodelets::RgbdSensorsSyncNodelet"
+           base_class_type="nodelet::Nodelet">
+      <description>This is the nodelet for ZED Camera to provide sync messages.</description>
+    </class>
+
+    <class name="zed_nodelets/RgbdSensorsDemuxNodelet"
+           type="zed_nodelets::RgbdSensorsDemuxNodelet"
+           base_class_type="nodelet::Nodelet">
+      <description>This is the nodelet for ZED Camera to demux messages synchronized with `zed_nodelets/RgbdSensorsSyncNodelet`.</description>
+    </class>
+</library>

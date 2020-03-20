@@ -2,7 +2,10 @@
 <package format="2">
   <name>zed_wrapper</name>
   <version>3.1.0</version>
-  <description>zed_wrapper is a ROS wrapper for the <a href="http://www.stereolabs.com/developers/">ZED library</a> for interfacing with the ZED camera.</description>
+  <description>
+    zed_wrapper is a ROS package containing the ZED wrapper node for the <a href="http://www.stereolabs.com/developers/">ZED library</a> for interfacing with the ZED camera.
+    The zed_wrapper_node is a simple loader for the ZEDWrapperNodelet that is the main interface between ROS and the ZED SDK.
+  </description>
 
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
   <license>MIT</license>
@@ -11,31 +14,12 @@
   <url type="repository">https://github.com/stereolabs/zed-ros-wrapper</url>
   <url type="bugtracker">https://github.com/stereolabs/zed-ros-wrapper/issues</url>
 
-  <buildtool_depend>catkin</buildtool_depend>  
-  
-  <depend>tf2_ros</depend>
-  <depend>tf2_geometry_msgs</depend>
-  <depend>nav_msgs</depend>
+  <buildtool_depend>catkin</buildtool_depend>    
+ 
   <depend>roscpp</depend>
   <depend>rosconsole</depend>
-  <depend>sensor_msgs</depend>
-  <depend>stereo_msgs</depend>
-  <depend>image_transport</depend>
-  <depend>dynamic_reconfigure</depend>
-  <depend>nodelet</depend>
-  <depend>diagnostic_updater</depend> 
+  <depend>zed_nodelets</depend>  
 
-  <build_depend>zed_interfaces</build_depend>
-  <build_depend>message_generation</build_depend>
-  <build_depend>roslint</build_depend>
- 
-  <exec_depend>zed_interfaces</exec_depend>
-  <exec_depend>xacro</exec_depend>
-  <exec_depend>urdf</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
-  <exec_depend>message_runtime</exec_depend>
-  
-  <export>
-    <nodelet plugin="${prefix}/nodelet_plugins.xml" />
-  </export>
+
 </package>

@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="cam_yaw"               default="0.0" /> <!-- Orientation respect to base frame (i.e. "base_link) -->
 
     <group ns="$(arg camera_name)">
-        <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+        <include file="$(find zed_wrapper)/launch/include/zed_camera.launch.xml">
             <arg name="camera_name"         value="$(arg camera_name)" />
             <arg name="svo_file"            value="$(arg svo_file)" />
             <arg name="stream"              value="$(arg stream)" />
