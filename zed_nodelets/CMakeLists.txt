@@ -45,14 +45,14 @@ find_package(catkin COMPONENTS
   sensor_msgs
   stereo_msgs
   std_msgs
-  message_filters
-  dynamic_reconfigure
+  message_filters  
   tf2_ros
   nodelet
   tf2_geometry_msgs
   message_generation
   diagnostic_updater
   zed_interfaces  
+  dynamic_reconfigure
 )
 
 generate_dynamic_reconfigure_options(
@@ -80,6 +80,7 @@ catkin_package(
 set(TOOLS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp)
 set(ZED_NODELET_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_nodelet/src/zed_wrapper_nodelet.cpp)
 set(RGBD_SENS_SYNC_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd_sensors_sync_nodelet/src/rgbd_sensor_sync.cpp)
+set(RGBD_SENS_DEMUX_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd_sensors_demux_nodelet/src/rgbd_sensor_demux.cpp)
 
 ###############################################################################
 
@@ -94,6 +95,7 @@ include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_nodelet/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd_sensors_sync_nodelet/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd_sensors_demux_nodelet/include
 )
 
 link_directories(${ZED_LIBRARY_DIR})
@@ -115,6 +117,7 @@ add_library(ZEDNodelets
     ${TOOLS_SRC}
     ${ZED_NODELET_SRC}
     ${RGBD_SENS_SYNC_SRC}
+    ${RGBD_SENS_DEMUX_SRC}
 )
 target_link_libraries(ZEDNodelets ${LINK_LIBRARIES})
 add_dependencies(
