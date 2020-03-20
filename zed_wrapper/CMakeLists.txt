@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 2.8.7)
 
 project(zed_wrapper)
 
+#Fix for QtCretor
+list(APPEND CMAKE_PREFIX_PATH "/opt/ros/$ENV{ROS_DISTRO}/")
+
 # if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
 IF(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release)
@@ -52,6 +55,7 @@ set(LINK_LIBRARIES
 add_executable(zed_wrapper_node ${NODE_SRC})
 target_link_libraries(zed_wrapper_node ${LINK_LIBRARIES})
 add_dependencies(zed_wrapper_node ${catkin_EXPORTED_TARGETS})
+
 
 ###############################################################################
 #Add all files in subdirectories of the project in

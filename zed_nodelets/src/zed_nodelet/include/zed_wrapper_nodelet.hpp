@@ -465,9 +465,8 @@ private:
     sensor_msgs::CameraInfoPtr mRgbCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mLeftCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mRightCamInfoRawMsg;
-    sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;
+    sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;    
 
-    // Camera IMU transform
     geometry_msgs::TransformPtr mCameraImuTransfMgs;
     // <---- Topics
 
@@ -666,7 +665,7 @@ private:
     diagnostic_updater::Updater mDiagUpdater; // Diagnostic Updater
 
     // Camera IMU transform
-    sl::Transform mSlCamImuTransf;
+    sl::Transform mSlCamImuTransf;    
 
     // Spatial mapping
     bool mMappingEnabled;
