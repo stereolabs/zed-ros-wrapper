@@ -520,12 +520,7 @@ void ZEDWrapperNodelet::onInit() {
             mSensPeriodMean_usec.reset(new sl_tools::CSmartMean(mSensPubRate / 2));
 
 
-        } else if (mSensPubRate > 0 && mZedRealCamModel == sl::MODEL::ZED) {
-            NODELET_WARN_STREAM(
-                        "'sens_pub_rate' set to "
-                        << mSensPubRate << " Hz"
-                        << " but ZED camera model does not support IMU data publishing.");
-        }
+        } 
 
         // Publish camera imu transform in a latched topic
         if (mZedRealCamModel != sl::MODEL::ZED) {
@@ -735,12 +730,9 @@ void ZEDWrapperNodelet::readParameters() {
     }
     // <---- Object Detection
 
-
     // ----> Sensors
     mNhNs.getParam("sensors/sensors_timestamp_sync", mSensTimestampSync);
     NODELET_INFO_STREAM(" * Sensors timestamp sync\t-> " << (mSensTimestampSync ? "ENABLED" : "DISABLED"));
-    mNhNs.getParam("sensors/sens_pub_rate", mSensPubRate);
-    NODELET_INFO_STREAM(" * Sensors data freq\t\t-> " << mSensPubRate << " Hz");
     // <---- Sensors
 
     // ----> SVO
