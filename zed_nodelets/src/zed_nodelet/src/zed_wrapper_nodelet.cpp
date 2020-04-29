@@ -2299,20 +2299,21 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
         //NODELET_DEBUG_STREAM( "MEAN PUBLISHING PERIOD: " << mVideoDepthPeriodMean_sec->getMean() << " sec @" << 1./mVideoDepthPeriodMean_sec->getMean() << " Hz") ;
     }
     lastTs = leftZEDMat.timestamp;
+    ros::Time stamp = mFrameTimestamp;
 
     // Publish the left == rgb image if someone has subscribed to
     if (leftSubnumber > 0 || rgbSubnumber > 0) {
         if (leftSubnumber > 0) {
             sensor_msgs::ImagePtr leftImgMsg = boost::make_shared<sensor_msgs::Image>();
 
-            publishImage(leftImgMsg, leftZEDMat, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, mFrameTimestamp);
+            publishImage(leftImgMsg, leftZEDMat, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, stamp);
         }
 
         if (rgbSubnumber > 0) {
             sensor_msgs::ImagePtr rgbImgMsg = boost::make_shared<sensor_msgs::Image>();
 
             // rgb is the left image
-            publishImage(rgbImgMsg, leftZEDMat, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, mFrameTimestamp);
+            publishImage(rgbImgMsg, leftZEDMat, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, stamp);
 
         }
     }
@@ -2327,14 +2328,14 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
             sensor_msgs::ImagePtr leftGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
 
             publishImage(leftGrayImgMsg, leftGrayZEDMat, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId,
-                         mFrameTimestamp);
+                         stamp);
         }
 
         if (rgbGraySubnumber > 0) {
             sensor_msgs::ImagePtr rgbGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
 
             publishImage(rgbGrayImgMsg, leftGrayZEDMat, mPubRgbGray, mRgbCamInfoMsg, mDepthOptFrameId,
-                         mFrameTimestamp); // rgb is the left image
+                         stamp); // rgb is the left image
         }
     }
 
@@ -2348,14 +2349,14 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
             sensor_msgs::ImagePtr rawLeftImgMsg = boost::make_shared<sensor_msgs::Image>();
 
             publishImage(rawLeftImgMsg, leftZEDMat, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId,
-                         mFrameTimestamp);
+                         stamp);
         }
 
         if (rgbRawSubnumber > 0) {
             sensor_msgs::ImagePtr rawRgbImgMsg = boost::make_shared<sensor_msgs::Image>();
 
             publishImage(rawRgbImgMsg, leftZEDMat, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId,
-                         mFrameTimestamp);
+                         stamp);
         }
     }
 
@@ -2369,14 +2370,14 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
             sensor_msgs::ImagePtr rawLeftGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
 
             publishImage(rawLeftGrayImgMsg, leftGrayZEDMat, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId,
-                         mFrameTimestamp);
+                         stamp);
         }
 
         if (rgbGrayRawSubnumber > 0) {
             sensor_msgs::ImagePtr rawRgbGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
 
             publishImage(rawRgbGrayImgMsg, leftGrayZEDMat, mPubRawRgbGray, mRgbCamInfoRawMsg, mDepthOptFrameId,
-                         mFrameTimestamp);
+                         stamp);
         }
     }
 
@@ -2388,7 +2389,7 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
 
         sensor_msgs::ImagePtr rightImgMsg = boost::make_shared<sensor_msgs::Image>();
 
-        publishImage(rightImgMsg, rightZEDMat, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, mFrameTimestamp);
+        publishImage(rightImgMsg, rightZEDMat, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, stamp);
     }
 
     // Publish the right image GRAY if someone has subscribed to
@@ -2398,7 +2399,7 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
         mZed.retrieveImage(rightGrayZEDMat, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
         sensor_msgs::ImagePtr rightGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
 
-        publishImage(rightGrayImgMsg, rightGrayZEDMat, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, mFrameTimestamp);
+        publishImage(rightGrayImgMsg, rightGrayZEDMat, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, stamp);
     }
 
     // Publish the right raw image if someone has subscribed to
@@ -2409,7 +2410,7 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
 
         sensor_msgs::ImagePtr rawRightImgMsg = boost::make_shared<sensor_msgs::Image>();
 
-        publishImage(rawRightImgMsg, rightZEDMat, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, mFrameTimestamp);
+        publishImage(rawRightImgMsg, rightZEDMat, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, stamp);
     }
 
     // Publish the right raw image GRAY if someone has subscribed to
@@ -2419,7 +2420,7 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
 
         sensor_msgs::ImagePtr rawRightGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
 
-        publishImage(rawRightGrayImgMsg, rightGrayZEDMat, mPubRawRightGray, mRightCamInfoRawMsg, mRightCamOptFrameId, mFrameTimestamp);
+        publishImage(rawRightGrayImgMsg, rightGrayZEDMat, mPubRawRightGray, mRightCamInfoRawMsg, mRightCamOptFrameId, stamp);
     }
 
     // Stereo couple side-by-side
@@ -2431,7 +2432,7 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
 
         sensor_msgs::ImagePtr stereoImgMsg = boost::make_shared<sensor_msgs::Image>();
 
-        sl_tools::imagesToROSmsg(stereoImgMsg, leftZEDMat, rightZEDMat, mCameraFrameId, mFrameTimestamp);
+        sl_tools::imagesToROSmsg(stereoImgMsg, leftZEDMat, rightZEDMat, mCameraFrameId, stamp);
 
         mPubStereo.publish(stereoImgMsg);
     }
@@ -2445,7 +2446,7 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
 
         sensor_msgs::ImagePtr rawStereoImgMsg = boost::make_shared<sensor_msgs::Image>();
 
-        sl_tools::imagesToROSmsg(rawStereoImgMsg, leftZEDMat, rightZEDMat, mCameraFrameId, mFrameTimestamp);
+        sl_tools::imagesToROSmsg(rawStereoImgMsg, leftZEDMat, rightZEDMat, mCameraFrameId, stamp);
 
         mPubRawStereo.publish(rawStereoImgMsg);
     }
@@ -2457,14 +2458,14 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
 
         sensor_msgs::ImagePtr depthImgMsg = boost::make_shared<sensor_msgs::Image>();
 
-        publishDepth(depthImgMsg, depthZEDMat, mFrameTimestamp); // in meters
+        publishDepth(depthImgMsg, depthZEDMat, stamp); // in meters
     }
 
     // Publish the disparity image if someone has subscribed to
     if (disparitySubnumber > 0) {
 
         mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
-        publishDisparity(disparityZEDMat, mFrameTimestamp);
+        publishDisparity(disparityZEDMat, stamp);
     }
 
     // Publish the confidence map if someone has subscribed to
@@ -2474,7 +2475,7 @@ void ZEDWrapperNodelet::pubVideoDepthCallback(const ros::TimerEvent& e) {
 
         sensor_msgs::ImagePtr confMapMsg = boost::make_shared<sensor_msgs::Image>();
 
-        sl_tools::imageToROSmsg(confMapMsg, confMapZEDMat, mConfidenceOptFrameId, mFrameTimestamp);
+        sl_tools::imageToROSmsg(confMapMsg, confMapZEDMat, mConfidenceOptFrameId, stamp);
 
         mPubConfMap.publish(confMapMsg);
     }
