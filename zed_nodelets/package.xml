@@ -33,6 +33,7 @@
     <exec_depend>urdf</exec_depend>
     <exec_depend>robot_state_publisher</exec_depend>
     <exec_depend>message_runtime</exec_depend>
+    <exec_depend>image_transport_plugins</exec_depend>
   
     <export>
          <nodelet plugin="${prefix}/nodelet_plugins.xml"/>
