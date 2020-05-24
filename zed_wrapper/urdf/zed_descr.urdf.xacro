@@ -26,6 +26,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Arguments -->
     <xacro:arg name="camera_name"   default="zed" />
     <xacro:arg name="camera_model"  default="zed" />
+    <xacro:arg name="base_frame"    default="base_link" />
     <xacro:arg name="cam_pos_x"     default="0.0" />
     <xacro:arg name="cam_pos_y"     default="0.0" />
     <xacro:arg name="cam_pos_z"     default="0.0" />
@@ -34,10 +35,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <xacro:arg name="cam_yaw"       default="0.0" />
 
 <!-- base_link -->
-    <link name="base_link" />
+    <link name="$(arg base_frame)" />
 
 <!-- zed_macro -->
-    <xacro:zed camera_model="$(arg camera_model)" camera_name="$(arg camera_name)" parent="base_link">
+    <xacro:zed camera_model="$(arg camera_model)" camera_name="$(arg camera_name)" parent="$(arg base_frame)">
         <origin xyz="$(arg cam_pos_x) $(arg cam_pos_y) $(arg cam_pos_z)" rpy="$(arg cam_roll) $(arg cam_pitch) $(arg cam_yaw)" />
     </xacro:zed>
 </robot>

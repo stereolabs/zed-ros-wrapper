@@ -5,6 +5,9 @@ project(zed_interfaces)
 find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
+  sensor_msgs
+
+
   #actionlib_msgs
   message_generation
 )
@@ -12,8 +15,9 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files( 
     DIRECTORY msg 
     FILES
-    object_stamped.msg
-    objects.msg
+    ObjectStamped.msg
+    Objects.msg
+    RGBDSensors.msg
   )
 
 #add_action_files(DIRECTORY action FILES act.action)
@@ -41,6 +45,7 @@ generate_messages(
     #actionlib_msgs
     std_msgs
     geometry_msgs
+    sensor_msgs
 )
 
 catkin_package(
@@ -49,6 +54,7 @@ catkin_package(
     message_generation 
     std_msgs 
     geometry_msgs 
+    sensor_msgs
     #actionlib_msgs
 )
 
