@@ -2855,20 +2855,21 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
     }
 
     // Publish IMU tf only if enabled
-    if (mPublishTf) {
+    //if (mPublishTf)
+    {
         // Camera to pose transform from TF buffer
         tf2::Transform cam_to_pose;
 
-        std::string poseFrame;
+        //std::string poseFrame;
         static bool first_error = true;
 
-        // Look up the transformation from base frame to map link
+        // Look up the transformation from imu frame to odom link
         try {
-            poseFrame = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
+            //poseFrame = mPublishMapTf ? mMapFrameId : mOdometryFrameId;
 
             // Save the transformation from base to frame
             geometry_msgs::TransformStamped c2p =
-                    mTfBuffer->lookupTransform(poseFrame, mCameraFrameId, ros::Time(0));
+                    mTfBuffer->lookupTransform(mOdometryFrameId, mCameraFrameId, ros::Time(0));
             // Get the TF2 transformation
             tf2::fromMsg(c2p.transform, cam_to_pose);
         } catch (tf2::TransformException& ex) {
@@ -2900,8 +2901,7 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
         tf2::Transform imu_pose;
         imu_pose.setIdentity();
         imu_pose.setRotation(delta_q);
-        // Note, the frame is published, but its values will only change if someone
-        // has subscribed to IMU
+
         publishImuFrame(imu_pose, mFrameTimestamp); // publish the imu Frame
     }
 }
