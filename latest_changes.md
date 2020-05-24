@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+IMU fix (2020-05-24)
+--------------------
+- Fix issue with IMU frame link when `publish_tf` and `publish_map_tf` are disabled
+
 New package: zed_nodelets (2020-03-20)
 ---------------------------------------
 - Added the new `zed_interfaces/RGBDSensors` custom topic that contains RGB, Depth, IMU and Magnetometer synchronized topics
