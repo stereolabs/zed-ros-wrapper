@@ -2813,7 +2813,7 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
     if (imu_RawSubNumber > 0) {
         sensor_msgs::ImuPtr imuRawMsg = boost::make_shared<sensor_msgs::Imu>();
 
-        imuRawMsg->header.stamp = mFrameTimestamp; // t;
+        imuRawMsg->header.stamp = ts_imu; // t;
         imuRawMsg->header.frame_id = mImuFrameId;
         imuRawMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
         imuRawMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
