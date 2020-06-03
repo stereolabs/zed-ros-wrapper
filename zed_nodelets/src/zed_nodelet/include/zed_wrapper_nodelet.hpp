@@ -367,7 +367,7 @@ protected:
 
     /* \brief Perform object detection and publish result
          */
-    void detectObjects(bool publishObj, bool publishViz);
+    void detectObjects(bool publishObj, bool publishViz, ros::Time t);
 
     /* \brief Generates an univoque color for each object class ID
          */
