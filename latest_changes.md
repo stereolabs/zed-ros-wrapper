@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+Timestamp fix (2020-06-03)
+--------------------------
+- Fix timestamp update coherency due to parallel threads. Thanks to @matlabbe
+
 IMU fix (2020-05-24)
 --------------------
 - Fix issue with IMU frame link when `publish_tf` and `publish_map_tf` are disabled
