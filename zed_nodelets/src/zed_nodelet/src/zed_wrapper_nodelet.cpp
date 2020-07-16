@@ -122,11 +122,9 @@ void ZEDWrapperNodelet::onInit() {
     string depth_topic_root = "depth";
 
     if (mOpenniDepthMode) {
-        NODELET_INFO_STREAM("Openni depth mode activated");
-        depth_topic_root += "/depth_raw_registered";
-    } else {
-        depth_topic_root += "/depth_registered";
+        NODELET_INFO_STREAM("Openni depth mode activated -> Units: mm, Encoding: MONO16");
     }
+    depth_topic_root += "/depth_registered";
 
 
     string pointcloud_topic = "point_cloud/cloud_registered";
@@ -1644,9 +1642,12 @@ void ZEDWrapperNodelet::publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat de
 
     mDepthCamInfoMsg->header.stamp = t;
 
+    NODELET_DEBUG_STREAM("mOpenniDepthMode: " << mOpenniDepthMode);
+
     if (!mOpenniDepthMode) {
         sl_tools::imageToROSmsg(imgMsgPtr, depth, mDepthOptFrameId, t);
         mPubDepth.publish(imgMsgPtr, mDepthCamInfoMsg);
+
         return;
     }
 
