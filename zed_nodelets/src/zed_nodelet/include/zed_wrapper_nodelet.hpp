@@ -1,4 +1,4 @@
-#ifndef ZED_WRAPPER_NODELET_H
+﻿#ifndef ZED_WRAPPER_NODELET_H
 #define ZED_WRAPPER_NODELET_H
 
 ///////////////////////////////////////////////////////////////////////////
@@ -508,6 +508,7 @@ private:
 
     bool mPublishTf;
     bool mPublishMapTf;
+    bool mPublishImuTf;
     bool mCameraFlip;
     bool mCameraSelfCalib;
 
@@ -551,11 +552,14 @@ private:
     ros::Time mFrameTimestamp;
 
     // Positional Tracking variables
-    sl::Pose mLastZedPose; // Sensor to Map transform
+    sl::Pose mLastZedPose; // Sensor to Map transform    
     sl::Transform mInitialPoseSl;
     std::vector<float> mInitialBasePose;
     std::vector<geometry_msgs::PoseStamped> mOdomPath;
     std::vector<geometry_msgs::PoseStamped> mMapPath;
+
+    // IMU TF
+    tf2::Transform mLastImuPose;
 
     // TF Transforms
     tf2::Transform mMap2OdomTransf;         // Coordinates of the odometry frame in map frame

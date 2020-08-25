@@ -14,3 +14,4 @@ pos_tracking:
 
 sensors:
     sensors_timestamp_sync:     false           # Synchronize Sensors messages timestamp with latest received frame
+    publish_imu_tf:             true            # publish `IMU -> <cam_name>_left_camera_frame` TF
