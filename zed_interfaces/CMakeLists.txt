@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 2.8.7)
 
 project(zed_interfaces)
 
+#Fix for QtCretor
+list(APPEND CMAKE_PREFIX_PATH "/opt/ros/$ENV{ROS_DISTRO}/")
+
 find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs

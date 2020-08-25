@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 2.8.7)
 
 project(zed_nodelets)
 
+#Fix for QtCretor
+list(APPEND CMAKE_PREFIX_PATH "/opt/ros/$ENV{ROS_DISTRO}/")
+
 # if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
 IF(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release)
@@ -39,20 +42,20 @@ if (OPENMP_FOUND)
 endif()
 
 find_package(catkin COMPONENTS
-  image_transport
-  roscpp
-  rosconsole
-  sensor_msgs
-  stereo_msgs
-  std_msgs
-  message_filters  
-  tf2_ros
-  nodelet
-  tf2_geometry_msgs
-  message_generation
-  diagnostic_updater
-  zed_interfaces  
-  dynamic_reconfigure
+    roscpp
+    image_transport
+    rosconsole
+    sensor_msgs
+    stereo_msgs
+    std_msgs
+    message_filters
+    tf2_ros
+    nodelet
+    tf2_geometry_msgs
+    message_generation
+    diagnostic_updater    
+    dynamic_reconfigure
+    zed_interfaces
 )
 
 generate_dynamic_reconfigure_options(
@@ -73,7 +76,6 @@ catkin_package(
     message_runtime
     zed_interfaces
 )
-
 
 ###############################################################################
 # SOURCES
