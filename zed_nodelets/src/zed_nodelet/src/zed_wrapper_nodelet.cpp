@@ -165,7 +165,7 @@ void ZEDWrapperNodelet::onInit() {
     if (!mSvoFilepath.empty() || !mRemoteStreamAddr.empty()) {
         if (!mSvoFilepath.empty()) {
             mZedParams.input.setFromSVOFile(mSvoFilepath.c_str());
-            mZedParams.svo_real_time_mode = false;
+            mZedParams.svo_real_time_mode = true;
         } else  if (!mRemoteStreamAddr.empty()) {
             std::vector<std::string> configStream = sl_tools::split_string(mRemoteStreamAddr, ':');
             sl::String ip = sl::String(configStream.at(0).c_str());
@@ -1339,7 +1339,8 @@ bool ZEDWrapperNodelet::start_obj_detect() {
     sl::ObjectDetectionParameters od_p;
     od_p.enable_mask_output = false;
     od_p.enable_tracking = mObjDetTracking;
-    od_p.image_sync = true;
+    //od_p.image_sync = true;
+    od_p.image_sync = false; // Asynchronous object detection
 
     sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
 
@@ -3283,12 +3284,12 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
             mObjDetMutex.lock();
             if (mObjDetRunning) {
-                std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+                //std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
                 detectObjects(objDetSubnumber > 0, objDetVizSubnumber > 0, stamp);
-                std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                //std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 
-                double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
-                mObjDetPeriodMean_msec->addValue(elapsed_msec);
+                //double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+                //mObjDetPeriodMean_msec->addValue(elapsed_msec);
             }
             mObjDetMutex.unlock();
 
@@ -3309,7 +3310,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
                 if (!mInitOdomWithPose) {
                     sl::Pose deltaOdom;
-                    mTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
+                    mPosTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
 
                     sl::Translation translation = deltaOdom.getTranslation();
                     sl::Orientation quat = deltaOdom.getOrientation();
@@ -3323,8 +3324,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(mTrackingStatus));
 #endif
 
-                    if (mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK || mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING ||
-                            mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW) {
+                    if (mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK || mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING ||
+                            mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW) {
                         // Transform ZED delta odom pose in TF2 Transformation
                         geometry_msgs::Transform deltaTransf;
                         deltaTransf.translation.x = translation(0);
@@ -3383,7 +3384,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             // Publish the zed camera pose if someone has subscribed to
             if (computeTracking) {
                 static sl::POSITIONAL_TRACKING_STATE oldStatus;
-                mTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
+                mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
 
                 sl::Translation translation = mLastZedPose.getTranslation();
                 sl::Orientation quat = mLastZedPose.getOrientation();
@@ -3401,8 +3402,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
 #endif
 
-                if (mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK ||
-                        mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING /*|| status == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW*/) {
+                if (mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK ||
+                        mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING /*|| status == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW*/) {
                     // Transform ZED pose in TF2 Transformation
                     geometry_msgs::Transform map2sensTransf;
 
@@ -3447,7 +3448,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     if (!(mFloorAlignment)) {
                         initOdom = mInitOdomWithPose;
                     } else {
-                        initOdom = (mTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK) & mInitOdomWithPose;
+                        initOdom = (mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK) & mInitOdomWithPose;
                     }
 
                     if (initOdom || mResetOdom) {
@@ -3489,7 +3490,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                     mTrackingReady = true;
                 }
 
-                oldStatus = mTrackingStatus;
+                oldStatus = mPosTrackingStatus;
             }
 
             // Publish pose tf only if enabled
@@ -3618,7 +3619,7 @@ void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWra
             double freq_perc = 100.*freq / mCamFrameRate;
             stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
 
-            stat.addf("Processing Time", "Mean time: %.3f sec (Max. %.3f sec)", mElabPeriodMean_sec->getMean(), 1. / mCamFrameRate);
+            stat.addf("General Processing", "Mean Time: %.3f sec (Max. %.3f sec)", mElabPeriodMean_sec->getMean(), 1. / mCamFrameRate);
 
             if(mPublishingData) {
                 freq = 1. / mVideoDepthPeriodMean_sec->getMean();
@@ -3654,13 +3655,15 @@ void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWra
                 }
 
                 if (mTrackingActivated) {
-                    stat.addf("Tracking status", "%s", sl::toString(mTrackingStatus).c_str());
+                    stat.addf("Tracking status", "%s", sl::toString(mPosTrackingStatus).c_str());
                 } else {
-                    stat.add("Tracking status", "INACTIVE");
+                    stat.add("Pos. Tracking status", "INACTIVE");
                 }
 
                 if (mObjDetRunning) {
-                    stat.addf("Object data processing", "%.3f sec", mObjDetPeriodMean_msec->getMean() / 1000.);
+                    double freq = 1000./mObjDetPeriodMean_msec->getMean();
+                    double freq_perc = 100.*freq / mCamFrameRate;
+                    stat.addf("Object detection", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc );
                 } else {
                     stat.add("Object Detection", "INACTIVE");
                 }
@@ -3997,6 +4000,7 @@ bool ZEDWrapperNodelet::on_stop_object_detection(zed_interfaces::stop_object_det
 }
 
 void ZEDWrapperNodelet::detectObjects(bool publishObj, bool publishViz, ros::Time t) {
+    static std::chrono::steady_clock::time_point old_time = std::chrono::steady_clock::now();
 
     sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
     objectTracker_parameters_rt.detection_confidence_threshold = mObjDetConfidence;
@@ -4010,6 +4014,18 @@ void ZEDWrapperNodelet::detectObjects(bool publishObj, bool publishViz, ros::Tim
         NODELET_WARN_STREAM("Object Detection error: " << sl::toString(objDetRes));
         return;
     }
+
+    if(!objects.is_new)
+    {
+        return;
+    }
+
+    // ----> Diagnostic information update
+    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+    double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - old_time).count();
+    mObjDetPeriodMean_msec->addValue(elapsed_msec);
+    old_time = now;
+    // <---- Diagnostic information update
 
     // NODELET_DEBUG_STREAM("Detected " << objects.object_list.size() << " objects");
 
@@ -4061,7 +4077,6 @@ void ZEDWrapperNodelet::detectObjects(bool publishObj, bool publishViz, ros::Tim
         }
 
         if (publishViz) {
-
             if( data.bounding_box.size()!=8 ) {
                 continue; // No 3D information available
             }
@@ -4115,155 +4130,6 @@ void ZEDWrapperNodelet::detectObjects(bool publishObj, bool publishViz, ros::Tim
             label.text = std::to_string(data.id) + ". " + std::string(sl::toString(data.label).c_str());
 
             objMarkersMsg.markers.push_back(label);
-
-            //            visualization_msgs::Marker lines;
-            //            visualization_msgs::Marker label;
-            //            visualization_msgs::Marker spheres;
-
-            //            lines.pose.orientation.w = label.pose.orientation.w = spheres.pose.orientation.w = 1.0;
-
-            //            lines.header = header;
-            //            lines.lifetime = ros::Duration(0.3);
-            //            lines.action = visualization_msgs::Marker::ADD;
-            //            lines.id = data.id;
-            //            lines.ns = "bbox";
-            //            lines.type = visualization_msgs::Marker::LINE_LIST;
-            //            lines.scale.x = 0.005;
-
-            //            label.header = header;
-            //            label.lifetime = ros::Duration(0.3);
-            //            label.action = visualization_msgs::Marker::ADD;
-            //            label.id = data.id;
-            //            label.ns = "label";
-            //            label.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-            //            //label.scale.x = 0.05;
-            //            //label.scale.y = 0.05;
-            //            label.scale.z = 0.1;
-
-            //            spheres.header = header;
-            //            spheres.lifetime = ros::Duration(0.3);
-            //            spheres.action = visualization_msgs::Marker::ADD;
-            //            spheres.id = data.id;
-            //            spheres.ns = "spheres";
-            //            spheres.type = visualization_msgs::Marker::SPHERE_LIST;
-            //            spheres.scale.x = 0.02;
-            //            spheres.scale.y = 0.02;
-            //            spheres.scale.z = 0.02;
-
-            //            spheres.color.r = data.tracking_state == sl::OBJECT_TRACKING_STATE::OK ?
-            //                        0.1f : (data.tracking_state == sl::OBJECT_TRACKING_STATE::SEARCHING ?
-            //                                    0.9f : 0.3f);
-            //            spheres.color.g = data.tracking_state == sl::OBJECT_TRACKING_STATE::OK ?
-            //                        0.9f : (data.tracking_state == sl::OBJECT_TRACKING_STATE::SEARCHING ?
-            //                                    0.1f : 0.3f);
-            //            spheres.color.b = data.tracking_state == sl::OBJECT_TRACKING_STATE::OK ?
-            //                        0.1f : (data.tracking_state == sl::OBJECT_TRACKING_STATE::SEARCHING ?
-            //                                    0.1f : 0.3f);
-            //            spheres.color.a = 0.75f;
-
-            //            sl::float3 color = generateColorClass(data.id);
-
-            //            lines.color.r = color.r;
-            //            lines.color.g = color.g;
-            //            lines.color.b = color.b;
-            //            lines.color.a = 0.75f;
-
-            //            label.color.r = color.r;
-            //            label.color.g = color.g;
-            //            label.color.b = color.b;
-            //            label.color.a = 0.75f;
-
-            //            label.pose.position.x = data.position.x;
-            //            label.pose.position.y = data.position.y;
-            //            label.pose.position.z = data.position.z;
-
-            //            label.text = std::to_string(data.id) + ". " + std::string(sl::toString(data.label).c_str());
-
-            //            geometry_msgs::Point p0;
-            //            geometry_msgs::Point p1;
-
-            //            // Centroid
-            //            p0.x = data.position.x;
-            //            p0.y = data.position.y;
-            //            p0.z = data.position.z;
-
-            //            spheres.points.resize(9);
-            //            spheres.points[8] = p0;;
-
-            //            lines.points.resize(24);
-
-            //            int linePtIdx = 0;
-
-            //            // Top square
-            //            for (int v = 0; v < 3; v++) {
-            //                lines.points[linePtIdx].x = data.bounding_box[v].x;
-            //                lines.points[linePtIdx].y = data.bounding_box[v].y;
-            //                lines.points[linePtIdx].z = data.bounding_box[v].z;
-            //                linePtIdx++;
-
-            //                lines.points[linePtIdx].x = data.bounding_box[v + 1].x;
-            //                lines.points[linePtIdx].y = data.bounding_box[v + 1].y;
-            //                lines.points[linePtIdx].z = data.bounding_box[v + 1].z;
-            //                linePtIdx++;
-            //            }
-
-            //            lines.points[linePtIdx].x = data.bounding_box[3].x;
-            //            lines.points[linePtIdx].y = data.bounding_box[3].y;
-            //            lines.points[linePtIdx].z = data.bounding_box[3].z;
-            //            linePtIdx++;
-
-            //            lines.points[linePtIdx].x = data.bounding_box[0].x;
-            //            lines.points[linePtIdx].y = data.bounding_box[0].y;
-            //            lines.points[linePtIdx].z = data.bounding_box[0].z;
-            //            linePtIdx++;
-
-            //            // Bottom square
-            //            for (int v = 4; v < 7; v++) {
-            //                lines.points[linePtIdx].x = data.bounding_box[v].x;
-            //                lines.points[linePtIdx].y = data.bounding_box[v].y;
-            //                lines.points[linePtIdx].z = data.bounding_box[v].z;
-            //                linePtIdx++;
-
-            //                lines.points[linePtIdx].x = data.bounding_box[v + 1].x;
-            //                lines.points[linePtIdx].y = data.bounding_box[v + 1].y;
-            //                lines.points[linePtIdx].z = data.bounding_box[v + 1].z;
-            //                linePtIdx++;
-            //            }
-
-            //            lines.points[linePtIdx].x = data.bounding_box[7].x;
-            //            lines.points[linePtIdx].y = data.bounding_box[7].y;
-            //            lines.points[linePtIdx].z = data.bounding_box[7].z;
-            //            linePtIdx++;
-
-            //            lines.points[linePtIdx].x = data.bounding_box[4].x;
-            //            lines.points[linePtIdx].y = data.bounding_box[4].y;
-            //            lines.points[linePtIdx].z = data.bounding_box[4].z;
-            //            linePtIdx++;
-
-            //            // Lateral lines and vertex spheres
-            //            for (int v = 0; v < 4; v++) {
-            //                lines.points[linePtIdx].x = data.bounding_box[v].x;
-            //                lines.points[linePtIdx].y = data.bounding_box[v].y;
-            //                lines.points[linePtIdx].z = data.bounding_box[v].z;
-            //                linePtIdx++;
-
-            //                lines.points[linePtIdx].x = data.bounding_box[v + 4].x;
-            //                lines.points[linePtIdx].y = data.bounding_box[v + 4].y;
-            //                lines.points[linePtIdx].z = data.bounding_box[v + 4].z;
-            //                linePtIdx++;
-
-            //                spheres.points[v * 2].x = data.bounding_box[v].x;
-            //                spheres.points[v * 2].y = data.bounding_box[v].y;
-            //                spheres.points[v * 2].z = data.bounding_box[v].z;
-
-            //                spheres.points[v * 2 + 1].x = data.bounding_box[v + 4].x;
-            //                spheres.points[v * 2 + 1].y = data.bounding_box[v + 4].y;
-            //                spheres.points[v * 2 + 1].z = data.bounding_box[v + 4].z;
-            //            }
-
-            //            objMarkersMsg.markers[i * 3] = lines;
-            //            objMarkersMsg.markers[i * 3 + 1] = label;
-            //            objMarkersMsg.markers[i * 3 + 2] = spheres;
         }
     }
 
