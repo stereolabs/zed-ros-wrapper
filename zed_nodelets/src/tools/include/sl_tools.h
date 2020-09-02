@@ -29,36 +29,36 @@
 
 namespace sl_tools {
 
-    /* \brief Check if a ZED camera is ready
+    /*! \brief Check if a ZED camera is ready
     * \param serial_number : the serial number of the camera to be checked
     */
     int checkCameraReady(unsigned int serial_number);
 
-    /* \brief Get ZED camera properties
+    /*! \brief Get ZED camera properties
     * \param serial_number : the serial number of the camera
     */
     sl::DeviceProperties getZEDFromSN(unsigned int serial_number);
 
     std::vector<float> convertRodrigues(sl::float3 r);
 
-    /* \brief Test if a file exist
+    /*! \brief Test if a file exist
     * \param name : the path to the file
     */
     bool file_exist(const std::string& name);
 
-    /* \brief Get Stereolabs SDK version
+    /*! \brief Get Stereolabs SDK version
      * \param major : major value for version
      * \param minor : minor value for version
      * \param sub_minor _ sub_minor value for version
      */
     std::string getSDKVersion(int& major, int& minor, int& sub_minor);
 
-    /* \brief Convert StereoLabs timestamp to ROS timestamp
+    /*! \brief Convert StereoLabs timestamp to ROS timestamp
      *  \param t : Stereolabs timestamp to be converted
      */
     ros::Time slTime2Ros(sl::Timestamp t);
 
-    /* \brief sl::Mat to ros message conversion
+    /*! \brief sl::Mat to ros message conversion
      * \param imgMsgPtr : the image topic message to publish
      * \param img : the image to publish
      * \param frameId : the id of the reference frame of the image
@@ -66,7 +66,7 @@ namespace sl_tools {
      */
     void imageToROSmsg(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img, std::string frameId, ros::Time t);
 
-    /* \brief Two sl::Mat to ros message conversion
+    /*! \brief Two sl::Mat to ros message conversion
      * \param imgMsgPtr : the image topic message to publish
      * \param left : the left image to publish
      * \param right : the right image to publish
@@ -75,7 +75,7 @@ namespace sl_tools {
      */
     void imagesToROSmsg(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat left, sl::Mat right, std::string frameId, ros::Time t);
 
-    /* \brief String tokenization
+    /*! \brief String tokenization
      */
     std::vector<std::string> split_string(const std::string& s, char seperator);
 

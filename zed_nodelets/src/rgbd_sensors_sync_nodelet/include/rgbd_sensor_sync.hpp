@@ -48,15 +48,15 @@ public:
     virtual ~RgbdSensorsSyncNodelet();
 
 protected:
-    /* \brief Initialization function called by the Nodelet base class
+    /*! \brief Initialization function called by the Nodelet base class
      */
     virtual void onInit();
 
-    /* \brief Reads parameters from the param server
+    /*! \brief Reads parameters from the param server
      */
     void readParameters();
 
-    /* \brief Callback for full topics synchronization
+    /*! \brief Callback for full topics synchronization
      */
     void callbackFull(
             const sensor_msgs::ImageConstPtr& rgb,
@@ -66,7 +66,7 @@ protected:
             const sensor_msgs::ImuConstPtr& imu,
             const sensor_msgs::MagneticFieldConstPtr& mag );
 
-    /* \brief Callback for RGBD topics synchronization
+    /*! \brief Callback for RGBD topics synchronization
      */
     void callbackRGBD(
             const sensor_msgs::ImageConstPtr& rgb,
@@ -74,7 +74,7 @@ protected:
             const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
             const sensor_msgs::CameraInfoConstPtr& depthCameraInfo );
 
-    /* \brief Callback for RGBD + IMU topics synchronization
+    /*! \brief Callback for RGBD + IMU topics synchronization
      */
     void callbackRGBDIMU(
             const sensor_msgs::ImageConstPtr& rgb,
@@ -83,7 +83,7 @@ protected:
             const sensor_msgs::CameraInfoConstPtr& depthCameraInfo,
             const sensor_msgs::ImuConstPtr& imu);
 
-    /* \brief Callback for RGBD + Mag topics synchronization
+    /*! \brief Callback for RGBD + Mag topics synchronization
      */
     void callbackRGBDMag(
             const sensor_msgs::ImageConstPtr& rgb,

@@ -33,6 +33,8 @@
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
 
+
+
 //#define DEBUG_SENS_TS 1
 
 namespace zed_nodelets {
@@ -1565,6 +1567,37 @@ void ZEDWrapperNodelet::publishPose(ros::Time t) {
 
 }
 
+void ZEDWrapperNodelet::publishStaticImuFrame() {
+    // Publish IMU TF as static TF
+    if( !mPublishImuTf ) {
+        return;
+    }
+
+    if(mStaticImuFramePublished) {
+        return;
+    }
+
+    mStaticImuTransformStamped.header.stamp = ros::Time::now();
+    mStaticImuTransformStamped.header.frame_id = mLeftCamFrameId;
+    mStaticImuTransformStamped.child_frame_id = mImuFrameId;
+    sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
+    mStaticImuTransformStamped.transform.translation.x = sl_tr.x;
+    mStaticImuTransformStamped.transform.translation.y = sl_tr.y;
+    mStaticImuTransformStamped.transform.translation.z = sl_tr.z;
+    sl::Orientation sl_or = mSlCamImuTransf.getOrientation();
+    mStaticImuTransformStamped.transform.rotation.x = sl_or.ox;
+    mStaticImuTransformStamped.transform.rotation.y = sl_or.oy;
+    mStaticImuTransformStamped.transform.rotation.z = sl_or.oz;
+    mStaticImuTransformStamped.transform.rotation.w = sl_or.ow;
+
+    // Publish transformation
+    mStaticTransformImuBroadcaster.sendTransform(mStaticImuTransformStamped);
+
+    NODELET_INFO_STREAM("Published static transform '" << mImuFrameId << "' -> '" << mLeftCamFrameId << "'" );
+
+    mStaticImuFramePublished = true;
+}
+
 void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t) {
     if (!mSensor2BaseTransfValid) {
         getSens2BaseTransform();
@@ -1613,31 +1646,6 @@ void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time
     mTransformPoseBroadcaster.sendTransform(transformStamped);
 
     //NODELET_INFO_STREAM( "Published POSE TF with TS: " << t );
-}
-
-void ZEDWrapperNodelet::publishImuFrame(tf2::Transform imuTransform, ros::Time t) {
-    if (!mSensor2BaseTransfValid) {
-        getSens2BaseTransform();
-    }
-
-    if (!mSensor2CameraTransfValid) {
-        getSens2CameraTransform();
-    }
-
-    if (!mCamera2BaseTransfValid) {
-        getCamera2BaseTransform();
-    }
-
-    geometry_msgs::TransformStamped transformStamped;
-    transformStamped.header.stamp = t;
-    transformStamped.header.frame_id = mCameraFrameId;
-    transformStamped.child_frame_id = mImuFrameId;
-    // conversion from Tranform to message
-    transformStamped.transform = tf2::toMsg(imuTransform);
-    // Publish transformation
-    mTransformImuBroadcaster.sendTransform(transformStamped);
-
-    //NODELET_INFO_STREAM( "Published IMU TF with TS: " << t );
 }
 
 void ZEDWrapperNodelet::publishImage(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img,
@@ -2952,58 +2960,64 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
             if (mPublishMapTf) {
                 publishPoseFrame(mMap2OdomTransf, ts_imu); // publish the odometry Frame in map frame
             }
-        }
 
-        // Publish IMU tf
-        // Left camera to odom transform from TF buffer
-        tf2::Transform cam_to_odom;
-
-        //std::string poseFrame;
-        static bool first_error = false;
-
-        // Look up the transformation from imu frame to odom link
-        try {
-            // Save the transformation from base to frame
-            geometry_msgs::TransformStamped c2o =
-                    mTfBuffer->lookupTransform(mOdometryFrameId, mCameraFrameId, ros::Time(0), ros::Duration(0.1));
-            // Get the TF2 transformation
-            tf2::fromMsg(c2o.transform, cam_to_odom);
-        } catch (tf2::TransformException& ex) {
-            if(!first_error) {
-                NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
-                NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
-                                      mCameraFrameId.c_str(), mMapFrameId.c_str());
-                NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of a publisher "
-                                           "of the base_link -> odom transform. "
-                                           "This happens if `publish_tf` is `false` and no other nodes publish the "
-                                           "TF chain '%s' -> '%s' -> '%s'",
-                                      mOdometryFrameId.c_str(), mBaseFrameId.c_str(), mCameraFrameId.c_str());
-                first_error=false;
+            if(mPublishImuTf && !mStaticImuFramePublished )
+            {
+                publishStaticImuFrame();
             }
-
-            return;
         }
-
-        // ----> Update IMU pose for TF
-
-        // IMU Quaternion in Map frame
-        tf2::Quaternion imu_q;
-        imu_q.setX(sens_data.imu.pose.getOrientation()[0]);
-        imu_q.setY(sens_data.imu.pose.getOrientation()[1]);
-        imu_q.setZ(sens_data.imu.pose.getOrientation()[2]);
-        imu_q.setW(sens_data.imu.pose.getOrientation()[3]);
-
-        // Pose Quaternion from ZED Camera
-        tf2::Quaternion odom_q = cam_to_odom.getRotation();
-        // Difference between IMU and ZED Quaternion
-        tf2::Quaternion delta_q = imu_q * odom_q.inverse();
-
-        mLastImuPose.setIdentity();
-        mLastImuPose.setRotation(delta_q);
-
-        publishImuFrame(mLastImuPose, ts_imu);
-        // <---- Update IMU pose for TF
     }
+
+    //        // Publish IMU tf
+    //        // Left camera to odom transform from TF buffer
+    //        tf2::Transform cam_to_odom;
+
+    //        //std::string poseFrame;
+    //        static bool first_error = false;
+
+    //        // Look up the transformation from imu frame to odom link
+    //        try {
+    //            // Save the transformation from base to frame
+    //            geometry_msgs::TransformStamped c2o =
+    //                    mTfBuffer->lookupTransform(mOdometryFrameId, mCameraFrameId, ros::Time(0), ros::Duration(0.1));
+    //            // Get the TF2 transformation
+    //            tf2::fromMsg(c2o.transform, cam_to_odom);
+    //        } catch (tf2::TransformException& ex) {
+    //            if(!first_error) {
+    //                NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+    //                NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
+    //                                      mCameraFrameId.c_str(), mMapFrameId.c_str());
+    //                NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of a publisher "
+    //                                           "of the base_link -> odom transform. "
+    //                                           "This happens if `publish_tf` is `false` and no other nodes publish the "
+    //                                           "TF chain '%s' -> '%s' -> '%s'",
+    //                                      mOdometryFrameId.c_str(), mBaseFrameId.c_str(), mCameraFrameId.c_str());
+    //                first_error=false;
+    //            }
+
+    //            return;
+    //        }
+
+    //        // ----> Update IMU pose for TF
+
+    //        // IMU Quaternion in Map frame
+    //        tf2::Quaternion imu_q;
+    //        imu_q.setX(sens_data.imu.pose.getOrientation()[0]);
+    //        imu_q.setY(sens_data.imu.pose.getOrientation()[1]);
+    //        imu_q.setZ(sens_data.imu.pose.getOrientation()[2]);
+    //        imu_q.setW(sens_data.imu.pose.getOrientation()[3]);
+
+    //        // Pose Quaternion from ZED Camera
+    //        tf2::Quaternion odom_q = cam_to_odom.getRotation();
+    //        // Difference between IMU and ZED Quaternion
+    //        tf2::Quaternion delta_q = imu_q * odom_q.inverse();
+
+    //        mLastImuPose.setIdentity();
+    //        mLastImuPose.setRotation(delta_q);
+
+    //        publishImuFrame(mLastImuPose, ts_imu);
+    //        // <---- Update IMU pose for TF
+    //    }
 }
 
 
@@ -3590,19 +3604,24 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 oldStatus = mTrackingStatus;
             }
 
-            if(mZedRealCamModel == sl::MODEL::ZED || !mPublishImuTf) { // otherwise TFs are published together with sensor data
-                // Publish pose tf only if enabled
-                if(mPublishTf) {
-                    // Note, the frame is published, but its values will only change if
-                    // someone has subscribed to odom
-                    publishOdomFrame(mOdom2BaseTransf, stamp); // publish the base Frame in odometry frame
+            if(mZedRealCamModel == sl::MODEL::ZED || !mPublishImuTf) {
+            // Publish pose tf only if enabled
+            if(mPublishTf) {
+                // Note, the frame is published, but its values will only change if
+                // someone has subscribed to odom
+                publishOdomFrame(mOdom2BaseTransf, stamp); // publish the base Frame in odometry frame
 
-                    if(mPublishMapTf) {
-                        // Note, the frame is published, but its values will only change if
-                        // someone has subscribed to map
-                        publishPoseFrame(mMap2OdomTransf, stamp); // publish the odometry Frame in map frame
-                    }
+                if(mPublishMapTf) {
+                    // Note, the frame is published, but its values will only change if
+                    // someone has subscribed to map
+                    publishPoseFrame(mMap2OdomTransf, stamp); // publish the odometry Frame in map frame
                 }
+
+                if(mPublishImuTf && !mStaticImuFramePublished )
+                {
+                    publishStaticImuFrame();
+                }
+            }
             }
 
 #if 0 //#ifndef NDEBUG // Enable for TF checking
@@ -3678,6 +3697,11 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
                     if (mPublishMapTf) {
                         publishPoseFrame(mMap2OdomTransf, mFrameTimestamp); // publish the odometry Frame in map frame
+                    }
+
+                    if(mPublishImuTf && !mStaticImuFramePublished )
+                    {
+                        publishStaticImuFrame();
                     }
                 }
             }
@@ -4081,7 +4105,7 @@ bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_d
     return res.done;
 }
 
-/* \brief Service callback to stop_object_detection service
+/*! \brief Service callback to stop_object_detection service
      */
 bool ZEDWrapperNodelet::on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
                                                  zed_interfaces::stop_object_detection::Response& res) {
