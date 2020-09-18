@@ -1,4 +1,4 @@
-#ifndef ZED_WRAPPER_NODELET_H
+﻿#ifndef ZED_WRAPPER_NODELET_H
 #define ZED_WRAPPER_NODELET_H
 
 ///////////////////////////////////////////////////////////////////////////
@@ -30,6 +30,7 @@
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 #include <image_transport/image_transport.h>
 #include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -98,37 +99,37 @@ class ZEDWrapperNodelet : public nodelet::Nodelet {
     } DynParams;
 
 public:
-    /* \brief Default constructor
+    /*! \brief Default constructor
          */
     ZEDWrapperNodelet();
 
-    /* \brief \ref ZEDWrapperNodelet destructor
+    /*! \brief \ref ZEDWrapperNodelet destructor
          */
     virtual ~ZEDWrapperNodelet();
 
 protected:
-    /* \brief Initialization function called by the Nodelet base class
+    /*! \brief Initialization function called by the Nodelet base class
          */
     virtual void onInit();
 
-    /* \brief Reads parameters from the param server
+    /*! \brief Reads parameters from the param server
          */
     void readParameters();
 
-    /* \brief ZED camera polling thread function
+    /*! \brief ZED camera polling thread function
          */
     void device_poll_thread_func();
 
-    /* \brief Pointcloud publishing function
+    /*! \brief Pointcloud publishing function
          */
     void pointcloud_thread_func();
 
-    /* \brief Publish the pose of the camera in "Map" frame with a ros Publisher
+    /*! \brief Publish the pose of the camera in "Map" frame with a ros Publisher
          * \param t : the ros::Time to stamp the image
          */
     void publishPose(ros::Time t);
 
-    /* \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
+    /*! \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
          * \param base2odomTransf : Transformation representing the camera pose
          * from base frame to odom frame
          * \param slPose : latest odom pose from ZED SDK
@@ -136,14 +137,14 @@ protected:
          */
     void publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t);
 
-    /* \brief Publish the pose of the camera in "Map" frame as a transformation
+    /*! \brief Publish the pose of the camera in "Map" frame as a transformation
          * \param baseTransform : Transformation representing the camera pose from
          * odom frame to map frame
          * \param t : the ros::Time to stamp the image
          */
     void publishPoseFrame(tf2::Transform baseTransform, ros::Time t);
 
-    /* \brief Publish the odometry of the camera in "Odom" frame as a
+    /*! \brief Publish the odometry of the camera in "Odom" frame as a
          * transformation
          * \param odomTransf : Transformation representing the camera pose from
          * base frame to odom frame
@@ -151,14 +152,12 @@ protected:
          */
     void publishOdomFrame(tf2::Transform odomTransf, ros::Time t);
 
-    /* \brief Publish the pose of the imu in "Odom" frame as a transformation
-         * \param imuTransform : Transformation representing the imu pose from base
-         * frame to odom framevoid
-         * \param t : the ros::Time to stamp the image
-         */
-    void publishImuFrame(tf2::Transform imuTransform, ros::Time t);
+    /*!
+    * \brief Publish IMU frame once as static TF
+    */
+    void publishStaticImuFrame();
 
-    /* \brief Publish a sl::Mat image with a ros Publisher
+    /*! \brief Publish a sl::Mat image with a ros Publisher
          * \param imgMsgPtr : the image message to publish
          * \param img : the image to publish
          * \param pubImg : the publisher object to use (different image publishers
@@ -171,22 +170,22 @@ protected:
     void publishImage(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img, image_transport::CameraPublisher& pubImg, sensor_msgs::CameraInfoPtr camInfoMsg,
                       string imgFrameId, ros::Time t);
 
-    /* \brief Publish a sl::Mat depth image with a ros Publisher
+    /*! \brief Publish a sl::Mat depth image with a ros Publisher
      * \param imgMsgPtr : the depth image topic message to publish
          * \param depth : the depth image to publish
          * \param t : the ros::Time to stamp the depth image
          */
     void publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat depth, ros::Time t);
 
-    /* \brief Publish a single pointCloud with a ros Publisher
+    /*! \brief Publish a single pointCloud with a ros Publisher
          */
     void publishPointCloud();
 
-    /* \brief Publish a fused pointCloud with a ros Publisher
+    /*! \brief Publish a fused pointCloud with a ros Publisher
          */
     void pubFusedPointCloudCallback(const ros::TimerEvent& e);
 
-    /* \brief Publish the informations of a camera with a ros Publisher
+    /*! \brief Publish the informations of a camera with a ros Publisher
          * \param cam_info_msg : the information message to publish
          * \param pub_cam_info : the publisher object to use
          * \param t : the ros::Time to stamp the message
@@ -194,13 +193,13 @@ protected:
     void publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg,
                         ros::Publisher pubCamInfo, ros::Time t);
 
-    /* \brief Publish a sl::Mat disparity image with a ros Publisher
+    /*! \brief Publish a sl::Mat disparity image with a ros Publisher
          * \param disparity : the disparity image to publish
          * \param t : the ros::Time to stamp the depth image
          */
     void publishDisparity(sl::Mat disparity, ros::Time t);
 
-    /* \brief Get the information of the ZED cameras and store them in an
+    /*! \brief Get the information of the ZED cameras and store them in an
          * information message
          * \param zed : the sl::zed::Camera* pointer to an instance
          * \param left_cam_info_msg : the information message to fill with the left
@@ -215,7 +214,7 @@ protected:
                      string leftFrameId, string rightFrameId,
                      bool rawParam = false);
 
-    /* \brief Get the information of the ZED cameras and store them in an
+    /*! \brief Get the information of the ZED cameras and store them in an
          * information message for depth topics
          * \param zed : the sl::zed::Camera* pointer to an instance
          * \param depth_info_msg : the information message to fill with the left
@@ -230,38 +229,38 @@ protected:
          */
     void checkResolFps();
 
-    /* \brief Callback to handle dynamic reconfigure events in ROS
+    /*! \brief Callback to handle dynamic reconfigure events in ROS
          */
     void dynamicReconfCallback(zed_nodelets::ZedConfig& config, uint32_t level);
 
-    /* \brief Callback to publish Video and Depth data
+    /*! \brief Callback to publish Video and Depth data
          * \param e : the ros::TimerEvent binded to the callback
          */
     void pubVideoDepthCallback(const ros::TimerEvent& e);
 
-    /* \brief Callback to publish Path data with a ROS publisher.
+    /*! \brief Callback to publish Path data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
     void pubPathCallback(const ros::TimerEvent& e);
 
-    /* \brief Callback to publish Sensor Data with a ROS publisher.
+    /*! \brief Callback to publish Sensor Data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
     void pubSensCallback(const ros::TimerEvent& e);
 
-    /* \brief Callback to update node diagnostic status
+    /*! \brief Callback to update node diagnostic status
          * \param stat : node status
          */
     void updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat);
 
-    /* \brief Service callback to reset_tracking service
+    /*! \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
          * server
          */
     bool on_reset_tracking(zed_interfaces::reset_tracking::Request&  req,
                            zed_interfaces::reset_tracking::Response& res);
 
-    /* \brief Service callback to reset_odometry service
+    /*! \brief Service callback to reset_odometry service
          *        Odometry is reset to clear drift and odometry frame gets the latest
          * pose
          *        from ZED tracking.
@@ -269,79 +268,79 @@ protected:
     bool on_reset_odometry(zed_interfaces::reset_odometry::Request&  req,
                            zed_interfaces::reset_odometry::Response& res);
 
-    /* \brief Service callback to set_pose service
+    /*! \brief Service callback to set_pose service
          *        Tracking pose is set to the new values
          */
     bool on_set_pose(zed_interfaces::set_pose::Request& req,
                      zed_interfaces::set_pose::Response& res);
 
-    /* \brief Service callback to start_svo_recording service
+    /*! \brief Service callback to start_svo_recording service
          */
     bool on_start_svo_recording(zed_interfaces::start_svo_recording::Request& req,
                                 zed_interfaces::start_svo_recording::Response& res);
 
-    /* \brief Service callback to stop_svo_recording service
+    /*! \brief Service callback to stop_svo_recording service
          */
     bool on_stop_svo_recording(zed_interfaces::stop_svo_recording::Request& req,
                                zed_interfaces::stop_svo_recording::Response& res);
 
-    /* \brief Service callback to start_remote_stream service
+    /*! \brief Service callback to start_remote_stream service
          */
     bool on_start_remote_stream(zed_interfaces::start_remote_stream::Request& req,
                                 zed_interfaces::start_remote_stream::Response& res);
 
-    /* \brief Service callback to stop_remote_stream service
+    /*! \brief Service callback to stop_remote_stream service
          */
     bool on_stop_remote_stream(zed_interfaces::stop_remote_stream::Request& req,
                                zed_interfaces::stop_remote_stream::Response& res);
 
-    /* \brief Service callback to set_led_status service
+    /*! \brief Service callback to set_led_status service
          */
     bool on_set_led_status(zed_interfaces::set_led_status::Request& req,
                            zed_interfaces::set_led_status::Response& res);
 
-    /* \brief Service callback to toggle_led service
+    /*! \brief Service callback to toggle_led service
          */
     bool on_toggle_led(zed_interfaces::toggle_led::Request& req,
                        zed_interfaces::toggle_led::Response& res);
 
-    /* \brief Service callback to start_3d_mapping service
+    /*! \brief Service callback to start_3d_mapping service
          */
     bool on_start_3d_mapping(zed_interfaces::start_3d_mapping::Request& req,
                              zed_interfaces::start_3d_mapping::Response& res);
 
-    /* \brief Service callback to stop_3d_mapping service
+    /*! \brief Service callback to stop_3d_mapping service
          */
     bool on_stop_3d_mapping(zed_interfaces::stop_3d_mapping::Request& req,
                             zed_interfaces::stop_3d_mapping::Response& res);
 
-    /* \brief Service callback to start_object_detection service
+    /*! \brief Service callback to start_object_detection service
          */
     bool on_start_object_detection(zed_interfaces::start_object_detection::Request& req,
                              zed_interfaces::start_object_detection::Response& res);
 
-    /* \brief Service callback to stop_object_detection service
+    /*! \brief Service callback to stop_object_detection service
          */
     bool on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
                             zed_interfaces::stop_object_detection::Response& res);
 
-    /* \brief Utility to initialize the pose variables
+    /*! \brief Utility to initialize the pose variables
          */
     bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
 
-    /* \brief Utility to initialize the most used transforms
+    /*! \brief Utility to initialize the most used transforms
          */
     void initTransforms();
 
-    /* \brief Utility to initialize the static transform from Sensor to Base
+    /*! \brief Utility to initialize the static transform from Sensor to Base
          */
     bool getSens2BaseTransform();
 
-    /* \brief Utility to initialize the static transform from Sensor to Camera
+    /*! \brief Utility to initialize the static transform from Sensor to Camera
          */
     bool getSens2CameraTransform();
 
-    /* \brief Utility to initialize the static transform from Camera to Base
+    /*! \brief Utility to initialize the static transform from Camera to Base
          */
     bool getCamera2BaseTransform();
 
@@ -365,11 +364,11 @@ protected:
          */
     void stop_obj_detect();
 
-    /* \brief Perform object detection and publish result
+    /*! \brief Perform object detection and publish result
          */
     void detectObjects(bool publishObj, bool publishViz, ros::Time t);
 
-    /* \brief Generates an univoque color for each object class ID
+    /*! \brief Generates an univoque color for each object class ID
          */
     inline sl::float3 generateColorClass(int idx) {
         sl::float3 clr;
@@ -379,7 +378,7 @@ protected:
         return clr / 255.f;
     }
 
-    /* \brief Update Dynamic reconfigure parameters
+    /*! \brief Update Dynamic reconfigure parameters
          */
     void updateDynamicReconfigure();
 
@@ -473,7 +472,7 @@ private:
     // ROS TF
     tf2_ros::TransformBroadcaster mTransformPoseBroadcaster;
     tf2_ros::TransformBroadcaster mTransformOdomBroadcaster;
-    tf2_ros::TransformBroadcaster mTransformImuBroadcaster;
+    tf2_ros::StaticTransformBroadcaster mStaticTransformImuBroadcaster;
 
     std::string mRgbFrameId;
     std::string mRgbOptFrameId;
@@ -508,6 +507,7 @@ private:
 
     bool mPublishTf;
     bool mPublishMapTf;
+    bool mPublishImuTf;
     bool mCameraFlip;
     bool mCameraSelfCalib;
 
@@ -551,11 +551,14 @@ private:
     ros::Time mFrameTimestamp;
 
     // Positional Tracking variables
-    sl::Pose mLastZedPose; // Sensor to Map transform
+    sl::Pose mLastZedPose; // Sensor to Map transform    
     sl::Transform mInitialPoseSl;
     std::vector<float> mInitialBasePose;
     std::vector<geometry_msgs::PoseStamped> mOdomPath;
     std::vector<geometry_msgs::PoseStamped> mMapPath;
+
+    // IMU TF
+    tf2::Transform mLastImuPose;
 
     // TF Transforms
     tf2::Transform mMap2OdomTransf;         // Coordinates of the odometry frame in map frame
@@ -569,6 +572,7 @@ private:
     bool mSensor2BaseTransfValid = false;
     bool mSensor2CameraTransfValid = false;
     bool mCamera2BaseTransfValid = false;
+    bool mStaticImuFramePublished = false;
 
     // initialization Transform listener
     boost::shared_ptr<tf2_ros::Buffer> mTfBuffer;
@@ -666,6 +670,7 @@ private:
 
     // Camera IMU transform
     sl::Transform mSlCamImuTransf;    
+    geometry_msgs::TransformStamped mStaticImuTransformStamped;
 
     // Spatial mapping
     bool mMappingEnabled;

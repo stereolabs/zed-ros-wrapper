@@ -33,6 +33,10 @@
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
 
+
+
+//#define DEBUG_SENS_TS 1
+
 namespace zed_nodelets {
 
 #ifndef DEG2RAD
@@ -513,7 +517,7 @@ void ZEDWrapperNodelet::onInit() {
             }
 
             mFrameTimestamp = ros::Time::now();
-            mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mSensPubRate),
+            mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / (mSensPubRate*1.5) ),
                                           &ZEDWrapperNodelet::pubSensCallback, this);
             mSensPeriodMean_usec.reset(new sl_tools::CSmartMean(mSensPubRate / 2));
 
@@ -807,6 +811,8 @@ void ZEDWrapperNodelet::readParameters() {
     mNhNs.param<bool>("pos_tracking/publish_map_tf", mPublishMapTf, true);
     NODELET_INFO_STREAM(" * Broadcast map pose TF\t-> " << (mPublishTf ? (mPublishMapTf ? "ENABLED" : "DISABLED") :
                                                                          "DISABLED"));
+    mNhNs.param<bool>("sensors/publish_imu_tf", mPublishImuTf, true);
+    NODELET_INFO_STREAM(" * Broadcast IMU pose TF\t-> " << ( mPublishImuTf ? "ENABLED" : "DISABLED" ) );
     // <---- TF broadcasting
 
     // ----> Dynamic
@@ -1561,6 +1567,37 @@ void ZEDWrapperNodelet::publishPose(ros::Time t) {
 
 }
 
+void ZEDWrapperNodelet::publishStaticImuFrame() {
+    // Publish IMU TF as static TF
+    if( !mPublishImuTf ) {
+        return;
+    }
+
+    if(mStaticImuFramePublished) {
+        return;
+    }
+
+    mStaticImuTransformStamped.header.stamp = ros::Time::now();
+    mStaticImuTransformStamped.header.frame_id = mLeftCamFrameId;
+    mStaticImuTransformStamped.child_frame_id = mImuFrameId;
+    sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
+    mStaticImuTransformStamped.transform.translation.x = sl_tr.x;
+    mStaticImuTransformStamped.transform.translation.y = sl_tr.y;
+    mStaticImuTransformStamped.transform.translation.z = sl_tr.z;
+    sl::Orientation sl_or = mSlCamImuTransf.getOrientation();
+    mStaticImuTransformStamped.transform.rotation.x = sl_or.ox;
+    mStaticImuTransformStamped.transform.rotation.y = sl_or.oy;
+    mStaticImuTransformStamped.transform.rotation.z = sl_or.oz;
+    mStaticImuTransformStamped.transform.rotation.w = sl_or.ow;
+
+    // Publish transformation
+    mStaticTransformImuBroadcaster.sendTransform(mStaticImuTransformStamped);
+
+    NODELET_INFO_STREAM("Published static transform '" << mImuFrameId << "' -> '" << mLeftCamFrameId << "'" );
+
+    mStaticImuFramePublished = true;
+}
+
 void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t) {
     if (!mSensor2BaseTransfValid) {
         getSens2BaseTransform();
@@ -1582,6 +1619,8 @@ void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t)
     transformStamped.transform = tf2::toMsg(odomTransf);
     // Publish transformation
     mTransformOdomBroadcaster.sendTransform(transformStamped);
+
+    //NODELET_INFO_STREAM( "Published ODOM TF with TS: " << t );
 }
 
 void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time t) {
@@ -1605,29 +1644,8 @@ void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time
     transformStamped.transform = tf2::toMsg(baseTransform);
     // Publish transformation
     mTransformPoseBroadcaster.sendTransform(transformStamped);
-}
 
-void ZEDWrapperNodelet::publishImuFrame(tf2::Transform imuTransform, ros::Time t) {
-    if (!mSensor2BaseTransfValid) {
-        getSens2BaseTransform();
-    }
-
-    if (!mSensor2CameraTransfValid) {
-        getSens2CameraTransform();
-    }
-
-    if (!mCamera2BaseTransfValid) {
-        getCamera2BaseTransform();
-    }
-
-    geometry_msgs::TransformStamped transformStamped;
-    transformStamped.header.stamp = t;
-    transformStamped.header.frame_id = mCameraFrameId;
-    transformStamped.child_frame_id = mImuFrameId;
-    // conversion from Tranform to message
-    transformStamped.transform = tf2::toMsg(imuTransform);
-    // Publish transformation
-    mTransformImuBroadcaster.sendTransform(transformStamped);
+    //NODELET_INFO_STREAM( "Published POSE TF with TS: " << t );
 }
 
 void ZEDWrapperNodelet::publishImage(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img,
@@ -1834,7 +1852,7 @@ void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
 
     if (pointcloudFusedMsg->width != ptsCount || pointcloudFusedMsg->height != 1) {
         // Initialize Point Cloud message
-        // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h        
+        // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
         pointcloudFusedMsg->header.frame_id = mMapFrameId; // Set the header values of the ROS message
         pointcloudFusedMsg->is_bigendian = false;
         pointcloudFusedMsg->is_dense = false;
@@ -2591,8 +2609,9 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
     ros::Time ts_imu;
     ros::Time ts_baro;
     ros::Time ts_mag;
-    ros::Time ts_mag_raw;
+    //ros::Time ts_mag_raw;
 
+    static ros::Time lastTs_imu = ros::Time();
     static ros::Time lastTs_baro = ros::Time();
     static ros::Time lastT_mag = ros::Time();
     //static ros::Time lastT_mag_raw = ros::Time();
@@ -2624,7 +2643,7 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
             ts_imu = mFrameTimestamp;
             ts_baro = mFrameTimestamp;
             ts_mag = mFrameTimestamp;
-            ts_mag_raw = mFrameTimestamp;
+            //ts_mag_raw = mFrameTimestamp;
         } else {
             ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
             ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
@@ -2633,14 +2652,22 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
         }
     }
 
+    bool new_imu_data = ts_imu!=lastTs_imu;
+    bool new_baro_data = ts_baro!=lastTs_baro;
+    bool new_mag_data = ts_mag!=lastT_mag;
+
+    if( !new_imu_data && !new_baro_data && !new_mag_data) {
+        return;
+    }
+
     if( mZedRealCamModel == sl::MODEL::ZED2 ) {
         // Update temperatures for Diagnostic
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_LEFT, mTempLeft);
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
     }
 
-    if (totSub<1) { // Nothing to publish
-        return;
+    if(totSub<1 && !mPublishImuTf) {
+        return; // Nothing to publish
     }
 
     if( imu_SubNumber > 0 || imu_RawSubNumber > 0 ||
@@ -2664,6 +2691,15 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
         sensor_msgs::TemperaturePtr imuTempMsg = boost::make_shared<sensor_msgs::Temperature>();
 
         imuTempMsg->header.stamp = ts_imu;
+
+#ifdef DEBUG_SENS_TS
+        static ros::Time old_ts;
+        if(old_ts==imuTempMsg->header.stamp) {
+            NODELET_WARN_STREAM("Publishing IMU data with old timestamp " << old_ts );
+        }
+        old_ts = imuTempMsg->header.stamp;
+#endif
+
         imuTempMsg->header.frame_id = mImuFrameId;
         float imu_temp;
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, imu_temp);
@@ -2673,14 +2709,21 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
         mPubImuTemp.publish(imuTempMsg);
     }
 
-
-    if( sens_data.barometer.is_available && lastTs_baro != ts_baro ) {
+    if( sens_data.barometer.is_available && new_baro_data ) {
         lastTs_baro = ts_baro;
 
         if( pressSubNumber>0 ) {
             sensor_msgs::FluidPressurePtr pressMsg = boost::make_shared<sensor_msgs::FluidPressure>();
 
             pressMsg->header.stamp = ts_baro;
+
+#ifdef DEBUG_SENS_TS
+            static ros::Time old_ts;
+            if(old_ts==pressMsg->header.stamp) {
+                NODELET_WARN_STREAM("Publishing BARO data with old timestamp " << old_ts );
+            }
+            old_ts = pressMsg->header.stamp;
+#endif
             pressMsg->header.frame_id = mBaroFrameId;
             pressMsg->fluid_pressure = sens_data.barometer.pressure * 1e-2; // Pascal
             pressMsg->variance = 1.0585e-2;
@@ -2692,6 +2735,15 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
             sensor_msgs::TemperaturePtr tempLeftMsg = boost::make_shared<sensor_msgs::Temperature>();
 
             tempLeftMsg->header.stamp = ts_baro;
+
+#ifdef DEBUG_SENS_TS
+            static ros::Time old_ts;
+            if(old_ts==tempLeftMsg->header.stamp) {
+                NODELET_WARN_STREAM("Publishing BARO data with old timestamp " << old_ts );
+            }
+            old_ts = tempLeftMsg->header.stamp;
+#endif
+
             tempLeftMsg->header.frame_id = mTempLeftFrameId;
             tempLeftMsg->temperature = static_cast<double>(mTempLeft);
             tempLeftMsg->variance = 0.0;
@@ -2703,6 +2755,15 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
             sensor_msgs::TemperaturePtr tempRightMsg = boost::make_shared<sensor_msgs::Temperature>();
 
             tempRightMsg->header.stamp = ts_baro;
+
+#ifdef DEBUG_SENS_TS
+            static ros::Time old_ts;
+            if(old_ts==tempRightMsg->header.stamp) {
+                NODELET_WARN_STREAM("Publishing BARO data with old timestamp " << old_ts );
+            }
+            old_ts = tempRightMsg->header.stamp;
+#endif
+
             tempRightMsg->header.frame_id = mTempRightFrameId;
             tempRightMsg->temperature = static_cast<double>(mTempRight);
             tempRightMsg->variance = 0.0;
@@ -2711,13 +2772,22 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
         }
     }
 
-    if( imu_MagSubNumber>0 ) {
-        if( sens_data.magnetometer.is_available && lastT_mag != ts_mag ) {
+    if( imu_MagSubNumber>0) {
+        if( sens_data.magnetometer.is_available && new_mag_data ) {
             lastT_mag = ts_mag;
 
             sensor_msgs::MagneticFieldPtr magMsg = boost::make_shared<sensor_msgs::MagneticField>();
 
             magMsg->header.stamp = ts_mag;
+
+#ifdef DEBUG_SENS_TS
+            static ros::Time old_ts;
+            if(old_ts==magMsg->header.stamp) {
+                NODELET_WARN_STREAM("Publishing MAG data with old timestamp " << old_ts );
+            }
+            old_ts = magMsg->header.stamp;
+#endif
+
             magMsg->header.frame_id = mMagFrameId;
             magMsg->magnetic_field.x = sens_data.magnetometer.magnetic_field_calibrated.x*1e-6; // Tesla
             magMsg->magnetic_field.y = sens_data.magnetometer.magnetic_field_calibrated.y*1e-6; // Tesla
@@ -2762,10 +2832,24 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
     //        }
     //    }
 
-    if (imu_SubNumber > 0) {
+    if( (imu_SubNumber > 0 || mPublishImuTf) && new_imu_data) {
+        lastTs_imu = ts_imu;
+
         sensor_msgs::ImuPtr imuMsg = boost::make_shared<sensor_msgs::Imu>();
 
         imuMsg->header.stamp = ts_imu;
+
+#ifdef DEBUG_SENS_TS
+        static ros::Time old_ts;
+        if(old_ts==imuMsg->header.stamp) {
+            NODELET_WARN_STREAM("Publishing IMU data with old timestamp " << old_ts );
+        } else {
+            NODELET_INFO_STREAM("Publishing IMU data with new timestamp. Freq: " << 1./(ts_imu.toSec()-old_ts.toSec()) );
+            old_ts = imuMsg->header.stamp;
+
+        }
+#endif
+
         imuMsg->header.frame_id = mImuFrameId;
 
         imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
@@ -2815,10 +2899,12 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
                     sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
         }
 
-        mPubImu.publish(imuMsg);
+        if(imu_SubNumber > 0) {
+            mPubImu.publish(imuMsg);
+        }
     }
 
-    if (imu_RawSubNumber > 0) {
+    if (imu_RawSubNumber > 0 && new_imu_data) {
         sensor_msgs::ImuPtr imuRawMsg = boost::make_shared<sensor_msgs::Imu>();
 
         imuRawMsg->header.stamp = ts_imu;
@@ -2862,52 +2948,78 @@ void ZEDWrapperNodelet::pubSensCallback(const ros::TimerEvent& e) {
         mPubImuRaw.publish(imuRawMsg);
     }
 
-    // Publish IMU tf
-    // Camera to pose transform from TF buffer
-    tf2::Transform cam_to_odom;
+    if(new_imu_data && mPublishImuTf) {
+        // Publish odometry tf only if enabled
+        if (mPublishTf) {
+            if(!mTrackingReady) {
+                return;
+            }
 
-    //std::string poseFrame;
-    static bool first_error = true;
+            publishOdomFrame(mOdom2BaseTransf, ts_imu); // publish the base Frame in odometry frame
 
-    // Look up the transformation from imu frame to odom link
-    try {
-        // Save the transformation from base to frame
-        geometry_msgs::TransformStamped c20 =
-                mTfBuffer->lookupTransform(mOdometryFrameId, mCameraFrameId, ros::Time(0));
-        // Get the TF2 transformation
-        tf2::fromMsg(c20.transform, cam_to_odom);
-    } catch (tf2::TransformException& ex) {
-        if(!first_error) {
-            NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
-            NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
-                                  mCameraFrameId.c_str(), mMapFrameId.c_str());
-            NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of a publisher "
-                                       "of the base_link -> odom transform. "
-                                       "This happens if `publish_tf` is `false` and no other nodes publish the "
-                                       "TF chain '%s' -> '%s' -> '%s'",
-                                  mOdometryFrameId.c_str(), mBaseFrameId.c_str(), mCameraFrameId.c_str());
-            first_error=false;
+            if (mPublishMapTf) {
+                publishPoseFrame(mMap2OdomTransf, ts_imu); // publish the odometry Frame in map frame
+            }
+
+            if(mPublishImuTf && !mStaticImuFramePublished )
+            {
+                publishStaticImuFrame();
+            }
         }
-
-        return;
     }
 
-    // IMU Quaternion in Map frame
-    tf2::Quaternion imu_q;
-    imu_q.setX(sens_data.imu.pose.getOrientation()[0]);
-    imu_q.setY(sens_data.imu.pose.getOrientation()[1]);
-    imu_q.setZ(sens_data.imu.pose.getOrientation()[2]);
-    imu_q.setW(sens_data.imu.pose.getOrientation()[3]);
-    // Pose Quaternion from ZED Camera
-    tf2::Quaternion map_q = cam_to_odom.getRotation();
-    // Difference between IMU and ZED Quaternion
-    tf2::Quaternion delta_q = imu_q * map_q.inverse();
-    tf2::Transform imu_pose;
-    imu_pose.setIdentity();
-    imu_pose.setRotation(delta_q);
+    //        // Publish IMU tf
+    //        // Left camera to odom transform from TF buffer
+    //        tf2::Transform cam_to_odom;
 
-    publishImuFrame(imu_pose, mFrameTimestamp); // publish the imu Frame
+    //        //std::string poseFrame;
+    //        static bool first_error = false;
+
+    //        // Look up the transformation from imu frame to odom link
+    //        try {
+    //            // Save the transformation from base to frame
+    //            geometry_msgs::TransformStamped c2o =
+    //                    mTfBuffer->lookupTransform(mOdometryFrameId, mCameraFrameId, ros::Time(0), ros::Duration(0.1));
+    //            // Get the TF2 transformation
+    //            tf2::fromMsg(c2o.transform, cam_to_odom);
+    //        } catch (tf2::TransformException& ex) {
+    //            if(!first_error) {
+    //                NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+    //                NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
+    //                                      mCameraFrameId.c_str(), mMapFrameId.c_str());
+    //                NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of a publisher "
+    //                                           "of the base_link -> odom transform. "
+    //                                           "This happens if `publish_tf` is `false` and no other nodes publish the "
+    //                                           "TF chain '%s' -> '%s' -> '%s'",
+    //                                      mOdometryFrameId.c_str(), mBaseFrameId.c_str(), mCameraFrameId.c_str());
+    //                first_error=false;
+    //            }
+
+    //            return;
+    //        }
+
+    //        // ----> Update IMU pose for TF
+
+    //        // IMU Quaternion in Map frame
+    //        tf2::Quaternion imu_q;
+    //        imu_q.setX(sens_data.imu.pose.getOrientation()[0]);
+    //        imu_q.setY(sens_data.imu.pose.getOrientation()[1]);
+    //        imu_q.setZ(sens_data.imu.pose.getOrientation()[2]);
+    //        imu_q.setW(sens_data.imu.pose.getOrientation()[3]);
+
+    //        // Pose Quaternion from ZED Camera
+    //        tf2::Quaternion odom_q = cam_to_odom.getRotation();
+    //        // Difference between IMU and ZED Quaternion
+    //        tf2::Quaternion delta_q = imu_q * odom_q.inverse();
+
+    //        mLastImuPose.setIdentity();
+    //        mLastImuPose.setRotation(delta_q);
+
+    //        publishImuFrame(mLastImuPose, ts_imu);
+    //        // <---- Update IMU pose for TF
+    //    }
 }
+
 
 void ZEDWrapperNodelet::device_poll_thread_func() {
     ros::Rate loop_rate(mCamFrameRate);
@@ -3492,17 +3604,24 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 oldStatus = mTrackingStatus;
             }
 
+            if(mZedRealCamModel == sl::MODEL::ZED || !mPublishImuTf) {
             // Publish pose tf only if enabled
-            if (mPublishTf) {
+            if(mPublishTf) {
                 // Note, the frame is published, but its values will only change if
                 // someone has subscribed to odom
                 publishOdomFrame(mOdom2BaseTransf, stamp); // publish the base Frame in odometry frame
 
-                if (mPublishMapTf) {
+                if(mPublishMapTf) {
                     // Note, the frame is published, but its values will only change if
                     // someone has subscribed to map
                     publishPoseFrame(mMap2OdomTransf, stamp); // publish the odometry Frame in map frame
                 }
+
+                if(mPublishImuTf && !mStaticImuFramePublished )
+                {
+                    publishStaticImuFrame();
+                }
+            }
             }
 
 #if 0 //#ifndef NDEBUG // Enable for TF checking
@@ -3563,20 +3682,27 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
         } else {
             NODELET_DEBUG_THROTTLE(5.0, "No topics subscribed by users");
 
-            // Publish odometry tf only if enabled
-            if (mPublishTf) {
-                ros::Time t;
+            if(mZedRealCamModel == sl::MODEL::ZED || !mPublishImuTf) {
+                // Publish odometry tf only if enabled
+                if (mPublishTf) {
+                    ros::Time t;
 
-                if (mSvoMode) {
-                    t = ros::Time::now();
-                } else {
-                    t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
-                }
+                    if (mSvoMode) {
+                        t = ros::Time::now();
+                    } else {
+                        t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+                    }
 
-                publishOdomFrame(mOdom2BaseTransf, mFrameTimestamp); // publish the base Frame in odometry frame
+                    publishOdomFrame(mOdom2BaseTransf, mFrameTimestamp); // publish the base Frame in odometry frame
 
-                if (mPublishMapTf) {
-                    publishPoseFrame(mMap2OdomTransf, mFrameTimestamp); // publish the odometry Frame in map frame
+                    if (mPublishMapTf) {
+                        publishPoseFrame(mMap2OdomTransf, mFrameTimestamp); // publish the odometry Frame in map frame
+                    }
+
+                    if(mPublishImuTf && !mStaticImuFramePublished )
+                    {
+                        publishStaticImuFrame();
+                    }
                 }
             }
 
@@ -3979,7 +4105,7 @@ bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_d
     return res.done;
 }
 
-/* \brief Service callback to stop_object_detection service
+/*! \brief Service callback to stop_object_detection service
      */
 bool ZEDWrapperNodelet::on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
                                                  zed_interfaces::stop_object_detection::Response& res) {

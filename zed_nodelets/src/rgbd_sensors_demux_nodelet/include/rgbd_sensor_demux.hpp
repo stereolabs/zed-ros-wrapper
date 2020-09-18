@@ -44,11 +44,11 @@ public:
     virtual ~RgbdSensorsDemuxNodelet();
 
 protected:
-    /* \brief Initialization function called by the Nodelet base class
+    /*! \brief Initialization function called by the Nodelet base class
      */
     virtual void onInit();
 
-    /* \brief Callback for full topics synchronization
+    /*! \brief Callback for full topics synchronization
      */
     void msgCallback( const zed_interfaces::RGBDSensorsPtr& msg );
 
