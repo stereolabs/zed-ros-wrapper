@@ -542,7 +542,7 @@ private:
     bool mGrabActive = false; // Indicate if camera grabbing is active (at least one topic subscribed)
     sl::ERROR_CODE mConnStatus;
     sl::ERROR_CODE mGrabStatus;
-    sl::POSITIONAL_TRACKING_STATE mTrackingStatus;
+    sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
     bool mSensPublishing = false;
     bool mPcPublishing = false;
 
