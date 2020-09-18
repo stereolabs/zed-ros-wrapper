@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+ASYNC OBject Detection (2020-09-18)
+-----------------------------------
+- Object Detection now runs asynchronously respect to data grabbing and Object Detected data are published only when available not affecting the frequency of the publishing of the other data types
+
 IMU timestamp fix (2020-08-25)
 ------------------------------
 - Added new parameter `sensors/publish_imu_tf` to enable/disable IMU TF broadcasting
