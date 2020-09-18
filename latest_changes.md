@@ -6,7 +6,7 @@ IMU timestamp fix (2020-08-25)
 - Added new parameter `sensors/publish_imu_tf` to enable/disable IMU TF broadcasting
 - Fixed duplicated IMU timestamp issue (see ticket #577)
 - Fixed problem with IMU TF in Rviz: `odom` and `zed_camera_center` TFs are now published at the same frequency of the IMU TF, if available)
-- IMU TF is now published even if the IMU topic is not subscribed
+- IMU TF is now published once as static TF even if the IMU topic is not subscribed
 
 Timestamp fix (2020-06-03)
 --------------------------
