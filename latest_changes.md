@@ -4,6 +4,7 @@ LATEST CHANGES
 ASYNC Object Detection (2020-09-18)
 -----------------------------------
 - Object Detection now runs asynchronously respect to data grabbing and Object Detected data are published only when available not affecting the frequency of the publishing of the other data types
+- Depth OpenNI topic name changed from `depth/depth_raw_registered` to `depth/depth_registered`
 
 IMU timestamp fix (2020-08-25)
 ------------------------------
