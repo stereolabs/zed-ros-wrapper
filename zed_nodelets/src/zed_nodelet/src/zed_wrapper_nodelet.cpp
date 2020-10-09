@@ -2272,23 +2272,23 @@ void ZEDWrapperNodelet::callback_dynamicReconf(zed_nodelets::ZedConfig& config, 
 void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e) {
     static sl::Timestamp lastZedTs = 0; // Used to calculate stable publish frequency
 
-    uint32_t rgbSubnumber = mPubRgb.getNumSubscribers(); //
-    uint32_t rgbRawSubnumber = mPubRawRgb.getNumSubscribers(); //
-    uint32_t leftSubnumber = mPubLeft.getNumSubscribers(); //
-    uint32_t leftRawSubnumber = mPubRawLeft.getNumSubscribers(); //
-    uint32_t rightSubnumber = mPubRight.getNumSubscribers(); //
-    uint32_t rightRawSubnumber = mPubRawRight.getNumSubscribers(); //
-    uint32_t rgbGraySubnumber = mPubRgbGray.getNumSubscribers(); //
-    uint32_t rgbGrayRawSubnumber = mPubRawRgbGray.getNumSubscribers(); //
-    uint32_t leftGraySubnumber = mPubLeftGray.getNumSubscribers(); //
-    uint32_t leftGrayRawSubnumber = mPubRawLeftGray.getNumSubscribers(); //
-    uint32_t rightGraySubnumber = mPubRightGray.getNumSubscribers(); //
-    uint32_t rightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers(); //
-    uint32_t depthSubnumber = mPubDepth.getNumSubscribers(); //
-    uint32_t disparitySubnumber = mPubDisparity.getNumSubscribers(); //
-    uint32_t confMapSubnumber = mPubConfMap.getNumSubscribers(); //
-    uint32_t stereoSubNumber = mPubStereo.getNumSubscribers(); //
-    uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers(); //
+    uint32_t rgbSubnumber = mPubRgb.getNumSubscribers();
+    uint32_t rgbRawSubnumber = mPubRawRgb.getNumSubscribers();
+    uint32_t leftSubnumber = mPubLeft.getNumSubscribers();
+    uint32_t leftRawSubnumber = mPubRawLeft.getNumSubscribers();
+    uint32_t rightSubnumber = mPubRight.getNumSubscribers();
+    uint32_t rightRawSubnumber = mPubRawRight.getNumSubscribers();
+    uint32_t rgbGraySubnumber = mPubRgbGray.getNumSubscribers();
+    uint32_t rgbGrayRawSubnumber = mPubRawRgbGray.getNumSubscribers();
+    uint32_t leftGraySubnumber = mPubLeftGray.getNumSubscribers();
+    uint32_t leftGrayRawSubnumber = mPubRawLeftGray.getNumSubscribers();
+    uint32_t rightGraySubnumber = mPubRightGray.getNumSubscribers();
+    uint32_t rightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers();
+    uint32_t depthSubnumber = mPubDepth.getNumSubscribers();
+    uint32_t disparitySubnumber = mPubDisparity.getNumSubscribers();
+    uint32_t confMapSubnumber = mPubConfMap.getNumSubscribers();
+    uint32_t stereoSubNumber = mPubStereo.getNumSubscribers();
+    uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers();
 
     bool retrieved = false;
 
@@ -2306,23 +2306,23 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e) {
     std::unique_lock<std::mutex> lock(mCamDataMutex, std::defer_lock);
 
     if (lock.try_lock()) {
-        if(rgbSubnumber+leftSubnumber>0) {
+        if(rgbSubnumber+leftSubnumber+stereoSubNumber>0) {
             mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
             retrieved = true;
             ts_rgb=mat_left.timestamp;
             grab_ts=mat_left.timestamp;
         }
-        if(rgbRawSubnumber+leftRawSubnumber>0) {
+        if(rgbRawSubnumber+leftRawSubnumber+stereoRawSubNumber>0) {
             mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
             retrieved = true;
             grab_ts=mat_left_raw.timestamp;
         }
-        if(rightSubnumber>0) {
+        if(rightSubnumber+stereoSubNumber>0) {
             mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
             retrieved = true;
             grab_ts=mat_right.timestamp;
         }
-        if(rightRawSubnumber>0) {
+        if(rightRawSubnumber+stereoRawSubNumber>0) {
             mZed.retrieveImage(mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
             retrieved = true;
             grab_ts=mat_right_raw.timestamp;
