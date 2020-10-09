@@ -183,7 +183,7 @@ protected:
 
     /*! \brief Publish a fused pointCloud with a ros Publisher
          */
-    void pubFusedPointCloudCallback(const ros::TimerEvent& e);
+    void callback_pubFusedPointCloud(const ros::TimerEvent& e);
 
     /*! \brief Publish the informations of a camera with a ros Publisher
          * \param cam_info_msg : the information message to publish
@@ -231,27 +231,27 @@ protected:
 
     /*! \brief Callback to handle dynamic reconfigure events in ROS
          */
-    void dynamicReconfCallback(zed_nodelets::ZedConfig& config, uint32_t level);
+    void callback_dynamicReconf(zed_nodelets::ZedConfig& config, uint32_t level);
 
     /*! \brief Callback to publish Video and Depth data
          * \param e : the ros::TimerEvent binded to the callback
          */
-    void pubVideoDepthCallback(const ros::TimerEvent& e);
+    void callback_pubVideoDepth(const ros::TimerEvent& e);
 
     /*! \brief Callback to publish Path data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
-    void pubPathCallback(const ros::TimerEvent& e);
+    void callback_pubPath(const ros::TimerEvent& e);
 
     /*! \brief Callback to publish Sensor Data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
-    void pubSensCallback(const ros::TimerEvent& e);
+    void callback_pubSens(const ros::TimerEvent& e);
 
     /*! \brief Callback to update node diagnostic status
          * \param stat : node status
          */
-    void updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat);
+    void callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat);
 
     /*! \brief Service callback to reset_tracking service
          * Tracking pose is reinitialized to the value available in the ROS Param
@@ -646,6 +646,8 @@ private:
     std::mutex mObjDetMutex;
     std::condition_variable mPcDataReadyCondVar;
     bool mPcDataReady;
+    std::condition_variable mRgbDepthDataRetrievedCondVar;
+    bool mRgbDepthDataRetrieved;
 
     // Point cloud variables
     sl::Mat mCloud;    
