@@ -2825,7 +2825,7 @@ void ZEDWrapperNodelet::callback_pubSens(const ros::TimerEvent& e) {
     //        }
     //    }
 
-    if( (imu_SubNumber > 0 || mPublishImuTf) && new_imu_data) {
+    if( imu_SubNumber > 0 && new_imu_data) {
         lastTs_imu = ts_imu;
 
         sensor_msgs::ImuPtr imuMsg = boost::make_shared<sensor_msgs::Imu>();
