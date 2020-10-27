@@ -199,6 +199,11 @@ protected:
          */
     void publishDisparity(sl::Mat disparity, ros::Time t);
 
+    /*! \brief Publish sensors data and TF
+         * \param t : the ros::Time to stamp the depth image
+         */
+    void publishSensData(ros::Time t = ros::Time(0));
+
     /*! \brief Get the information of the ZED cameras and store them in an
          * information message
          * \param zed : the sl::zed::Camera* pointer to an instance
@@ -246,7 +251,7 @@ protected:
     /*! \brief Callback to publish Sensor Data with a ROS publisher.
          * \param e : the ros::TimerEvent binded to the callback
          */
-    void callback_pubSens(const ros::TimerEvent& e);
+    void callback_pubSensorsData(const ros::TimerEvent& e);
 
     /*! \brief Callback to update node diagnostic status
          * \param stat : node status
@@ -396,7 +401,9 @@ private:
     std::thread mDevicePollThread;
     std::thread mPcThread; // Point Cloud thread
 
-    bool mStopNode;
+    bool mStopNode = false;
+
+    const double mSensPubRate = 400.0;
 
     // Publishers
     image_transport::CameraPublisher mPubRgb; //
@@ -522,8 +529,7 @@ private:
     int mDepthStabilization;
     std::string mAreaMemDbPath;
     std::string mSvoFilepath;
-    std::string mRemoteStreamAddr;
-    double mSensPubRate = 400.0;
+    std::string mRemoteStreamAddr;    
     bool mSensTimestampSync;
     double mPathPubRate;
     int mPathMaxCount;

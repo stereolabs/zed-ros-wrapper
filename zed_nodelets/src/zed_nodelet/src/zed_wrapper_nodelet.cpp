@@ -482,47 +482,29 @@ void ZEDWrapperNodelet::onInit() {
     }
 
     // Sensor publishers
-    /*if (!mSvoMode)*/ {
-        if (mSensPubRate > 0 && mZedRealCamModel != sl::MODEL::ZED) {
-            // IMU Publishers
-            mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 1/*static_cast<int>(mSensPubRate)*/);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubImu.getTopic() << " @ "
-                                << mSensPubRate << " Hz");
-            mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 1/*static_cast<int>(mSensPubRate)*/);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubImuRaw.getTopic() << " @ "
-                                << mSensPubRate << " Hz");
-            mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, 1/*MAG_FREQ*/);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubImuMag.getTopic() << " @ "
-                                << std::min(MAG_FREQ,mSensPubRate) << " Hz");
-            //mPubImuMagRaw = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic_raw, static_cast<int>(MAG_FREQ));
-            //NODELET_INFO_STREAM("Advertised on topic " << mPubImuMagRaw.getTopic() << " @ "
-            //                    << std::min(MAG_FREQ,mSensPubRate) << " Hz");
+    if (mZedRealCamModel != sl::MODEL::ZED) {
+        // IMU Publishers
+        mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 1/*static_cast<int>(mSensPubRate)*/);
+        NODELET_INFO_STREAM("Advertised on topic " << mPubImu.getTopic() );
+        mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 1/*static_cast<int>(mSensPubRate)*/);
+        NODELET_INFO_STREAM("Advertised on topic " << mPubImuRaw.getTopic() );
+        mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, 1/*MAG_FREQ*/);
+        NODELET_INFO_STREAM("Advertised on topic " << mPubImuMag.getTopic() );
 
-            if( mZedRealCamModel == sl::MODEL::ZED2 ) {
-                // IMU temperature sensor
-                mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, 1/*static_cast<int>(mSensPubRate)*/);
-                NODELET_INFO_STREAM("Advertised on topic " << mPubImuTemp.getTopic() << " @ " << mSensPubRate << " Hz");
+        if( mZedRealCamModel == sl::MODEL::ZED2 ) {
+            // IMU temperature sensor
+            mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, 1/*static_cast<int>(mSensPubRate)*/);
+            NODELET_INFO_STREAM("Advertised on topic " << mPubImuTemp.getTopic() );
 
-                // Atmospheric pressure
-                mPubPressure = mNhNs.advertise<sensor_msgs::FluidPressure>(pressure_topic, 1/*static_cast<int>(BARO_FREQ)*/);
-                NODELET_INFO_STREAM("Advertised on topic " << mPubPressure.getTopic() << " @ "
-                                    << std::min(BARO_FREQ,mSensPubRate ) << " Hz");
+            // Atmospheric pressure
+            mPubPressure = mNhNs.advertise<sensor_msgs::FluidPressure>(pressure_topic, 1/*static_cast<int>(BARO_FREQ)*/);
+            NODELET_INFO_STREAM("Advertised on topic " << mPubPressure.getTopic() );
 
-                // CMOS sensor temperatures
-                mPubTempL = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_left, 1/*static_cast<int>(BARO_FREQ)*/);
-                NODELET_INFO_STREAM("Advertised on topic " << mPubTempL.getTopic() << " @ "
-                                    << std::min(BARO_FREQ,mSensPubRate ) << " Hz");
-                mPubTempR = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_right, 1/*static_cast<int>(BARO_FREQ)*/);
-                NODELET_INFO_STREAM("Advertised on topic " << mPubTempR.getTopic() << " @ "
-                                    << std::min(BARO_FREQ,mSensPubRate ) << " Hz");
-            }
-
-            mFrameTimestamp = ros::Time::now();
-            mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / (mSensPubRate*1.5) ),
-                                          &ZEDWrapperNodelet::callback_pubSens, this);
-            mSensPeriodMean_usec.reset(new sl_tools::CSmartMean(mSensPubRate / 2));
-
-
+            // CMOS sensor temperatures
+            mPubTempL = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_left, 1/*static_cast<int>(BARO_FREQ)*/);
+            NODELET_INFO_STREAM("Advertised on topic " << mPubTempL.getTopic() );
+            mPubTempR = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_right, 1/*static_cast<int>(BARO_FREQ)*/);
+            NODELET_INFO_STREAM("Advertised on topic " << mPubTempR.getTopic() );
         }
 
         // Publish camera imu transform in a latched topic
@@ -550,6 +532,15 @@ void ZEDWrapperNodelet::onInit() {
             mPubCamImuTransf.publish( mCameraImuTransfMgs );
 
             NODELET_INFO_STREAM("Advertised on topic " << mPubCamImuTransf.getTopic() << " [LATCHED]");
+        }
+
+        if(!mSvoMode) {
+            mFrameTimestamp = ros::Time::now();
+            mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / (mSensPubRate*1.5) ),
+                                          &ZEDWrapperNodelet::callback_pubSensorsData, this);
+            mSensPeriodMean_usec.reset(new sl_tools::CSmartMean(mSensPubRate / 2));
+        } else {
+            mSensPeriodMean_usec.reset(new sl_tools::CSmartMean(mCamFrameRate / 2));
         }
     }
 
@@ -2302,78 +2293,96 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e) {
     sl::Timestamp ts_depth=0;     // used to check RGB/Depth sync
     sl::Timestamp grab_ts=0;
 
-    // ----> Retrieve all required data
-    std::unique_lock<std::mutex> lock(mCamDataMutex, std::defer_lock);
+    mCamDataMutex.lock();
 
-    if (lock.try_lock()) {
-        if(rgbSubnumber+leftSubnumber+stereoSubNumber>0) {
-            mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
-            retrieved = true;
-            ts_rgb=mat_left.timestamp;
-            grab_ts=mat_left.timestamp;
-        }
-        if(rgbRawSubnumber+leftRawSubnumber+stereoRawSubNumber>0) {
-            mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
-            retrieved = true;
-            grab_ts=mat_left_raw.timestamp;
-        }
-        if(rightSubnumber+stereoSubNumber>0) {
-            mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
-            retrieved = true;
-            grab_ts=mat_right.timestamp;
-        }
-        if(rightRawSubnumber+stereoRawSubNumber>0) {
-            mZed.retrieveImage(mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
-            retrieved = true;
-            grab_ts=mat_right_raw.timestamp;
-        }
-        if(rgbGraySubnumber+leftGraySubnumber>0) {
-            mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
-            retrieved = true;
-            grab_ts=mat_left_gray.timestamp;
-        }
-        if(rgbGrayRawSubnumber+leftGrayRawSubnumber>0) {
-            mZed.retrieveImage(mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
-            retrieved = true;
-            grab_ts=mat_left_raw_gray.timestamp;
-        }
-        if(rightGraySubnumber>0) {
-            mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
-            retrieved = true;
-            grab_ts=mat_right_gray.timestamp;
-        }
-        if(rightGrayRawSubnumber>0) {
-            mZed.retrieveImage(mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
-            retrieved = true;
-            grab_ts=mat_right_raw_gray.timestamp;
-        }
-        if(depthSubnumber>0) {
-            mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
-            retrieved = true;
-            grab_ts=mat_depth.timestamp;
+    // ----> Retrieve all required image data
+    if(rgbSubnumber+leftSubnumber+stereoSubNumber>0) {
+        mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
+        retrieved = true;
+        ts_rgb=mat_left.timestamp;
+        grab_ts=mat_left.timestamp;
+    }
+    if(rgbRawSubnumber+leftRawSubnumber+stereoRawSubNumber>0) {
+        mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        retrieved = true;
+        grab_ts=mat_left_raw.timestamp;
+    }
+    if(rightSubnumber+stereoSubNumber>0) {
+        mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
+        retrieved = true;
+        grab_ts=mat_right.timestamp;
+    }
+    if(rightRawSubnumber+stereoRawSubNumber>0) {
+        mZed.retrieveImage(mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        retrieved = true;
+        grab_ts=mat_right_raw.timestamp;
+    }
+    if(rgbGraySubnumber+leftGraySubnumber>0) {
+        mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
+        retrieved = true;
+        grab_ts=mat_left_gray.timestamp;
+    }
+    if(rgbGrayRawSubnumber+leftGrayRawSubnumber>0) {
+        mZed.retrieveImage(mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+        retrieved = true;
+        grab_ts=mat_left_raw_gray.timestamp;
+    }
+    if(rightGraySubnumber>0) {
+        mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
+        retrieved = true;
+        grab_ts=mat_right_gray.timestamp;
+    }
+    if(rightGrayRawSubnumber>0) {
+        mZed.retrieveImage(mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+        retrieved = true;
+        grab_ts=mat_right_raw_gray.timestamp;
+    }
+    if(depthSubnumber>0) {
+        mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
+        retrieved = true;
+        grab_ts=mat_depth.timestamp;
 
-            ts_depth = mat_depth.timestamp;
+        ts_depth = mat_depth.timestamp;
 
-            if( ts_rgb.data_ns!=0 && (ts_depth.data_ns!=ts_rgb.data_ns) ) {
-                NODELET_WARN_STREAM( "!!!!! DEPTH/RGB ASYNC !!!!! - Delta: " << 1e-9*static_cast<double>(ts_depth-ts_rgb) << " sec");
-            }
-        }
-        if(disparitySubnumber>0) {
-            mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
-            retrieved = true;
-            grab_ts=mat_disp.timestamp;
-        }
-        if(confMapSubnumber) {
-            mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
-            retrieved = true;
-            grab_ts=mat_conf.timestamp;
+        if( ts_rgb.data_ns!=0 && (ts_depth.data_ns!=ts_rgb.data_ns) ) {
+            NODELET_WARN_STREAM( "!!!!! DEPTH/RGB ASYNC !!!!! - Delta: " << 1e-9*static_cast<double>(ts_depth-ts_rgb) << " sec");
         }
     }
-    // <---- Retrieve all required data
+    if(disparitySubnumber>0) {
+        mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
+        retrieved = true;
+        grab_ts=mat_disp.timestamp;
+    }
+    if(confMapSubnumber) {
+        mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
+        retrieved = true;
+        grab_ts=mat_conf.timestamp;
+    }
+    // <---- Retrieve all required image data
+
+    // ----> Data ROS timestamp
+    ros::Time stamp = sl_tools::slTime2Ros(grab_ts);
+    if(mSvoMode) {
+        stamp = ros::Time::now();
+    }
+    // <---- Data ROS timestamp
+
+    // ----> Publish sensor data if sync is required by user or SVO
+    if( mZedRealCamModel!=sl::MODEL::ZED )
+    {
+        if(mSensTimestampSync || mSvoMode) {
+            if(retrieved) {
+                publishSensData(stamp);
+            }
+        }
+    }
+    // <---- Publish sensor data if sync is required by user or SVO
+
+    mCamDataMutex.unlock();
 
     // ----> Notify grab thread that all data are synchronized and a new grab can be done
-    mRgbDepthDataRetrievedCondVar.notify_one();
-    mRgbDepthDataRetrieved = true;
+    //mRgbDepthDataRetrievedCondVar.notify_one();
+    //mRgbDepthDataRetrieved = true;
     // <---- Notify grab thread that all data are synchronized and a new grab can be done
 
     if(!retrieved) {
@@ -2397,9 +2406,6 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e) {
     }
     lastZedTs = grab_ts;
     // <---- Check if a grab has been done before publishing the same images
-
-    ros::Time stamp = sl_tools::slTime2Ros(grab_ts);
-
 
     // Publish the left = rgb image if someone has subscribed to
     if (leftSubnumber > 0) {
@@ -2571,18 +2577,24 @@ void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e) {
     }
 }
 
-void ZEDWrapperNodelet::callback_pubSens(const ros::TimerEvent& e) {
+void ZEDWrapperNodelet::callback_pubSensorsData(const ros::TimerEvent& e) {
+    NODELET_DEBUG("callback_pubSensorsData");
     std::lock_guard<std::mutex> lock(mCloseZedMutex);
 
     if (!mZed.isOpened()) {
         return;
     }
 
+    publishSensData();
+}
+
+void ZEDWrapperNodelet::publishSensData(ros::Time t) {
+    NODELET_DEBUG("publishSensData");
+
     uint32_t imu_SubNumber = mPubImu.getNumSubscribers();
     uint32_t imu_RawSubNumber = mPubImuRaw.getNumSubscribers();
     uint32_t imu_TempSubNumber = 0;
     uint32_t imu_MagSubNumber = 0;
-    //uint32_t imu_MagRawSubNumber = 0;
     uint32_t pressSubNumber = 0;
     uint32_t tempLeftSubNumber = 0;
     uint32_t tempRightSubNumber = 0;
@@ -2590,66 +2602,73 @@ void ZEDWrapperNodelet::callback_pubSens(const ros::TimerEvent& e) {
     if( mZedRealCamModel == sl::MODEL::ZED2 ) {
         imu_TempSubNumber = mPubImuTemp.getNumSubscribers();
         imu_MagSubNumber = mPubImuMag.getNumSubscribers();
-        //imu_MagRawSubNumber = mPubImuMagRaw.getNumSubscribers();
         pressSubNumber = mPubPressure.getNumSubscribers();
         tempLeftSubNumber = mPubTempL.getNumSubscribers();
         tempRightSubNumber = mPubTempR.getNumSubscribers();
     }
 
-    int totSub = imu_SubNumber + imu_RawSubNumber + imu_TempSubNumber + imu_MagSubNumber + /*imu_MagRawSubNumber +*/
-            pressSubNumber + tempLeftSubNumber + tempRightSubNumber;
-
     ros::Time ts_imu;
     ros::Time ts_baro;
     ros::Time ts_mag;
-    //ros::Time ts_mag_raw;
 
     static ros::Time lastTs_imu = ros::Time();
     static ros::Time lastTs_baro = ros::Time();
     static ros::Time lastT_mag = ros::Time();
-    //static ros::Time lastT_mag_raw = ros::Time();
 
     sl::SensorsData sens_data;
 
-    if(mSvoMode) {
-        if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE) != sl::ERROR_CODE::SUCCESS )
+    if(mSvoMode || mSensTimestampSync) {
+        if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE) != sl::ERROR_CODE::SUCCESS ) {
+            NODELET_DEBUG("Not retrieved sensors data in IMAGE REFERENCE TIME");
             return;
+        }
     } else {
-        if ( mSensTimestampSync && mGrabActive) {
-            if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE) != sl::ERROR_CODE::SUCCESS )
-                return;
-        } else if ( !mSensTimestampSync ) {
-            if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT) != sl::ERROR_CODE::SUCCESS )
-                return;
-        } else {
+        if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT) != sl::ERROR_CODE::SUCCESS ) {
+            NODELET_DEBUG("Not retrieved sensors data in CURRENT REFERENCE TIME");
             return;
         }
     }
 
-    if (mSvoMode) {
+    if(mSvoMode) {
         ts_imu = ros::Time::now();
         ts_baro = ros::Time::now();
         ts_mag = ros::Time::now();
         //ts_mag_raw = ros::Time::now();
     } else {
-        if (mSensTimestampSync && mGrabActive) {
-            ts_imu = mFrameTimestamp;
-            ts_baro = mFrameTimestamp;
-            ts_mag = mFrameTimestamp;
-            //ts_mag_raw = mFrameTimestamp;
+        if(t!=ros::Time(0)) {
+            ts_imu = t;
+            ts_baro = t;
+            ts_mag = t;
         } else {
             ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
             ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
             ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
-            //ts_mag_raw = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
         }
     }
+
+    // ----> Publish odometry tf only if enabled
+    if (mPublishTf && mTrackingReady) {
+        NODELET_DEBUG("Publishing TF");
+
+        publishOdomFrame(mOdom2BaseTransf, ts_imu); // publish the base Frame in odometry frame
+
+        if (mPublishMapTf) {
+            publishPoseFrame(mMap2OdomTransf, ts_imu); // publish the odometry Frame in map frame
+        }
+
+        if(mPublishImuTf && !mStaticImuFramePublished )
+        {
+            publishStaticImuFrame();
+        }
+    }
+    // <---- Publish odometry tf only if enabled
 
     bool new_imu_data = ts_imu!=lastTs_imu;
     bool new_baro_data = ts_baro!=lastTs_baro;
     bool new_mag_data = ts_mag!=lastT_mag;
 
     if( !new_imu_data && !new_baro_data && !new_mag_data) {
+        NODELET_DEBUG("No updated sensors data");
         return;
     }
 
@@ -2659,13 +2678,9 @@ void ZEDWrapperNodelet::callback_pubSens(const ros::TimerEvent& e) {
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
     }
 
-    if(totSub<1 && !mPublishImuTf) {
-        return; // Nothing to publish
-    }
-
     if( imu_SubNumber > 0 || imu_RawSubNumber > 0 ||
             imu_TempSubNumber > 0 || pressSubNumber > 0 ||
-            imu_MagSubNumber > 0 /*|| imu_MagRawSubNumber > 0*/ ) {
+            imu_MagSubNumber > 0 ) {
         // Publish freq calculation
         static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
@@ -2700,7 +2715,10 @@ void ZEDWrapperNodelet::callback_pubSens(const ros::TimerEvent& e) {
         imuTempMsg->variance = 0.0;
 
         mPubImuTemp.publish(imuTempMsg);
+    } else {
+        NODELET_DEBUG("No new IMU temp.");
     }
+
 
     if( sens_data.barometer.is_available && new_baro_data ) {
         lastTs_baro = ts_baro;
@@ -2763,6 +2781,8 @@ void ZEDWrapperNodelet::callback_pubSens(const ros::TimerEvent& e) {
 
             mPubTempR.publish(tempRightMsg);
         }
+    } else {
+        NODELET_DEBUG("No new BAROM. DATA");
     }
 
     if( imu_MagSubNumber>0) {
@@ -2797,33 +2817,9 @@ void ZEDWrapperNodelet::callback_pubSens(const ros::TimerEvent& e) {
 
             mPubImuMag.publish(magMsg);
         }
+    } else {
+        NODELET_DEBUG("No new MAG. DATA");
     }
-
-    //    if( imu_MagRawSubNumber>0 ) {
-    //        if( sens_data.magnetometer.is_available && lastT_mag_raw != ts_mag_raw ) {
-    //            lastT_mag_raw = ts_mag_raw;
-
-    //            sensor_msgs::MagneticFieldPtr mMagRawMsg = boost::make_shared<sensor_msgs::MagneticField>();
-
-
-    //            mMagRawMsg->header.stamp = ts_mag;
-    //            mMagRawMsg->header.frame_id = mImuFrameId;
-    //            mMagRawMsg->magnetic_field.x = sens_data.magnetometer.magnetic_field_uncalibrated.x*1e-6; // Tesla
-    //            mMagRawMsg->magnetic_field.y = sens_data.magnetometer.magnetic_field_uncalibrated.y*1e-6; // Tesla
-    //            mMagRawMsg->magnetic_field.z = sens_data.magnetometer.magnetic_field_uncalibrated.z*1e-6; // Tesla
-    //            mMagRawMsg->magnetic_field_covariance[0] = 0.039e-6;
-    //            mMagRawMsg->magnetic_field_covariance[1] = 0.0f;
-    //            mMagRawMsg->magnetic_field_covariance[2] = 0.0f;
-    //            mMagRawMsg->magnetic_field_covariance[3] = 0.0f;
-    //            mMagRawMsg->magnetic_field_covariance[4] = 0.037e-6;
-    //            mMagRawMsg->magnetic_field_covariance[5] = 0.0f;
-    //            mMagRawMsg->magnetic_field_covariance[6] = 0.0f;
-    //            mMagRawMsg->magnetic_field_covariance[7] = 0.0f;
-    //            mMagRawMsg->magnetic_field_covariance[8] = 0.047e-6;
-
-    //            mPubImuMagRaw.publish(mMagRawMsg);
-    //        }
-    //    }
 
     if( imu_SubNumber > 0 && new_imu_data) {
         lastTs_imu = ts_imu;
@@ -2892,9 +2888,9 @@ void ZEDWrapperNodelet::callback_pubSens(const ros::TimerEvent& e) {
                     sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
         }
 
-        if(imu_SubNumber > 0) {
-            mPubImu.publish(imuMsg);
-        }
+        mPubImu.publish(imuMsg);
+    } else {
+        NODELET_DEBUG("No new IMU DATA");
     }
 
     if (imu_RawSubNumber > 0 && new_imu_data) {
@@ -2935,84 +2931,13 @@ void ZEDWrapperNodelet::callback_pubSens(const ros::TimerEvent& e) {
                     sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
         }
 
-        imuRawMsg->orientation_covariance[0] =
-                -1; // Orientation data is not available in "data_raw" -> See ROS REP145
+        // Orientation data is not available in "data_raw" -> See ROS REP145
         // http://www.ros.org/reps/rep-0145.html#topics
+        imuRawMsg->orientation_covariance[0] =
+                -1;
         mPubImuRaw.publish(imuRawMsg);
     }
-
-    if(new_imu_data && mPublishImuTf) {
-        // Publish odometry tf only if enabled
-        if (mPublishTf) {
-            if(!mTrackingReady) {
-                return;
-            }
-
-            publishOdomFrame(mOdom2BaseTransf, ts_imu); // publish the base Frame in odometry frame
-
-            if (mPublishMapTf) {
-                publishPoseFrame(mMap2OdomTransf, ts_imu); // publish the odometry Frame in map frame
-            }
-
-            if(mPublishImuTf && !mStaticImuFramePublished )
-            {
-                publishStaticImuFrame();
-            }
-        }
-    }
-
-    //        // Publish IMU tf
-    //        // Left camera to odom transform from TF buffer
-    //        tf2::Transform cam_to_odom;
-
-    //        //std::string poseFrame;
-    //        static bool first_error = false;
-
-    //        // Look up the transformation from imu frame to odom link
-    //        try {
-    //            // Save the transformation from base to frame
-    //            geometry_msgs::TransformStamped c2o =
-    //                    mTfBuffer->lookupTransform(mOdometryFrameId, mCameraFrameId, ros::Time(0), ros::Duration(0.1));
-    //            // Get the TF2 transformation
-    //            tf2::fromMsg(c2o.transform, cam_to_odom);
-    //        } catch (tf2::TransformException& ex) {
-    //            if(!first_error) {
-    //                NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
-    //                NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.",
-    //                                      mCameraFrameId.c_str(), mMapFrameId.c_str());
-    //                NODELET_WARN_THROTTLE(1.0, "Note: one of the possible cause of the problem is the absense of a publisher "
-    //                                           "of the base_link -> odom transform. "
-    //                                           "This happens if `publish_tf` is `false` and no other nodes publish the "
-    //                                           "TF chain '%s' -> '%s' -> '%s'",
-    //                                      mOdometryFrameId.c_str(), mBaseFrameId.c_str(), mCameraFrameId.c_str());
-    //                first_error=false;
-    //            }
-
-    //            return;
-    //        }
-
-    //        // ----> Update IMU pose for TF
-
-    //        // IMU Quaternion in Map frame
-    //        tf2::Quaternion imu_q;
-    //        imu_q.setX(sens_data.imu.pose.getOrientation()[0]);
-    //        imu_q.setY(sens_data.imu.pose.getOrientation()[1]);
-    //        imu_q.setZ(sens_data.imu.pose.getOrientation()[2]);
-    //        imu_q.setW(sens_data.imu.pose.getOrientation()[3]);
-
-    //        // Pose Quaternion from ZED Camera
-    //        tf2::Quaternion odom_q = cam_to_odom.getRotation();
-    //        // Difference between IMU and ZED Quaternion
-    //        tf2::Quaternion delta_q = imu_q * odom_q.inverse();
-
-    //        mLastImuPose.setIdentity();
-    //        mLastImuPose.setRotation(delta_q);
-
-    //        publishImuFrame(mLastImuPose, ts_imu);
-    //        // <---- Update IMU pose for TF
-    //    }
 }
-
 
 void ZEDWrapperNodelet::device_poll_thread_func() {
     ros::Rate loop_rate(mCamFrameRate);
@@ -3162,21 +3087,23 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             }
 
             // ----> Wait for RGB/Depth synchronization before grabbing
-            std::unique_lock<std::mutex> datalock(mCamDataMutex);
-            while (!mRgbDepthDataRetrieved) {  // loop to avoid spurious wakeups
-                if (mRgbDepthDataRetrievedCondVar.wait_for(datalock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
-                    // Check thread stopping
-                    if (mStopNode) {
-                        return;
-                    } else {
-                        continue;
-                    }
-                }
-            }
+            //            std::unique_lock<std::mutex> datalock(mCamDataMutex);
+            //            while (!mRgbDepthDataRetrieved) {  // loop to avoid spurious wakeups
+            //                if (mRgbDepthDataRetrievedCondVar.wait_for(datalock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
+            //                    // Check thread stopping
+            //                    if (mStopNode) {
+            //                        return;
+            //                    } else {
+            //                        continue;
+            //                    }
+            //                }
+            //            }
             // <---- Wait for RGB/Depth synchronization before grabbing
 
+            mCamDataMutex.lock();
             mRgbDepthDataRetrieved = false;
             mGrabStatus = mZed.grab(runParams);
+            mCamDataMutex.unlock();
 
             std::chrono::steady_clock::time_point start_elab = std::chrono::steady_clock::now();
 
@@ -3609,7 +3536,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                 oldStatus = mPosTrackingStatus;
             }
 
-            if(mZedRealCamModel == sl::MODEL::ZED || !mPublishImuTf) {
+            if(mZedRealCamModel == sl::MODEL::ZED) {
                 // Publish pose tf only if enabled
                 if(mPublishTf) {
                     // Note, the frame is published, but its values will only change if
@@ -3620,11 +3547,6 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
                         // Note, the frame is published, but its values will only change if
                         // someone has subscribed to map
                         publishPoseFrame(mMap2OdomTransf, stamp); // publish the odometry Frame in map frame
-                    }
-
-                    if(mPublishImuTf && !mStaticImuFramePublished )
-                    {
-                        publishStaticImuFrame();
                     }
                 }
             }
@@ -3817,7 +3739,7 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
         stat.add("IMU", "Topics not subscribed");
     }
 
-    if( mSensPubRate > 0 && mZedRealCamModel == sl::MODEL::ZED2 ) {
+    if( mZedRealCamModel == sl::MODEL::ZED2 ) {
         stat.addf("Left CMOS Temp.", "%.1f °C", mTempLeft);
         stat.addf("Right CMOS Temp.", "%.1f °C", mTempRight);
 
