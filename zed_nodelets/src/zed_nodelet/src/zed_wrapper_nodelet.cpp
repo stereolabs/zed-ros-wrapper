@@ -2375,12 +2375,14 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e) {
     // ----> Publish sensor data if sync is required by user or SVO
     if( mZedRealCamModel!=sl::MODEL::ZED )
     {
-        if(mSensTimestampSync || mSvoMode) {
+        if(mSensTimestampSync) {
             //NODELET_INFO_STREAM("tot_sub: " << tot_sub << " - retrieved: " << retrieved << " - grab_ts.data_ns!=lastZedTs.data_ns: " << (grab_ts.data_ns!=lastZedTs.data_ns));
             if(tot_sub>0 && retrieved && (grab_ts.data_ns!=lastZedTs.data_ns)) {
                 //NODELET_INFO("CALLBACK");
                 publishSensData(stamp);
             }
+        } else if(mSvoMode) {
+            publishSensData(stamp);
         }
     }
     // <---- Publish sensor data if sync is required by user or SVO
@@ -2647,21 +2649,14 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t) {
         }
     }
 
-    if(mSvoMode) {
-        ts_imu = ros::Time::now();
-        ts_baro = ros::Time::now();
-        ts_mag = ros::Time::now();
-        //ts_mag_raw = ros::Time::now();
+    if(t!=ros::Time(0)) {
+        ts_imu = t;
+        ts_baro = t;
+        ts_mag = t;
     } else {
-        if(t!=ros::Time(0)) {
-            ts_imu = t;
-            ts_baro = t;
-            ts_mag = t;
-        } else {
-            ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
-            ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
-            ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
-        }
+        ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
+        ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
+        ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
     }
 
     // ----> Publish odometry tf only if enabled
