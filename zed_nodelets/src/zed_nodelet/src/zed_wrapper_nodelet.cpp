@@ -2607,6 +2607,17 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t) {
         tempRightSubNumber = mPubTempR.getNumSubscribers();
     }
 
+    uint32_t tot_sub = imu_SubNumber+imu_RawSubNumber+imu_TempSubNumber+imu_MagSubNumber+pressSubNumber+
+            tempLeftSubNumber+tempRightSubNumber;
+
+    if(tot_sub>0) {
+        mSensPublishing=true;
+    } else {
+        mSensPublishing=false;
+    }
+
+    bool sensors_data_published = false;
+
     ros::Time ts_imu;
     ros::Time ts_baro;
     ros::Time ts_mag;
@@ -2678,23 +2689,6 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t) {
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
     }
 
-    if( imu_SubNumber > 0 || imu_RawSubNumber > 0 ||
-            imu_TempSubNumber > 0 || pressSubNumber > 0 ||
-            imu_MagSubNumber > 0 ) {
-        // Publish freq calculation
-        static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
-        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-
-        double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
-        last_time = now;
-
-        mSensPeriodMean_usec->addValue(elapsed_usec);
-
-        mSensPublishing = true;
-    } else {
-        mSensPublishing = false;
-    }
-
     if (imu_TempSubNumber>0) {
         sensor_msgs::TemperaturePtr imuTempMsg = boost::make_shared<sensor_msgs::Temperature>();
 
@@ -2714,6 +2708,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t) {
         imuTempMsg->temperature = static_cast<double>(imu_temp);
         imuTempMsg->variance = 0.0;
 
+        sensors_data_published = true;
         mPubImuTemp.publish(imuTempMsg);
     } else {
         NODELET_DEBUG("No new IMU temp.");
@@ -2739,6 +2734,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t) {
             pressMsg->fluid_pressure = sens_data.barometer.pressure * 1e-2; // Pascal
             pressMsg->variance = 1.0585e-2;
 
+            sensors_data_published = true;
             mPubPressure.publish(pressMsg);
         }
 
@@ -2759,6 +2755,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t) {
             tempLeftMsg->temperature = static_cast<double>(mTempLeft);
             tempLeftMsg->variance = 0.0;
 
+            sensors_data_published = true;
             mPubTempL.publish(tempLeftMsg);
         }
 
@@ -2779,6 +2776,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t) {
             tempRightMsg->temperature = static_cast<double>(mTempRight);
             tempRightMsg->variance = 0.0;
 
+            sensors_data_published = true;
             mPubTempR.publish(tempRightMsg);
         }
     } else {
@@ -2815,6 +2813,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t) {
             magMsg->magnetic_field_covariance[7] = 0.0f;
             magMsg->magnetic_field_covariance[8] = 0.047e-6;
 
+            sensors_data_published = true;
             mPubImuMag.publish(magMsg);
         }
     } else {
@@ -2888,6 +2887,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t) {
                     sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
         }
 
+        sensors_data_published = true;
         mPubImu.publish(imuMsg);
     } else {
         NODELET_DEBUG("No new IMU DATA");
@@ -2935,8 +2935,22 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t) {
         // http://www.ros.org/reps/rep-0145.html#topics
         imuRawMsg->orientation_covariance[0] =
                 -1;
+        sensors_data_published = true;
         mPubImuRaw.publish(imuRawMsg);
     }
+
+    // ----> Update Diagnostic
+    if( sensors_data_published ) {
+        // Publish freq calculation
+        static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+        double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
+        last_time = now;
+
+        mSensPeriodMean_usec->addValue(elapsed_usec);
+    }
+    // <---- Update Diagnostic
 }
 
 void ZEDWrapperNodelet::device_poll_thread_func() {
