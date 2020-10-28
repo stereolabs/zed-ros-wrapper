@@ -534,7 +534,7 @@ void ZEDWrapperNodelet::onInit() {
             NODELET_INFO_STREAM("Advertised on topic " << mPubCamImuTransf.getTopic() << " [LATCHED]");
         }
 
-        if(!mSvoMode) {
+        if(!mSvoMode&&!mSensTimestampSync) {
             mFrameTimestamp = ros::Time::now();
             mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / (mSensPubRate*1.5) ),
                                           &ZEDWrapperNodelet::callback_pubSensorsData, this);
@@ -2281,6 +2281,11 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e) {
     uint32_t stereoSubNumber = mPubStereo.getNumSubscribers();
     uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers();
 
+    uint32_t tot_sub = rgbSubnumber+rgbRawSubnumber+leftSubnumber+leftRawSubnumber+rightSubnumber+rightRawSubnumber+
+            rgbGraySubnumber+rgbGrayRawSubnumber+leftGraySubnumber+leftGrayRawSubnumber+
+            rightGraySubnumber+rightGrayRawSubnumber+depthSubnumber+disparitySubnumber+confMapSubnumber+
+            stereoSubNumber+stereoRawSubNumber;
+
     bool retrieved = false;
 
     sl::Mat mat_left,mat_left_raw;
@@ -2353,7 +2358,7 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e) {
         retrieved = true;
         grab_ts=mat_disp.timestamp;
     }
-    if(confMapSubnumber) {
+    if(confMapSubnumber>0) {
         mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
         retrieved = true;
         grab_ts=mat_conf.timestamp;
@@ -2371,7 +2376,9 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e) {
     if( mZedRealCamModel!=sl::MODEL::ZED )
     {
         if(mSensTimestampSync || mSvoMode) {
-            if(retrieved) {
+            //NODELET_INFO_STREAM("tot_sub: " << tot_sub << " - retrieved: " << retrieved << " - grab_ts.data_ns!=lastZedTs.data_ns: " << (grab_ts.data_ns!=lastZedTs.data_ns));
+            if(tot_sub>0 && retrieved && (grab_ts.data_ns!=lastZedTs.data_ns)) {
+                //NODELET_INFO("CALLBACK");
                 publishSensData(stamp);
             }
         }
@@ -2578,7 +2585,7 @@ void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e) {
 }
 
 void ZEDWrapperNodelet::callback_pubSensorsData(const ros::TimerEvent& e) {
-    NODELET_DEBUG("callback_pubSensorsData");
+    //NODELET_INFO("callback_pubSensorsData");
     std::lock_guard<std::mutex> lock(mCloseZedMutex);
 
     if (!mZed.isOpened()) {
@@ -2589,7 +2596,7 @@ void ZEDWrapperNodelet::callback_pubSensorsData(const ros::TimerEvent& e) {
 }
 
 void ZEDWrapperNodelet::publishSensData(ros::Time t) {
-    NODELET_DEBUG("publishSensData");
+    //NODELET_INFO("publishSensData");
 
     uint32_t imu_SubNumber = mPubImu.getNumSubscribers();
     uint32_t imu_RawSubNumber = mPubImuRaw.getNumSubscribers();
