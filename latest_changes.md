@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+RGB/Depth sync fix #629 (2020-11-02)
+-------------------------------
+- Fixed sync issue between RGB and Depth data (Thx @dennisVi)
+- Fixed issues with SVO and sensors data (Thx @dennisVi)
+
 ASYNC Object Detection (2020-09-18)
 -----------------------------------
 - Object Detection now runs asynchronously respect to data grabbing and Object Detected data are published only when available not affecting the frequency of the publishing of the other data types
