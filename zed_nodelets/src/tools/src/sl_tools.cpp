@@ -232,6 +232,11 @@ namespace sl_tools {
             imgMsgPtr->encoding = sensor_msgs::image_encodings::BGRA8;
             memcpy((char*)(&imgMsgPtr->data[0]), img.getPtr<sl::uchar4>(), size);
             break;
+
+        case sl::MAT_TYPE::U16_C1: /**< unsigned short 1 channel.*/
+            imgMsgPtr->encoding = sensor_msgs::image_encodings::MONO16;
+            memcpy((uint16_t*)(&imgMsgPtr->data[0]), img.getPtr<sl::ushort1>(), size);
+            break;
         }
     }
 

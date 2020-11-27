@@ -1656,12 +1656,14 @@ void ZEDWrapperNodelet::publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat de
     //NODELET_DEBUG_STREAM("mOpenniDepthMode: " << mOpenniDepthMode);
 
     if (!mOpenniDepthMode) {
+        NODELET_INFO("Using float32");
         sl_tools::imageToROSmsg(imgMsgPtr, depth, mDepthOptFrameId, t);
         mPubDepth.publish(imgMsgPtr, mDepthCamInfoMsg);
 
         return;
     }
 
+#if(ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<4)
     // OPENNI CONVERSION (meter -> millimeters - float32 -> uint16)
     if(!imgMsgPtr) {
         imgMsgPtr = boost::make_shared<sensor_msgs::Image>();
@@ -1689,8 +1691,12 @@ void ZEDWrapperNodelet::publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat de
     for (int i = 0; i < dataSize; i++) {
         *(data++) = static_cast<uint16_t>(std::round(*(depthDataPtr++) * 1000));    // in mm, rounded
     }
-
     mPubDepth.publish(imgMsgPtr, mDepthCamInfoMsg);
+#else
+    //NODELET_INFO("Using depth16");
+    sl_tools::imageToROSmsg(imgMsgPtr, depth, mDepthOptFrameId, t);
+    mPubDepth.publish(imgMsgPtr, mDepthCamInfoMsg);
+#endif
 }
 
 void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t) {
@@ -2343,7 +2349,15 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e) {
         grab_ts=mat_right_raw_gray.timestamp;
     }
     if(depthSubnumber>0) {
+#if(ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<4)
         mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
+#else
+        if( !mOpenniDepthMode ) {
+            mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
+        } else {
+            mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH_U16_MM, sl::MEM::CPU, mMatResolDepth);
+        }
+#endif
         retrieved = true;
         grab_ts=mat_depth.timestamp;
 
