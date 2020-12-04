@@ -1656,7 +1656,7 @@ void ZEDWrapperNodelet::publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat de
     //NODELET_DEBUG_STREAM("mOpenniDepthMode: " << mOpenniDepthMode);
 
     if (!mOpenniDepthMode) {
-        NODELET_INFO("Using float32");
+        //NODELET_INFO("Using float32");
         sl_tools::imageToROSmsg(imgMsgPtr, depth, mDepthOptFrameId, t);
         mPubDepth.publish(imgMsgPtr, mDepthCamInfoMsg);
 
