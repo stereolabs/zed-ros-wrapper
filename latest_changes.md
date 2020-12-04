@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+v3.4
+---------
+- Add support for new DEPTH16_MM data type for depth (OPENNI MODE)
+
 RGB/Depth sync fix #629 (2020-11-02)
 -------------------------------
 - Fixed sync issue between RGB and Depth data (Thx @dennisVi)
