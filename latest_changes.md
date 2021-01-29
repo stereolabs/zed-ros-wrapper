@@ -4,6 +4,7 @@ LATEST CHANGES
 v3.4
 ---------
 - Add support for new DEPTH16_MM data type for depth (OPENNI MODE)
+- Fix issue #660: detected objects topic not published if depth computation not active
 
 RGB/Depth sync fix #629 (2020-11-02)
 -------------------------------
