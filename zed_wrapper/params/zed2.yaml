@@ -7,7 +7,7 @@ general:
 
 depth:
     min_depth:                  0.7             # Min: 0.2, Max: 3.0 - Default 0.7 - Note: reducing this value wil require more computational power and GPU memory
-    max_depth:                  20.0            # Max: 40.0
+    max_depth:                  10.0            # Max: 40.0
 
 pos_tracking:
     imu_fusion:                 true            # enable/disable IMU fusion. When set to false, only the optical odometry will be used.

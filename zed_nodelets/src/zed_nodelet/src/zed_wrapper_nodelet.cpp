@@ -1368,8 +1368,6 @@ bool ZEDWrapperNodelet::start_obj_detect() {
         mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
     }
 
-
-
     mObjDetRunning = true;
     return false;
 }
@@ -3062,7 +3060,7 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
             }
         }
 
-        mGrabActive =  mRecording || mStreaming || mMappingEnabled || mObjDetEnabled || mTrackingActivated ||
+        mGrabActive =  mRecording || mStreaming || mMappingEnabled || objDetActive || mTrackingActivated ||
                 ((rgbSubnumber + rgbRawSubnumber + leftSubnumber +
                   leftRawSubnumber + rightSubnumber + rightRawSubnumber +
                   rgbGraySubnumber + rgbGrayRawSubnumber + leftGraySubnumber +
@@ -3101,8 +3099,8 @@ void ZEDWrapperNodelet::device_poll_thread_func() {
 
             // Detect if one of the subscriber need to have the depth information
             mComputeDepth = mDepthMode != sl::DEPTH_MODE::NONE &&
-                    ((depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber +
-                      poseSubnumber + poseCovSubnumber + odomSubnumber + confMapSubnumber) > 0);
+                    (objDetActive || ((depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber +
+                      poseSubnumber + poseCovSubnumber + odomSubnumber + confMapSubnumber) > 0));
 
             if (mComputeDepth) {
                 runParams.confidence_threshold = mCamDepthConfidence;
