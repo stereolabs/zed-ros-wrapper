@@ -83,7 +83,7 @@ class ZEDWrapperNodelet : public nodelet::Nodelet {
     typedef enum _dyn_params {
         DATAPUB_FREQ        = 0,
         CONFIDENCE          = 1,
-        TEXTURE_CONF        = 2,        
+        TEXTURE_CONF        = 2,
         POINTCLOUD_FREQ     = 3,
         BRIGHTNESS          = 4,
         CONTRAST            = 5,
@@ -227,7 +227,7 @@ protected:
          * \param frame_id : the id of the reference frame of the left camera
          */
     void fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg,
-                     string frame_id );
+                          string frame_id );
 
     /* \bried Check if FPS and Resolution chosen by user are correct.
          *        Modifies FPS to match correct value.
@@ -322,12 +322,12 @@ protected:
     /*! \brief Service callback to start_object_detection service
          */
     bool on_start_object_detection(zed_interfaces::start_object_detection::Request& req,
-                             zed_interfaces::start_object_detection::Response& res);
+                                   zed_interfaces::start_object_detection::Response& res);
 
     /*! \brief Service callback to stop_object_detection service
          */
     bool on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
-                            zed_interfaces::stop_object_detection::Response& res);
+                                  zed_interfaces::stop_object_detection::Response& res);
 
     /*! \brief Utility to initialize the pose variables
          */
@@ -471,7 +471,7 @@ private:
     sensor_msgs::CameraInfoPtr mRgbCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mLeftCamInfoRawMsg;
     sensor_msgs::CameraInfoPtr mRightCamInfoRawMsg;
-    sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;    
+    sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;
 
     geometry_msgs::TransformPtr mCameraImuTransfMgs;
     // <---- Topics
@@ -499,7 +499,7 @@ private:
     std::string mMapFrameId;
     std::string mOdometryFrameId;
     std::string mBaseFrameId;
-    std::string mCameraFrameId;    
+    std::string mCameraFrameId;
 
     std::string mRightCamFrameId;
     std::string mRightCamOptFrameId;
@@ -529,7 +529,7 @@ private:
     int mDepthStabilization;
     std::string mAreaMemDbPath;
     std::string mSvoFilepath;
-    std::string mRemoteStreamAddr;    
+    std::string mRemoteStreamAddr;
     bool mSensTimestampSync;
     double mPathPubRate;
     int mPathMaxCount;
@@ -557,7 +557,7 @@ private:
     ros::Time mFrameTimestamp;
 
     // Positional Tracking variables
-    sl::Pose mLastZedPose; // Sensor to Map transform    
+    sl::Pose mLastZedPose; // Sensor to Map transform
     sl::Transform mInitialPoseSl;
     std::vector<float> mInitialBasePose;
     std::vector<geometry_msgs::PoseStamped> mOdomPath;
@@ -656,8 +656,8 @@ private:
     bool mRgbDepthDataRetrieved;
 
     // Point cloud variables
-    sl::Mat mCloud;    
-    sl::FusedPointCloud mFusedPC;    
+    sl::Mat mCloud;
+    sl::FusedPointCloud mFusedPC;
     ros::Time mPointCloudTime;
 
     // Dynamic reconfigure
@@ -677,7 +677,7 @@ private:
     diagnostic_updater::Updater mDiagUpdater; // Diagnostic Updater
 
     // Camera IMU transform
-    sl::Transform mSlCamImuTransf;    
+    sl::Transform mSlCamImuTransf;
     geometry_msgs::TransformStamped mStaticImuTransformStamped;
 
     // Spatial mapping
@@ -690,11 +690,17 @@ private:
     // Object Detection
     bool mObjDetEnabled = false;
     bool mObjDetRunning = false;
-    float mObjDetConfidence = 50.f;
     bool mObjDetTracking = true;
-    bool mObjDetPeople = true;
-    bool mObjDetVehicles = true;
+    float mObjDetConfidence = 50.f;
     std::vector<sl::OBJECT_CLASS> mObjDetFilter;
+    bool mObjDetPeopleEnable = true;
+    bool mObjDetVehiclesEnable = true;
+    bool mObjDetBagsEnable = true;
+    bool mObjDetAnimalsEnable = true;
+    bool mObjDetElectronicsEnable = true;
+    bool mObjDetFruitsEnable = true;
+    bool mBodyFitting = false;
+    sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::HUMAN_BODY_FAST;
 
     ros::Publisher mPubObjDet;
     ros::Publisher mPubObjDetViz;

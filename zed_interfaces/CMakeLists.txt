@@ -16,8 +16,16 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files( 
     DIRECTORY msg 
     FILES
-    ObjectStamped.msg
-    Objects.msg
+    BoundingBox2Df.msg
+    BoundingBox2Di.msg
+    BoundingBox3D.msg
+    Keypoint2Df.msg
+    Keypoint2Di.msg
+    Keypoint3D.msg
+    Object.msg
+    ObjectsStamped.msg
+    Skeleton2D.msg
+    Skeleton3D.msg
     RGBDSensors.msg
   )
 

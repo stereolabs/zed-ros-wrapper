@@ -27,8 +27,8 @@
 #include <ros/console.h>
 #endif
 
-#include "zed_interfaces/ObjectStamped.h"
-#include "zed_interfaces/Objects.h"
+#include "zed_interfaces/ObjectsStamped.h".h"
+#include "zed_interfaces/Object.h"
 
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
@@ -3896,8 +3896,7 @@ bool ZEDWrapperNodelet::on_start_remote_stream(zed_interfaces::start_remote_stre
     params.gop_size = req.gop_size;
     params.adaptative_bitrate = req.adaptative_bitrate;
 
-    if (params.gop_size < -1 || params.gop_size > 256) {
-
+    if ((params.gop_size < -1) || (params.gop_size > 256)) {
         mStreaming = false;
 
         res.result = false;
@@ -3997,11 +3996,7 @@ bool ZEDWrapperNodelet::on_start_3d_mapping(zed_interfaces::start_3d_mapping::Re
     mFusedPcPubFreq = req.fused_pointcloud_freq;
 
     NODELET_DEBUG_STREAM(" * Received mapping resolution\t\t-> " << mMappingRes << " m");
-
-
-
     NODELET_DEBUG_STREAM(" * Received mapping max range\t-> " << mMaxMappingRange << " m" );
-
     NODELET_DEBUG_STREAM(" * Received fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
 
     mMappingEnabled = true;
