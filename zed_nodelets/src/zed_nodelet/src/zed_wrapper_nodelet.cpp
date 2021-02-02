@@ -27,13 +27,8 @@
 #include <ros/console.h>
 #endif
 
-#include "zed_interfaces/ObjectsStamped.h".h"
+#include "zed_interfaces/ObjectsStamped.h"
 #include "zed_interfaces/Object.h"
-
-#include "visualization_msgs/Marker.h"
-#include "visualization_msgs/MarkerArray.h"
-
-
 
 //#define DEBUG_SENS_TS 1
 
@@ -138,7 +133,6 @@ void ZEDWrapperNodelet::onInit() {
 
     string object_det_topic_root = "obj_det";
     string object_det_topic = object_det_topic_root + "/objects";
-    string object_det_rviz_topic = object_det_topic_root + "/object_markers";
 
     std::string confImgRoot = "confidence";
     string conf_map_topic_name = "confidence_map";
@@ -442,11 +436,8 @@ void ZEDWrapperNodelet::onInit() {
 
     // Object detection publishers
     if (mObjDetEnabled) {
-        mPubObjDet = mNhNs.advertise<zed_interfaces::Objects>(object_det_topic, 1);
-
+        mPubObjDet = mNhNs.advertise<zed_interfaces::ObjectsStamped>(object_det_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
-        mPubObjDetViz = mNhNs.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubObjDetViz.getTopic());
     }
 
     // Odometry and Pose publisher
@@ -575,7 +566,7 @@ void ZEDWrapperNodelet::onInit() {
 
 void ZEDWrapperNodelet::readParameters() {
 
-    NODELET_INFO_STREAM("*** PARAMETERS ***");
+    NODELET_INFO_STREAM("*** GENERAL PARAMETERS ***");
 
     // ----> General
     // Get parameters from param files
@@ -626,6 +617,8 @@ void ZEDWrapperNodelet::readParameters() {
     }
     // <---- General
 
+    NODELET_INFO_STREAM("*** VIDEO PARAMETERS ***");
+
     // ----> Video
     mNhNs.getParam("video/img_downsample_factor", mCamImageResizeFactor);
     NODELET_INFO_STREAM(" * Image resample factor\t-> " << mCamImageResizeFactor);
@@ -633,6 +626,8 @@ void ZEDWrapperNodelet::readParameters() {
     mNhNs.getParam("video/extrinsic_in_camera_frame", mUseOldExtrinsic);
     NODELET_INFO_STREAM(" * Extrinsic param. frame\t-> " << (mUseOldExtrinsic?"X RIGHT - Y DOWN - Z FWD":"X FWD - Y LEFT - Z UP"));
     // <---- Video
+
+    NODELET_INFO_STREAM("*** DEPTH PARAMETERS ***");
 
     // -----> Depth
     int depth_mode;
@@ -654,6 +649,8 @@ void ZEDWrapperNodelet::readParameters() {
     mNhNs.getParam("depth/depth_downsample_factor", mCamDepthResizeFactor);
     NODELET_INFO_STREAM(" * Depth resample factor\t-> " << mCamDepthResizeFactor);
     // <----- Depth
+
+    NODELET_INFO_STREAM("*** POSITIONAL TRACKING PARAMETERS ***");
 
     // ----> Tracking
     mNhNs.getParam("pos_tracking/path_pub_rate", mPathPubRate);
@@ -687,6 +684,8 @@ void ZEDWrapperNodelet::readParameters() {
     }
     // <---- Tracking
 
+    NODELET_INFO_STREAM("*** MAPPING PARAMETERS ***");
+
     // ----> Mapping
     mNhNs.param<bool>("mapping/mapping_enabled", mMappingEnabled, false);
 
@@ -706,6 +705,8 @@ void ZEDWrapperNodelet::readParameters() {
     }
     // <---- Mapping
 
+    NODELET_INFO_STREAM("*** OBJECT DETECTION PARAMETERS ***");
+
     // ----> Object Detection
     mNhNs.param<bool>("object_detection/od_enabled", mObjDetEnabled, false);
 
@@ -715,19 +716,49 @@ void ZEDWrapperNodelet::readParameters() {
         NODELET_INFO_STREAM(" * Object confidence\t\t-> " << mObjDetConfidence);
         mNhNs.getParam("object_detection/object_tracking_enabled", mObjDetTracking);
         NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking?"ENABLED":"DISABLED"));
-        mNhNs.getParam("object_detection/people_detection", mObjDetPeople);
-        NODELET_INFO_STREAM(" * People detection\t\t-> " << (mObjDetPeople?"ENABLED":"DISABLED"));
-        mNhNs.getParam("object_detection/vehicle_detection", mObjDetVehicles);
-        NODELET_INFO_STREAM(" * Vehicles detection\t\t-> " << (mObjDetVehicles?"ENABLED":"DISABLED"));
+
+        int model;
+        mNhNs.getParam("object_detection/model", model);
+        if(model<0 || model>3) {
+            NODELET_WARN("Detection model not valid. Forced to the default value" );
+            model = static_cast<int>(mObjDetModel);
+        }        
+        mObjDetModel = static_cast<sl::DETECTION_MODEL>(model);    
+        
+
+        NODELET_INFO_STREAM(" * Detection model\t\t-> " << sl::toString(mObjDetModel));
+
+        if(mObjDetModel==sl::DETECTION_MODEL::HUMAN_BODY_FAST ||
+           mObjDetModel==sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE) {
+            mNhNs.getParam("object_detection/body_fitting", mObjDetBodyFitting);
+            NODELET_INFO_STREAM(" * Body fitting\t\t\t-> " << (mObjDetBodyFitting?"ENABLED":"DISABLED"));
+        } else {
+            mNhNs.getParam("object_detection/mc_people", mObjDetPeopleEnable);
+            NODELET_INFO_STREAM(" * Detect people\t\t-> " << (mObjDetPeopleEnable?"ENABLED":"DISABLED"));
+            mNhNs.getParam("object_detection/mc_vehicle", mObjDetVehiclesEnable);
+            NODELET_INFO_STREAM(" * Detect vehicles\t\t-> " << (mObjDetVehiclesEnable?"ENABLED":"DISABLED"));
+            mNhNs.getParam("object_detection/mc_bag", mObjDetBagsEnable);
+            NODELET_INFO_STREAM(" * Detect bags\t\t\t-> " << (mObjDetBagsEnable?"ENABLED":"DISABLED"));
+            mNhNs.getParam("object_detection/mc_animal", mObjDetAnimalsEnable);
+            NODELET_INFO_STREAM(" * Detect animals\t\t-> " << (mObjDetAnimalsEnable?"ENABLED":"DISABLED"));
+            mNhNs.getParam("object_detection/mc_electronics", mObjDetElectronicsEnable);
+            NODELET_INFO_STREAM(" * Detect electronics\t\t-> " << (mObjDetElectronicsEnable?"ENABLED":"DISABLED"));
+            mNhNs.getParam("object_detection/mc_fruit_vegetable", mObjDetFruitsEnable);
+            NODELET_INFO_STREAM(" * Detect fruit and vegetables\t-> " << (mObjDetFruitsEnable?"ENABLED":"DISABLED"));
+        }
     } else {
         NODELET_INFO_STREAM(" * Object Detection\t\t-> DISABLED");
     }
     // <---- Object Detection
 
+    NODELET_INFO_STREAM("*** SENSORS PARAMETERS ***");
+
     // ----> Sensors
     mNhNs.getParam("sensors/sensors_timestamp_sync", mSensTimestampSync);
     NODELET_INFO_STREAM(" * Sensors timestamp sync\t-> " << (mSensTimestampSync ? "ENABLED" : "DISABLED"));
     // <---- Sensors
+
+    NODELET_INFO_STREAM("*** SVO PARAMETERS ***");
 
     // ----> SVO
     mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
@@ -746,9 +777,11 @@ void ZEDWrapperNodelet::readParameters() {
 
     NODELET_INFO_STREAM(" * SVO REC compression\t\t-> " << sl::toString(mSvoComprMode));
     // <---- SVO
-
+   
     // Remote Stream
     mNhNs.param<std::string>("stream", mRemoteStreamAddr, std::string());
+
+    NODELET_INFO_STREAM("*** COORDINATE FRAMES ***");
 
     // ----> Coordinate frames
     mNhNs.param<std::string>("pos_tracking/map_frame", mMapFrameId, "map");
@@ -807,6 +840,8 @@ void ZEDWrapperNodelet::readParameters() {
     NODELET_INFO_STREAM(" * Broadcast IMU pose TF\t-> " << ( mPublishImuTf ? "ENABLED" : "DISABLED" ) );
     // <---- TF broadcasting
 
+    NODELET_INFO_STREAM("*** DYNAMIC PARAMETERS (Init. values) ***");
+
     // ----> Dynamic
     mNhNs.getParam("depth_confidence", mCamDepthConfidence);
     NODELET_INFO_STREAM(" * [DYN] Depth confidence\t-> " << mCamDepthConfidence);
@@ -853,7 +888,6 @@ void ZEDWrapperNodelet::readParameters() {
         mTriggerAutoWB = true;
     }
     // <---- Dynamic
-
 }
 
 void ZEDWrapperNodelet::checkResolFps() {
@@ -1352,21 +1386,14 @@ bool ZEDWrapperNodelet::start_obj_detect() {
     if(mPubObjDet.getTopic().empty()) {
         string object_det_topic_root = "obj_det";
         string object_det_topic = object_det_topic_root + "/objects";
-        string object_det_rviz_topic = object_det_topic_root + "/object_markers";
 
-        mPubObjDet = mNhNs.advertise<zed_interfaces::Objects>(object_det_topic, 1);
+        mPubObjDet = mNhNs.advertise<zed_interfaces::ObjectsStamped>(object_det_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
-        mPubObjDetViz = mNhNs.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubObjDetViz.getTopic());
     }
 
     mObjDetFilter.clear();
-    if(mObjDetPeople) {
-        mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
-    }
-    if(mObjDetVehicles) {
-        mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
-    }
+
+    // TODO Set OD filters
 
     mObjDetRunning = true;
     return false;
@@ -4043,13 +4070,14 @@ bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_d
 
     mObjDetConfidence = req.confidence;
     mObjDetTracking = req.tracking;
-    mObjDetPeople = req.people;
-    mObjDetVehicles = req.vehicles;
+    mObjDetModel = static_cast<sl::DETECTION_MODEL>(req.model);
+
+    // TODO Parse all the OD parameters
 
     NODELET_DEBUG_STREAM(" * Object min. confidence\t-> " << mObjDetConfidence);
     NODELET_DEBUG_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking?"ENABLED":"DISABLED"));
-    NODELET_DEBUG_STREAM(" * People detection\t\t-> " << (mObjDetPeople?"ENABLED":"DISABLED"));
-    NODELET_DEBUG_STREAM(" * Vehicles detection\t\t-> " << (mObjDetVehicles?"ENABLED":"DISABLED"));
+    //NODELET_DEBUG_STREAM(" * People detection\t\t-> " << (mObjDetPeople?"ENABLED":"DISABLED"));
+   // NODELET_DEBUG_STREAM(" * Vehicles detection\t\t-> " << (mObjDetVehicles?"ENABLED":"DISABLED"));
 
     mObjDetEnabled = true;
     res.done = true;
@@ -4075,146 +4103,146 @@ bool ZEDWrapperNodelet::on_stop_object_detection(zed_interfaces::stop_object_det
 }
 
 void ZEDWrapperNodelet::detectObjects(bool publishObj, bool publishViz, ros::Time t) {
-    static std::chrono::steady_clock::time_point old_time = std::chrono::steady_clock::now();
+//    static std::chrono::steady_clock::time_point old_time = std::chrono::steady_clock::now();
 
-    sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
-    objectTracker_parameters_rt.detection_confidence_threshold = mObjDetConfidence;
-    objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
+//    sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
+//    objectTracker_parameters_rt.detection_confidence_threshold = mObjDetConfidence;
+//    objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
 
-    sl::Objects objects;
+//    sl::Objects objects;
 
-    sl::ERROR_CODE objDetRes = mZed.retrieveObjects(objects, objectTracker_parameters_rt);
+//    sl::ERROR_CODE objDetRes = mZed.retrieveObjects(objects, objectTracker_parameters_rt);
 
-    if (objDetRes != sl::ERROR_CODE::SUCCESS) {
-        NODELET_WARN_STREAM("Object Detection error: " << sl::toString(objDetRes));
-        return;
-    }
+//    if (objDetRes != sl::ERROR_CODE::SUCCESS) {
+//        NODELET_WARN_STREAM("Object Detection error: " << sl::toString(objDetRes));
+//        return;
+//    }
 
-    if(!objects.is_new)
-    {
-        return;
-    }
+//    if(!objects.is_new)
+//    {
+//        return;
+//    }
 
-    // ----> Diagnostic information update
-    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-    double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - old_time).count();
-    mObjDetPeriodMean_msec->addValue(elapsed_msec);
-    old_time = now;
-    // <---- Diagnostic information update
+//    // ----> Diagnostic information update
+//    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+//    double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - old_time).count();
+//    mObjDetPeriodMean_msec->addValue(elapsed_msec);
+//    old_time = now;
+//    // <---- Diagnostic information update
 
-    // NODELET_DEBUG_STREAM("Detected " << objects.object_list.size() << " objects");
+//    // NODELET_DEBUG_STREAM("Detected " << objects.object_list.size() << " objects");
 
-    size_t objCount = objects.object_list.size();
+//    size_t objCount = objects.object_list.size();
 
-    zed_interfaces::Objects objMsg;
+//    zed_interfaces::Objects objMsg;
 
 
-    objMsg.objects.resize(objCount);
+//    objMsg.objects.resize(objCount);
 
-    std_msgs::Header header;
-    header.stamp = t;
-    header.frame_id = mLeftCamFrameId;
+//    std_msgs::Header header;
+//    header.stamp = t;
+//    header.frame_id = mLeftCamFrameId;
 
-    visualization_msgs::MarkerArray objMarkersMsg;
-    //objMarkersMsg.markers.resize(objCount * 3);
+//    visualization_msgs::MarkerArray objMarkersMsg;
+//    //objMarkersMsg.markers.resize(objCount * 3);
 
-    for (size_t i = 0; i < objCount; i++) {
-        sl::ObjectData data = objects.object_list[i];
+//    for (size_t i = 0; i < objCount; i++) {
+//        sl::ObjectData data = objects.object_list[i];
 
-        if (publishObj) {
-            objMsg.objects[i].header = header;
+//        if (publishObj) {
+//            objMsg.objects[i].header = header;
 
-            objMsg.objects[i].label = sl::toString(data.label).c_str();
-            objMsg.objects[i].label_id = data.id;
-            objMsg.objects[i].confidence = data.confidence;
+//            objMsg.objects[i].label = sl::toString(data.label).c_str();
+//            objMsg.objects[i].label_id = data.id;
+//            objMsg.objects[i].confidence = data.confidence;
 
-            objMsg.objects[i].tracking_state = static_cast<int8_t>(data.tracking_state);
+//            objMsg.objects[i].tracking_state = static_cast<int8_t>(data.tracking_state);
 
-            objMsg.objects[i].position.x = data.position.x;
-            objMsg.objects[i].position.y = data.position.y;
-            objMsg.objects[i].position.z = data.position.z;
+//            objMsg.objects[i].position.x = data.position.x;
+//            objMsg.objects[i].position.y = data.position.y;
+//            objMsg.objects[i].position.z = data.position.z;
 
-            objMsg.objects[i].linear_vel.x = data.velocity.x;
-            objMsg.objects[i].linear_vel.y = data.velocity.y;
-            objMsg.objects[i].linear_vel.z = data.velocity.z;
+//            objMsg.objects[i].linear_vel.x = data.velocity.x;
+//            objMsg.objects[i].linear_vel.y = data.velocity.y;
+//            objMsg.objects[i].linear_vel.z = data.velocity.z;
 
-            for (int c = 0; c < data.bounding_box_2d.size(); c++) {
-                objMsg.objects[i].bbox_2d[c].x = data.bounding_box_2d[c].x;
-                objMsg.objects[i].bbox_2d[c].y = data.bounding_box_2d[c].y;
-                objMsg.objects[i].bbox_2d[c].z = 0.0f;
-            }
+//            for (int c = 0; c < data.bounding_box_2d.size(); c++) {
+//                objMsg.objects[i].bbox_2d[c].x = data.bounding_box_2d[c].x;
+//                objMsg.objects[i].bbox_2d[c].y = data.bounding_box_2d[c].y;
+//                objMsg.objects[i].bbox_2d[c].z = 0.0f;
+//            }
 
-            for (int c = 0; c < data.bounding_box.size(); c++) {
-                objMsg.objects[i].bbox_3d[c].x = data.bounding_box[c].x;
-                objMsg.objects[i].bbox_3d[c].y = data.bounding_box[c].y;
-                objMsg.objects[i].bbox_3d[c].z = data.bounding_box[c].z;
-            }
-        }
+//            for (int c = 0; c < data.bounding_box.size(); c++) {
+//                objMsg.objects[i].bbox_3d[c].x = data.bounding_box[c].x;
+//                objMsg.objects[i].bbox_3d[c].y = data.bounding_box[c].y;
+//                objMsg.objects[i].bbox_3d[c].z = data.bounding_box[c].z;
+//            }
+//        }
 
-        if (publishViz) {
-            if( data.bounding_box.size()!=8 ) {
-                continue; // No 3D information available
-            }
+//        if (publishViz) {
+//            if( data.bounding_box.size()!=8 ) {
+//                continue; // No 3D information available
+//            }
 
-            visualization_msgs::Marker bbx_marker;
+//            visualization_msgs::Marker bbx_marker;
 
-            bbx_marker.header = header;
-            bbx_marker.ns = "bbox";
-            bbx_marker.id = data.id;
-            bbx_marker.type = visualization_msgs::Marker::CUBE;
-            bbx_marker.action = visualization_msgs::Marker::ADD;
-            bbx_marker.pose.position.x = data.position.x;
-            bbx_marker.pose.position.y = data.position.y;
-            bbx_marker.pose.position.z = data.position.z;
-            bbx_marker.pose.orientation.x = 0.0;
-            bbx_marker.pose.orientation.y = 0.0;
-            bbx_marker.pose.orientation.z = 0.0;
-            bbx_marker.pose.orientation.w = 1.0;
+//            bbx_marker.header = header;
+//            bbx_marker.ns = "bbox";
+//            bbx_marker.id = data.id;
+//            bbx_marker.type = visualization_msgs::Marker::CUBE;
+//            bbx_marker.action = visualization_msgs::Marker::ADD;
+//            bbx_marker.pose.position.x = data.position.x;
+//            bbx_marker.pose.position.y = data.position.y;
+//            bbx_marker.pose.position.z = data.position.z;
+//            bbx_marker.pose.orientation.x = 0.0;
+//            bbx_marker.pose.orientation.y = 0.0;
+//            bbx_marker.pose.orientation.z = 0.0;
+//            bbx_marker.pose.orientation.w = 1.0;
 
-            bbx_marker.scale.x = fabs(data.bounding_box[0].x - data.bounding_box[1].x);
-            bbx_marker.scale.y = fabs(data.bounding_box[0].y - data.bounding_box[3].y);
-            bbx_marker.scale.z = fabs(data.bounding_box[0].z - data.bounding_box[4].z);
-            sl::float3 color = generateColorClass(data.id);
-            bbx_marker.color.b = color.b;
-            bbx_marker.color.g = color.g;
-            bbx_marker.color.r = color.r;
-            bbx_marker.color.a = 0.4;
-            bbx_marker.lifetime = ros::Duration(0.3);
-            bbx_marker.frame_locked = true;
+//            bbx_marker.scale.x = fabs(data.bounding_box[0].x - data.bounding_box[1].x);
+//            bbx_marker.scale.y = fabs(data.bounding_box[0].y - data.bounding_box[3].y);
+//            bbx_marker.scale.z = fabs(data.bounding_box[0].z - data.bounding_box[4].z);
+//            sl::float3 color = generateColorClass(data.id);
+//            bbx_marker.color.b = color.b;
+//            bbx_marker.color.g = color.g;
+//            bbx_marker.color.r = color.r;
+//            bbx_marker.color.a = 0.4;
+//            bbx_marker.lifetime = ros::Duration(0.3);
+//            bbx_marker.frame_locked = true;
 
-            objMarkersMsg.markers.push_back(bbx_marker);
+//            objMarkersMsg.markers.push_back(bbx_marker);
 
-            visualization_msgs::Marker label;
-            label.header = header;
-            label.lifetime = ros::Duration(0.3);
-            label.action = visualization_msgs::Marker::ADD;
-            label.id = data.id;
-            label.ns = "label";
-            label.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-            label.scale.z = 0.1;
+//            visualization_msgs::Marker label;
+//            label.header = header;
+//            label.lifetime = ros::Duration(0.3);
+//            label.action = visualization_msgs::Marker::ADD;
+//            label.id = data.id;
+//            label.ns = "label";
+//            label.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+//            label.scale.z = 0.1;
 
-            label.color.r = 255-color.r;
-            label.color.g = 255-color.g;
-            label.color.b = 255-color.b;
-            label.color.a = 0.75f;
+//            label.color.r = 255-color.r;
+//            label.color.g = 255-color.g;
+//            label.color.b = 255-color.b;
+//            label.color.a = 0.75f;
 
-            label.pose.position.x = data.position.x;
-            label.pose.position.y = data.position.y;
-            label.pose.position.z = data.position.z+1.1*bbx_marker.scale.z/2;
+//            label.pose.position.x = data.position.x;
+//            label.pose.position.y = data.position.y;
+//            label.pose.position.z = data.position.z+1.1*bbx_marker.scale.z/2;
 
-            label.text = std::to_string(data.id) + ". " + std::string(sl::toString(data.label).c_str());
+//            label.text = std::to_string(data.id) + ". " + std::string(sl::toString(data.label).c_str());
 
-            objMarkersMsg.markers.push_back(label);
-        }
-    }
+//            objMarkersMsg.markers.push_back(label);
+//        }
+//    }
 
-    if (publishObj) {
-        mPubObjDet.publish(objMsg);
-    }
+//    if (publishObj) {
+//        mPubObjDet.publish(objMsg);
+//    }
 
-    if (mPubObjDetViz) {
-        mPubObjDetViz.publish(objMarkersMsg);
-    }
+//    if (mPubObjDetViz) {
+//        mPubObjDetViz.publish(objMarkersMsg);
+//    }
 
 }
 

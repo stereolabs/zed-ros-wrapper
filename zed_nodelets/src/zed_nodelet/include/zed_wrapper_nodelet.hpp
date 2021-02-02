@@ -691,6 +691,7 @@ private:
     bool mObjDetEnabled = false;
     bool mObjDetRunning = false;
     bool mObjDetTracking = true;
+    bool mObjDetBodyFitting = false;
     float mObjDetConfidence = 50.f;
     std::vector<sl::OBJECT_CLASS> mObjDetFilter;
     bool mObjDetPeopleEnable = true;
@@ -699,8 +700,8 @@ private:
     bool mObjDetAnimalsEnable = true;
     bool mObjDetElectronicsEnable = true;
     bool mObjDetFruitsEnable = true;
-    bool mBodyFitting = false;
-    sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::HUMAN_BODY_FAST;
+    
+    sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::MULTI_CLASS_BOX;
 
     ros::Publisher mPubObjDet;
     ros::Publisher mPubObjDetViz;

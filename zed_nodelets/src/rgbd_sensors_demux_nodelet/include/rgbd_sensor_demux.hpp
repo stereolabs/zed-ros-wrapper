@@ -54,7 +54,7 @@ protected:
 
 private:
     // Node handlers
-    ros::NodeHandle mNh;    // Node handler
+    ros::NodeHandle mNh;   // Node handler
     ros::NodeHandle mNhP;  // Private Node handler
 
     // Publishers

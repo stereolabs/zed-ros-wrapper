@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/home/walter/devel/ros1_ws/devel/include/**",
+                "/opt/ros/melodic/include/**",
+                "/home/walter/devel/ros1_ws/src/zed-ros-wrapper/zed_interfaces/include/**",
+                "/usr/include/**"
+            ],
+            "name": "ROS",
+            "compilerPath": "/usr/bin/aarch64-linux-gnu-g++-7",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}
