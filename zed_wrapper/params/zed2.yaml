@@ -20,6 +20,7 @@ object_detection:
     od_enabled:                 false           # True to enable Object Detection [only ZED 2]
     model:                      0               # '0': MULTI_CLASS_BOX - '1': MULTI_CLASS_BOX_ACCURATE - '2': HUMAN_BODY_FAST - '3': HUMAN_BODY_ACCURATE
     confidence_threshold:       50              # Minimum value of the detection confidence of an object [0,100]
+    max_range:                  10.             # Maximum detection range
     object_tracking_enabled:    true            # Enable/disable the tracking of the detected objects
     body_fitting:               true            # Enable/disable body fitting for 'HUMAN_BODY_FAST' and 'HUMAN_BODY_ACCURATE' models
     mc_people:                  true            # Enable/disable the detection of persons for 'MULTI_CLASS_BOX' and 'MULTI_CLASS_BOX_ACCURATE' models

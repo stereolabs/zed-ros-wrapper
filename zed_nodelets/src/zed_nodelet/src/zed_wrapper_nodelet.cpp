@@ -717,6 +717,8 @@ void ZEDWrapperNodelet::readParameters() {
         mNhNs.getParam("object_detection/object_tracking_enabled", mObjDetTracking);
         NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking?"ENABLED":"DISABLED"));
 
+        // TODO ADD MAX_RANGE
+
         int model;
         mNhNs.getParam("object_detection/model", model);
         if(model<0 || model>=static_cast<int>(sl::DETECTION_MODEL::LAST)) {
@@ -1371,8 +1373,10 @@ bool ZEDWrapperNodelet::start_obj_detect() {
     sl::ObjectDetectionParameters od_p;
     od_p.enable_mask_output = false;
     od_p.enable_tracking = mObjDetTracking;
-    //od_p.image_sync = true;
     od_p.image_sync = false; // Asynchronous object detection
+    od_p.detection_model = mObjDetModel;
+    od_p.enable_body_fitting = mObjDetBodyFitting;
+    od_p.max_range = mObjDetMaxRange;
 
     sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
 
@@ -1393,7 +1397,28 @@ bool ZEDWrapperNodelet::start_obj_detect() {
 
     mObjDetFilter.clear();
 
-    // TODO Set OD filters
+    if(mObjDetModel==sl::DETECTION_MODEL::MULTI_CLASS_BOX ||
+       mObjDetModel==sl::DETECTION_MODEL::MULTI_CLASS_BOX_ACCURATE) {
+        
+        if(mObjDetPeopleEnable) {
+            mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+        }
+        if(mObjDetVehicleEnable) {
+            mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+        }
+        if(mObjDetBagsEnable) {
+            mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
+        }
+        if(mObjDetAnimalsEnable) {
+            mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
+        }
+        if(mObjDetElectronicsEnable) {
+            mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
+        }
+        if(mObjDetFruitsEnable) {
+            mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
+        }
+    }
 
     mObjDetRunning = true;
     return false;
@@ -4075,6 +4100,8 @@ bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_d
         return false;
     }
     mObjDetModel = static_cast<sl::DETECTION_MODEL>(req.model);
+
+    // TODO ADD MAX_RANGE
 
     NODELET_INFO_STREAM(" * Object min. confidence\t-> " << mObjDetConfidence);
     NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking?"ENABLED":"DISABLED"));

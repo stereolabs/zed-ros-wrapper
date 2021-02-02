@@ -693,6 +693,7 @@ private:
     bool mObjDetTracking = true;
     bool mObjDetBodyFitting = false;
     float mObjDetConfidence = 50.f;
+    float mObjDetMaxRange = 10.f;
     std::vector<sl::OBJECT_CLASS> mObjDetFilter;
     bool mObjDetPeopleEnable = true;
     bool mObjDetVehiclesEnable = true;
