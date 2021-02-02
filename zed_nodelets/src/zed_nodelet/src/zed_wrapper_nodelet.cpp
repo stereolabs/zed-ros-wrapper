@@ -719,7 +719,7 @@ void ZEDWrapperNodelet::readParameters() {
 
         int model;
         mNhNs.getParam("object_detection/model", model);
-        if(model<0 || model>3) {
+        if(model<0 || model>=static_cast<int>(sl::DETECTION_MODEL::LAST)) {
             NODELET_WARN("Detection model not valid. Forced to the default value" );
             model = static_cast<int>(mObjDetModel);
         }        
@@ -4070,14 +4070,34 @@ bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_d
 
     mObjDetConfidence = req.confidence;
     mObjDetTracking = req.tracking;
+    if(req.model<0 || req.model>=static_cast<int>(sl::DETECTION_MODEL::LAST)) {
+        NODELET_ERROR_STREAM( "Object Detection model not valid.");
+        return false;
+    }
     mObjDetModel = static_cast<sl::DETECTION_MODEL>(req.model);
 
-    // TODO Parse all the OD parameters
+    NODELET_INFO_STREAM(" * Object min. confidence\t-> " << mObjDetConfidence);
+    NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking?"ENABLED":"DISABLED"));
+    NODELET_INFO_STREAM(" * Detection model\t\t-> " << sl::toString(mObjDetModel));
 
-    NODELET_DEBUG_STREAM(" * Object min. confidence\t-> " << mObjDetConfidence);
-    NODELET_DEBUG_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking?"ENABLED":"DISABLED"));
-    //NODELET_DEBUG_STREAM(" * People detection\t\t-> " << (mObjDetPeople?"ENABLED":"DISABLED"));
-   // NODELET_DEBUG_STREAM(" * Vehicles detection\t\t-> " << (mObjDetVehicles?"ENABLED":"DISABLED"));
+    if(mObjDetModel==sl::DETECTION_MODEL::HUMAN_BODY_FAST ||
+        mObjDetModel==sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE) {
+        mObjDetBodyFitting = req.sk_body_fitting;
+        NODELET_INFO_STREAM(" * Body fitting\t\t\t-> " << (mObjDetBodyFitting?"ENABLED":"DISABLED"));
+    } else {
+        mObjDetPeopleEnable = req.mc_people;
+        NODELET_INFO_STREAM(" * Detect people\t\t-> " << (mObjDetPeopleEnable?"ENABLED":"DISABLED"));
+        mObjDetVehiclesEnable = req.mc_vehicles;
+        NODELET_INFO_STREAM(" * Detect vehicles\t\t-> " << (mObjDetVehiclesEnable?"ENABLED":"DISABLED"));
+        mObjDetBagsEnable = req.mc_bag;
+        NODELET_INFO_STREAM(" * Detect bags\t\t\t-> " << (mObjDetBagsEnable?"ENABLED":"DISABLED"));
+        mObjDetAnimalsEnable = req.mc_animal;
+        NODELET_INFO_STREAM(" * Detect animals\t\t-> " << (mObjDetAnimalsEnable?"ENABLED":"DISABLED"));
+        mObjDetElectronicsEnable = req.mc_electronics;
+        NODELET_INFO_STREAM(" * Detect electronics\t\t-> " << (mObjDetElectronicsEnable?"ENABLED":"DISABLED"));
+        mObjDetFruitsEnable = req.mc_fruit_vegetable;
+        NODELET_INFO_STREAM(" * Detect fruit and vegetables\t-> " << (mObjDetFruitsEnable?"ENABLED":"DISABLED"));
+    }
 
     mObjDetEnabled = true;
     res.done = true;

@@ -11,7 +11,7 @@ float32 confidence
 bool tracking
 
 # Body Fitting
-bool body_fitting
+bool sk_body_fitting
 
 # Detect people (valid for Multi-class model)
 bool mc_people
