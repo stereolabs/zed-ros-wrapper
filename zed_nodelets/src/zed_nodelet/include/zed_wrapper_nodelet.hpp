@@ -369,9 +369,9 @@ protected:
          */
     void stop_obj_detect();
 
-    /*! \brief Perform object detection and publish result
+    /*! \brief Publish object detection results
          */
-    void detectObjects(bool publishObj, bool publishViz, ros::Time t);
+    void processDetectedObjects( ros::Time t);
 
     /*! \brief Generates an univoque color for each object class ID
          */
@@ -705,7 +705,6 @@ private:
     sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::MULTI_CLASS_BOX;
 
     ros::Publisher mPubObjDet;
-    ros::Publisher mPubObjDetViz;
 }; // class ZEDROSWrapperNodelet
 } // namespace
 
