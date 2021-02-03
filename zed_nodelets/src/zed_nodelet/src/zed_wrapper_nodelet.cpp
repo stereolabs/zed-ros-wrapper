@@ -781,8 +781,13 @@ void ZEDWrapperNodelet::readParameters()
     NODELET_INFO_STREAM(" * Object confidence\t\t-> " << mObjDetConfidence);
     mNhNs.getParam("object_detection/object_tracking_enabled", mObjDetTracking);
     NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking ? "ENABLED" : "DISABLED"));
-
-    // TODO ADD MAX_RANGE
+    mNhNs.getParam("object_detection/max_range", mObjDetMaxRange);
+    if (mObjDetMaxRange > mCamMaxDepth)
+    {
+      NODELET_WARN("Detection max range cannot be major than depth max range. Automatically fixed.");
+      mObjDetMaxRange = mCamMaxDepth;
+    }
+    NODELET_INFO_STREAM(" * Detection max range\t\t-> " << mObjDetMaxRange);
 
     int model;
     mNhNs.getParam("object_detection/model", model);
@@ -4545,7 +4550,13 @@ bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_d
   }
   mObjDetModel = static_cast<sl::DETECTION_MODEL>(req.model);
 
-  // TODO ADD MAX_RANGE
+  mObjDetMaxRange = req.max_range;
+  if (mObjDetMaxRange > mCamMaxDepth)
+  {
+    NODELET_WARN("Detection max range cannot be major than depth max range. Automatically fixed.");
+    mObjDetMaxRange = mCamMaxDepth;
+  }
+  NODELET_INFO_STREAM(" * Detection max range\t\t-> " << mObjDetMaxRange);
 
   NODELET_INFO_STREAM(" * Object min. confidence\t-> " << mObjDetConfidence);
   NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking ? "ENABLED" : "DISABLED"));

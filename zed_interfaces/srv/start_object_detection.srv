@@ -7,6 +7,9 @@ int8 model
 # Minimum Confidence level
 float32 confidence
 
+# MAx detection range
+float32 max_range
+
 # Object tracking
 bool tracking
 
