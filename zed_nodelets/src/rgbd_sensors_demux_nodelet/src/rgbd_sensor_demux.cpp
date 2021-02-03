@@ -26,91 +26,104 @@
 
 #include <chrono>
 
-namespace zed_nodelets {
-
-RgbdSensorsDemuxNodelet::RgbdSensorsDemuxNodelet() {
-
+namespace zed_nodelets
+{
+RgbdSensorsDemuxNodelet::RgbdSensorsDemuxNodelet()
+{
 }
 
-RgbdSensorsDemuxNodelet::~RgbdSensorsDemuxNodelet() {
-
+RgbdSensorsDemuxNodelet::~RgbdSensorsDemuxNodelet()
+{
 }
 
-void RgbdSensorsDemuxNodelet::onInit() {
-    // Node handlers
-    mNh = getNodeHandle();
-    mNhP = getPrivateNodeHandle();
+void RgbdSensorsDemuxNodelet::onInit()
+{
+  // Node handlers
+  mNh = getNodeHandle();
+  mNhP = getPrivateNodeHandle();
 
 #ifndef NDEBUG
-    if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,
-                                       ros::console::levels::Debug)) {
-        ros::console::notifyLoggerLevelsChanged();
-    }
+  if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug))
+  {
+    ros::console::notifyLoggerLevelsChanged();
+  }
 #endif
 
-    NODELET_INFO( "********** Starting nodelet '%s' **********",getName().c_str() );
+  NODELET_INFO("********** Starting nodelet '%s' **********", getName().c_str());
 
-    mSub = mNh.subscribe( "rgbd_sens", 1, &RgbdSensorsDemuxNodelet::msgCallback,  this );
-    NODELET_INFO_STREAM( " * Subscribed to topic: " << mSub.getTopic().c_str() );
+  mSub = mNh.subscribe("rgbd_sens", 1, &RgbdSensorsDemuxNodelet::msgCallback, this);
+  NODELET_INFO_STREAM(" * Subscribed to topic: " << mSub.getTopic().c_str());
 }
 
-void RgbdSensorsDemuxNodelet::msgCallback(const zed_interfaces::RGBDSensorsPtr &msg) {
-    if( !msg->rgb.header.stamp.isZero() ) {
-        if( mPubRgb.getTopic().empty() ) {
-            ros::NodeHandle rgb_pnh(mNhP, "rgb");
-            image_transport::ImageTransport it(rgb_pnh);
+void RgbdSensorsDemuxNodelet::msgCallback(const zed_interfaces::RGBDSensorsPtr &msg)
+{
+  if (!msg->rgb.header.stamp.isZero())
+  {
+    if (mPubRgb.getTopic().empty())
+    {
+      ros::NodeHandle rgb_pnh(mNhP, "rgb");
+      image_transport::ImageTransport it(rgb_pnh);
 
-            mPubRgb = it.advertiseCamera("image_rect_color", 1); // rgb
-            NODELET_INFO_STREAM("Advertised on topic " << mPubRgb.getTopic());
-            NODELET_INFO_STREAM("Advertised on topic " << mPubRgb.getInfoTopic());
-        }
-
-        if(mPubRgb.getNumSubscribers() > 0 ){
-            mPubRgb.publish( msg->rgb, msg->rgbCameraInfo );
-        }
+      mPubRgb = it.advertiseCamera("image_rect_color", 1);  // rgb
+      NODELET_INFO_STREAM("Advertised on topic " << mPubRgb.getTopic());
+      NODELET_INFO_STREAM("Advertised on topic " << mPubRgb.getInfoTopic());
     }
 
-    if( !msg->depth.header.stamp.isZero() ) {
-        if( mPubDepth.getTopic().empty() ) {
-            ros::NodeHandle depth_pnh(mNhP, "depth");
-            image_transport::ImageTransport it(depth_pnh);
+    if (mPubRgb.getNumSubscribers() > 0)
+    {
+      mPubRgb.publish(msg->rgb, msg->rgbCameraInfo);
+    }
+  }
 
-            mPubDepth = it.advertiseCamera("depth_registered", 1); // depth
-            NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getTopic());
-            NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getInfoTopic());
-        }
+  if (!msg->depth.header.stamp.isZero())
+  {
+    if (mPubDepth.getTopic().empty())
+    {
+      ros::NodeHandle depth_pnh(mNhP, "depth");
+      image_transport::ImageTransport it(depth_pnh);
 
-        if(mPubDepth.getNumSubscribers() > 0 ){
-            mPubDepth.publish( msg->depth, msg->depthCameraInfo );
-        }
+      mPubDepth = it.advertiseCamera("depth_registered", 1);  // depth
+      NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getTopic());
+      NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getInfoTopic());
     }
 
-    if( !msg->imu.header.stamp.isZero() ) {
-        if( mPubIMU.getTopic().empty() ) {
-            ros::NodeHandle imu_pnh(mNhP, "imu");
+    if (mPubDepth.getNumSubscribers() > 0)
+    {
+      mPubDepth.publish(msg->depth, msg->depthCameraInfo);
+    }
+  }
 
-            mPubIMU = imu_pnh.advertise<sensor_msgs::Imu>("data", 1); // IMU
-            NODELET_INFO_STREAM("Advertised on topic " << mPubIMU.getTopic());
-        }
+  if (!msg->imu.header.stamp.isZero())
+  {
+    if (mPubIMU.getTopic().empty())
+    {
+      ros::NodeHandle imu_pnh(mNhP, "imu");
 
-        if(mPubIMU.getNumSubscribers() > 0 ){
-            mPubIMU.publish( msg->imu );
-        }
+      mPubIMU = imu_pnh.advertise<sensor_msgs::Imu>("data", 1);  // IMU
+      NODELET_INFO_STREAM("Advertised on topic " << mPubIMU.getTopic());
     }
 
-    if( !msg->mag.header.stamp.isZero() ) {
-        if( mPubMag.getTopic().empty() ) {
-            ros::NodeHandle imu_pnh(mNhP, "imu");
+    if (mPubIMU.getNumSubscribers() > 0)
+    {
+      mPubIMU.publish(msg->imu);
+    }
+  }
 
-            mPubMag = imu_pnh.advertise<sensor_msgs::MagneticField>("mag", 1); // IMU
-            NODELET_INFO_STREAM("Advertised on topic " << mPubMag.getTopic());
-        }
+  if (!msg->mag.header.stamp.isZero())
+  {
+    if (mPubMag.getTopic().empty())
+    {
+      ros::NodeHandle imu_pnh(mNhP, "imu");
 
-        if(mPubMag.getNumSubscribers() > 0 ){
-            mPubMag.publish( msg->mag );
-        }
+      mPubMag = imu_pnh.advertise<sensor_msgs::MagneticField>("mag", 1);  // IMU
+      NODELET_INFO_STREAM("Advertised on topic " << mPubMag.getTopic());
     }
 
+    if (mPubMag.getNumSubscribers() > 0)
+    {
+      mPubMag.publish(msg->mag);
+    }
+  }
 }
 
-}
+}  // namespace zed_nodelets
