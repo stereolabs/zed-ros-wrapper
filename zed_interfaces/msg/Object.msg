@@ -19,6 +19,9 @@ float32[6] position_covariance
 # Object velocity
 float32[3] velocity
 
+# Tracking available
+bool tracking_available
+
 # Tracking state
 # 0 -> OFF (object not valid)
 # 1 -> OK

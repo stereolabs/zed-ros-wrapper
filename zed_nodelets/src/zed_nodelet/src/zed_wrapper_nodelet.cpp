@@ -173,6 +173,8 @@ void ZEDWrapperNodelet::onInit()
     {
       mZedParams.input.setFromSVOFile(mSvoFilepath.c_str());
       mZedParams.svo_real_time_mode = true;
+
+      // TODO ADD PARAMETER FOR SVO REAL TIME
     }
     else if (!mRemoteStreamAddr.empty())
     {
@@ -3409,7 +3411,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
     uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers();
 
     uint32_t objDetSubnumber = 0;
-    if (mObjDetEnabled)
+    if (mObjDetEnabled && mObjDetRunning)
     {
       objDetSubnumber = mPubObjDet.getNumSubscribers();
     }
@@ -3472,21 +3474,6 @@ void ZEDWrapperNodelet::device_poll_thread_func()
       {
         runParams.enable_depth = false;  // Ask to not compute the depth
       }
-
-      // ----> Wait for RGB/Depth synchronization before grabbing
-      //            std::unique_lock<std::mutex> datalock(mCamDataMutex);
-      //            while (!mRgbDepthDataRetrieved) {  // loop to avoid spurious wakeups
-      //                if (mRgbDepthDataRetrievedCondVar.wait_for(datalock, std::chrono::milliseconds(500)) ==
-      //                std::cv_status::timeout) {
-      //                    // Check thread stopping
-      //                    if (mStopNode) {
-      //                        return;
-      //                    } else {
-      //                        continue;
-      //                    }
-      //                }
-      //            }
-      // <---- Wait for RGB/Depth synchronization before grabbing
 
       mCamDataMutex.lock();
       mRgbDepthDataRetrieved = false;
@@ -4663,7 +4650,9 @@ void ZEDWrapperNodelet::processDetectedObjects(ros::Time t)
     memcpy(&(objMsg->objects[idx].position_covariance[0]), &(data.position_covariance[0]), 6 * sizeof(float));
     memcpy(&(objMsg->objects[idx].velocity[0]), &(data.velocity[0]), 3 * sizeof(float));
 
+    objMsg->objects[idx].tracking_available = mObjDetTracking;
     objMsg->objects[idx].tracking_state = static_cast<int8_t>(data.tracking_state);
+    //NODELET_INFO_STREAM( "[" << idx << "] Tracking: " << sl::toString(static_cast<sl::OBJECT_TRACKING_STATE>(data.tracking_state)));
     objMsg->objects[idx].action_state = static_cast<int8_t>(data.action_state);
 
     if (data.bounding_box_2d.size() == 4)
