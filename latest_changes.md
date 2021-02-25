@@ -1,10 +1,13 @@
 LATEST CHANGES
 ==============
 
-v3.4
+v3.4.x
 ---------
 - Add support for new DEPTH16_MM data type for depth (OPENNI MODE)
 - Fix issue #660: detected objects topic not published if depth computation not active
+- Improved support for ZED Object Detection
+- Add Skeleton Tracking support
+- New Rviz plugin for Object Detection in `zed-ros-examples`
 
 RGB/Depth sync fix #629 (2020-11-02)
 -------------------------------
