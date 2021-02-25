@@ -1,9 +1,6 @@
-cmake_minimum_required(VERSION 2.8.7)
+cmake_minimum_required(VERSION 3.5)
 
 project(zed_nodelets)
-
-#Fix for QtCretor
-#list(APPEND CMAKE_PREFIX_PATH "/opt/ros/$ENV{ROS_DISTRO}/")
 
 # if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
 IF(NOT CMAKE_BUILD_TYPE)
@@ -73,7 +70,7 @@ catkin_package(
     dynamic_reconfigure
     tf2_ros
     tf2_geometry_msgs
-    message_runtime
+    message_runtime    
     zed_interfaces
 )
 
@@ -91,14 +88,14 @@ set(RGBD_SENS_DEMUX_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd_sensors_demux_nodel
 # INCLUDES
 
 # Specify locations of header files.
-include_directories(
-        ${catkin_INCLUDE_DIRS}
-        ${CUDA_INCLUDE_DIRS}
-        ${ZED_INCLUDE_DIRS}
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_nodelet/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd_sensors_sync_nodelet/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd_sensors_demux_nodelet/include
+set(INCLUDE_DIRS
+    ${catkin_INCLUDE_DIRS}
+    ${CUDA_INCLUDE_DIRS}
+    ${ZED_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_nodelet/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd_sensors_sync_nodelet/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd_sensors_demux_nodelet/include
 )
 
 link_directories(${ZED_LIBRARY_DIR})
@@ -122,6 +119,7 @@ add_library(ZEDNodelets
     ${RGBD_SENS_SYNC_SRC}
     ${RGBD_SENS_DEMUX_SRC}
 )
+target_include_directories(ZEDNodelets PRIVATE ${INCLUDE_DIRS})
 target_link_libraries(ZEDNodelets ${LINK_LIBRARIES})
 add_dependencies(
     ZEDNodelets
