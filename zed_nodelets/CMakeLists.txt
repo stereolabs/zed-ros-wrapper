@@ -38,7 +38,7 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-find_package(catkin COMPONENTS
+find_package(catkin REQUIRED COMPONENTS
     roscpp
     image_transport
     rosconsole

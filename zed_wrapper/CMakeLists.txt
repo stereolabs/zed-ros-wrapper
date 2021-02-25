@@ -7,7 +7,7 @@ IF(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-find_package(catkin COMPONENTS
+find_package(catkin REQUIRED COMPONENTS
   roscpp
   rosconsole
   nodelet
