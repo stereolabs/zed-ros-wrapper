@@ -8,6 +8,16 @@ v3.4.x
 - Improved support for ZED Object Detection
 - Add Skeleton Tracking support
 - New Rviz plugin for Object Detection in `zed-ros-examples`
+- New parameters and name changing to fit the new OD features, also the `start_object_detection` service has been modified to match the new features:
+  - new `model` parameter to choose the AI model
+  - new `max_range` parameter to limit the detection range
+  - new `sk_body_fitting` parameter to enable Skeleton fitting for skeleton AI models
+  - `people` -> `mc_people` to indicate that it is related to multiclass AI models
+  - `vehicles`-> `mc_vehicles` to indicate that it is related to multiclass AI models
+  - new `mc_bag` parameter to enable bags detection with multiclass AI models
+  - new `mc_animal` parameter to enable animals detection with multiclass AI models
+  - new `mc_electronics` parameter to enable electronic devices detection with multiclass AI models
+  - new `mc_fruit_vegetable` parameter to enable fruits and vegetables detection with multiclass AI models
 
 RGB/Depth sync fix #629 (2020-11-02)
 -------------------------------
