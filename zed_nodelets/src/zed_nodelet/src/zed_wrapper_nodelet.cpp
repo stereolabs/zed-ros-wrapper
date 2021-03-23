@@ -1789,6 +1789,16 @@ void ZEDWrapperNodelet::publishStaticImuFrame()
 
 void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t)
 {
+  // ----> Avoid duplicated TF publishing
+  static ros::Time last_stamp;
+
+  if( t==last_stamp )
+  {
+    return;
+  }
+  last_stamp = t;
+  // <---- Avoid duplicated TF publishing
+
   if (!mSensor2BaseTransfValid)
   {
     getSens2BaseTransform();
@@ -1818,6 +1828,16 @@ void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t)
 
 void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time t)
 {
+  // ----> Avoid duplicated TF publishing
+  static ros::Time last_stamp;
+
+  if( t==last_stamp )
+  {
+    return;
+  }
+  last_stamp = t;
+  // <---- Avoid duplicated TF publishing
+
   if (!mSensor2BaseTransfValid)
   {
     getSens2BaseTransform();
@@ -3035,8 +3055,10 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
     sens_data.temperature.get(sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
   }
 
-  if (imu_TempSubNumber > 0)
+  if (imu_TempSubNumber > 0 && new_imu_data)
   {
+    lastTs_imu = ts_imu;
+
     sensor_msgs::TemperaturePtr imuTempMsg = boost::make_shared<sensor_msgs::Temperature>();
 
     imuTempMsg->header.stamp = ts_imu;
@@ -3262,6 +3284,8 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
   if (imu_RawSubNumber > 0 && new_imu_data)
   {
+    lastTs_imu = ts_imu;
+
     sensor_msgs::ImuPtr imuRawMsg = boost::make_shared<sensor_msgs::Imu>();
 
     imuRawMsg->header.stamp = ts_imu;
