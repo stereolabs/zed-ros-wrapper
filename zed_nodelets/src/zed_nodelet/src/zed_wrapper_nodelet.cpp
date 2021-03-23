@@ -1813,7 +1813,7 @@ void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t)
   // Publish transformation
   mTransformOdomBroadcaster.sendTransform(transformStamped);
 
-  // NODELET_INFO_STREAM( "Published ODOM TF with TS: " << t );
+  //NODELET_INFO_STREAM( "Published ODOM TF with TS: " << t );
 }
 
 void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time t)
@@ -2999,8 +2999,18 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
     ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
   }
 
+  bool new_imu_data = ts_imu != lastTs_imu;
+  bool new_baro_data = ts_baro != lastTs_baro;
+  bool new_mag_data = ts_mag != lastT_mag;
+
+  if (!new_imu_data && !new_baro_data && !new_mag_data)
+  {
+    NODELET_DEBUG("No updated sensors data");
+    return;
+  }
+
   // ----> Publish odometry tf only if enabled
-  if (mPublishTf && mTrackingReady)
+  if (mPublishTf && mTrackingReady && new_imu_data)
   {
     NODELET_DEBUG("Publishing TF");
 
@@ -3017,16 +3027,6 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
     }
   }
   // <---- Publish odometry tf only if enabled
-
-  bool new_imu_data = ts_imu != lastTs_imu;
-  bool new_baro_data = ts_baro != lastTs_baro;
-  bool new_mag_data = ts_mag != lastT_mag;
-
-  if (!new_imu_data && !new_baro_data && !new_mag_data)
-  {
-    NODELET_DEBUG("No updated sensors data");
-    return;
-  }
 
   if (mZedRealCamModel == sl::MODEL::ZED2)
   {
