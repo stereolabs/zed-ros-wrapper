@@ -532,9 +532,10 @@ private:
   double mCamMinDepth;
   double mCamMaxDepth;
 
-  bool mTrackingActivated;
-
-  bool mTrackingReady;
+  // Positional tracking
+  bool mPosTrackingEnabled=false;
+  bool mPosTrackingActivated=false;
+  bool mPosTrackingReady=false;
   bool mTwoDMode = false;
   double mFixedZValue = 0.0;
   bool mFloorAlignment = false;
@@ -608,7 +609,7 @@ private:
   double mCamImageResizeFactor = 1.0;
   double mCamDepthResizeFactor = 1.0;
 
-  // flags
+  // flags  
   bool mTriggerAutoExposure = true;
   bool mTriggerAutoWB = true;
   bool mComputeDepth;

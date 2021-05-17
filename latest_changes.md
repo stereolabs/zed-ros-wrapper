@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+v3.5.x
+---------
+- Add support for ROS Noetic
+- Add new parameter `pos_tracking/pos_tracking_enabled` to enable positional tracking from start even if not required by any subscribed topic. This is useful, for example, to keep the TF always updated.
+
 v3.4.x
 ---------
 - Add support for new DEPTH16_MM data type for depth (OPENNI MODE)

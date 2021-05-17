@@ -15,8 +15,12 @@ This package lets you use the ZED stereo camera with ROS. It outputs the camera 
 ### Prerequisites
 
 - Ubuntu 20.04
-- [ZED SDK **≥ 3.4**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ZED SDK **≥ 3.5**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - [ROS Noetic](http://wiki.ros.org/noetic/Installation/Ubuntu)
+
+- Ubuntu 18.04
+- [ZED SDK **≥ 3.5**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ROS Melodic](http://wiki.ros.org/melodic/Installation/Ubuntu)
 
 *Note:* an older version of the wrapper compatible with the **SDK v2.8.x** is available [here](https://github.com/stereolabs/zed-ros-wrapper/releases/tag/v2.x)
 
