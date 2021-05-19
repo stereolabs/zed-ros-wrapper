@@ -3443,7 +3443,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
     }
 
     mGrabActive =
-        mRecording || mStreaming || mMappingEnabled || mObjDetEnabled || mPosTrackingActivated ||
+        mRecording || mStreaming || mMappingEnabled || mObjDetEnabled || mPosTrackingEnabled || mPosTrackingActivated ||
         ((rgbSubnumber + rgbRawSubnumber + leftSubnumber + leftRawSubnumber + rightSubnumber + rightRawSubnumber +
           rgbGraySubnumber + rgbGrayRawSubnumber + leftGraySubnumber + leftGrayRawSubnumber + rightGraySubnumber +
           rightGrayRawSubnumber + depthSubnumber + disparitySubnumber + cloudSubnumber + poseSubnumber +
