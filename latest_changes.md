@@ -4,7 +4,11 @@ LATEST CHANGES
 v3.5.x
 ---------
 - Add support for ROS Noetic
+- Add support for SDK v3.5
+- Add support for the new ZED 2i
 - Add new parameter `pos_tracking/pos_tracking_enabled` to enable positional tracking from start even if not required by any subscribed topic. This is useful, for example, to keep the TF always updated.
+- Add new example to start multiple ZED Nodelets inside the same nodelet manager
+- Fixed issue #690
 
 v3.4.x
 ---------
