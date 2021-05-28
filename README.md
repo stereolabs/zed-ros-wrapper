@@ -1,6 +1,6 @@
 ![](./images/Picto+STEREOLABS_Black.jpg)
 
-# Stereolabs ZED Camera - ROS Integration
+# Stereolabs ZED Camera - ROS Noetic Ninjemis Integration
 
 This package lets you use the ZED stereo camera with ROS. It outputs the camera left and right images, depth map, point cloud, pose information and supports the use of multiple ZED cameras.
 
@@ -14,11 +14,13 @@ This package lets you use the ZED stereo camera with ROS. It outputs the camera 
 
 ### Prerequisites
 
-- Ubuntu 16.04 or newer (Ubuntu 18 recommended)
-- [ZED SDK **≥ 3.0**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
-- [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu) or [ROS Melodic](http://wiki.ros.org/melodic/Installation/Ubuntu)
+- Ubuntu 20.04
+- [ZED SDK **≥ 3.5**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ROS Noetic](http://wiki.ros.org/noetic/Installation/Ubuntu)
 
-*Note:* an older version of the wrapper compatible with the **SDK v2.8.x** is available [here](https://github.com/stereolabs/zed-ros-wrapper/releases/tag/v2.x)
+- Ubuntu 18.04
+- [ZED SDK **≥ 3.5**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ROS Melodic](http://wiki.ros.org/melodic/Installation/Ubuntu)
 
 ### Build the program
 

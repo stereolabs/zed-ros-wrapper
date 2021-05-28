@@ -49,6 +49,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <xacro:if value="${model == 'zed2'}">
         <xacro:property name="baseline" value="0.12" />
     </xacro:if>
+    <xacro:if value="${model == 'zed2i'}">
+        <xacro:property name="baseline" value="0.12" />
+    </xacro:if>
 
 <!-- base_link -->
     <link name="$(arg base_frame)" />

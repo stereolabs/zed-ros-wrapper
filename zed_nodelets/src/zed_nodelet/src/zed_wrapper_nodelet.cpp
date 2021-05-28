@@ -669,6 +669,11 @@ void ZEDWrapperNodelet::readParameters()
     mZedUserCamModel = sl::MODEL::ZED2;
     NODELET_INFO_STREAM(" * Camera Model by param\t-> " << camera_model);
   }
+  else if (camera_model == "zed2i")
+  {
+    mZedUserCamModel = sl::MODEL::ZED2i;
+    NODELET_INFO_STREAM(" * Camera Model by param\t-> " << camera_model);
+  }
   else
   {
     NODELET_ERROR_STREAM("Camera model not valid: " << camera_model);
@@ -712,6 +717,8 @@ void ZEDWrapperNodelet::readParameters()
   NODELET_INFO_STREAM("*** POSITIONAL TRACKING PARAMETERS ***");
 
   // ----> Tracking
+  mNhNs.param<bool>("pos_tracking/pos_tracking_enabled", mPosTrackingEnabled, true);
+  NODELET_INFO_STREAM(" * Positional tracking\t\t-> " << (mPosTrackingEnabled ? "ENABLED" : "DISABLED"));
   mNhNs.getParam("pos_tracking/path_pub_rate", mPathPubRate);
   NODELET_INFO_STREAM(" * Path rate\t\t\t-> " << mPathPubRate << " Hz");
   mNhNs.getParam("pos_tracking/path_max_count", mPathMaxCount);
@@ -1322,7 +1329,7 @@ bool ZEDWrapperNodelet::on_set_pose(zed_interfaces::set_pose::Request& req, zed_
   std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
   // Disable tracking
-  mTrackingActivated = false;
+  mPosTrackingActivated = false;
   mZed.disablePositionalTracking();
 
   // Restart tracking
@@ -1335,7 +1342,7 @@ bool ZEDWrapperNodelet::on_set_pose(zed_interfaces::set_pose::Request& req, zed_
 bool ZEDWrapperNodelet::on_reset_tracking(zed_interfaces::reset_tracking::Request& req,
                                           zed_interfaces::reset_tracking::Response& res)
 {
-  if (!mTrackingActivated)
+  if (!mPosTrackingActivated)
   {
     res.reset_done = false;
     return false;
@@ -1351,7 +1358,7 @@ bool ZEDWrapperNodelet::on_reset_tracking(zed_interfaces::reset_tracking::Reques
   std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
   // Disable tracking
-  mTrackingActivated = false;
+  mPosTrackingActivated = false;
   mZed.disablePositionalTracking();
 
   // Restart tracking
@@ -1627,11 +1634,11 @@ void ZEDWrapperNodelet::start_pos_tracking()
 
   if (err == sl::ERROR_CODE::SUCCESS)
   {
-    mTrackingActivated = true;
+    mPosTrackingActivated = true;
   }
   else
   {
-    mTrackingActivated = false;
+    mPosTrackingActivated = false;
 
     NODELET_WARN("Tracking not activated: %s", sl::toString(err).c_str());
   }
@@ -1789,6 +1796,16 @@ void ZEDWrapperNodelet::publishStaticImuFrame()
 
 void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t)
 {
+  // ----> Avoid duplicated TF publishing
+  static ros::Time last_stamp;
+
+  if( t==last_stamp )
+  {
+    return;
+  }
+  last_stamp = t;
+  // <---- Avoid duplicated TF publishing
+
   if (!mSensor2BaseTransfValid)
   {
     getSens2BaseTransform();
@@ -1813,11 +1830,21 @@ void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t)
   // Publish transformation
   mTransformOdomBroadcaster.sendTransform(transformStamped);
 
-  // NODELET_INFO_STREAM( "Published ODOM TF with TS: " << t );
+  //NODELET_INFO_STREAM( "Published ODOM TF with TS: " << t );
 }
 
 void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time t)
 {
+  // ----> Avoid duplicated TF publishing
+  static ros::Time last_stamp;
+
+  if( t==last_stamp )
+  {
+    return;
+  }
+  last_stamp = t;
+  // <---- Avoid duplicated TF publishing
+
   if (!mSensor2BaseTransfValid)
   {
     getSens2BaseTransform();
@@ -2999,8 +3026,18 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
     ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
   }
 
+  bool new_imu_data = ts_imu != lastTs_imu;
+  bool new_baro_data = ts_baro != lastTs_baro;
+  bool new_mag_data = ts_mag != lastT_mag;
+
+  if (!new_imu_data && !new_baro_data && !new_mag_data)
+  {
+    NODELET_DEBUG("No updated sensors data");
+    return;
+  }
+
   // ----> Publish odometry tf only if enabled
-  if (mPublishTf && mTrackingReady)
+  if (mPublishTf && mPosTrackingReady && new_imu_data)
   {
     NODELET_DEBUG("Publishing TF");
 
@@ -3018,16 +3055,6 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
   }
   // <---- Publish odometry tf only if enabled
 
-  bool new_imu_data = ts_imu != lastTs_imu;
-  bool new_baro_data = ts_baro != lastTs_baro;
-  bool new_mag_data = ts_mag != lastT_mag;
-
-  if (!new_imu_data && !new_baro_data && !new_mag_data)
-  {
-    NODELET_DEBUG("No updated sensors data");
-    return;
-  }
-
   if (mZedRealCamModel == sl::MODEL::ZED2)
   {
     // Update temperatures for Diagnostic
@@ -3035,8 +3062,10 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
     sens_data.temperature.get(sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
   }
 
-  if (imu_TempSubNumber > 0)
+  if (imu_TempSubNumber > 0 && new_imu_data)
   {
+    lastTs_imu = ts_imu;
+
     sensor_msgs::TemperaturePtr imuTempMsg = boost::make_shared<sensor_msgs::Temperature>();
 
     imuTempMsg->header.stamp = ts_imu;
@@ -3262,6 +3291,8 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
   if (imu_RawSubNumber > 0 && new_imu_data)
   {
+    lastTs_imu = ts_imu;
+
     sensor_msgs::ImuPtr imuRawMsg = boost::make_shared<sensor_msgs::Imu>();
 
     imuRawMsg->header.stamp = ts_imu;
@@ -3347,7 +3378,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
   mPrevFrameTimestamp = mFrameTimestamp;
 
-  mTrackingActivated = false;
+  mPosTrackingActivated = false;
   mMappingRunning = false;
   mRecording = false;
 
@@ -3417,7 +3448,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
     }
 
     mGrabActive =
-        mRecording || mStreaming || mMappingEnabled || mObjDetEnabled || mTrackingActivated ||
+        mRecording || mStreaming || mMappingEnabled || mObjDetEnabled || mPosTrackingEnabled || mPosTrackingActivated ||
         ((rgbSubnumber + rgbRawSubnumber + leftSubnumber + leftRawSubnumber + rightSubnumber + rightRawSubnumber +
           rgbGraySubnumber + rgbGrayRawSubnumber + leftGraySubnumber + leftGrayRawSubnumber + rightGraySubnumber +
           rightGrayRawSubnumber + depthSubnumber + disparitySubnumber + cloudSubnumber + poseSubnumber +
@@ -3430,11 +3461,11 @@ void ZEDWrapperNodelet::device_poll_thread_func()
       std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
       // Note: ones tracking is started it is never stopped anymore to not lose tracking information
-      bool computeTracking = (mMappingEnabled || mObjDetEnabled || (mComputeDepth & mDepthStabilization) ||
+      bool computeTracking = (mPosTrackingEnabled || mPosTrackingActivated || mMappingEnabled || mObjDetEnabled || (mComputeDepth & mDepthStabilization) ||
                               poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0 || pathSubNumber > 0);
 
       // Start the tracking?
-      if ((computeTracking) && !mTrackingActivated && (mDepthMode != sl::DEPTH_MODE::NONE))
+      if ((computeTracking) && !mPosTrackingActivated && (mDepthMode != sl::DEPTH_MODE::NONE))
       {
         start_pos_tracking();
       }
@@ -3457,8 +3488,8 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
       // Detect if one of the subscriber need to have the depth information
       mComputeDepth = mDepthMode != sl::DEPTH_MODE::NONE &&
-                      ((depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber + poseSubnumber +
-                        poseCovSubnumber + odomSubnumber + confMapSubnumber + objDetSubnumber) > 0);
+                      (computeTracking || ((depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber + poseSubnumber +
+                        poseCovSubnumber + odomSubnumber + confMapSubnumber + objDetSubnumber) > 0));
 
       if (mComputeDepth)
       {
@@ -3537,9 +3568,9 @@ void ZEDWrapperNodelet::device_poll_thread_func()
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
           }
 
-          mTrackingActivated = false;
+          mPosTrackingActivated = false;
 
-          computeTracking = mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0;
+          computeTracking = mPosTrackingEnabled || mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0;
 
           if (computeTracking)
           {  // Start the tracking
@@ -3829,7 +3860,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
               publishOdom(mOdom2BaseTransf, deltaOdom, stamp);
             }
 
-            mTrackingReady = true;
+            mPosTrackingReady = true;
           }
         }
         else if (mFloorAlignment)
@@ -3956,7 +3987,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
             publishPose(stamp);
           }
 
-          mTrackingReady = true;
+          mPosTrackingReady = true;
         }
 
         oldStatus = mPosTrackingStatus;
@@ -4162,7 +4193,7 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
           }
         }
 
-        if (mTrackingActivated)
+        if (mPosTrackingActivated)
         {
           stat.addf("Tracking status", "%s", sl::toString(mPosTrackingStatus).c_str());
         }
