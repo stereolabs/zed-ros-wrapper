@@ -669,6 +669,11 @@ void ZEDWrapperNodelet::readParameters()
     mZedUserCamModel = sl::MODEL::ZED2;
     NODELET_INFO_STREAM(" * Camera Model by param\t-> " << camera_model);
   }
+  else if (camera_model == "zed2i")
+  {
+    mZedUserCamModel = sl::MODEL::ZED2i;
+    NODELET_INFO_STREAM(" * Camera Model by param\t-> " << camera_model);
+  }
   else
   {
     NODELET_ERROR_STREAM("Camera model not valid: " << camera_model);
