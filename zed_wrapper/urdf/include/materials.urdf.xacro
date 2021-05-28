@@ -28,4 +28,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <material name="zed2_mat">
         <color rgba="0.25 0.25 0.25 0.99"/>
     </material>
+    <material name="zed2i_mat">
+        <color rgba="0.25 0.25 0.25 0.99"/>
+    </material>
 </robot>
