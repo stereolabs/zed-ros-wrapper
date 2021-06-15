@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+OpenNI mode fix (2021-06-15)
+----------------------------
+- Fix sensor_msgs type for depth image in OpenNI mode, from `sensor_msgs::image_encodings::mono16` to `sensor_msgs::image_encodings::TYPE_16UC1`. Depth image in OpenNI mode is now compatible with the nodelet `depthimage_to_laserscan`
+
 v3.5.x
 ---------
 - Add support for ROS Noetic
