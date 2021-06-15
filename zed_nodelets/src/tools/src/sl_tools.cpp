@@ -238,7 +238,7 @@ void imageToROSmsg(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img, std::string fra
       break;
 
     case sl::MAT_TYPE::U16_C1: /**< unsigned short 1 channel.*/
-      imgMsgPtr->encoding = sensor_msgs::image_encodings::MONO16;
+      imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_16UC1;
       memcpy((uint16_t*)(&imgMsgPtr->data[0]), img.getPtr<sl::ushort1>(), size);
       break;
   }

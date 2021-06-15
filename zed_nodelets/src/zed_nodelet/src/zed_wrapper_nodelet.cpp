@@ -129,7 +129,7 @@ void ZEDWrapperNodelet::onInit()
 
   if (mOpenniDepthMode)
   {
-    NODELET_INFO_STREAM("Openni depth mode activated -> Units: mm, Encoding: MONO16");
+    NODELET_INFO_STREAM("Openni depth mode activated -> Units: mm, Encoding: TYPE_16UC1");
   }
   depth_topic_root += "/depth_registered";
 
@@ -1912,7 +1912,7 @@ void ZEDWrapperNodelet::publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat de
   imgMsgPtr->is_bigendian = !(*(char*)&num == 1);
 
   imgMsgPtr->step = imgMsgPtr->width * sizeof(uint16_t);
-  imgMsgPtr->encoding = sensor_msgs::image_encodings::MONO16;
+  imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_16UC1;
 
   size_t size = imgMsgPtr->step * imgMsgPtr->height;
   imgMsgPtr->data.resize(size);
