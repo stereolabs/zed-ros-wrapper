@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+ZED2i support fix (2021-06-17)
+------------------------------
+- Fix sensors topics pubblication for ZED2i. The support for the new camera was not complete
+
 OpenNI mode fix (2021-06-15)
 ----------------------------
 - Fix sensor_msgs type for depth image in OpenNI mode, from `sensor_msgs::image_encodings::mono16` to `sensor_msgs::image_encodings::TYPE_16UC1`. Depth image in OpenNI mode is now compatible with the nodelet `depthimage_to_laserscan`
