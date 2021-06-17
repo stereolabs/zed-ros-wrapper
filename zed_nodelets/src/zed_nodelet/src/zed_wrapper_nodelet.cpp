@@ -331,6 +331,22 @@ void ZEDWrapperNodelet::onInit()
 
     NODELET_INFO("Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str());
   }
+  else if (mZedRealCamModel == sl::MODEL::ZED2i)
+  {
+    if (mZedUserCamModel != mZedRealCamModel)
+    {
+      NODELET_WARN("Camera model does not match user parameter. Please modify "
+                   "the value of the parameter 'camera_model' to 'zed2i'");
+    }
+
+#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 1
+    mSlCamImuTransf = mZed.getCameraInformation().camera_imu_transform;
+#else
+    mSlCamImuTransf = mZed.getCameraInformation().sensors_configuration.camera_imu_transform;
+#endif
+
+    NODELET_INFO("Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str());
+  }
 
   NODELET_INFO_STREAM(" * CAMERA MODEL\t -> " << sl::toString(mZedRealCamModel).c_str());
   mZedSerialNumber = mZed.getCameraInformation().serial_number;
@@ -526,7 +542,7 @@ void ZEDWrapperNodelet::onInit()
     mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, 1 /*MAG_FREQ*/);
     NODELET_INFO_STREAM("Advertised on topic " << mPubImuMag.getTopic());
 
-    if (mZedRealCamModel == sl::MODEL::ZED2)
+    if (mZedRealCamModel == sl::MODEL::ZED2 || mZedRealCamModel == sl::MODEL::ZED2i)
     {
       // IMU temperature sensor
       mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, 1 /*static_cast<int>(mSensPubRate)*/);
@@ -1478,9 +1494,9 @@ void ZEDWrapperNodelet::stop_3d_mapping()
 
 bool ZEDWrapperNodelet::start_obj_detect()
 {
-  if (mZedRealCamModel != sl::MODEL::ZED2)
+  if (mZedRealCamModel != sl::MODEL::ZED2 && mZedRealCamModel != sl::MODEL::ZED2i)
   {
-    NODELET_ERROR_STREAM("Object detection not started. OD is available only using a ZED2 camera model");
+    NODELET_ERROR_STREAM("Object detection not started. OD is available only using a ZED2/ZED2i camera model");
     return false;
   }
 
@@ -2963,7 +2979,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
   uint32_t tempLeftSubNumber = 0;
   uint32_t tempRightSubNumber = 0;
 
-  if (mZedRealCamModel == sl::MODEL::ZED2)
+  if (mZedRealCamModel == sl::MODEL::ZED2 || mZedRealCamModel == sl::MODEL::ZED2i)
   {
     imu_TempSubNumber = mPubImuTemp.getNumSubscribers();
     imu_MagSubNumber = mPubImuMag.getNumSubscribers();
@@ -3055,7 +3071,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
   }
   // <---- Publish odometry tf only if enabled
 
-  if (mZedRealCamModel == sl::MODEL::ZED2)
+  if (mZedRealCamModel == sl::MODEL::ZED2 || mZedRealCamModel == sl::MODEL::ZED2i)
   {
     // Update temperatures for Diagnostic
     sens_data.temperature.get(sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_LEFT, mTempLeft);
@@ -4240,7 +4256,7 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
     stat.add("IMU", "Topics not subscribed");
   }
 
-  if (mZedRealCamModel == sl::MODEL::ZED2)
+  if (mZedRealCamModel == sl::MODEL::ZED2 || mZedRealCamModel == sl::MODEL::ZED2i)
   {
     stat.addf("Left CMOS Temp.", "%.1f °C", mTempLeft);
     stat.addf("Right CMOS Temp.", "%.1f °C", mTempRight);
@@ -4538,12 +4554,12 @@ bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_d
 {
   NODELET_INFO("Called 'start_object_detection' service");
 
-  if (mZedRealCamModel != sl::MODEL::ZED2)
+  if (mZedRealCamModel != sl::MODEL::ZED2 && mZedRealCamModel != sl::MODEL::ZED2i)
   {
     mObjDetEnabled = false;
     mObjDetRunning = false;
 
-    NODELET_ERROR_STREAM("Object detection not started. OD is available only using a ZED2 camera model");
+    NODELET_ERROR_STREAM("Object detection not started. OD is available only using a ZED2/ZED2i camera model");
     res.done = false;
     return res.done;
   }
