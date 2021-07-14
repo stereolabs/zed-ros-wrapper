@@ -31,6 +31,7 @@
 #include <image_transport/image_transport.h>
 #include <nodelet/nodelet.h>
 #include <ros/ros.h>
+#include <rosgraph_msgs/Clock.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/static_transform_broadcaster.h>
@@ -117,6 +118,21 @@ protected:
    */
   void readParameters();
 
+  ros::WallTimer wall_timer_;
+  ros::Time sim_clock_base_time;
+  /*! \brief Publish the current time when use_sim_time is true
+   * \param t : the ros::Time to send in the clock message
+   */
+  void publishSimClock(const ros::Time& stamp);
+
+  /*! \brief sim clock update thread
+   */
+  void sim_clock_update(const ros::WallTimerEvent& e);
+
+  /*! \brief get ZED image time or current time depending on params
+   */
+  ros::Time getTimestamp();
+
   /*! \brief ZED camera polling thread function
    */
   void device_poll_thread_func();
@@ -156,7 +172,7 @@ protected:
   /*!
    * \brief Publish IMU frame once as static TF
    */
-  void publishStaticImuFrame();
+  void publishStaticImuFrame(const ros::Time& t);
 
   /*! \brief Publish a sl::Mat image with a ros Publisher
    * \param imgMsgPtr : the image message to publish
@@ -417,6 +433,8 @@ private:
   image_transport::CameraPublisher mPubRightGray;
   image_transport::CameraPublisher mPubRawRightGray;
 
+  ros::Publisher mPubSimClock;
+
   ros::Publisher mPubConfMap;    //
   ros::Publisher mPubDisparity;  //
   ros::Publisher mPubCloud;
@@ -610,6 +628,7 @@ private:
   double mCamDepthResizeFactor = 1.0;
 
   // flags  
+  bool mUseSimTime = false;
   bool mTriggerAutoExposure = true;
   bool mTriggerAutoWB = true;
   bool mComputeDepth;

@@ -42,6 +42,7 @@ find_package(catkin REQUIRED COMPONENTS
     roscpp
     image_transport
     rosconsole
+    rosgraph_msgs
     sensor_msgs
     stereo_msgs
     std_msgs

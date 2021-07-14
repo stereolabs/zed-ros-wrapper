@@ -20,6 +20,7 @@
 
 #include "zed_wrapper_nodelet.hpp"
 
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <chrono>
 #include <csignal>
 
@@ -472,6 +473,11 @@ void ZEDWrapperNodelet::onInit()
   mPubRawStereo = it_zed.advertise(stereo_raw_topic, 1);
   NODELET_INFO_STREAM("Advertised on topic " << mPubRawStereo.getTopic());
 
+  if (mUseSimTime)
+  {
+    mPubSimClock = mNhNs.advertise<rosgraph_msgs::Clock>("/clock", 2);
+  }
+
   // Confidence Map publisher
   mPubConfMap = mNhNs.advertise<sensor_msgs::Image>(conf_map_topic, 1);  // confidence map
   NODELET_INFO_STREAM("Advertised on topic " << mPubConfMap.getTopic());
@@ -589,7 +595,8 @@ void ZEDWrapperNodelet::onInit()
 
     if (!mSvoMode && !mSensTimestampSync)
     {
-      mFrameTimestamp = ros::Time::now();
+      // init so sensor callback will have a timestamp to work with on first publish
+      mFrameTimestamp = getTimestamp();
       mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / (mSensPubRate * 1.5)),
                                     &ZEDWrapperNodelet::callback_pubSensorsData, this);
       mSensPeriodMean_usec.reset(new sl_tools::CSmartMean(mSensPubRate / 2));
@@ -625,6 +632,11 @@ void ZEDWrapperNodelet::onInit()
 
   // Start pool thread
   mDevicePollThread = std::thread(&ZEDWrapperNodelet::device_poll_thread_func, this);
+
+  if (mUseSimTime) {
+    // TODO(lucasw) 0.02-0.05 are probably fine
+    wall_timer_ =  mNhNs.createWallTimer(ros::WallDuration(0.01), &ZEDWrapperNodelet::sim_clock_update, this);
+  }
 
   // Start data publishing timer
   mVideoDepthTimer =
@@ -865,6 +877,9 @@ void ZEDWrapperNodelet::readParameters()
   // ----> SVO
   mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
   NODELET_INFO_STREAM(" * SVO input file: \t\t-> " << mSvoFilepath.c_str());
+
+  mNhNs.getParam("/use_sim_time", mUseSimTime);
+  NODELET_INFO_STREAM(" * Use Sim Time\t\t\t-> " << mUseSimTime);
 
   int svo_compr = 0;
   mNhNs.getParam("general/svo_compression", svo_compr);
@@ -1776,7 +1791,7 @@ void ZEDWrapperNodelet::publishPose(ros::Time t)
   }
 }
 
-void ZEDWrapperNodelet::publishStaticImuFrame()
+void ZEDWrapperNodelet::publishStaticImuFrame(const ros::Time& stamp)
 {
   // Publish IMU TF as static TF
   if (!mPublishImuTf)
@@ -1789,7 +1804,8 @@ void ZEDWrapperNodelet::publishStaticImuFrame()
     return;
   }
 
-  mStaticImuTransformStamped.header.stamp = ros::Time::now();
+  NODELET_WARN_STREAM_ONCE("static imu transform " << stamp);
+  mStaticImuTransformStamped.header.stamp = stamp;
   mStaticImuTransformStamped.header.frame_id = mLeftCamFrameId;
   mStaticImuTransformStamped.child_frame_id = mImuFrameId;
   sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
@@ -1805,7 +1821,7 @@ void ZEDWrapperNodelet::publishStaticImuFrame()
   // Publish transformation
   mStaticTransformImuBroadcaster.sendTransform(mStaticImuTransformStamped);
 
-  NODELET_INFO_STREAM("Published static transform '" << mImuFrameId << "' -> '" << mLeftCamFrameId << "'");
+  NODELET_INFO_STREAM("Published static transform '" << mImuFrameId << "' -> '" << mLeftCamFrameId << "' " << stamp);
 
   mStaticImuFramePublished = true;
 }
@@ -2700,8 +2716,10 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e)
   ros::Time stamp = sl_tools::slTime2Ros(grab_ts);
   if (mSvoMode)
   {
-    stamp = ros::Time::now();
+    // grab_ts is 0 when in svo playback mode
+    stamp = e.current_real;
   }
+  NODELET_INFO_STREAM_ONCE("time " << stamp);
   // <---- Data ROS timestamp
 
   // ----> Publish sensor data if sync is required by user or SVO
@@ -2875,6 +2893,7 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e)
 
 void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
 {
+  NODELET_INFO_STREAM_ONCE("pub path " << e.current_real);
   uint32_t mapPathSub = mPubMapPath.getNumSubscribers();
   uint32_t odomPathSub = mPubOdomPath.getNumSubscribers();
 
@@ -3012,6 +3031,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
   sl::SensorsData sens_data;
 
+  // TODO(lucasw) is a mUseSimTime check needed in here?
   if (mSvoMode || mSensTimestampSync)
   {
     if (mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE) != sl::ERROR_CODE::SUCCESS)
@@ -3041,6 +3061,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
     ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
     ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
   }
+  // TODO(lucasw) in svo mode the above timestamps need to be set to ros::Time::now()?
 
   bool new_imu_data = ts_imu != lastTs_imu;
   bool new_baro_data = ts_baro != lastTs_baro;
@@ -3066,7 +3087,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
     if (mPublishImuTf && !mStaticImuFramePublished)
     {
-      publishStaticImuFrame();
+      publishStaticImuFrame(ts_imu);
     }
   }
   // <---- Publish odometry tf only if enabled
@@ -3370,6 +3391,51 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
   // <---- Update Diagnostic
 }
 
+void ZEDWrapperNodelet::publishSimClock(const ros::Time& stamp)
+{
+  {
+    boost::posix_time::ptime posix_time = stamp.toBoost();
+    const std::string iso_time_str = boost::posix_time::to_iso_extended_string(posix_time);
+    // NODELET_INFO_STREAM_THROTTLE(1.0, "time " << iso_time_str);
+    NODELET_INFO_STREAM_ONCE("time " << iso_time_str);
+  }
+
+  NODELET_WARN_STREAM_ONCE("using sim clock " << stamp);
+  rosgraph_msgs::Clock clock;
+  clock.clock = stamp;
+  mPubSimClock.publish(clock);
+}
+
+ros::Time ZEDWrapperNodelet::getTimestamp()
+{
+  ros::Time stamp;
+  if (mSvoMode && !mUseSimTime)
+  {
+    // TODO(lucasw) does it matter which one?
+    stamp = ros::Time::now();
+    // mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    NODELET_WARN_STREAM_ONCE("Using current time instead of image time " << stamp);
+  }
+  else
+  {
+    // TODO(lucasw) if no images have arrived yet, this is zero, or something else?
+    // In the svo file it appears to be something else, slightly in advance of the first
+    // frame.
+    stamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+    NODELET_WARN_STREAM_ONCE("Using zed image time " << stamp);
+  }
+  return stamp;
+}
+
+void ZEDWrapperNodelet::sim_clock_update(const ros::WallTimerEvent& e)
+{
+  // TODO(lucasw) mutex
+  publishSimClock(sim_clock_base_time);
+  // TODO(lucasw) have ability to roll forward faster than real time
+  sim_clock_base_time += ros::Duration(0.001);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1));
+}
+
 void ZEDWrapperNodelet::device_poll_thread_func()
 {
   ros::Rate loop_rate(mCamFrameRate);
@@ -3383,14 +3449,10 @@ void ZEDWrapperNodelet::device_poll_thread_func()
   mObjDetPeriodMean_msec.reset(new sl_tools::CSmartMean(mCamFrameRate));
 
   // Timestamp initialization
-  if (mSvoMode)
-  {
-    mFrameTimestamp = ros::Time::now();
-  }
-  else
-  {
-    mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
-  }
+  mFrameTimestamp = getTimestamp();
+
+  // TODO(lucasw) mutex
+  sim_clock_base_time = mFrameTimestamp;
 
   mPrevFrameTimestamp = mFrameTimestamp;
 
@@ -3429,6 +3491,8 @@ void ZEDWrapperNodelet::device_poll_thread_func()
   sl::RuntimeParameters runParams;
   runParams.sensing_mode = static_cast<sl::SENSING_MODE>(mCamSensingMode);
 
+  // TODO(lucasw) is there a call to mZed in here that rolls it forward a frame in mSvoMode, or does it
+  // have a timer and keeps time independently, can only do real time?
   // Main loop
   while (mNhNs.ok())
   {
@@ -3536,6 +3600,8 @@ void ZEDWrapperNodelet::device_poll_thread_func()
         // the zed have been disconnected) and
         // re-initialize the ZED
 
+        // TODO(lucasw) if the status is END OF SVO FILE REACHED then loop it optionally,
+        // or exit.
         NODELET_INFO_STREAM_ONCE(toString(mGrabStatus));
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -3631,18 +3697,10 @@ void ZEDWrapperNodelet::device_poll_thread_func()
       mGrabPeriodMean_usec->addValue(elapsed_usec);
 
       // NODELET_INFO_STREAM("Grab time: " << elapsed_usec / 1000 << " msec");
+      mFrameTimestamp = getTimestamp();
 
-      // Timestamp
-      if (mSvoMode)
-      {
-        mFrameTimestamp = ros::Time::now();
-      }
-      else
-      {
-        mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
-      }
-
-      ros::Time stamp = mFrameTimestamp;  // Timestamp
+      const ros::Time stamp = mFrameTimestamp;  // Timestamp
+      sim_clock_base_time = stamp;
 
       // ----> Camera Settings
       if (!mSvoMode && mFrameCount % 5 == 0)
@@ -3974,7 +4032,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
             if (odomSubnumber > 0)
             {
               // Publish odometry message
-              publishOdom(mOdom2BaseTransf, mLastZedPose, mFrameTimestamp);
+              publishOdom(mOdom2BaseTransf, mLastZedPose, stamp);
             }
 
             mInitOdomWithPose = false;
@@ -4098,27 +4156,19 @@ void ZEDWrapperNodelet::device_poll_thread_func()
         // Publish odometry tf only if enabled
         if (mPublishTf)
         {
-          ros::Time t;
+          // TODO(lucasw) or just ust mFrameTimestamp?
+          const ros::Time t = getTimestamp();
 
-          if (mSvoMode)
-          {
-            t = ros::Time::now();
-          }
-          else
-          {
-            t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
-          }
-
-          publishOdomFrame(mOdom2BaseTransf, mFrameTimestamp);  // publish the base Frame in odometry frame
+          publishOdomFrame(mOdom2BaseTransf, t);  // publish the base Frame in odometry frame
 
           if (mPublishMapTf)
           {
-            publishPoseFrame(mMap2OdomTransf, mFrameTimestamp);  // publish the odometry Frame in map frame
+            publishPoseFrame(mMap2OdomTransf, t);  // publish the odometry Frame in map frame
           }
 
           if (mPublishImuTf && !mStaticImuFramePublished)
           {
-            publishStaticImuFrame();
+            publishStaticImuFrame(t);
           }
         }
       }
