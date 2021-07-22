@@ -49,7 +49,7 @@ The zed_ros_wrapper is a catkin package. It depends on the following ROS package
 Open a terminal, clone the repository, update the dependencies and build the packages:
 
     $ cd ~/catkin_ws/src
-    $ git clone https://github.com/stereolabs/zed-ros-wrapper.git
+    $ git clone --recursive https://github.com/stereolabs/zed-ros-wrapper.git
     $ cd ../
     $ rosdep install --from-paths src --ignore-src -r -y
     $ catkin_make -DCMAKE_BUILD_TYPE=Release
@@ -60,7 +60,7 @@ Open a terminal, clone the repository, update the dependencies and build the pac
 To update the repository to the latest release you must use the following command to retrieve the latest commits of `zed-ros-wrapper` and of all the submodules:
 
     $ git checkout master # if you are not on the main branch  
-    $ git pull --recurse-submodules
+    $ git pull --recurse-submodules # update recursively all the submodules
 
 Remember to always clean the cache of your catkin workspace before compiling with the `catkin_make` command to be sure that everything will work as expected:
 
