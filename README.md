@@ -24,7 +24,7 @@ or
 - [ZED SDK **≥ 3.5**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - [ROS Melodic](http://wiki.ros.org/melodic/Installation/Ubuntu)
 
-### Build the program
+### Build the repository
 
 The zed_ros_wrapper is a catkin package. It depends on the following ROS packages:
 
@@ -55,7 +55,22 @@ Open a terminal, clone the repository, update the dependencies and build the pac
     $ catkin_make -DCMAKE_BUILD_TYPE=Release
     $ source ./devel/setup.bash
 
-### Run the program
+#### Update the repository
+
+To update the repository to the latest release you must use the following command to retrieve the latest commits of `zed-ros-wrapper` and of all the submodules:
+
+    $ git checkout master # if you are not on the main branch  
+    $ git pull --recurse-submodules
+
+Remember to always clean the cache of your catkin workspace before compiling with the `catkin_make` command to be sure that everything will work as expected:
+
+    $ roscd
+    $ cd ..
+    $ rm -rf build
+    $ rm -rf devel
+    $ catkin_make -DCMAKE_BUILD_TYPE=Release
+
+### Run the ZED wrapper
 
 To launch the ZED node use
 
@@ -70,6 +85,10 @@ ZED Mini camera:
 ZED2 camera:
 
     $ roslaunch zed_wrapper zed2.launch
+
+ZED2i camera:
+
+    $ roslaunch zed_wrapper zed2i.launch    
 
  To select the ZED from its serial number:
  
