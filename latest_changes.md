@@ -1,5 +1,8 @@
 LATEST CHANGES
 ==============
+2021-07-26
+----------
+- Enabled static IMU TF broadcasting even it `publish_tf` is set to false, making the two options independent. Thx to @bjsowa
 
 ZED2i support fix (2021-06-17)
 ------------------------------
