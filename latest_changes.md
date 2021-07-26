@@ -3,9 +3,6 @@ LATEST CHANGES
 2021-07-26
 ----------
 - Enabled static IMU TF broadcasting even it `publish_tf` is set to false, making the two options independent. Thx to @bjsowa
-
-2021-07-22
-----------
 - Moved the `zed_interfaces` folder in the new [`zed-ros-interfaces`](https://github.com/stereolabs/zed-ros-interfaces) repository. The new repository is useful to receive the topics from a ZED node on system where the `zed-ros-wrapper` repository cannot be fully installed, i.e. systems without CUDA support. For this repository nothing changes because the `zed_interfaces` folder is replaced by the `zed-ros-interfaces` git submodule to automatically satisfy all the dependencies.
 
 ZED2i support fix (2021-06-17)
