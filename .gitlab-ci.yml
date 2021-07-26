@@ -1,8 +1,0 @@
-image: stereolabs/zed:3.4-ros-devel-cuda11.1-ubuntu18.04
-
-build:
-  stage: build
-  before_script: 
-    - cp $(pwd)/* /home/ros/src/ -Rf
-  script: 
-    - cd /home/ros/ ; source "/opt/ros/melodic/setup.bash"; catkin_make
