@@ -1,0 +1,32 @@
+name: Submodule update (manual)
+
+on:
+  #schedule:
+  #  # * is a special character in YAML so you have to quote this string
+  #  - cron:  '0 12 * * *'
+  workflow_dispatch:
+
+jobs:
+  submodule_update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+      
+    # Update references
+    - name: Git Submodule Update
+      run: |
+        git pull --recurse-submodules
+        git submodule update --remote --recursive
+        
+    - uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Automatic submodule update
+        commit_user_name: bot-stereolabs
+        commit_user_email: bot-stereolabs@example.org
+        commit_author: bot-stereolabs <actions@github.com>
+        status_options: '--untracked-files=no'
