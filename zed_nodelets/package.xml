@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
     <name>zed_nodelets</name>
-    <version>3.1.0</version>
+    <version>3.5.0</version>
     <description>zed_nodelets is package containing all the nodelets provided by the ZED ROS wrapper.</description>
 
     <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
