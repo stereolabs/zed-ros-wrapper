@@ -46,6 +46,12 @@ std::vector<float> convertRodrigues(sl::float3 r);
  */
 bool file_exist(const std::string& name);
 
+/*! \brief Convert a path to absolute
+ * \param file_path the file path to be converted
+ * \return the absolute path
+ */
+std::string resolveFilePath(std::string file_path);
+
 /*! \brief Get Stereolabs SDK version
  * \param major : major value for version
  * \param minor : minor value for version

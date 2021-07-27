@@ -18,10 +18,10 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-#include "zed_wrapper_nodelet.hpp"
-
 #include <chrono>
 #include <csignal>
+
+#include "zed_wrapper_nodelet.hpp"
 
 #ifndef NDEBUG
 #include <ros/console.h>
@@ -48,6 +48,12 @@ ZEDWrapperNodelet::ZEDWrapperNodelet() : Nodelet()
 
 ZEDWrapperNodelet::~ZEDWrapperNodelet()
 {
+  if (mSaveAreaMapOnClosing && mPosTrackingActivated)
+  {
+    // if(mSavePath)
+    // mZed.saveAreaMap()
+  }
+
   if (mDevicePollThread.joinable())
   {
     mDevicePollThread.join();
@@ -57,6 +63,8 @@ ZEDWrapperNodelet::~ZEDWrapperNodelet()
   {
     mPcThread.join();
   }
+
+  std::cerr << "ZED Nodelet destroyed" << std::endl;
 }
 
 void ZEDWrapperNodelet::onInit()
@@ -749,6 +757,8 @@ void ZEDWrapperNodelet::readParameters()
   mNhNs.getParam("pos_tracking/initial_base_pose", mInitialBasePose);
 
   mNhNs.getParam("pos_tracking/area_memory_db_path", mAreaMemDbPath);
+  mAreaMemDbPath = sl_tools::resolveFilePath(mAreaMemDbPath);
+  
   NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mAreaMemDbPath.c_str());
   mNhNs.param<bool>("pos_tracking/area_memory", mAreaMemory, false);
   NODELET_INFO_STREAM(" * Spatial Memory\t\t-> " << (mAreaMemory ? "ENABLED" : "DISABLED"));
@@ -1626,27 +1636,40 @@ void ZEDWrapperNodelet::start_pos_tracking()
   NODELET_INFO(" * Q: [%g,%g,%g,%g]", mInitialPoseSl.getOrientation().ox, mInitialPoseSl.getOrientation().oy,
                mInitialPoseSl.getOrientation().oz, mInitialPoseSl.getOrientation().ow);
 
-  if (mAreaMemDbPath != "" && !sl_tools::file_exist(mAreaMemDbPath))
-  {
-    mAreaMemDbPath = "";
-    NODELET_WARN("area_memory_db_path path doesn't exist or is unreachable.");
-  }
+  
 
-  // Tracking parameters
-  sl::PositionalTrackingParameters trackParams;
+  // Positional Tracking parameters
+  sl::PositionalTrackingParameters posTrackParams;
 
-  trackParams.area_file_path = mAreaMemDbPath.c_str();
+  posTrackParams.initial_world_transform = mInitialPoseSl;
+  posTrackParams.enable_area_memory = mAreaMemory;
 
   mPoseSmoothing = false;  // Always false. Pose Smoothing is to be enabled only for VR/AR applications
-  trackParams.enable_pose_smoothing = mPoseSmoothing;
+  posTrackParams.enable_pose_smoothing = mPoseSmoothing;
 
-  trackParams.enable_area_memory = mAreaMemory;
-  trackParams.enable_imu_fusion = mImuFusion;
-  trackParams.initial_world_transform = mInitialPoseSl;
+  posTrackParams.set_floor_as_origin = mFloorAlignment;
 
-  trackParams.set_floor_as_origin = mFloorAlignment;
+  
 
-  sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
+  if (mAreaMemDbPath != "" && !sl_tools::file_exist(mAreaMemDbPath))
+  {
+    posTrackParams.area_file_path = "";
+    NODELET_WARN_STREAM("area_memory_db_path [" << mAreaMemDbPath << "] doesn't exist or is unreachable.");
+    if(mSaveAreaMapOnClosing)
+    {
+      NODELET_INFO_STREAM(mAreaMemDbPath << "will be automatically created when closing the node or calling the 'save_area_map' service.");
+    }
+  }
+  else
+  {
+    posTrackParams.area_file_path = mAreaMemDbPath.c_str();
+  }
+
+  posTrackParams.enable_imu_fusion = mImuFusion;
+
+  posTrackParams.set_as_static = false;
+
+  sl::ERROR_CODE err = mZed.enablePositionalTracking(posTrackParams);
 
   if (err == sl::ERROR_CODE::SUCCESS)
   {
@@ -1815,7 +1838,7 @@ void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t)
   // ----> Avoid duplicated TF publishing
   static ros::Time last_stamp;
 
-  if( t==last_stamp )
+  if (t == last_stamp)
   {
     return;
   }
@@ -1846,7 +1869,7 @@ void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t)
   // Publish transformation
   mTransformOdomBroadcaster.sendTransform(transformStamped);
 
-  //NODELET_INFO_STREAM( "Published ODOM TF with TS: " << t );
+  // NODELET_INFO_STREAM( "Published ODOM TF with TS: " << t );
 }
 
 void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time t)
@@ -1854,7 +1877,7 @@ void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time
   // ----> Avoid duplicated TF publishing
   static ros::Time last_stamp;
 
-  if( t==last_stamp )
+  if (t == last_stamp)
   {
     return;
   }
@@ -3478,8 +3501,9 @@ void ZEDWrapperNodelet::device_poll_thread_func()
       std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
       // Note: ones tracking is started it is never stopped anymore to not lose tracking information
-      bool computeTracking = (mPosTrackingEnabled || mPosTrackingActivated || mMappingEnabled || mObjDetEnabled || (mComputeDepth & mDepthStabilization) ||
-                              poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0 || pathSubNumber > 0);
+      bool computeTracking = (mPosTrackingEnabled || mPosTrackingActivated || mMappingEnabled || mObjDetEnabled ||
+                              (mComputeDepth & mDepthStabilization) || poseSubnumber > 0 || poseCovSubnumber > 0 ||
+                              odomSubnumber > 0 || pathSubNumber > 0);
 
       // Start the tracking?
       if ((computeTracking) && !mPosTrackingActivated && (mDepthMode != sl::DEPTH_MODE::NONE))
@@ -3505,8 +3529,9 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
       // Detect if one of the subscriber need to have the depth information
       mComputeDepth = mDepthMode != sl::DEPTH_MODE::NONE &&
-                      (computeTracking || ((depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber + poseSubnumber +
-                        poseCovSubnumber + odomSubnumber + confMapSubnumber + objDetSubnumber) > 0));
+                      (computeTracking ||
+                       ((depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber + poseSubnumber +
+                         poseCovSubnumber + odomSubnumber + confMapSubnumber + objDetSubnumber) > 0));
 
       if (mComputeDepth)
       {
@@ -3587,7 +3612,8 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
           mPosTrackingActivated = false;
 
-          computeTracking = mPosTrackingEnabled || mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0;
+          computeTracking = mPosTrackingEnabled || mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 ||
+                            odomSubnumber > 0;
 
           if (computeTracking)
           {  // Start the tracking
@@ -4700,7 +4726,8 @@ void ZEDWrapperNodelet::processDetectedObjects(ros::Time t)
 
     objMsg->objects[idx].tracking_available = mObjDetTracking;
     objMsg->objects[idx].tracking_state = static_cast<int8_t>(data.tracking_state);
-    //NODELET_INFO_STREAM( "[" << idx << "] Tracking: " << sl::toString(static_cast<sl::OBJECT_TRACKING_STATE>(data.tracking_state)));
+    // NODELET_INFO_STREAM( "[" << idx << "] Tracking: " <<
+    // sl::toString(static_cast<sl::OBJECT_TRACKING_STATE>(data.tracking_state)));
     objMsg->objects[idx].action_state = static_cast<int8_t>(data.action_state);
 
     if (data.bounding_box_2d.size() == 4)

@@ -522,6 +522,7 @@ private:
   int mZedId;
   int mDepthStabilization;
   std::string mAreaMemDbPath;
+  bool mSaveAreaMapOnClosing=true;
   std::string mSvoFilepath;
   std::string mRemoteStreamAddr;
   bool mSensTimestampSync;

@@ -18,15 +18,15 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-#include "sl_tools.h"
-
+#include <sensor_msgs/image_encodings.h>
 #include <sys/stat.h>
+
+#include <boost/make_shared.hpp>
+#include <experimental/filesystem>  // for std::experimental::filesystem::absolute
 #include <sstream>
 #include <vector>
 
-#include <sensor_msgs/image_encodings.h>
-
-#include <boost/make_shared.hpp>
+#include "sl_tools.h"
 
 namespace sl_tools
 {
@@ -133,6 +133,47 @@ bool file_exist(const std::string& name)
 {
   struct stat buffer;
   return (stat(name.c_str(), &buffer) == 0);
+}
+
+namespace fs = std::experimental::filesystem;
+std::string resolveFilePath(std::string file_path)
+{
+  std::string abs_path = file_path;
+  if (file_path[0] == '~')
+  {
+    std::string home = getenv("HOME");
+    file_path.erase(0, 1);
+    abs_path = home + file_path;
+  }
+  else if (file_path[0] == '.')
+  {
+    if (file_path[1] == '.' && file_path[2] == '/')
+    {
+      file_path.erase(0, 2);
+      fs::path current_path = fs::current_path();
+      fs::path parent_path = current_path.parent_path();
+      abs_path = parent_path.string() + file_path;
+    }
+    else if (file_path[1] == '/')
+    {
+      file_path.erase(0, 1);
+      fs::path current_path = fs::current_path();
+      abs_path = current_path.string() + file_path;
+    }
+    else
+    {
+      std::cerr << "[sl_tools::resolveFilePath] Invalid file path '" << file_path << "' replaced with null string."
+                << std::endl;
+      return std::string();
+    }
+  }
+  else if(file_path[0] != '/')
+  {
+    fs::path current_path = fs::current_path();
+    abs_path = current_path.string() + "/" + file_path;
+  }
+
+  return abs_path;
 }
 
 std::string getSDKVersion(int& major, int& minor, int& sub_minor)
