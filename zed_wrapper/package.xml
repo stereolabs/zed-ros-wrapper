@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>zed_wrapper</name>
-  <version>3.1.0</version>
+  <version>3.5.0</version>
   <description>
     zed_wrapper is a ROS package containing the ZED wrapper node for the <a href="http://www.stereolabs.com/developers/">ZED library</a> for interfacing with the ZED camera.
     The zed_wrapper_node is a simple loader for the ZEDWrapperNodelet that is the main interface between ROS and the ZED SDK.

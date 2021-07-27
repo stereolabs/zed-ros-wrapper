@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>zed_ros</name>
-  <version>3.1.0</version>
+  <version>3.5.0</version>
   <description>Stereolabs zed-ros-wrapper support meta package</description>
 
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
