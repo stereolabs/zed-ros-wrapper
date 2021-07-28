@@ -111,6 +111,7 @@ set(LINK_LIBRARIES
   ${catkin_LIBRARIES}
   ${ZED_LIBRARIES}
   ${CUDA_LIBRARIES}
+  stdc++fs
 )
 
 add_library(ZEDNodelets

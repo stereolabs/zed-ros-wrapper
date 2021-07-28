@@ -20,6 +20,9 @@
 
 #include <chrono>
 #include <csignal>
+#include <sstream>
+
+#include "zed_wrapper_nodelet.hpp"
 
 #include "zed_wrapper_nodelet.hpp"
 
@@ -57,6 +60,8 @@ ZEDWrapperNodelet::~ZEDWrapperNodelet()
   {
     mPcThread.join();
   }
+
+  std::cerr << "ZED Nodelet destroyed" << std::endl;
 }
 
 void ZEDWrapperNodelet::onInit()
@@ -621,6 +626,8 @@ void ZEDWrapperNodelet::onInit()
       mNhNs.advertiseService("start_object_detection", &ZEDWrapperNodelet::on_start_object_detection, this);
   mSrvStopObjDet = mNhNs.advertiseService("stop_object_detection", &ZEDWrapperNodelet::on_stop_object_detection, this);
 
+  mSrvSaveAreaMemory = mNhNs.advertiseService("save_area_memory", &ZEDWrapperNodelet::on_save_area_memory, this);
+
   // Start Pointcloud thread
   mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
 
@@ -750,9 +757,13 @@ void ZEDWrapperNodelet::readParameters()
   mNhNs.getParam("pos_tracking/initial_base_pose", mInitialBasePose);
 
   mNhNs.getParam("pos_tracking/area_memory_db_path", mAreaMemDbPath);
+  mAreaMemDbPath = sl_tools::resolveFilePath(mAreaMemDbPath);
   NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mAreaMemDbPath.c_str());
+
+  mNhNs.param<bool>("pos_tracking/save_area_memory_db_on_exit", mSaveAreaMapOnClosing, false);
+  NODELET_INFO_STREAM(" * Save Area Memory on closing\t-> " << (mSaveAreaMapOnClosing ? "ENABLED" : "DISABLED"));
   mNhNs.param<bool>("pos_tracking/area_memory", mAreaMemory, false);
-  NODELET_INFO_STREAM(" * Spatial Memory\t\t-> " << (mAreaMemory ? "ENABLED" : "DISABLED"));
+  NODELET_INFO_STREAM(" * Area Memory\t\t\t-> " << (mAreaMemory ? "ENABLED" : "DISABLED"));
   mNhNs.param<bool>("pos_tracking/imu_fusion", mImuFusion, true);
   NODELET_INFO_STREAM(" * IMU Fusion\t\t\t-> " << (mImuFusion ? "ENABLED" : "DISABLED"));
   mNhNs.param<bool>("pos_tracking/floor_alignment", mFloorAlignment, false);
@@ -865,6 +876,7 @@ void ZEDWrapperNodelet::readParameters()
 
   // ----> SVO
   mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
+  mSvoFilepath = sl_tools::resolveFilePath(mSvoFilepath);
   NODELET_INFO_STREAM(" * SVO input file: \t\t-> " << mSvoFilepath.c_str());
 
   int svo_compr = 0;
@@ -1627,27 +1639,37 @@ void ZEDWrapperNodelet::start_pos_tracking()
   NODELET_INFO(" * Q: [%g,%g,%g,%g]", mInitialPoseSl.getOrientation().ox, mInitialPoseSl.getOrientation().oy,
                mInitialPoseSl.getOrientation().oz, mInitialPoseSl.getOrientation().ow);
 
-  if (mAreaMemDbPath != "" && !sl_tools::file_exist(mAreaMemDbPath))
-  {
-    mAreaMemDbPath = "";
-    NODELET_WARN("area_memory_db_path path doesn't exist or is unreachable.");
-  }
+  // Positional Tracking parameters
+  sl::PositionalTrackingParameters posTrackParams;
 
-  // Tracking parameters
-  sl::PositionalTrackingParameters trackParams;
-
-  trackParams.area_file_path = mAreaMemDbPath.c_str();
+  posTrackParams.initial_world_transform = mInitialPoseSl;
+  posTrackParams.enable_area_memory = mAreaMemory;
 
   mPoseSmoothing = false;  // Always false. Pose Smoothing is to be enabled only for VR/AR applications
-  trackParams.enable_pose_smoothing = mPoseSmoothing;
+  posTrackParams.enable_pose_smoothing = mPoseSmoothing;
 
-  trackParams.enable_area_memory = mAreaMemory;
-  trackParams.enable_imu_fusion = mImuFusion;
-  trackParams.initial_world_transform = mInitialPoseSl;
+  posTrackParams.set_floor_as_origin = mFloorAlignment;
 
-  trackParams.set_floor_as_origin = mFloorAlignment;
+  if (mAreaMemDbPath != "" && !sl_tools::file_exist(mAreaMemDbPath))
+  {
+    posTrackParams.area_file_path = "";
+    NODELET_WARN_STREAM("area_memory_db_path [" << mAreaMemDbPath << "] doesn't exist or is unreachable. ");
+    if (mSaveAreaMapOnClosing)
+    {
+      NODELET_INFO_STREAM("The file will be automatically created when closing the node or calling the "
+                          "'save_area_map' service if a valid Area Memory is available.");
+    }
+  }
+  else
+  {
+    posTrackParams.area_file_path = mAreaMemDbPath.c_str();
+  }
 
-  sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
+  posTrackParams.enable_imu_fusion = mImuFusion;
+
+  posTrackParams.set_as_static = false;
+
+  sl::ERROR_CODE err = mZed.enablePositionalTracking(posTrackParams);
 
   if (err == sl::ERROR_CODE::SUCCESS)
   {
@@ -1659,6 +1681,101 @@ void ZEDWrapperNodelet::start_pos_tracking()
 
     NODELET_WARN("Tracking not activated: %s", sl::toString(err).c_str());
   }
+}
+
+bool ZEDWrapperNodelet::on_save_area_memory(zed_interfaces::save_area_memory::Request& req,
+                                            zed_interfaces::save_area_memory::Response& res)
+{
+  std::string file_path = sl_tools::resolveFilePath(req.area_memory_filename);
+
+  bool ret = saveAreaMap(file_path,&res.info);
+
+  return ret;
+}
+
+bool ZEDWrapperNodelet::saveAreaMap(std::string file_path, std::string* out_msg)
+{
+  std::ostringstream os;
+
+  bool node_running = mNhNs.ok();
+  if (!mZed.isOpened())
+  {
+    os << "Cannot save Area Memory. The camera is closed.";
+
+    if (node_running)
+      NODELET_WARN_STREAM(os.str().c_str());
+    else
+      std::cerr << os.str() << std::endl;
+
+    if (out_msg)
+      *out_msg = os.str();
+
+    return false;
+  }
+
+  if (mPosTrackingActivated && mAreaMemory)
+  {
+    sl::ERROR_CODE err = mZed.saveAreaMap(sl::String(file_path.c_str()));
+    if (err != sl::ERROR_CODE::SUCCESS)
+    {
+      os << "Error saving positional tracking area memory: " << sl::toString(err).c_str();
+
+      if (node_running)
+        NODELET_WARN_STREAM(os.str().c_str());
+      else
+        std::cerr << os.str() << std::endl;
+
+      if (out_msg)
+        *out_msg = os.str();
+
+      return false;
+    }
+
+    if (node_running)
+      NODELET_INFO_STREAM("Saving Area Memory file: " << file_path);
+    else
+      std::cerr << "Saving Area Memory file: " << file_path << " ";
+
+    sl::AREA_EXPORTING_STATE state;
+    do
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      state = mZed.getAreaExportState();
+      if (node_running)
+        NODELET_INFO_STREAM(".");
+      else
+        std::cerr << ".";
+    } while (state == sl::AREA_EXPORTING_STATE::RUNNING);
+    if (!node_running)
+      std::cerr << std::endl;
+
+    if (state == sl::AREA_EXPORTING_STATE::SUCCESS)
+    {
+      os << "Area Memory file saved correctly.";
+
+      if (node_running)
+        NODELET_INFO_STREAM(os.str().c_str());
+      else
+        std::cerr << os.str() << std::endl;
+
+      if (out_msg)
+        *out_msg = os.str();
+      return true;
+    }
+
+    os << "Error saving Area Memory file: " << sl::toString(state).c_str();
+
+    if (node_running)
+      NODELET_WARN_STREAM(os.str().c_str());
+    else
+      std::cerr << os.str() << std::endl;
+
+    if (out_msg)
+      *out_msg = os.str();
+
+    return false;
+  }
+  return false;
 }
 
 void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t)
@@ -3894,29 +4011,41 @@ void ZEDWrapperNodelet::device_poll_thread_func()
       // Publish the zed camera pose if someone has subscribed to
       if (computeTracking)
       {
-        static sl::POSITIONAL_TRACKING_STATE oldStatus;
         mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
 
         sl::Translation translation = mLastZedPose.getTranslation();
         sl::Orientation quat = mLastZedPose.getOrientation();
 
 #if 0  //#ifndef NDEBUG // Enable for TF checking
-                double roll, pitch, yaw;
-                tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
+        double roll, pitch, yaw;
+        tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
 
-                NODELET_DEBUG("Sensor POSE [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
-                              mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
-                              translation.x, translation.y, translation.z,
-                              roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+        NODELET_DEBUG("Sensor POSE [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
+                      mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
+                      translation.x, translation.y, translation.z,
+                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
-                NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << sl::toString(mTrackingStatus));
+        NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << sl::toString(mTrackingStatus));
 
 #endif
 
+        static sl::POSITIONAL_TRACKING_STATE old_tracking_state = sl::POSITIONAL_TRACKING_STATE::OFF;
         if (mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK ||
-            mPosTrackingStatus ==
-                sl::POSITIONAL_TRACKING_STATE::SEARCHING /*|| status == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW*/)
+            mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING
+            /*|| status == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW*/)
         {
+          if (mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK && mPosTrackingStatus != old_tracking_state)
+          {
+            NODELET_INFO_STREAM("Positional tracking -> OK [" << sl::toString(mPosTrackingStatus).c_str() << "]");
+            old_tracking_state = mPosTrackingStatus;
+          }
+          if (mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING &&
+              mPosTrackingStatus != old_tracking_state)
+          {
+            NODELET_INFO_STREAM("Positional tracking -> Searching for a known position ["
+                                << sl::toString(mPosTrackingStatus).c_str() << "]");
+            old_tracking_state = mPosTrackingStatus;
+          }
           // Transform ZED pose in TF2 Transformation
           geometry_msgs::Transform map2sensTransf;
 
@@ -3948,13 +4077,12 @@ void ZEDWrapperNodelet::device_poll_thread_func()
           }
 
 #if 0  //#ifndef NDEBUG // Enable for TF checking
-                    double roll, pitch, yaw;
-                    tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+          double roll, pitch, yaw;
+          tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-                    NODELET_DEBUG("*** Base POSE [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
-                                  mMapFrameId.c_str(), mBaseFrameId.c_str(),
-                                  mMap2BaseTransf.getOrigin().x(), mMap2BaseTransf.getOrigin().y(), mMap2BaseTransf.getOrigin().z(),
-                                  roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+          NODELET_DEBUG("*** Base POSE [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}", mMapFrameId.c_str(),
+                        mBaseFrameId.c_str(), mMap2BaseTransf.getOrigin().x(), mMap2BaseTransf.getOrigin().y(),
+                        mMap2BaseTransf.getOrigin().z(), roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 #endif
 
           bool initOdom = false;
@@ -4010,8 +4138,6 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
           mPosTrackingReady = true;
         }
-
-        oldStatus = mPosTrackingStatus;
       }
 
       if (mZedRealCamModel == sl::MODEL::ZED)
@@ -4134,6 +4260,11 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
     mDiagUpdater.update();
   }  // while loop
+
+  if (mSaveAreaMapOnClosing && mPosTrackingActivated)
+  {
+    saveAreaMap(mAreaMemDbPath);
+  }
 
   mStopNode = true;  // Stops other threads
 
