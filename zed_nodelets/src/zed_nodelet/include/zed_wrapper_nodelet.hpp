@@ -54,6 +54,8 @@
 #include <zed_interfaces/stop_remote_stream.h>
 #include <zed_interfaces/stop_svo_recording.h>
 #include <zed_interfaces/toggle_led.h>
+#include <zed_interfaces/save_3d_map.h>
+#include <zed_interfaces/save_area_memory.h>
 
 // Topics
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -322,6 +324,11 @@ protected:
   bool on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
                                 zed_interfaces::stop_object_detection::Response& res);
 
+  /*! \brief Service callback to save_area_memory service
+   */
+  bool on_save_area_memory(zed_interfaces::save_area_memory::Request& req,
+                                zed_interfaces::save_area_memory::Response& res);                          
+
   /*! \brief Utility to initialize the pose variables
    */
   bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
@@ -384,7 +391,7 @@ protected:
   /*! \brief Save the current area map if positional tracking
    * and area memory are active
    */
-  bool saveAreaMap();
+  bool saveAreaMap(std::string file_path, std::string* out_msg=nullptr);
 
 private:
   uint64_t mFrameCount = 0;
@@ -461,6 +468,7 @@ private:
   ros::ServiceServer mSrvStopMapping;
   ros::ServiceServer mSrvStartObjDet;
   ros::ServiceServer mSrvStopObjDet;
+  ros::ServiceServer mSrvSaveAreaMemory;
 
   // ----> Topics (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
   // Camera info

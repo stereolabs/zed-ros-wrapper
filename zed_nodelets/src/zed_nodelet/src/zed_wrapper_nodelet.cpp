@@ -20,6 +20,7 @@
 
 #include <chrono>
 #include <csignal>
+#include <sstream>
 
 #include "zed_wrapper_nodelet.hpp"
 
@@ -622,6 +623,8 @@ void ZEDWrapperNodelet::onInit()
       mNhNs.advertiseService("start_object_detection", &ZEDWrapperNodelet::on_start_object_detection, this);
   mSrvStopObjDet = mNhNs.advertiseService("stop_object_detection", &ZEDWrapperNodelet::on_stop_object_detection, this);
 
+  mSrvSaveAreaMemory = mNhNs.advertiseService("save_area_memory", &ZEDWrapperNodelet::on_save_area_memory, this);
+
   // Start Pointcloud thread
   mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
 
@@ -754,7 +757,6 @@ void ZEDWrapperNodelet::readParameters()
   mAreaMemDbPath = sl_tools::resolveFilePath(mAreaMemDbPath);
   NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mAreaMemDbPath.c_str());
 
-  
   mNhNs.param<bool>("pos_tracking/save_area_memory_db_on_exit", mSaveAreaMapOnClosing, false);
   NODELET_INFO_STREAM(" * Save Area Memory on closing\t-> " << (mSaveAreaMapOnClosing ? "ENABLED" : "DISABLED"));
   mNhNs.param<bool>("pos_tracking/area_memory", mAreaMemory, false);
@@ -1678,32 +1680,59 @@ void ZEDWrapperNodelet::start_pos_tracking()
   }
 }
 
-bool ZEDWrapperNodelet::saveAreaMap()
+bool ZEDWrapperNodelet::on_save_area_memory(zed_interfaces::save_area_memory::Request& req,
+                                            zed_interfaces::save_area_memory::Response& res)
 {
+  std::string file_path = sl_tools::resolveFilePath(req.area_memory_filename);
+
+  bool ret = saveAreaMap(file_path,&res.info);
+
+  return ret;
+}
+
+bool ZEDWrapperNodelet::saveAreaMap(std::string file_path, std::string* out_msg)
+{
+  std::ostringstream os;
+
   bool node_running = mNhNs.ok();
   if (!mZed.isOpened())
   {
+    os << "Cannot save Area Memory. The camera is closed.";
+
     if (node_running)
-      NODELET_WARN_STREAM("Cannot save Area Memory. The camera is closed.");
+      NODELET_WARN_STREAM(os.str().c_str());
     else
-      std::cerr << "Cannot save Area Memory. The camera is closed." << std::endl;
+      std::cerr << os.str() << std::endl;
+
+    if (out_msg)
+      *out_msg = os.str();
+
     return false;
   }
 
   if (mPosTrackingActivated && mAreaMemory)
   {
-    sl::ERROR_CODE err = mZed.saveAreaMap(sl::String(mAreaMemDbPath.c_str()));
+    sl::ERROR_CODE err = mZed.saveAreaMap(sl::String(file_path.c_str()));
     if (err != sl::ERROR_CODE::SUCCESS)
     {
+      os << "Error saving positional tracking area memory: " << sl::toString(err).c_str();
+
       if (node_running)
-        NODELET_WARN_STREAM("Error saving positiona tracking area memory: " << sl::toString(err).c_str());
+        NODELET_WARN_STREAM(os.str().c_str());
       else
-        std::cerr << "Error saving positiona tracking area memory: " << sl::toString(err).c_str() << std::endl;
+        std::cerr << os.str() << std::endl;
+
+      if (out_msg)
+        *out_msg = os.str();
+
       return false;
     }
 
-    std::cerr << "Saving Area Memory file: " << mAreaMemDbPath << " ";
-    // NODELET_INFO_STREAM("Saving Area Memory file: " << mAreaMemDbPath);
+    if (node_running)
+      NODELET_INFO_STREAM("Saving Area Memory file: " << file_path);
+    else
+      std::cerr << "Saving Area Memory file: " << file_path << " ";
+
     sl::AREA_EXPORTING_STATE state;
     do
     {
@@ -1719,17 +1748,28 @@ bool ZEDWrapperNodelet::saveAreaMap()
 
     if (state == sl::AREA_EXPORTING_STATE::SUCCESS)
     {
+      os << "Area Memory file saved correctly.";
+
       if (node_running)
-        NODELET_INFO_STREAM("Area Memory file saved correctly.");
+        NODELET_INFO_STREAM(os.str().c_str());
       else
-        std::cerr << "Area Memory file saved correctly." << std::endl;
+        std::cerr << os.str() << std::endl;
+
+      if (out_msg)
+        *out_msg = os.str();
       return true;
     }
 
+    os << "Error saving Area Memory file: " << sl::toString(state).c_str();
+
     if (node_running)
-      NODELET_WARN_STREAM("Error saving Area Memory file: " << sl::toString(state).c_str());
+      NODELET_WARN_STREAM(os.str().c_str());
     else
-      std::cerr << "Error saving Area Memory file: " << sl::toString(state).c_str() << std::endl;
+      std::cerr << os.str() << std::endl;
+
+    if (out_msg)
+      *out_msg = os.str();
+
     return false;
   }
   return false;
@@ -4220,7 +4260,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
   if (mSaveAreaMapOnClosing && mPosTrackingActivated)
   {
-    saveAreaMap();
+    saveAreaMap(mAreaMemDbPath);
   }
 
   mStopNode = true;  // Stops other threads
