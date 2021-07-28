@@ -43,6 +43,7 @@
 // Services
 #include <zed_interfaces/reset_odometry.h>
 #include <zed_interfaces/reset_tracking.h>
+#include <zed_interfaces/save_3d_map.h>
 #include <zed_interfaces/set_led_status.h>
 #include <zed_interfaces/set_pose.h>
 #include <zed_interfaces/start_3d_mapping.h>
@@ -314,6 +315,10 @@ protected:
   bool on_stop_3d_mapping(zed_interfaces::stop_3d_mapping::Request& req,
                           zed_interfaces::stop_3d_mapping::Response& res);
 
+  /*! \brief Service callback to save_3d_map service
+   */
+  bool on_save_3d_map(zed_interfaces::save_3d_map::Request& req, zed_interfaces::save_3d_map::Response& res);
+
   /*! \brief Service callback to start_object_detection service
    */
   bool on_start_object_detection(zed_interfaces::start_object_detection::Request& req,
@@ -466,6 +471,7 @@ private:
   ros::ServiceServer mSrvToggleLed;
   ros::ServiceServer mSrvStartMapping;
   ros::ServiceServer mSrvStopMapping;
+  ros::ServiceServer mSrvSave3dMap;
   ros::ServiceServer mSrvStartObjDet;
   ros::ServiceServer mSrvStopObjDet;
   ros::ServiceServer mSrvSaveAreaMemory;
@@ -692,6 +698,7 @@ private:
   // Spatial mapping
   bool mMappingEnabled;
   bool mMappingRunning;
+  bool mMapSave=false;
   float mMappingRes = 0.1;
   float mMaxMappingRange = -1;
   double mFusedPcPubFreq = 2.0;

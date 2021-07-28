@@ -24,6 +24,8 @@
 
 #include "zed_wrapper_nodelet.hpp"
 
+#include "zed_wrapper_nodelet.hpp"
+
 #ifndef NDEBUG
 #include <ros/console.h>
 #endif
@@ -618,6 +620,7 @@ void ZEDWrapperNodelet::onInit()
 
   mSrvStartMapping = mNhNs.advertiseService("start_3d_mapping", &ZEDWrapperNodelet::on_start_3d_mapping, this);
   mSrvStopMapping = mNhNs.advertiseService("stop_3d_mapping", &ZEDWrapperNodelet::on_stop_3d_mapping, this);
+  mSrvSave3dMap = mNhNs.advertiseService("save_3d_map", &ZEDWrapperNodelet::on_save_3d_map, this);
 
   mSrvStartObjDet =
       mNhNs.advertiseService("start_object_detection", &ZEDWrapperNodelet::on_start_object_detection, this);
@@ -4513,6 +4516,7 @@ bool ZEDWrapperNodelet::on_stop_svo_recording(zed_interfaces::stop_svo_recording
   {
     res.done = false;
     res.info = "Recording was not active";
+    NODELET_WARN_STREAM("Can't stop SVO recording. Recording was not active");
     return false;
   }
 
@@ -4680,6 +4684,46 @@ bool ZEDWrapperNodelet::on_stop_3d_mapping(zed_interfaces::stop_3d_mapping::Requ
   }
 
   return res.done;
+}
+
+bool ZEDWrapperNodelet::on_save_3d_map(zed_interfaces::save_3d_map::Request& req,
+                                       zed_interfaces::save_3d_map::Response& res)
+{
+  if (!mMappingEnabled)
+  {
+    res.result = false;
+    res.info = "3D Mapping was not active";
+    NODELET_WARN_STREAM("Can't save 3D map. Mapping was not active");
+    return false;
+  }
+
+  mMapSave = true;
+
+  std::lock_guard<std::mutex> lock(mMappingMutex);
+  sl::String filename = req.map_filename.c_str();
+  if (req.file_format < 0 || req.file_format > static_cast<int>(sl::MESH_FILE_FORMAT::OBJ))
+  {
+    res.result = false;
+    res.info = "File format not correct";
+    NODELET_WARN_STREAM("Can't save 3D map. File format not correct");
+    return false;
+  }
+
+  sl::MESH_FILE_FORMAT file_format = static_cast<sl::MESH_FILE_FORMAT>(req.file_format);
+
+  bool success = mFusedPC.save(filename, file_format);
+
+  if (!success)
+  {
+    res.result = false;
+    res.info = "3D Map not saved";
+    NODELET_ERROR_STREAM("3D Map not saved");
+    return false;
+  }
+
+  res.info = "3D map saved";
+  res.result = true;
+  return true;
 }
 
 bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_detection::Request& req,
