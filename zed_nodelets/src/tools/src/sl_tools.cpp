@@ -138,6 +138,12 @@ bool file_exist(const std::string& name)
 namespace fs = std::experimental::filesystem;
 std::string resolveFilePath(std::string file_path)
 {
+  if(file_path.empty())
+  {
+    return file_path;
+  }
+
+
   std::string abs_path = file_path;
   if (file_path[0] == '~')
   {

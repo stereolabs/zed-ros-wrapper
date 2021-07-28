@@ -21,10 +21,6 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-#include "sl_tools.h"
-
-#include <sl/Camera.hpp>
-
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -36,6 +32,10 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
+
+#include <sl/Camera.hpp>
+
+#include "sl_tools.h"
 
 // Dynamic reconfiguration
 #include <zed_nodelets/ZedConfig.h>
@@ -227,7 +227,7 @@ protected:
    */
   void fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg, string frame_id);
 
-  /* \bried Check if FPS and Resolution chosen by user are correct.
+  /*! \brief Check if FPS and Resolution chosen by user are correct.
    *        Modifies FPS to match correct value.
    */
   void checkResolFps();
@@ -342,23 +342,23 @@ protected:
    */
   bool getCamera2BaseTransform();
 
-  /* \bried Start tracking
+  /*! \brief Start tracking
    */
   void start_pos_tracking();
 
-  /* \bried Start spatial mapping
+  /*! \brief Start spatial mapping
    */
   bool start_3d_mapping();
 
-  /* \bried Stop spatial mapping
+  /*! \brief Stop spatial mapping
    */
   void stop_3d_mapping();
 
-  /* \bried Start object detection
+  /*! \brief Start object detection
    */
   bool start_obj_detect();
 
-  /* \bried Stop object detection
+  /*! \brief Stop object detection
    */
   void stop_obj_detect();
 
@@ -380,6 +380,11 @@ protected:
   /*! \brief Update Dynamic reconfigure parameters
    */
   void updateDynamicReconfigure();
+
+  /*! \brief Save the current area map if positional tracking
+   * and area memory are active
+   */
+  bool saveAreaMap();
 
 private:
   uint64_t mFrameCount = 0;
@@ -522,7 +527,7 @@ private:
   int mZedId;
   int mDepthStabilization;
   std::string mAreaMemDbPath;
-  bool mSaveAreaMapOnClosing=true;
+  bool mSaveAreaMapOnClosing = true;
   std::string mSvoFilepath;
   std::string mRemoteStreamAddr;
   bool mSensTimestampSync;
@@ -534,9 +539,9 @@ private:
   double mCamMaxDepth;
 
   // Positional tracking
-  bool mPosTrackingEnabled=false;
-  bool mPosTrackingActivated=false;
-  bool mPosTrackingReady=false;
+  bool mPosTrackingEnabled = false;
+  bool mPosTrackingActivated = false;
+  bool mPosTrackingReady = false;
   bool mTwoDMode = false;
   double mFixedZValue = 0.0;
   bool mFloorAlignment = false;
@@ -610,7 +615,7 @@ private:
   double mCamImageResizeFactor = 1.0;
   double mCamDepthResizeFactor = 1.0;
 
-  // flags  
+  // flags
   bool mTriggerAutoExposure = true;
   bool mTriggerAutoWB = true;
   bool mComputeDepth;

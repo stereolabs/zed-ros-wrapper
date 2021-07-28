@@ -50,7 +50,7 @@ pos_tracking:
     map_frame:                  'map'                           # main frame
     odometry_frame:             'odom'                          # odometry frame
     area_memory_db_path:        'zed_area_memory.area'        # file loaded when the node starts to restore the "known visual features" map. 
-    save_area_memory_db_on_exit: true                           # save the "known visual features" map when the node is correctly closed to the path indicated by `area_memory_db_path`
+    save_area_memory_db_on_exit: false                           # save the "known visual features" map when the node is correctly closed to the path indicated by `area_memory_db_path`
     area_memory:                true                            # Enable to detect loop closure
     floor_alignment:            false                           # Enable to automatically calculate camera/floor offset
     initial_base_pose:          [0.0,0.0,0.0, 0.0,0.0,0.0]      # Initial position of the `base_frame` -> [X, Y, Z, R, P, Y]
