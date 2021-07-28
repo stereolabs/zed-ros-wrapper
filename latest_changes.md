@@ -7,7 +7,6 @@ LATEST CHANGES
 - Add service `save_Area_map` to trigger an Area Memory saving. 
 - New tool function to transform a relative path to absolute.
 
-
 2021-07-26
 ----------
 - Enabled static IMU TF broadcasting even it `publish_tf` is set to false, making the two options independent. Thx to @bjsowa
