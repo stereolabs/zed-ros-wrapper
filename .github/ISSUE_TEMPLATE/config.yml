@@ -5,5 +5,4 @@ contact_links:
     url: https://community.stereolabs.com/
     about: Ask a question on the Stereolabs forum
   - name: Report an Hardware problem
-    url: mailto:support@stereolabs.com
-    about: Direct support contact to report hardware problems
+    about: Write an email to support@stereolabs.com
