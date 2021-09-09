@@ -1,6 +1,6 @@
 name: Feature request 🧭
 description: Suggest an idea for this project
-labels: "needs-discussion,feature-request"
+labels: "Feature request"
 body:
 - type: textarea
   attributes:
