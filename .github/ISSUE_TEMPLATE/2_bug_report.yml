@@ -1,0 +1,79 @@
+name: Report a bug 🐛
+description: Create a report to help us improve
+labels: "bug"
+body:
+- type: textarea
+  attributes:
+    label: Report
+    description: "What bug have you encountered?"
+    placeholder: "A clear and concise description of what the bug is."
+  validations:
+    required: true
+- type: dropdown
+  attributes:
+    label: ZED Camera model
+    description: What model of ZED camera are you using?
+    options:
+    - "ZED"
+    - "ZED Mini"
+    - "ZED2"
+    - "ZED2i"
+  validations:
+    required: true 
+- type: textarea
+  attributes:
+    label: Operating System
+    description: "What operating system are you using?"
+    placeholder: "e.g. Ubuntu 20.04"
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: GPU model
+    description: "What GPU card are you using?"
+    placeholder: "e.g. Nvidia Jetson Xavier NX"
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: ZED SDK Version
+    description: "What ZED SDK version are you using?"
+    placeholder: "e.g. v3.5.3"
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: ROS Version
+    description: "What ROS version are you using?"
+    placeholder: "e.g. Melodic"
+  validations:
+    required: true    
+- type: textarea
+  attributes:
+    label: Expected Behavior
+    description: What did you expect to happen?
+    placeholder: What did you expect to happen?
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Actual Behavior
+    description: Also tell us, what did you see is happen?
+    placeholder: Tell us what you see that is happening
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Steps to Reproduce the Problem
+    description: "How can we reproduce this bug? Please walk us through it step by step."
+    value: |
+      1.
+      2.
+      3.
+  validations:
+    required: true
+- type: textarea
+  id: anything-else
+  attributes:
+    label: Anything else?
+    description: "Let us know if you have anything else to share"
