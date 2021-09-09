@@ -1,10 +1,12 @@
 blank_issues_enabled: false
-
 contact_links:
-  - name: Hardware problem
-    url: https://support.stereolabs.com/hc/en-us
-    about: Go to Stereolabs support center and search for a known solution or write a direct email to support@stereolabs.com
-  - name: Generic question about ZED cameras and their plugins
+  - name: Online Documentation
+    url: https://www.stereolabs.com/docs/
+    about: Check out the Stereolabs documentation for answers to common questions
+  - name: Stereolabs Community
     url: https://community.stereolabs.com/
-    about: Ask a question on the Stereolabs forum
+    about: Ask questions, request features & discuss with other users and developers
+  - name: Stereolabs Twitter
+    url: https://twitter.com/Stereolabs3D
+    about: The official Twitter account to ask questions and get help and share your projects with us
 

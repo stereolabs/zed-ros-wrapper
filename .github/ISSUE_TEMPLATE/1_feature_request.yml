@@ -2,10 +2,30 @@ name: Feature request 🧭
 description: Suggest an idea for this project
 labels: "Feature request"
 body:
+  - type: markdown
+    attributes:
+      value: |
+        # Welcome 👋 
+
+        Thanks for taking the time to fill out this feature request module.
+        Please fill out each section below. This info allows Stereolabs developers to correctly evaluate your request.
+
+        Useful Links:
+        - Documentation: https://www.stereolabs.com/docs/
+        - Stereolabs support: https://support.stereolabs.com/hc/en-us/
+  - type: checkboxes
+    attributes:
+      label: Preliminary Checks
+      description: Please make sure that you verify each checkbox and follow the instructions for them.
+      options:
+        - label: "This issue is not a duplicate. Before opening a new issue, please search existing issues.
+          required: true
+        - label: "This issue is not a question, bug report, or anything other than a feature request directly related to this project."
+          required: true
 - type: textarea
   attributes:
     label: Proposal
-    description: "What would you like to have as a feature"
+    description: "What would you like to have as a new feature?"
     placeholder: "A clear and concise description of what you want to happen."
   validations:
     required: true
