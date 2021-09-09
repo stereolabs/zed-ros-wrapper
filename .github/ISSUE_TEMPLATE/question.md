@@ -1,4 +1,5 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
+
 contact_links:
   - name: Generic question about ZED cameras and their plugins
     url: https://community.stereolabs.com/
