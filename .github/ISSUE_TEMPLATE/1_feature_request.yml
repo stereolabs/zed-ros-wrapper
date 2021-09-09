@@ -18,7 +18,7 @@ body:
       label: Preliminary Checks
       description: Please make sure that you verify each checkbox and follow the instructions for them.
       options:
-        - label: "This issue is not a duplicate. Before opening a new issue, please search existing issues.
+        - label: "This issue is not a duplicate. Before opening a new issue, please search existing issues."
           required: true
         - label: "This issue is not a question, bug report, or anything other than a feature request directly related to this project."
           required: true
