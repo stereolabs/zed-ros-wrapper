@@ -20,6 +20,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Camera Model and Name -->
     <arg name="camera_name"           default="zed" /> <!-- The name you want -->
     <arg name="camera_model"          default="zed" /> <!-- 'zed' or 'zedm' or 'zed2' -->
+    <arg name="serial_number"         default="0" />
     <arg name="node_name"             default="zed_node" />
 
     <!-- Load SVO file -->
@@ -74,7 +75,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <param name="general/camera_name"               value="$(arg camera_name)" />
 
         <!-- Base frame -->
-        <param name="general/base_frame"                value="$(arg base_frame)" />
+	<param name="general/base_frame"                value="$(arg base_frame)" />
+
+	<!-- Serial number -->
+	<param name="general/serial_number"             value="$(arg serial_number)" />
 
         <!-- SVO file path -->
         <param name="svo_file"                          value="$(arg svo_file)" />

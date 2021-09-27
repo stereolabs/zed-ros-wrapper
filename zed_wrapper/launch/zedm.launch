@@ -22,6 +22,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <arg name="node_name"            default="zed_node" />
     <arg name="camera_model"         default="zedm" /> <!-- 'zed' or 'zedm' -->
+    <arg name="serial_number"        default="0" />
     <arg name="publish_urdf"         default="true" />
 
     <arg name="camera_name"          default="zedm" />
@@ -37,7 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <group ns="$(arg camera_name)">
         <include file="$(find zed_wrapper)/launch/include/zed_camera.launch.xml">
-            <arg name="camera_name"         value="$(arg camera_name)" />
+	    <arg name="camera_name"         value="$(arg camera_name)" />
+	    <arg name="serial_number"       value="$(arg serial_number)" />	
             <arg name="svo_file"            value="$(arg svo_file)" />
             <arg name="stream"              value="$(arg stream)" />
             <arg name="node_name"           value="$(arg node_name)" />
