@@ -430,60 +430,62 @@ void ZEDWrapperNodelet::onInit()
   // Image publishers
   image_transport::ImageTransport it_zed(mNhNs);
 
-  mPubRgb = it_zed.advertiseCamera(rgb_topic, 1);  // rgb
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRgb.getTopic());
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRgb.getInfoTopic());
-  mPubRawRgb = it_zed.advertiseCamera(rgb_raw_topic, 1);  // rgb raw
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgb.getTopic());
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgb.getInfoTopic());
+  // TODO: find a better way to silence / avoid bagging these topics than simply disabling them
+
+  // mPubRgb = it_zed.advertiseCamera(rgb_topic, 1);  // rgb
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRgb.getTopic());
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRgb.getInfoTopic());
+  // mPubRawRgb = it_zed.advertiseCamera(rgb_raw_topic, 1);  // rgb raw
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgb.getTopic());
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgb.getInfoTopic());
   mPubLeft = it_zed.advertiseCamera(left_topic, 1);  // left
   NODELET_INFO_STREAM("Advertised on topic " << mPubLeft.getTopic());
   NODELET_INFO_STREAM("Advertised on topic " << mPubLeft.getInfoTopic());
-  mPubRawLeft = it_zed.advertiseCamera(left_raw_topic, 1);  // left raw
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeft.getTopic());
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeft.getInfoTopic());
+  // mPubRawLeft = it_zed.advertiseCamera(left_raw_topic, 1);  // left raw
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeft.getTopic());
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeft.getInfoTopic());
   mPubRight = it_zed.advertiseCamera(right_topic, 1);  // right
   NODELET_INFO_STREAM("Advertised on topic " << mPubRight.getTopic());
   NODELET_INFO_STREAM("Advertised on topic " << mPubRight.getInfoTopic());
-  mPubRawRight = it_zed.advertiseCamera(right_raw_topic, 1);  // right raw
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawRight.getTopic());
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawRight.getInfoTopic());
+  // mPubRawRight = it_zed.advertiseCamera(right_raw_topic, 1);  // right raw
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawRight.getTopic());
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawRight.getInfoTopic());
 
-  mPubRgbGray = it_zed.advertiseCamera(rgb_gray_topic, 1);  // rgb
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRgbGray.getTopic());
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRgbGray.getInfoTopic());
-  mPubRawRgbGray = it_zed.advertiseCamera(rgb_raw_gray_topic, 1);  // rgb raw
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgbGray.getTopic());
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgbGray.getInfoTopic());
-  mPubLeftGray = it_zed.advertiseCamera(left_gray_topic, 1);  // left
-  NODELET_INFO_STREAM("Advertised on topic " << mPubLeftGray.getTopic());
-  NODELET_INFO_STREAM("Advertised on topic " << mPubLeftGray.getInfoTopic());
-  mPubRawLeftGray = it_zed.advertiseCamera(left_raw_gray_topic, 1);  // left raw
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeftGray.getTopic());
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeftGray.getInfoTopic());
-  mPubRightGray = it_zed.advertiseCamera(right_gray_topic, 1);  // right
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRightGray.getTopic());
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRightGray.getInfoTopic());
-  mPubRawRightGray = it_zed.advertiseCamera(right_raw_gray_topic, 1);  // right raw
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawRightGray.getTopic());
-  NODELET_INFO_STREAM("Advertised on topic " << mPubRawRightGray.getInfoTopic());
+  // mPubRgbGray = it_zed.advertiseCamera(rgb_gray_topic, 1);  // rgb
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRgbGray.getTopic());
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRgbGray.getInfoTopic());
+  // mPubRawRgbGray = it_zed.advertiseCamera(rgb_raw_gray_topic, 1);  // rgb raw
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgbGray.getTopic());
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgbGray.getInfoTopic());
+  // mPubLeftGray = it_zed.advertiseCamera(left_gray_topic, 1);  // left
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubLeftGray.getTopic());
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubLeftGray.getInfoTopic());
+  // mPubRawLeftGray = it_zed.advertiseCamera(left_raw_gray_topic, 1);  // left raw
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeftGray.getTopic());
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeftGray.getInfoTopic());
+  // mPubRightGray = it_zed.advertiseCamera(right_gray_topic, 1);  // right
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRightGray.getTopic());
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRightGray.getInfoTopic());
+  // mPubRawRightGray = it_zed.advertiseCamera(right_raw_gray_topic, 1);  // right raw
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawRightGray.getTopic());
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubRawRightGray.getInfoTopic());
 
-  mPubDepth = it_zed.advertiseCamera(depth_topic_root, 1);  // depth
-  NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getTopic());
-  NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getInfoTopic());
+  // mPubDepth = it_zed.advertiseCamera(depth_topic_root, 1);  // depth
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getTopic());
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getInfoTopic());
 
-  mPubStereo = it_zed.advertise(stereo_topic, 1);
-  NODELET_INFO_STREAM("Advertised on topic " << mPubStereo.getTopic());
+  // mPubStereo = it_zed.advertise(stereo_topic, 1);
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubStereo.getTopic());
   mPubRawStereo = it_zed.advertise(stereo_raw_topic, 1);
   NODELET_INFO_STREAM("Advertised on topic " << mPubRawStereo.getTopic());
 
   // Confidence Map publisher
-  mPubConfMap = mNhNs.advertise<sensor_msgs::Image>(conf_map_topic, 1);  // confidence map
-  NODELET_INFO_STREAM("Advertised on topic " << mPubConfMap.getTopic());
+  // mPubConfMap = mNhNs.advertise<sensor_msgs::Image>(conf_map_topic, 1);  // confidence map
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubConfMap.getTopic());
 
   // Disparity publisher
-  mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(disparityTopic, static_cast<int>(mVideoDepthFreq));
-  NODELET_INFO_STREAM("Advertised on topic " << mPubDisparity.getTopic());
+  // mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(disparityTopic, static_cast<int>(mVideoDepthFreq));
+  // NODELET_INFO_STREAM("Advertised on topic " << mPubDisparity.getTopic());
 
   // PointCloud publishers
   mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_topic, 1);
@@ -2688,22 +2690,22 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e)
 {
   static sl::Timestamp lastZedTs = 0;  // Used to calculate stable publish frequency
 
-  uint32_t rgbSubnumber = mPubRgb.getNumSubscribers();
-  uint32_t rgbRawSubnumber = mPubRawRgb.getNumSubscribers();
+  uint32_t rgbSubnumber = 0; //mPubRgb.getNumSubscribers();
+  uint32_t rgbRawSubnumber = 0; //mPubRawRgb.getNumSubscribers();
   uint32_t leftSubnumber = mPubLeft.getNumSubscribers();
-  uint32_t leftRawSubnumber = mPubRawLeft.getNumSubscribers();
+  uint32_t leftRawSubnumber = 0; //mPubRawLeft.getNumSubscribers();
   uint32_t rightSubnumber = mPubRight.getNumSubscribers();
-  uint32_t rightRawSubnumber = mPubRawRight.getNumSubscribers();
-  uint32_t rgbGraySubnumber = mPubRgbGray.getNumSubscribers();
-  uint32_t rgbGrayRawSubnumber = mPubRawRgbGray.getNumSubscribers();
-  uint32_t leftGraySubnumber = mPubLeftGray.getNumSubscribers();
-  uint32_t leftGrayRawSubnumber = mPubRawLeftGray.getNumSubscribers();
-  uint32_t rightGraySubnumber = mPubRightGray.getNumSubscribers();
-  uint32_t rightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers();
-  uint32_t depthSubnumber = mPubDepth.getNumSubscribers();
-  uint32_t disparitySubnumber = mPubDisparity.getNumSubscribers();
-  uint32_t confMapSubnumber = mPubConfMap.getNumSubscribers();
-  uint32_t stereoSubNumber = mPubStereo.getNumSubscribers();
+  uint32_t rightRawSubnumber = 0; //mPubRawRight.getNumSubscribers();
+  uint32_t rgbGraySubnumber = 0; //mPubRgbGray.getNumSubscribers();
+  uint32_t rgbGrayRawSubnumber = 0; //mPubRawRgbGray.getNumSubscribers();
+  uint32_t leftGraySubnumber = 0; //mPubLeftGray.getNumSubscribers();
+  uint32_t leftGrayRawSubnumber = 0; //mPubRawLeftGray.getNumSubscribers();
+  uint32_t rightGraySubnumber = 0; //mPubRightGray.getNumSubscribers();
+  uint32_t rightGrayRawSubnumber = 0; //mPubRawRightGray.getNumSubscribers();
+  uint32_t depthSubnumber = 0; //mPubDepth.getNumSubscribers();
+  uint32_t disparitySubnumber = 0; //mPubDisparity.getNumSubscribers();
+  uint32_t confMapSubnumber = 0; //mPubConfMap.getNumSubscribers();
+  uint32_t stereoSubNumber = 0; //mPubStereo.getNumSubscribers();
   uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers();
 
   uint32_t tot_sub = rgbSubnumber + rgbRawSubnumber + leftSubnumber + leftRawSubnumber + rightSubnumber +
@@ -3552,28 +3554,28 @@ void ZEDWrapperNodelet::device_poll_thread_func()
   while (mNhNs.ok())
   {
     // Check for subscribers
-    uint32_t rgbSubnumber = mPubRgb.getNumSubscribers();
-    uint32_t rgbRawSubnumber = mPubRawRgb.getNumSubscribers();
+    uint32_t rgbSubnumber = 0; //mPubRgb.getNumSubscribers();
+    uint32_t rgbRawSubnumber = 0; //mPubRawRgb.getNumSubscribers();
     uint32_t leftSubnumber = mPubLeft.getNumSubscribers();
-    uint32_t leftRawSubnumber = mPubRawLeft.getNumSubscribers();
+    uint32_t leftRawSubnumber = 0; //mPubRawLeft.getNumSubscribers();
     uint32_t rightSubnumber = mPubRight.getNumSubscribers();
-    uint32_t rightRawSubnumber = mPubRawRight.getNumSubscribers();
-    uint32_t rgbGraySubnumber = mPubRgbGray.getNumSubscribers();
-    uint32_t rgbGrayRawSubnumber = mPubRawRgbGray.getNumSubscribers();
-    uint32_t leftGraySubnumber = mPubLeftGray.getNumSubscribers();
-    uint32_t leftGrayRawSubnumber = mPubRawLeftGray.getNumSubscribers();
-    uint32_t rightGraySubnumber = mPubRightGray.getNumSubscribers();
-    uint32_t rightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers();
-    uint32_t depthSubnumber = mPubDepth.getNumSubscribers();
-    uint32_t disparitySubnumber = mPubDisparity.getNumSubscribers();
+    uint32_t rightRawSubnumber = 0; //mPubRawRight.getNumSubscribers();
+    uint32_t rgbGraySubnumber = 0; //mPubRgbGray.getNumSubscribers();
+    uint32_t rgbGrayRawSubnumber = 0; //mPubRawRgbGray.getNumSubscribers();
+    uint32_t leftGraySubnumber = 0; //mPubLeftGray.getNumSubscribers();
+    uint32_t leftGrayRawSubnumber = 0; //mPubRawLeftGray.getNumSubscribers();
+    uint32_t rightGraySubnumber = 0; //mPubRightGray.getNumSubscribers();
+    uint32_t rightGrayRawSubnumber = 0; //mPubRawRightGray.getNumSubscribers();
+    uint32_t depthSubnumber = 0; //mPubDepth.getNumSubscribers();
+    uint32_t disparitySubnumber = 0; //mPubDisparity.getNumSubscribers();
     uint32_t cloudSubnumber = mPubCloud.getNumSubscribers();
     uint32_t fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
     uint32_t poseSubnumber = mPubPose.getNumSubscribers();
     uint32_t poseCovSubnumber = mPubPoseCov.getNumSubscribers();
     uint32_t odomSubnumber = mPubOdom.getNumSubscribers();
-    uint32_t confMapSubnumber = mPubConfMap.getNumSubscribers();
+    uint32_t confMapSubnumber = 0; //mPubConfMap.getNumSubscribers();
     uint32_t pathSubNumber = mPubMapPath.getNumSubscribers() + mPubOdomPath.getNumSubscribers();
-    uint32_t stereoSubNumber = mPubStereo.getNumSubscribers();
+    uint32_t stereoSubNumber = 0; //mPubStereo.getNumSubscribers();
     uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers();
 
     uint32_t objDetSubnumber = 0;
