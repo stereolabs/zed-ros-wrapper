@@ -47,6 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="cam_pitch"             default="0.0" />
     <arg name="cam_yaw"               default="0.0" />
 
+    <arg name="publish_tf" default="true"/>
+
     <!-- ROS URDF description of the ZED -->
     <group if="$(arg publish_urdf)">
         <param name="$(arg camera_name)_description"
@@ -91,5 +93,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- GPU ID -->
         <param name="general/gpu_id"                    value="$(arg gpu_id)" />
+
+	<!-- Disable TF publishing -->
+        <param name="pos_tracking/publish_tf"            value="$(arg publish_tf)" />
+        <param name="pos_tracking/publish_map_tf"        value="$(arg publish_tf)" />
+	
     </node>
 </launch>

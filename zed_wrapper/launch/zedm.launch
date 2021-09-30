@@ -24,6 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="camera_model"         default="zedm" /> <!-- 'zed' or 'zedm' -->
     <arg name="serial_number"        default="0" />
     <arg name="publish_urdf"         default="true" />
+    <arg name="publish_tf"           default="true" />
 
     <arg name="camera_name"          default="zedm" />
 
@@ -52,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <arg name="cam_roll"            value="$(arg cam_roll)" />
             <arg name="cam_pitch"           value="$(arg cam_pitch)" />
             <arg name="cam_yaw"             value="$(arg cam_yaw)" />
+	    <arg name="publish_tf"          value="$(arg publish_tf)" />
         </include>
     </group>
 </launch>
