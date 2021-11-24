@@ -33,18 +33,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <xacro:if value="${model == 'zed'}">
       <xacro:property name="baseline" value="0.12" />
       <xacro:property name="height" value="0.033" />
+      <xacro:property name="bottom_slope" value="0.05" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
     </xacro:if>
     <xacro:if value="${model == 'zedm'}">
       <xacro:property name="baseline" value="0.06" />
       <xacro:property name="height" value="0.0265" />
+      <xacro:property name="bottom_slope" value="0.0" /> 
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="optical_offset_x" value="0.0" />
     </xacro:if>
     <xacro:if value="${model == 'zed2'}">
       <xacro:property name="baseline" value="0.12" />
       <xacro:property name="height" value="0.033" />
+      <xacro:property name="bottom_slope" value="0.05" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
     </xacro:if>
     <xacro:if value="${model == 'zed2i'}">
       <xacro:property name="baseline" value="0.12" />
       <xacro:property name="height" value="0.033" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="-0.01" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
     </xacro:if>
 
 
@@ -61,7 +73,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Camera Center -->
     <link name="${name}_camera_center">
       <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="${screw_offset_x} 0 0" rpy="0 0 0"/>
         <geometry>
           <mesh filename="package://zed_interfaces/meshes/${model}.stl" />
         </geometry>
@@ -76,7 +88,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <joint name="${name}_camera_center_joint" type="fixed">
       <parent link="${name}_base_link"/>
       <child link="${name}_camera_center"/>
-      <origin xyz="0 0 ${height/2}" rpy="0 0 0" />
+      <origin xyz="0 0 ${height/2}" rpy="0 ${bottom_slope} 0" />
     </joint>
 
 
@@ -90,7 +102,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <link name="${name}_left_camera_optical_frame"/>
     <joint name="${name}_left_camera_optical_joint" type="fixed">
-      <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+      <origin xyz="${optical_offset_x} 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
       <parent link="${name}_left_camera_frame"/>
       <child link="${name}_left_camera_optical_frame"/>
     </joint>
@@ -106,7 +118,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <link name="${name}_right_camera_optical_frame"/>
     <joint name="${name}_right_camera_optical_joint" type="fixed">
-      <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+      <origin xyz="${optical_offset_x} 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
       <parent link="${name}_right_camera_frame"/>
       <child link="${name}_right_camera_optical_frame"/>
     </joint>
