@@ -30,9 +30,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <xacro:arg name="cam_yaw"       default="0.0" />
 
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
-  <xacro:zed_camera name="${camera_name}" model="${camera_model}" parent="${base_frame}">
-    <origin xyz="${cam_pos_x} ${cam_pos_y} ${cam_pos_z}" rpy="${cam_roll} ${cam_pitch} ${cam_yaw}" />
+  <xacro:zed_camera name="$(arg camera_name)" model="$(arg camera_model)" parent="$(arg base_frame)">
+    <origin xyz="$(arg cam_pos_x) $(arg cam_pos_y) $(arg cam_pos_z)" rpy="$(arg cam_roll) $(arg cam_pitch) $(arg cam_yaw)" />
   </xacro:zed_camera>
 
-  <link name="${base_frame}" />
+  <link name="$(arg base_frame)" />
 </robot>
