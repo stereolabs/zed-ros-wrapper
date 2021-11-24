@@ -1,0 +1,158 @@
+<?xml version="1.0"?>
+
+<!--
+Copyright (c) 2020, STEREOLABS.
+
+All rights reserved.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:include filename="$(find zed_wrapper)/urdf/include/materials.urdf.xacro" />
+  <xacro:property name="M_PI"     value="3.1415926535897931" />
+
+  <!--
+    Parameters:
+      - name: the camera's name.  should match the parameter sent to the launch file for this camera
+      - model: the tye of camera, one of zed, zedm, zed2, zed2i
+      - parent: the parent link of the camera.  must be defined in the URDF file that uses this macro
+      - origin: the xyz/rpy offset from the parent link
+  -->
+  <xacro:macro name="zed_camera" params="name=zed model=zed parent *origin">
+    <xacro:if value="${model == 'zed'}">
+      <xacro:property name="baseline" value="0.12" />
+      <xacro:property name="height" value="0.033" />
+      <xacro:property name="bottom_slope" value="0.05" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+    </xacro:if>
+    <xacro:if value="${model == 'zedm'}">
+      <xacro:property name="baseline" value="0.06" />
+      <xacro:property name="height" value="0.0265" />
+      <xacro:property name="bottom_slope" value="0.0" /> 
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="optical_offset_x" value="0.0" />
+    </xacro:if>
+    <xacro:if value="${model == 'zed2'}">
+      <xacro:property name="baseline" value="0.12" />
+      <xacro:property name="height" value="0.033" />
+      <xacro:property name="bottom_slope" value="0.05" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+    </xacro:if>
+    <xacro:if value="${model == 'zed2i'}">
+      <xacro:property name="baseline" value="0.12" />
+      <xacro:property name="height" value="0.033" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="-0.01" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+    </xacro:if>
+
+
+
+    <!-- Camera mounting point (the threaded screw hole in the bottom) -->
+    <link name="${name}_base_link" />
+    <joint name="${name}_base_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}_base_link"/>
+      <xacro:insert_block name="origin" />
+    </joint>
+
+
+    <!-- Camera Center -->
+    <link name="${name}_camera_center">
+      <visual>
+        <origin xyz="${screw_offset_x} 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://zed_interfaces/meshes/${model}.stl" />
+        </geometry>
+        <material name="${model}_mat" />
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="package://zed_interfaces/meshes/${model}.stl" />
+        </geometry>
+      </collision>
+    </link>
+    <joint name="${name}_camera_center_joint" type="fixed">
+      <parent link="${name}_base_link"/>
+      <child link="${name}_camera_center"/>
+      <origin xyz="0 0 ${height/2}" rpy="0 ${bottom_slope} 0" />
+    </joint>
+
+
+    <!-- Left Camera -->
+    <link name="${name}_left_camera_frame" />
+    <joint name="${name}_left_camera_joint" type="fixed">
+      <parent link="${name}_camera_center"/>
+      <child link="${name}_left_camera_frame"/>
+      <origin xyz="0 ${baseline/2} 0" rpy="0 0 0" />
+    </joint>
+
+    <link name="${name}_left_camera_optical_frame"/>
+    <joint name="${name}_left_camera_optical_joint" type="fixed">
+      <origin xyz="${optical_offset_x} 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+      <parent link="${name}_left_camera_frame"/>
+      <child link="${name}_left_camera_optical_frame"/>
+    </joint>
+
+
+    <!-- Right Camera -->
+    <link name="${name}_right_camera_frame" />
+    <joint name="${name}_right_camera_joint" type="fixed">
+      <parent link="${name}_camera_center"/>
+      <child link="${name}_right_camera_frame"/>
+      <origin xyz="0 -${baseline/2} 0" rpy="0 0 0" />
+    </joint>
+
+    <link name="${name}_right_camera_optical_frame"/>
+    <joint name="${name}_right_camera_optical_joint" type="fixed">
+      <origin xyz="${optical_offset_x} 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+      <parent link="${name}_right_camera_frame"/>
+      <child link="${name}_right_camera_optical_frame"/>
+    </joint>
+
+
+    <!-- ZED2 Sensors -->
+    <xacro:if value="${model == 'zed2'}">
+      <link name="${name}_mag_link" />
+      <joint name="${name}_mag_joint" type="fixed">
+        <parent link="${name}_camera_center"/>
+        <child link="${name}_mag_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+      </joint>
+
+      <link name="${name}_baro_link" />
+      <joint name="${name}_baro_joint" type="fixed">
+        <parent link="${name}_camera_center"/>
+        <child link="${name}_baro_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+      </joint>
+
+      <link name="${name}_temp_left_link" />
+      <joint name="${name}_temp_left_joint" type="fixed">
+        <parent link="${name}_left_camera_frame"/>
+        <child link="${name}_temp_left_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+      </joint>
+
+      <link name="${name}_temp_right_link" />
+      <joint name="${name}_temp_right_joint" type="fixed">
+        <parent link="${name}_right_camera_frame"/>
+        <child link="${name}_temp_right_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+      </joint>
+    </xacro:if>
+  </xacro:macro>
+</robot>
