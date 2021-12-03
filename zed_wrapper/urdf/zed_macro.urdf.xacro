@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <xacro:macro name="zed_camera" params="name=zed model=zed parent *origin">
     <xacro:if value="${model == 'zed'}">
       <xacro:property name="baseline" value="0.12" />
-      <xacro:property name="height" value="0.033" />
+      <xacro:property name="height" value="0.03" />
       <xacro:property name="bottom_slope" value="0.05" />
       <xacro:property name="screw_offset_x" value="0.0" />
       <xacro:property name="optical_offset_x" value="-0.01" />
@@ -46,14 +46,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </xacro:if>
     <xacro:if value="${model == 'zed2'}">
       <xacro:property name="baseline" value="0.12" />
-      <xacro:property name="height" value="0.033" />
+      <xacro:property name="height" value="0.03" />
       <xacro:property name="bottom_slope" value="0.05" />
       <xacro:property name="screw_offset_x" value="0.0" />
       <xacro:property name="optical_offset_x" value="-0.01" />
     </xacro:if>
     <xacro:if value="${model == 'zed2i'}">
       <xacro:property name="baseline" value="0.12" />
-      <xacro:property name="height" value="0.033" />
+      <xacro:property name="height" value="0.03" />
       <xacro:property name="bottom_slope" value="0.0" />
       <xacro:property name="screw_offset_x" value="-0.01" />
       <xacro:property name="optical_offset_x" value="-0.01" />
