@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2021-12-03
+----------
+- Fixed wrong ZED, ZED2, and ZED2i height value. See issue [#797](https://github.com/stereolabs/zed-ros-wrapper/issues/797). Thx @zulfiz
+
 2021-11-24
 ----------
 - Add new `<zed>_base_link` frame on the base of the camera to easily handle camera positioning on robots. Thx @civerachb-cpr
