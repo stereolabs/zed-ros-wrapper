@@ -57,7 +57,7 @@ Open a terminal, clone the repository, update the dependencies and build the pac
     $ catkin_make -DCMAKE_BUILD_TYPE=Release
     $ source ./devel/setup.bash
 
-#### Update the repository
+#### Update the local repository
 
 To update the repository to the latest release you must use the following command to retrieve the latest commits of `zed-ros-wrapper` and of all the submodules:
 
