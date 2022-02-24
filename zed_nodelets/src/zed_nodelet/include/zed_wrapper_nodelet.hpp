@@ -717,6 +717,7 @@ private:
   bool mObjDetAnimalsEnable = true;
   bool mObjDetElectronicsEnable = true;
   bool mObjDetFruitsEnable = true;
+  bool mObjDetSportsEnable = true;
 
   sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::MULTI_CLASS_BOX;
 

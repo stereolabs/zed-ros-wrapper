@@ -14,17 +14,17 @@ gain:                       100                                 # Dynamic - work
 exposure:                   100                                 # Dynamic - works only if `auto_exposure_gain` is false
 auto_whitebalance:          true                                # Dynamic
 whitebalance_temperature:   42                                  # Dynamic - works only if `auto_whitebalance` is false
-depth_confidence:           50                                  # Dynamic
+depth_confidence:           30                                  # Dynamic
 depth_texture_conf:         100                                 # Dynamic
-pub_frame_rate:             100.0                                # Dynamic - frequency of publishing of video and depth data
-point_cloud_freq:           100.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
+pub_frame_rate:             15.0                                # Dynamic - frequency of publishing of video and depth data
+point_cloud_freq:           10.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
 
 general:
     camera_name:                zed                             # A name for the camera (can be different from camera model and node name and can be overwritten by the launch file)
     zed_id:                     0
     serial_number:              0
-    resolution:                 3                                # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
-    grab_frame_rate:            100                              # Frequency of frame grabbing for internal SDK operations
+    resolution:                 2                               # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
+    grab_frame_rate:            15                              # Frequency of frame grabbing for internal SDK operations
     gpu_id:                     -1
     base_frame:                 'base_link'                     # must be equal to the frame_id used in the URDF file
     verbose:                    false                           # Enable info message by the ZED SDK
@@ -37,7 +37,7 @@ video:
     extrinsic_in_camera_frame:  true                            # if `false` extrinsic parameter in `camera_info` will use ROS native frame (X FORWARD, Z UP) instead of the camera frame (Z FORWARD, Y DOWN) [`true` use old behavior as for version < v3.1]
 
 depth:
-    quality:                    1                               # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA
+    quality:                    4                               # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA, '4': NEURAL
     sensing_mode:               0                               # '0': STANDARD, '1': FILL (not use FILL for robotic applications)
     depth_stabilization:        1                               # `0`: disabled, `1`: enabled
     openni_depth_mode:          false                           # 'false': 32bit float meters, 'true': 16bit uchar millimeters
