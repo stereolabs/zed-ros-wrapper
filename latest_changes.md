@@ -1,6 +1,14 @@
 LATEST CHANGES
 ==============
 
+v3.7.x
+---------
+- Add support for the new Neural Depth mode
+- Add support for head detection model
+- Add support for sport-related object class
+- Add support for X_MEDIUM neural network models
+- Enable AI for ZED Mini
+
 2021-11-24
 ----------
 - Add new `<zed>_base_link` frame on the base of the camera to easily handle camera positioning on robots. Thx @civerachb-cpr
