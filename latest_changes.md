@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2022-03-16
+-----------
+- Fix the frame links of barometer, magnetometer, and temperature sensors for ZED2i
+
 v3.7.x
 ---------
 - Add support for the new Neural Depth mode
