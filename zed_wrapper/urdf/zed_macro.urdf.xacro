@@ -125,7 +125,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
     <!-- ZED2 Sensors -->
-    <xacro:if value="${model == 'zed2'}">
+    <xacro:if value="${model == 'zed2' or model == 'zed2i'}">
       <link name="${name}_mag_link" />
       <joint name="${name}_mag_joint" type="fixed">
         <parent link="${name}_camera_center"/>
