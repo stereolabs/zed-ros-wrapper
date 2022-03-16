@@ -18,7 +18,7 @@ sensors:
 
 object_detection:
     od_enabled:                 false           # True to enable Object Detection [not available for ZED]
-    model:                      1               # '0': MULTI_CLASS_BOX - '1': MULTI_CLASS_BOX_ACCURATE - '2': HUMAN_BODY_FAST - '3': HUMAN_BODY_ACCURATE - '4': MULTI_CLASS_BOX_MEDIUM - '5': HUMAN_BODY_MEDIUM - '6': PERSON_HEAD_BOX
+    model:                      0               # '0': MULTI_CLASS_BOX - '1': MULTI_CLASS_BOX_ACCURATE - '2': HUMAN_BODY_FAST - '3': HUMAN_BODY_ACCURATE - '4': MULTI_CLASS_BOX_MEDIUM - '5': HUMAN_BODY_MEDIUM - '6': PERSON_HEAD_BOX
     confidence_threshold:       50              # Minimum value of the detection confidence of an object [0,100]
     max_range:                  15.             # Maximum detection range
     object_tracking_enabled:    true            # Enable/disable the tracking of the detected objects
