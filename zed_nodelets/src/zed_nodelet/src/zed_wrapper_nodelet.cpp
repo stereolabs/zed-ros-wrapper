@@ -59,6 +59,10 @@ ZEDWrapperNodelet::~ZEDWrapperNodelet()
         mPcThread.join();
     }
 
+    if (mSensThread.joinable()) {
+        mSensThread.join();
+    }
+
     std::cerr << "ZED Nodelet destroyed" << std::endl;
 }
 
@@ -493,26 +497,26 @@ void ZEDWrapperNodelet::onInit()
     // Sensor publishers
     if (mZedRealCamModel != sl::MODEL::ZED) {
         // IMU Publishers
-        mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 1 /*static_cast<int>(mSensPubRate)*/);
+        mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubImu.getTopic());
-        mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 1 /*static_cast<int>(mSensPubRate)*/);
+        mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubImuRaw.getTopic());
-        mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, 1 /*MAG_FREQ*/);
+        mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubImuMag.getTopic());
 
         if (mZedRealCamModel == sl::MODEL::ZED2 || mZedRealCamModel == sl::MODEL::ZED2i) {
             // IMU temperature sensor
-            mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, 1 /*static_cast<int>(mSensPubRate)*/);
+            mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << mPubImuTemp.getTopic());
 
             // Atmospheric pressure
-            mPubPressure = mNhNs.advertise<sensor_msgs::FluidPressure>(pressure_topic, 1 /*static_cast<int>(BARO_FREQ)*/);
+            mPubPressure = mNhNs.advertise<sensor_msgs::FluidPressure>(pressure_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << mPubPressure.getTopic());
 
             // CMOS sensor temperatures
-            mPubTempL = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_left, 1 /*static_cast<int>(BARO_FREQ)*/);
+            mPubTempL = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_left, 1);
             NODELET_INFO_STREAM("Advertised on topic " << mPubTempL.getTopic());
-            mPubTempR = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_right, 1 /*static_cast<int>(BARO_FREQ)*/);
+            mPubTempR = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_right, 1);
             NODELET_INFO_STREAM("Advertised on topic " << mPubTempR.getTopic());
         }
 
@@ -545,8 +549,6 @@ void ZEDWrapperNodelet::onInit()
 
         if (!mSvoMode && !mSensTimestampSync) {
             mFrameTimestamp = ros::Time::now();
-            mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / (mSensPubRate * 1.5)),
-                &ZEDWrapperNodelet::callback_pubSensorsData, this);
             mSensPeriodMean_usec.reset(new sl_tools::CSmartMean(mSensPubRate / 2));
         } else {
             mSensPeriodMean_usec.reset(new sl_tools::CSmartMean(mCamFrameRate / 2));
@@ -582,6 +584,9 @@ void ZEDWrapperNodelet::onInit()
 
     // Start data publishing timer
     mVideoDepthTimer = mNhNs.createTimer(ros::Duration(1.0 / mVideoDepthFreq), &ZEDWrapperNodelet::callback_pubVideoDepth, this);
+
+    // Start Sensors thread
+    mSensThread = std::thread(&ZEDWrapperNodelet::sensors_thread_func, this);
 }
 
 void ZEDWrapperNodelet::readParameters()
@@ -790,8 +795,22 @@ void ZEDWrapperNodelet::readParameters()
     NODELET_INFO_STREAM("*** SENSORS PARAMETERS ***");
 
     // ----> Sensors
-    mNhNs.getParam("sensors/sensors_timestamp_sync", mSensTimestampSync);
-    NODELET_INFO_STREAM(" * Sensors timestamp sync\t-> " << (mSensTimestampSync ? "ENABLED" : "DISABLED"));
+    if (camera_model != "zed") {
+        mNhNs.getParam("sensors/sensors_timestamp_sync", mSensTimestampSync);
+        NODELET_INFO_STREAM(" * Sensors timestamp sync\t-> " << (mSensTimestampSync ? "ENABLED" : "DISABLED"));
+        mNhNs.getParam("sensors/max_pub_rate", mSensPubRate);
+        if (camera_model == "zedm") {
+            if (mSensPubRate > 800.)
+                mSensPubRate = 800.;
+        } else {
+            if (mSensPubRate > 400.)
+                mSensPubRate = 400.;
+        }
+
+        NODELET_INFO_STREAM(" * Max sensors rate\t\t-> " << mSensPubRate);
+    } else {
+        NODELET_INFO_STREAM(" * The ZED camera has no available inertial/environmental sensors.");
+    }
     // <---- Sensors
 
     NODELET_INFO_STREAM("*** SVO PARAMETERS ***");
@@ -2763,16 +2782,44 @@ void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
     }
 }
 
-void ZEDWrapperNodelet::callback_pubSensorsData(const ros::TimerEvent& e)
+void ZEDWrapperNodelet::sensors_thread_func()
 {
-    // NODELET_INFO("callback_pubSensorsData");
-    std::lock_guard<std::mutex> lock(mCloseZedMutex);
+    ros::Rate loop_rate(mSensPubRate);
 
-    if (!mZed.isOpened()) {
-        return;
+    std::chrono::steady_clock::time_point prev_usec = std::chrono::steady_clock::now();
+
+    int count_warn = 0;
+
+    while (!mStopNode) {
+        std::chrono::steady_clock::time_point start_elab = std::chrono::steady_clock::now();
+
+        mCloseZedMutex.lock();
+        if (!mZed.isOpened()) {
+            mCloseZedMutex.unlock();
+            loop_rate.sleep();
+            continue;
+        }
+
+        publishSensData();
+        mCloseZedMutex.unlock();
+
+        if (!loop_rate.sleep()) {
+            if (++count_warn > 10) {
+                NODELET_INFO_THROTTLE(1.0, "Sensors thread is not synchronized with the Sensors rate");
+                NODELET_INFO_STREAM_THROTTLE(1.0, "Expected cycle time: " << loop_rate.expectedCycleTime() << " - Real cycle time: " << loop_rate.cycleTime());
+                NODELET_WARN_STREAM_THROTTLE(10.0, "Sensors data publishing takes longer (" << loop_rate.cycleTime() << " sec) than requested  by the Sensors rate (" << loop_rate.expectedCycleTime() << " sec). Please consider to "
+                                                                                                                                                                                                          "lower the 'max_pub_rate' setting or to "
+                                                                                                                                                                                                          "reduce the power requirements reducing "
+                                                                                                                                                                                                          "the resolutions.");
+            }
+
+            loop_rate.reset();
+        } else {
+            count_warn = 0;
+        }
     }
 
-    publishSensData();
+    NODELET_DEBUG("Sensors thread finished");
 }
 
 void ZEDWrapperNodelet::publishSensData(ros::Time t)
@@ -2892,9 +2939,9 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
         sensors_data_published = true;
         mPubImuTemp.publish(imuTempMsg);
-    } else {
+    } /*else {
         NODELET_DEBUG("No new IMU temp.");
-    }
+    }*/
 
     if (sens_data.barometer.is_available && new_baro_data) {
         lastTs_baro = ts_baro;
@@ -2960,9 +3007,9 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
             sensors_data_published = true;
             mPubTempR.publish(tempRightMsg);
         }
-    } else {
+    } /*else {
         NODELET_DEBUG("No new BAROM. DATA");
-    }
+    }*/
 
     if (imu_MagSubNumber > 0) {
         if (sens_data.magnetometer.is_available && new_mag_data) {
@@ -2997,9 +3044,9 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
             sensors_data_published = true;
             mPubImuMag.publish(magMsg);
         }
-    } else {
+    } /*else {
         NODELET_DEBUG("No new MAG. DATA");
-    }
+    }*/
 
     if (imu_SubNumber > 0 && new_imu_data) {
         lastTs_imu = ts_imu;
@@ -3059,9 +3106,9 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
         sensors_data_published = true;
         mPubImu.publish(imuMsg);
-    } else {
+    } /*else {
         NODELET_DEBUG("No new IMU DATA");
-    }
+    }*/
 
     if (imu_RawSubNumber > 0 && new_imu_data) {
         lastTs_imu = ts_imu;
@@ -3248,12 +3295,12 @@ void ZEDWrapperNodelet::device_poll_thread_func()
                 runParams.enable_depth = false; // Ask to not compute the depth
             }
 
+            std::chrono::steady_clock::time_point start_elab = std::chrono::steady_clock::now();
+
             mCamDataMutex.lock();
             mRgbDepthDataRetrieved = false;
             mGrabStatus = mZed.grab(runParams);
             mCamDataMutex.unlock();
-
-            std::chrono::steady_clock::time_point start_elab = std::chrono::steady_clock::now();
 
             // cout << toString(grab_status) << endl;
             if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
@@ -3793,6 +3840,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
         mRecording = false;
         mZed.disableRecording();
     }
+    mStopNode = true;
     mZed.close();
 
     NODELET_DEBUG("ZED pool thread finished");
