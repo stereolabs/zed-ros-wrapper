@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2022-03-28
+- Add parameter `sensors/max_pub_rate` to set the maximum publishing frequency of sensors data
+- Improve Sensors thread
+
 2022-03-16
 -----------
 - Fix the frame links of barometer, magnetometer, and temperature sensors for ZED2i
