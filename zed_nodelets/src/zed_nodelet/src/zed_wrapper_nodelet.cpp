@@ -1240,17 +1240,17 @@ bool ZEDWrapperNodelet::on_set_pose(zed_interfaces::set_pose::Request& req, zed_
     mInitialBasePose[4] = req.P;
     mInitialBasePose[5] = req.Y;
 
-    if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2], mInitialBasePose[3], mInitialBasePose[4],
+    /*if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2], mInitialBasePose[3], mInitialBasePose[4],
             mInitialBasePose[5])) {
         res.done = false;
         return false;
-    }
+    }*/
 
     std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
     // Disable tracking
-    mPosTrackingActivated = false;
-    mZed.disablePositionalTracking();
+    //mPosTrackingActivated = false;
+    //mZed.disablePositionalTracking();
 
     // Restart tracking
     start_pos_tracking();
@@ -1267,17 +1267,17 @@ bool ZEDWrapperNodelet::on_reset_tracking(zed_interfaces::reset_tracking::Reques
         return false;
     }
 
-    if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2], mInitialBasePose[3], mInitialBasePose[4],
+    /*if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2], mInitialBasePose[3], mInitialBasePose[4],
             mInitialBasePose[5])) {
         res.reset_done = false;
         return false;
-    }
+    }*/
 
     std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
     // Disable tracking
-    mPosTrackingActivated = false;
-    mZed.disablePositionalTracking();
+    //mPosTrackingActivated = false;
+    //mZed.disablePositionalTracking();
 
     // Restart tracking
     start_pos_tracking();
@@ -1470,6 +1470,7 @@ void ZEDWrapperNodelet::start_pos_tracking()
 
     NODELET_INFO(" * Waiting for valid static transformations...");
 
+    mPosTrackingReady = false;
     bool transformOk = false;
     double elapsed = 0.0;
 
