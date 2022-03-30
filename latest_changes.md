@@ -2,7 +2,7 @@ LATEST CHANGES
 ==============
 
 2022-03-30
-- Fix wrong TP broadcasting when calling the `set_pose`, `reset_tracking`, and `reset_odometry` services
+- Fix wrong TF broadcasting when calling the `set_pose`, `reset_tracking`, and `reset_odometry` services. Now the initial odometry is coherent with the new starting point.
 
 2022-03-28
 - Add parameter `sensors/max_pub_rate` to set the maximum publishing frequency of sensors data
