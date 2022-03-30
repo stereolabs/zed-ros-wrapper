@@ -555,6 +555,9 @@ void ZEDWrapperNodelet::onInit()
         }
     }
 
+    // Subscribers
+    mClickedPtSub = mNhNs.subscribe(mClickedPtTopic, 10, &ZEDWrapperNodelet::clickedPtCallback, this);
+
     // Services
     mSrvSetInitPose = mNhNs.advertiseService("set_pose", &ZEDWrapperNodelet::on_set_pose, this);
     mSrvResetOdometry = mNhNs.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
@@ -738,6 +741,9 @@ void ZEDWrapperNodelet::readParameters()
     } else {
         NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
     }
+
+    mNhNs.param<std::string>("mapping/clicked_point_topic", mClickedPtTopic, std::string("/clicked_point"));
+    NODELET_INFO_STREAM(" * Clicked point topic\t\t-> " << mClickedPtTopic.c_str());
     // <---- Mapping
 
     NODELET_INFO_STREAM("*** OBJECT DETECTION PARAMETERS ***");
@@ -4389,6 +4395,28 @@ void ZEDWrapperNodelet::processDetectedObjects(ros::Time t)
     }
 
     mPubObjDet.publish(objMsg);
+}
+
+void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr msg)
+{
+    float X = msg->point.x;
+    float Y = msg->point.y;
+    float Z = msg->point.z;
+    NODELET_INFO_STREAM("Clicked 3D point: [" << X << "," << Y << "," << Z << "]");
+
+    // ----> Project the point into 2D image coordinates
+    sl::CalibrationParameters zedParam;
+    zedParam = mZed.getCameraInformation(mMatResolVideo).calibration_parameters; // ok
+
+    float f_x = zedParam.left_cam.fx;
+    float f_y = zedParam.left_cam.fy;
+    float c_x = zedParam.left_cam.cx;
+    float c_y = zedParam.left_cam.cy;
+
+    float u = (-Y / X) * f_x + c_x;
+    float v = (-Z / X) * f_y + c_y;
+    NODELET_INFO_STREAM("Clicked point image coordinates: [" << u << "," << v << "]");
+    // <---- Project the point into 2D image coordinates
 }
 
 } // namespace zed_nodelets
