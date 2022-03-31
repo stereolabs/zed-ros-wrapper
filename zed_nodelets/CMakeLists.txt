@@ -73,6 +73,7 @@ catkin_package(
     message_runtime    
     zed_interfaces
     geometry_msgs
+    visualization_msgs
 )
 
 ###############################################################################

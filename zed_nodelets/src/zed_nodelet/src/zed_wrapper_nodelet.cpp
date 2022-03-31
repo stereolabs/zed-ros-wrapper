@@ -111,51 +111,54 @@ void ZEDWrapperNodelet::onInit()
     std::string img_gray_topic = "/image_rect_gray";
     std::string img_raw_gray_topic_ = "/image_raw_gray";
     std::string raw_suffix = "_raw";
-    string left_topic = leftTopicRoot + img_topic;
-    string left_raw_topic = leftTopicRoot + raw_suffix + img_raw_topic;
-    string right_topic = rightTopicRoot + img_topic;
-    string right_raw_topic = rightTopicRoot + raw_suffix + img_raw_topic;
-    string rgb_topic = rgbTopicRoot + img_topic;
-    string rgb_raw_topic = rgbTopicRoot + raw_suffix + img_raw_topic;
-    string stereo_topic = stereoTopicRoot + img_topic;
-    string stereo_raw_topic = stereoTopicRoot + raw_suffix + img_raw_topic;
-    string left_gray_topic = leftTopicRoot + img_gray_topic;
-    string left_raw_gray_topic = leftTopicRoot + raw_suffix + img_raw_gray_topic_;
-    string right_gray_topic = rightTopicRoot + img_gray_topic;
-    string right_raw_gray_topic = rightTopicRoot + raw_suffix + img_raw_gray_topic_;
-    string rgb_gray_topic = rgbTopicRoot + img_gray_topic;
-    string rgb_raw_gray_topic = rgbTopicRoot + raw_suffix + img_raw_gray_topic_;
+    std::string left_topic = leftTopicRoot + img_topic;
+    std::string left_raw_topic = leftTopicRoot + raw_suffix + img_raw_topic;
+    std::string right_topic = rightTopicRoot + img_topic;
+    std::string right_raw_topic = rightTopicRoot + raw_suffix + img_raw_topic;
+    std::string rgb_topic = rgbTopicRoot + img_topic;
+    std::string rgb_raw_topic = rgbTopicRoot + raw_suffix + img_raw_topic;
+    std::string stereo_topic = stereoTopicRoot + img_topic;
+    std::string stereo_raw_topic = stereoTopicRoot + raw_suffix + img_raw_topic;
+    std::string left_gray_topic = leftTopicRoot + img_gray_topic;
+    std::string left_raw_gray_topic = leftTopicRoot + raw_suffix + img_raw_gray_topic_;
+    std::string right_gray_topic = rightTopicRoot + img_gray_topic;
+    std::string right_raw_gray_topic = rightTopicRoot + raw_suffix + img_raw_gray_topic_;
+    std::string rgb_gray_topic = rgbTopicRoot + img_gray_topic;
+    std::string rgb_raw_gray_topic = rgbTopicRoot + raw_suffix + img_raw_gray_topic_;
 
     // Set the disparity topic name
     std::string disparityTopic = "disparity/disparity_image";
 
     // Set the depth topic names
-    string depth_topic_root = "depth";
+    std::string depth_topic_root = "depth";
 
     if (mOpenniDepthMode) {
         NODELET_INFO_STREAM("Openni depth mode activated -> Units: mm, Encoding: TYPE_16UC1");
     }
     depth_topic_root += "/depth_registered";
 
-    string pointcloud_topic = "point_cloud/cloud_registered";
+    std::string pointcloud_topic = "point_cloud/cloud_registered";
 
-    string pointcloud_fused_topic = "mapping/fused_cloud";
+    std::string pointcloud_fused_topic = "mapping/fused_cloud";
 
-    string object_det_topic_root = "obj_det";
-    string object_det_topic = object_det_topic_root + "/objects";
+    std::string object_det_topic_root = "obj_det";
+    std::string object_det_topic = object_det_topic_root + "/objects";
 
     std::string confImgRoot = "confidence";
-    string conf_map_topic_name = "confidence_map";
-    string conf_map_topic = confImgRoot + "/" + conf_map_topic_name;
+    std::string conf_map_topic_name = "confidence_map";
+    std::string conf_map_topic = confImgRoot + "/" + conf_map_topic_name;
 
     // Set the positional tracking topic names
     std::string poseTopic = "pose";
-    string pose_cov_topic;
+    std::string pose_cov_topic;
     pose_cov_topic = poseTopic + "_with_covariance";
 
     std::string odometryTopic = "odom";
-    string odom_path_topic = "path_odom";
-    string map_path_topic = "path_map";
+    std::string odom_path_topic = "path_odom";
+    std::string map_path_topic = "path_map";
+
+    // Plane markers topic
+    std::string marker_topic = "plane_marker";
 
     // Create camera info
     mRgbCamInfoMsg.reset(new sensor_msgs::CameraInfo());
@@ -214,7 +217,7 @@ void ZEDWrapperNodelet::onInit()
                 sl::DeviceProperties prop = sl_tools::getZEDFromSN(mZedSerialNumber);
 
                 if (prop.id < -1 || prop.camera_state == sl::CAMERA_STATE::NOT_AVAILABLE) {
-                    std::string msg = "ZED SN" + to_string(mZedSerialNumber) + " not detected ! Please connect this ZED";
+                    std::string msg = "ZED SN" + std::to_string(mZedSerialNumber) + " not detected ! Please connect this ZED";
                     NODELET_INFO_STREAM(msg.c_str());
                     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
                 } else {
@@ -347,23 +350,23 @@ void ZEDWrapperNodelet::onInit()
     }
 
     // Set the IMU topic names using real camera model
-    string imu_topic;
-    string imu_topic_raw;
-    string imu_temp_topic;
-    string imu_mag_topic;
-    // string imu_mag_topic_raw;
-    string pressure_topic;
-    string temp_topic_root = "temperature";
-    string temp_topic_left = temp_topic_root + "/left";
-    string temp_topic_right = temp_topic_root + "/right";
+    std::string imu_topic;
+    std::string imu_topic_raw;
+    std::string imu_temp_topic;
+    std::string imu_mag_topic;
+    // std::string imu_mag_topic_raw;
+    std::string pressure_topic;
+    std::string temp_topic_root = "temperature";
+    std::string temp_topic_left = temp_topic_root + "/left";
+    std::string temp_topic_right = temp_topic_root + "/right";
 
     if (mZedRealCamModel != sl::MODEL::ZED) {
         std::string imuTopicRoot = "imu";
-        string imu_topic_name = "data";
-        string imu_topic_raw_name = "data_raw";
-        string imu_topic_mag_name = "mag";
-        // string imu_topic_mag_raw_name = "mag_raw";
-        string pressure_topic_name = "atm_press";
+        std::string imu_topic_name = "data";
+        std::string imu_topic_raw_name = "data_raw";
+        std::string imu_topic_mag_name = "mag";
+        // std::string imu_topic_mag_raw_name = "mag_raw";
+        std::string pressure_topic_name = "atm_press";
         imu_topic = imuTopicRoot + "/" + imu_topic_name;
         imu_topic_raw = imuTopicRoot + "/" + imu_topic_raw_name;
         imu_temp_topic = temp_topic_root + "/" + imuTopicRoot;
@@ -474,6 +477,9 @@ void ZEDWrapperNodelet::onInit()
     mPubOdom = mNhNs.advertise<nav_msgs::Odometry>(odometryTopic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubOdom.getTopic());
 
+    // Rviz markers
+    mPubMarker = mNhNs.advertise<visualization_msgs::Marker>(marker_topic, 10, true);
+
     // Camera Path
     if (mPathPubRate > 0) {
         mPubOdomPath = mNhNs.advertise<nav_msgs::Path>(odom_path_topic, 1, true);
@@ -522,7 +528,7 @@ void ZEDWrapperNodelet::onInit()
 
         // Publish camera imu transform in a latched topic
         if (mZedRealCamModel != sl::MODEL::ZED) {
-            string cam_imu_tr_topic = "left_cam_imu_transform";
+            std::string cam_imu_tr_topic = "left_cam_imu_transform";
             mPubCamImuTransf = mNhNs.advertise<geometry_msgs::Transform>(cam_imu_tr_topic, 1, true);
 
             sl::Orientation sl_rot = mSlCamImuTransf.getOrientation();
@@ -627,7 +633,7 @@ void ZEDWrapperNodelet::readParameters()
         NODELET_INFO_STREAM(" * Serial number\t\t-> " << mZedSerialNumber);
     }
 
-    string camera_model;
+    std::string camera_model;
     mNhNs.getParam("general/camera_model", camera_model);
 
     if (camera_model == "zed") {
@@ -1333,7 +1339,7 @@ bool ZEDWrapperNodelet::start_3d_mapping()
 
     if (err == sl::ERROR_CODE::SUCCESS) {
         if (mPubFusedCloud.getTopic().empty()) {
-            string pointcloud_fused_topic = "mapping/fused_cloud";
+            std::string pointcloud_fused_topic = "mapping/fused_cloud";
             mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
         }
@@ -1403,8 +1409,8 @@ bool ZEDWrapperNodelet::start_obj_detect()
     }
 
     if (mPubObjDet.getTopic().empty()) {
-        string object_det_topic_root = "obj_det";
-        string object_det_topic = object_det_topic_root + "/objects";
+        std::string object_det_topic_root = "obj_det";
+        std::string object_det_topic = object_det_topic_root + "/objects";
 
         mPubObjDet = mNhNs.advertise<zed_interfaces::ObjectsStamped>(object_det_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
@@ -1817,7 +1823,7 @@ void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time
 
 void ZEDWrapperNodelet::publishImage(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img,
     image_transport::CameraPublisher& pubImg, sensor_msgs::CameraInfoPtr camInfoMsg,
-    string imgFrameId, ros::Time t)
+    std::string imgFrameId, ros::Time t)
 {
     camInfoMsg->header.stamp = t;
     sl_tools::imageToROSmsg(imgMsgPtr, img, imgFrameId, t);
@@ -2088,7 +2094,7 @@ void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg, ro
 }
 
 void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg,
-    sensor_msgs::CameraInfoPtr rightCamInfoMsg, string leftFrameId, string rightFrameId,
+    sensor_msgs::CameraInfoPtr rightCamInfoMsg, std::string leftFrameId, std::string rightFrameId,
     bool rawParam /*= false*/)
 {
     sl::CalibrationParameters zedParam;
@@ -2190,7 +2196,7 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
     rightCamInfoMsg->header.frame_id = rightFrameId;
 }
 
-void ZEDWrapperNodelet::fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg, string frame_id)
+void ZEDWrapperNodelet::fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg, std::string frame_id)
 {
     sl::CalibrationParameters zedParam;
 
@@ -2882,7 +2888,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
     // ----> Publish odometry tf only if enabled
     if (mPublishTf && mPosTrackingReady && new_imu_data) {
-        NODELET_DEBUG("Publishing TF");
+        //NODELET_DEBUG("Publishing TF");
 
         publishOdomFrame(mOdom2BaseTransf, ts_imu); // publish the base Frame in odometry frame
 
@@ -4402,7 +4408,36 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
     float X = msg->point.x;
     float Y = msg->point.y;
     float Z = msg->point.z;
-    NODELET_INFO_STREAM("Clicked 3D point: [" << X << "," << Y << "," << Z << "]");
+
+    NODELET_INFO_STREAM("Clicked 3D point [X FW, Y LF, Z UP]: [" << X << "," << Y << "," << Z << "]");
+
+    // ----> Transform the point from `map` frame to `left_camera_optical_frame`
+    double camX, camY, camZ;
+    try {
+        // Save the transformation
+        geometry_msgs::TransformStamped m2o = mTfBuffer->lookupTransform(mLeftCamOptFrameId, msg->header.frame_id, ros::Time(0), ros::Duration(0.1));
+
+        NODELET_INFO("'%s' -> '%s': {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f,%.3f}", msg->header.frame_id.c_str(), mLeftCamOptFrameId.c_str(),
+            m2o.transform.translation.x, m2o.transform.translation.y, m2o.transform.translation.z,
+            m2o.transform.rotation.x, m2o.transform.rotation.y, m2o.transform.rotation.z, m2o.transform.rotation.w);
+
+        // Get the TF2 transformation
+        geometry_msgs::PointStamped ptCam;
+
+        tf2::doTransform(*msg, ptCam, m2o);
+
+        camX = ptCam.point.x;
+        camY = ptCam.point.y;
+        camZ = ptCam.point.z;
+
+        NODELET_INFO("Point in camera coordinates [Z FW, X RG, Y DW]: {%.3f,%.3f,%.3f}", camX, camY, camZ);
+    } catch (tf2::TransformException& ex) {
+        NODELET_DEBUG_THROTTLE(1.0, "Transform error: %s", ex.what());
+        NODELET_WARN_THROTTLE(1.0, "The tf from '%s' to '%s' is not available.", msg->header.frame_id.c_str(), mLeftCamOptFrameId.c_str());
+
+        return;
+    }
+    // <---- Transform the point from `map` frame to `left_camera_optical_frame`
 
     // ----> Project the point into 2D image coordinates
     sl::CalibrationParameters zedParam;
@@ -4413,10 +4448,132 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
     float c_x = zedParam.left_cam.cx;
     float c_y = zedParam.left_cam.cy;
 
-    float u = (-Y / X) * f_x + c_x;
-    float v = (-Z / X) * f_y + c_y;
+    float u = (camX / camZ) * f_x + c_x;
+    float v = ((camY / camZ) * f_y + c_y);
     NODELET_INFO_STREAM("Clicked point image coordinates: [" << u << "," << v << "]");
     // <---- Project the point into 2D image coordinates
+
+    // ----> Extract plane from clicked point
+    sl::Plane plane;
+    sl::ERROR_CODE err = mZed.findPlaneAtHit(sl::uint2(u, v), plane);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+        NODELET_WARN_STREAM("Error extracting plane at click: " << sl::toString(err).c_str());
+        return;
+    }
+
+    sl::float3 center = plane.getCenter();
+    sl::float2 dims = plane.getExtents();
+
+    NODELET_INFO("Found plane at point [%.3f,%.3f,%.3f] -> [%.3f,%.3f,%.3f - %.3fx%.3f]", X, Y, Z, center.x, center.y, center.z, dims[0], dims[1]);
+    // <---- Extract plane from clicked point
+
+    // ----> Publish a blue sphere in the clicked point
+    visualization_msgs::Marker pt_marker;
+    // Set the frame ID and timestamp.  See the TF tutorials for information on these.
+    static int hit_pt_id = 0;
+    pt_marker.header.stamp = ros::Time::now();
+    // Set the marker action.  Options are ADD and DELETE
+    pt_marker.action = visualization_msgs::Marker::ADD;
+    pt_marker.lifetime = ros::Duration();
+
+    // Set the namespace and id for this marker.  This serves to create a unique ID
+    // Any marker sent with the same namespace and id will overwrite the old one
+    pt_marker.ns = "plane_hit_points";
+    pt_marker.id = hit_pt_id++;
+    pt_marker.header.frame_id = mMapFrameId;
+
+    // Set the marker type.
+    pt_marker.type = visualization_msgs::Marker::SPHERE;
+
+    // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
+    pt_marker.pose.position.x = X;
+    pt_marker.pose.position.y = Y;
+    pt_marker.pose.position.z = Z;
+    pt_marker.pose.orientation.x = 0.0;
+    pt_marker.pose.orientation.y = 0.0;
+    pt_marker.pose.orientation.z = 0.0;
+    pt_marker.pose.orientation.w = 1.0;
+
+    // Set the scale of the marker -- 1x1x1 here means 1m on a side
+    pt_marker.scale.x = 0.025;
+    pt_marker.scale.y = 0.025;
+    pt_marker.scale.z = 0.025;
+
+    // Set the color -- be sure to set alpha to something non-zero!
+    pt_marker.color.r = 0.2f;
+    pt_marker.color.g = 0.1f;
+    pt_marker.color.b = 0.75f;
+    pt_marker.color.a = 0.8;
+
+    // Publish the marker
+    mPubMarker.publish(pt_marker);
+    // ----> Publish a blue sphere in the clicked point
+
+    // ----> Publish the plane as green mesh
+    visualization_msgs::Marker plane_marker;
+    // Set the frame ID and timestamp.  See the TF tutorials for information on these.
+    static int plane_mesh_id = 0;
+    plane_marker.header.stamp = ros::Time::now();
+    // Set the marker action.  Options are ADD and DELETE
+    plane_marker.action = visualization_msgs::Marker::ADD;
+    plane_marker.lifetime = ros::Duration();
+
+    // Set the namespace and id for this marker.  This serves to create a unique ID
+    // Any marker sent with the same namespace and id will overwrite the old one
+    plane_marker.ns = "plane_meshes";
+    plane_marker.id = plane_mesh_id++;
+    plane_marker.header.frame_id = mLeftCamFrameId;
+
+    // Set the marker type.
+    plane_marker.type = visualization_msgs::Marker::TRIANGLE_LIST;
+
+    // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
+    plane_marker.pose.position.x = 0;
+    plane_marker.pose.position.y = 0;
+    plane_marker.pose.position.z = 0;
+    plane_marker.pose.orientation.x = 0.0;
+    plane_marker.pose.orientation.y = 0.0;
+    plane_marker.pose.orientation.z = 0.0;
+    plane_marker.pose.orientation.w = 1.0;
+
+    // Set the color -- be sure to set alpha to something non-zero!
+    plane_marker.color.r = 0.10f;
+    plane_marker.color.g = 0.75f;
+    plane_marker.color.b = 0.20f;
+    plane_marker.color.a = 0.75;
+
+    // Set the scale of the marker -- 1x1x1 here means 1m on a side
+    plane_marker.scale.x = 1.0;
+    plane_marker.scale.y = 1.0;
+    plane_marker.scale.z = 1.0;
+
+    sl::Mesh mesh = plane.extractMesh();
+    size_t triangCount = mesh.getNumberOfTriangles();
+    size_t ptCount = triangCount * 3;
+    plane_marker.points.resize(ptCount);
+    plane_marker.colors.resize(ptCount);
+
+    size_t ptIdx = 0;
+    for (size_t t = 0; t < triangCount; t++) {
+        for (int p = 0; p < 3; p++) {
+            uint vIdx = mesh.triangles[t][p];
+            plane_marker.points[ptIdx].x = mesh.vertices[vIdx][0];
+            plane_marker.points[ptIdx].y = mesh.vertices[vIdx][1];
+            plane_marker.points[ptIdx].z = mesh.vertices[vIdx][2];
+
+            // Set the color -- be sure to set alpha to something non-zero!
+            plane_marker.colors[ptIdx].r = 0.10f;
+            plane_marker.colors[ptIdx].g = 0.75f;
+            plane_marker.colors[ptIdx].b = 0.20f;
+            plane_marker.colors[ptIdx].a = 0.75;
+
+            ptIdx++;
+        }
+    }
+
+    // Publish the marker
+    mPubMarker.publish(plane_marker);
+    // <---- Publish the plane as green mesh
 }
 
 } // namespace zed_nodelets

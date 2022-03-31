@@ -33,6 +33,7 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
+#include <visualization_msgs/Marker.h>
 
 #include <sl/Camera.hpp>
 
@@ -76,8 +77,6 @@
 #include <memory>
 #include <mutex>
 #include <thread>
-
-using namespace std;
 
 namespace zed_nodelets {
 class ZEDWrapperNodelet : public nodelet::Nodelet {
@@ -174,7 +173,7 @@ protected:
    * \param t : the ros::Time to stamp the image
    */
     void publishImage(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img, image_transport::CameraPublisher& pubImg,
-        sensor_msgs::CameraInfoPtr camInfoMsg, string imgFrameId, ros::Time t);
+        sensor_msgs::CameraInfoPtr camInfoMsg, std::string imgFrameId, ros::Time t);
 
     /*! \brief Publish a sl::Mat depth image with a ros Publisher
    * \param imgMsgPtr : the depth image topic message to publish
@@ -220,7 +219,7 @@ protected:
    * \param right_frame_id : the id of the reference frame of the right camera
    */
     void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg,
-        sensor_msgs::CameraInfoPtr rightCamInfoMsg, string leftFrameId, string rightFrameId,
+        sensor_msgs::CameraInfoPtr rightCamInfoMsg, std::string leftFrameId, std::string rightFrameId,
         bool rawParam = false);
 
     /*! \brief Get the information of the ZED cameras and store them in an
@@ -230,7 +229,7 @@ protected:
    * camera informations
    * \param frame_id : the id of the reference frame of the left camera
    */
-    void fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg, string frame_id);
+    void fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg, std::string frame_id);
 
     /*! \brief Check if FPS and Resolution chosen by user are correct.
    *        Modifies FPS to match correct value.
@@ -453,6 +452,8 @@ private:
     ros::Publisher mPubTempL;
     ros::Publisher mPubTempR;
     ros::Publisher mPubCamImuTransf;
+
+    ros::Publisher mPubMarker; // Publisher for Rviz markers
 
     // Subscribers
     ros::Subscriber mClickedPtSub;
