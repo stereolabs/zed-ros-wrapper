@@ -33,15 +33,15 @@ general:
     camera_flip:                false
 
 video:
-    img_downsample_factor:      1.0                             # Resample factor for images [0.01,1.0] The SDK works with native image sizes, but publishes rescaled image.
+    img_downsample_factor:      0.5                             # Resample factor for images [0.01,1.0] The SDK works with native image sizes, but publishes rescaled image.
     extrinsic_in_camera_frame:  true                            # if `false` extrinsic parameter in `camera_info` will use ROS native frame (X FORWARD, Z UP) instead of the camera frame (Z FORWARD, Y DOWN) [`true` use old behavior as for version < v3.1]
 
 depth:
-    quality:                    4                               # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA, '4': NEURAL
+    quality:                    1                               # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA, '4': NEURAL
     sensing_mode:               0                               # '0': STANDARD, '1': FILL (not use FILL for robotic applications)
     depth_stabilization:        1                               # `0`: disabled, `1`: enabled
     openni_depth_mode:          false                           # 'false': 32bit float meters, 'true': 16bit uchar millimeters
-    depth_downsample_factor:    1.0                             # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
+    depth_downsample_factor:    0.5                             # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
 
 pos_tracking:
     pos_tracking_enabled:       true                            # True to enable positional tracking from start
