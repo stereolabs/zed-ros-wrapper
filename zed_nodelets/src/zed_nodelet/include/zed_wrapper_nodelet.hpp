@@ -454,6 +454,7 @@ private:
     ros::Publisher mPubCamImuTransf;
 
     ros::Publisher mPubMarker; // Publisher for Rviz markers
+    ros::Publisher mPubPlane; // Publisher for detected planes
 
     // Subscribers
     ros::Subscriber mClickedPtSub;
