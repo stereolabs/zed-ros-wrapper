@@ -2,7 +2,7 @@ name: 'Stale issue handler'
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 1 * * *'
+    - cron: '00 15 * * *'
 
 jobs:
   stale:
