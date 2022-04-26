@@ -25,6 +25,8 @@
     <depend>dynamic_reconfigure</depend>
     <depend>nodelet</depend>
     <depend>diagnostic_updater</depend>
+    <depend>geometry_msgs</depend>
+    <depend>visualization_msgs</depend>    
 
     <build_depend>zed_interfaces</build_depend>
 

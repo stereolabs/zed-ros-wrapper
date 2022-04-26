@@ -72,6 +72,8 @@ catkin_package(
     tf2_geometry_msgs
     message_runtime    
     zed_interfaces
+    geometry_msgs
+    visualization_msgs
 )
 
 ###############################################################################

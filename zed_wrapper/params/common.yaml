@@ -58,12 +58,13 @@ pos_tracking:
     path_pub_rate:              2.0                             # Camera trajectory publishing frequency
     path_max_count:             -1                              # use '-1' for unlimited path size
     two_d_mode:                 false                           # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
-    fixed_z_value:              0.00                            # Value to be used for Z coordinate if `two_d_mode` is true
+    fixed_z_value:              0.00                            # Value to be used for Z coordinate if `two_d_mode` is true    
 
 mapping:
     mapping_enabled:            false                           # True to enable mapping and fused point cloud publication
     resolution:                 0.05                            # maps resolution in meters [0.01f, 0.2f]
     max_mapping_range:          -1                              # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
     fused_pointcloud_freq:      1.0                             # frequency of the publishing of the fused colored point cloud
+    clicked_point_topic:        '/clicked_point'                # Topic published by Rviz when a point of the cloud is clicked. Used for plane detection
 
 
