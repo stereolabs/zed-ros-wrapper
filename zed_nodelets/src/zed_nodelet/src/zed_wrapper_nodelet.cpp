@@ -569,7 +569,7 @@ void ZEDWrapperNodelet::onInit()
     // Subscribers
     mClickedPtSub = mNhNs.subscribe(mClickedPtTopic, 10, &ZEDWrapperNodelet::clickedPtCallback, this);
 
-    NODELET_INFO_STREAM("Subscribed to topic " << mClickedPtTopic.c_str() );
+    NODELET_INFO_STREAM("Subscribed to topic " << mClickedPtTopic.c_str());
 
     // Services
     mSrvSetInitPose = mNhNs.advertiseService("set_pose", &ZEDWrapperNodelet::on_set_pose, this);
@@ -4466,8 +4466,8 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
     float c_x = zedParam.left_cam.cx;
     float c_y = zedParam.left_cam.cy;
 
-    float u = (camX / camZ) * f_x + c_x;
-    float v = ((camY / camZ) * f_y + c_y);
+    float u = ((camX / camZ) * f_x + c_x) / mCamImageResizeFactor;
+    float v = ((camY / camZ) * f_y + c_y) / mCamImageResizeFactor;
     NODELET_INFO_STREAM("Clicked point image coordinates: [" << u << "," << v << "]");
     // <---- Project the point into 2D image coordinates
 
@@ -4484,6 +4484,7 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
 
     if (dims[0] == 0 || dims[1] == 0) {
         NODELET_INFO("Plane not found at point [%.3f,%.3f,%.3f]", X, Y, Z);
+        return;
     }
 
     NODELET_INFO("Found plane at point [%.3f,%.3f,%.3f] -> Center: [%.3f,%.3f,%.3f], Dims: %.3fx%.3f", X, Y, Z, center.x, center.y, center.z, dims[0], dims[1]);
@@ -4647,7 +4648,7 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
         // Plane Bounds
         std::vector<sl::float3> sl_bounds = plane.getBounds();
         planeMsg->bounds.points.resize(sl_bounds.size());
-        memcpy(planeMsg->bounds.points.data(), sl_bounds.data(), 3 * sl_bounds.size()*sizeof(float));
+        memcpy(planeMsg->bounds.points.data(), sl_bounds.data(), 3 * sl_bounds.size() * sizeof(float));
 
         // Plane mesh
         sl::Mesh sl_mesh = plane.extractMesh();
@@ -4670,7 +4671,7 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
             planeMsg->mesh.vertices[i].z = sl_mesh.vertices[i][2];
         }
 
-            mPubPlane.publish(planeMsg);
+        mPubPlane.publish(planeMsg);
         // <---- Publish the plane as custom message
     }
 }
