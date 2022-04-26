@@ -569,6 +569,8 @@ void ZEDWrapperNodelet::onInit()
     // Subscribers
     mClickedPtSub = mNhNs.subscribe(mClickedPtTopic, 10, &ZEDWrapperNodelet::clickedPtCallback, this);
 
+    NODELET_INFO_STREAM("Subscribed to topic " << mClickedPtTopic.c_str() );
+
     // Services
     mSrvSetInitPose = mNhNs.advertiseService("set_pose", &ZEDWrapperNodelet::on_set_pose, this);
     mSrvResetOdometry = mNhNs.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
