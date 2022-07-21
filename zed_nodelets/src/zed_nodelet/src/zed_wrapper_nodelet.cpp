@@ -2893,17 +2893,19 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
         return;
     }
 
-    // ----> Publish odometry tf only if enabled
-    if (mPublishTf && mPosTrackingReady && new_imu_data) {
-        //NODELET_DEBUG("Publishing TF");
+    // ----> Publish odometry tf only if enabled and not in SVO mode
+    if(!mSvoMode) {
+        if (mPublishTf && mPosTrackingReady && new_imu_data) {
+            //NODELET_DEBUG("Publishing TF");
 
-        publishOdomFrame(mOdom2BaseTransf, ts_imu); // publish the base Frame in odometry frame
+            publishOdomFrame(mOdom2BaseTransf, ts_imu); // publish the base Frame in odometry frame
 
-        if (mPublishMapTf) {
-            publishPoseFrame(mMap2OdomTransf, ts_imu); // publish the odometry Frame in map frame
+            if (mPublishMapTf) {
+                publishPoseFrame(mMap2OdomTransf, ts_imu); // publish the odometry Frame in map frame
+            }
         }
     }
-    // <---- Publish odometry tf only if enabled
+    // <---- Publish odometry tf only if enabled and not in SVO mode
 
     if (mPublishImuTf && !mStaticImuFramePublished) {
         NODELET_DEBUG("Publishing static IMU TF");
@@ -3726,7 +3728,8 @@ void ZEDWrapperNodelet::device_poll_thread_func()
                 }
             }
 
-            if (mZedRealCamModel == sl::MODEL::ZED) {
+            // Note: in SVO mode the TF must not be broadcasted at the same frequency of the IMU data to avoid timestamp issues
+            if (mZedRealCamModel == sl::MODEL::ZED || mSvoMode) { 
                 // Publish pose tf only if enabled
                 if (mPublishTf) {
                     // Note, the frame is published, but its values will only change if
@@ -3797,7 +3800,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
         } else {
             NODELET_DEBUG_THROTTLE(5.0, "No topics subscribed by users");
 
-            if (mZedRealCamModel == sl::MODEL::ZED || !mPublishImuTf) {
+            if (mSvoMode || mZedRealCamModel == sl::MODEL::ZED || !mPublishImuTf) {
                 // Publish odometry tf only if enabled
                 if (mPublishTf) {
                     ros::Time t;
