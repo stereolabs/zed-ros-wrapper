@@ -37,7 +37,7 @@ video:
     extrinsic_in_camera_frame:  true                            # if `false` extrinsic parameter in `camera_info` will use ROS native frame (X FORWARD, Z UP) instead of the camera frame (Z FORWARD, Y DOWN) [`true` use old behavior as for version < v3.1]
 
 depth:
-    quality:                    4                               # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA, '4': NEURAL
+    quality:                    1                               # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA, '4': NEURAL
     sensing_mode:               0                               # '0': STANDARD, '1': FILL (not use FILL for robotic applications)
     depth_stabilization:        1                               # `0`: disabled, `1`: enabled
     openni_depth_mode:          false                           # 'false': 32bit float meters, 'true': 16bit uchar millimeters

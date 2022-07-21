@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2022-07-21
+----------
+- Fix TF timestamp issue in SVO mode
+
 2022-04-26
 ----------
 - Add Plane Detection. See [ZED Documentation](https://www.stereolabs.com/docs/ros/plane_detection/)
