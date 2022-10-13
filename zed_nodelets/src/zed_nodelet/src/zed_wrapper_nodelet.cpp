@@ -2961,7 +2961,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
             old_ts = pressMsg->header.stamp;
 #endif
             pressMsg->header.frame_id = mBaroFrameId;
-            pressMsg->fluid_pressure = sens_data.barometer.pressure * 1e2; // Pascal
+            pressMsg->fluid_pressure = sens_data.barometer.pressure; // Pascal
             pressMsg->variance = 1.0585e-2;
 
             sensors_data_published = true;
