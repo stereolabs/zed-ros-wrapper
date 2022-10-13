@@ -1,6 +1,9 @@
 LATEST CHANGES
 ==============
 
+2022-10-13
+- Fix units for Atmospheric pressure data. Now the value is correctly published in `Pascal` according to the [topic specification](http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/FluidPressure.html).
+
 2022-07-21
 ----------
 - Fix TF timestamp issue in SVO mode
