@@ -1,29 +1,15 @@
-LATEST CHANGES
-==============
+CHANGELOG
+=========
 
-2022-10-13
-- Fix units for Atmospheric pressure data. Now the value is correctly published in `Pascal` according to the [topic specification](http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/FluidPressure.html).
-
-2022-07-21
-----------
-- Fix TF timestamp issue in SVO mode
-
-2022-04-26
-----------
-- Add Plane Detection. See [ZED Documentation](https://www.stereolabs.com/docs/ros/plane_detection/)
-
-2022-03-30
-----------
-- Fix wrong TF broadcasting when calling the `set_pose`, `reset_tracking`, and `reset_odometry` services. Now the initial odometry is coherent with the new starting point.
-
-2022-03-28
-----------
+v3.8.x
+------
+- Fix the frame links of barometer, magnetometer, and temperature sensors for ZED2i
 - Add parameter `sensors/max_pub_rate` to set the maximum publishing frequency of sensors data
 - Improve Sensors thread
-
-2022-03-16
------------
-- Fix the frame links of barometer, magnetometer, and temperature sensors for ZED2i
+- Fix wrong TF broadcasting when calling the `set_pose`, `reset_tracking`, and `reset_odometry` services. Now the initial odometry is coherent with the new starting point.
+- Add Plane Detection. See [ZED Documentation](https://www.stereolabs.com/docs/ros/plane_detection/)
+- Fix TF timestamp issue in SVO mode
+- Fix units for Atmospheric pressure data. Now the value is correctly published in `Pascal` according to the [topic specification](http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/FluidPressure.html).
 
 v3.7.x
 ---------
