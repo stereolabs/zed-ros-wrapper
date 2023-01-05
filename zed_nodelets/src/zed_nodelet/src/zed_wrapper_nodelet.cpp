@@ -624,7 +624,7 @@ void ZEDWrapperNodelet::readParameters()
     mNhNs.getParam("general/gpu_id", mGpuId);
     NODELET_INFO_STREAM(" * Gpu ID\t\t\t-> " << mGpuId);
     mNhNs.getParam("general/zed_id", mZedId);
-    NODELET_INFO_STREAM(" * Camera ID\t\t\t-> " << mGpuId);
+    NODELET_INFO_STREAM(" * Camera ID\t\t\t-> " << mZedId);
     mNhNs.getParam("general/verbose", mVerbose);
     NODELET_INFO_STREAM(" * Verbose\t\t\t-> " << (mVerbose ? "ENABLED" : "DISABLED"));
     mNhNs.param<bool>("general/camera_flip", mCameraFlip, false);
