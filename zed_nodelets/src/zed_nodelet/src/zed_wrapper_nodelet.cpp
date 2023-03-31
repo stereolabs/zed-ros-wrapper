@@ -201,32 +201,7 @@ void ZEDWrapperNodelet::onInit()
         if (mZedSerialNumber == 0) {
             mZedParams.input.setFromCameraID(mZedId);
         } else {
-            bool waiting_for_camera = true;
-
-            while (waiting_for_camera) {
-                // Ctrl+C check
-                if (!mNhNs.ok()) {
-                    mStopNode = true; // Stops other threads
-
-                    std::lock_guard<std::mutex> lock(mCloseZedMutex);
-                    NODELET_DEBUG("Closing ZED");
-                    mZed.close();
-
-                    NODELET_DEBUG("ZED pool thread finished");
-                    return;
-                }
-
-                sl::DeviceProperties prop = sl_tools::getZEDFromSN(mZedSerialNumber);
-
-                if (prop.id < -1 || prop.camera_state == sl::CAMERA_STATE::NOT_AVAILABLE) {
-                    std::string msg = "ZED SN" + std::to_string(mZedSerialNumber) + " not detected ! Please connect this ZED";
-                    NODELET_INFO_STREAM(msg.c_str());
-                    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-                } else {
-                    waiting_for_camera = false;
-                    mZedParams.input.setFromCameraID(prop.id);
-                }
-            }
+            mZedParams.input.setFromSerialNumber(mZedSerialNumber);
         }
     }
 
@@ -306,6 +281,20 @@ void ZEDWrapperNodelet::onInit()
         if (mZedUserCamModel != mZedRealCamModel) {
             NODELET_WARN("Camera model does not match user parameter. Please modify "
                          "the value of the parameter 'camera_model' to 'zed2i'");
+        }
+        mSlCamImuTransf = mZed.getCameraInformation().sensors_configuration.camera_imu_transform;
+        NODELET_INFO("Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str());
+    } else if (mZedRealCamModel == sl::MODEL::ZED_X) {
+        if (mZedUserCamModel != mZedRealCamModel) {
+            NODELET_WARN("Camera model does not match user parameter. Please modify "
+                         "the value of the parameter 'camera_model' to 'zedx'");
+        }
+        mSlCamImuTransf = mZed.getCameraInformation().sensors_configuration.camera_imu_transform;
+        NODELET_INFO("Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str());
+    } else if (mZedRealCamModel == sl::MODEL::ZED_XM) {
+        if (mZedUserCamModel != mZedRealCamModel) {
+            NODELET_WARN("Camera model does not match user parameter. Please modify "
+                         "the value of the parameter 'camera_model' to 'zedxm'");
         }
         mSlCamImuTransf = mZed.getCameraInformation().sensors_configuration.camera_imu_transform;
         NODELET_INFO("Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str());
@@ -487,13 +476,16 @@ void ZEDWrapperNodelet::onInit()
         NODELET_INFO_STREAM("Advertised on topic " << mPubImu.getTopic());
         mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubImuRaw.getTopic());
-        mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubImuMag.getTopic());
-
-        if (mZedRealCamModel == sl::MODEL::ZED2 || mZedRealCamModel == sl::MODEL::ZED2i) {
+        
+        if(mZedRealCamModel != sl::MODEL::ZED_M) {
             // IMU temperature sensor
             mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << mPubImuTemp.getTopic());
+        }
+
+        if (mZedRealCamModel == sl::MODEL::ZED2 || mZedRealCamModel == sl::MODEL::ZED2i) {
+            mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, 1);
+            NODELET_INFO_STREAM("Advertised on topic " << mPubImuMag.getTopic());           
 
             // Atmospheric pressure
             mPubPressure = mNhNs.advertise<sensor_msgs::FluidPressure>(pressure_topic, 1);
@@ -629,6 +621,12 @@ void ZEDWrapperNodelet::readParameters()
         NODELET_INFO_STREAM(" * Camera Model by param\t-> " << camera_model);
     } else if (camera_model == "zed2i") {
         mZedUserCamModel = sl::MODEL::ZED2i;
+        NODELET_INFO_STREAM(" * Camera Model by param\t-> " << camera_model);
+    } else if (camera_model == "zedx") {
+        mZedUserCamModel = sl::MODEL::ZED_X;
+        NODELET_INFO_STREAM(" * Camera Model by param\t-> " << camera_model);
+    } else if (camera_model == "zedxm") {
+        mZedUserCamModel = sl::MODEL::ZED_XM;
         NODELET_INFO_STREAM(" * Camera Model by param\t-> " << camera_model);
     } else {
         NODELET_ERROR_STREAM("Camera model not valid: " << camera_model);
@@ -998,10 +996,48 @@ void ZEDWrapperNodelet::checkResolFps()
 
         break;
 
+    case sl::RESOLUTION::HD1200:
+        if (mCamFrameRate == 60 || mCamFrameRate == 30) {
+            break;
+        }
+
+        if (mCamFrameRate > 30 && mCamFrameRate < 60) {
+            NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1200. Set to 30 FPS.");
+            mCamFrameRate = 30;
+        } else if (mCamFrameRate > 60) {
+            NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1200. Set to 60 FPS.");
+            mCamFrameRate = 60;
+        } else {
+            NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1200. Set to 30 FPS.");
+            mCamFrameRate = 30;
+        }
+
+        break;
+
+    case sl::RESOLUTION::SVGA:
+        if (mCamFrameRate == 120 || mCamFrameRate == 60) {
+            break;
+        }
+
+        if (mCamFrameRate > 60 && mCamFrameRate < 120) {
+            NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution SVGA. Set to 60 FPS.");
+            mCamFrameRate = 60;
+        } else if (mCamFrameRate > 120) {
+            NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution SVGA. Set to 120 FPS.");
+            mCamFrameRate = 120;
+        } else {
+            NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution SVGA. Set to 60 FPS.");
+            mCamFrameRate = 60;
+        }
+
+        break;
+
+    case sl::RESOLUTION::AUTO:
+        break;
+    
     default:
-        NODELET_WARN_STREAM("Invalid resolution. Set to HD720 @ 30 FPS");
-        mCamResol = sl::RESOLUTION::HD720;
-        mCamFrameRate = 30;
+        NODELET_WARN_STREAM("Invalid resolution. Set to AUTO with default frame rate");
+        mCamResol = sl::RESOLUTION::AUTO;
     }
 }
 
@@ -2714,8 +2750,11 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
     uint32_t tempLeftSubNumber = 0;
     uint32_t tempRightSubNumber = 0;
 
-    if (mZedRealCamModel == sl::MODEL::ZED2 || mZedRealCamModel == sl::MODEL::ZED2i) {
+    if (mZedRealCamModel != sl::MODEL::ZED_M) {
         imu_TempSubNumber = mPubImuTemp.getNumSubscribers();
+    }
+
+    if (mZedRealCamModel == sl::MODEL::ZED2 || mZedRealCamModel == sl::MODEL::ZED2i) {
         imu_MagSubNumber = mPubImuMag.getNumSubscribers();
         pressSubNumber = mPubPressure.getNumSubscribers();
         tempLeftSubNumber = mPubTempL.getNumSubscribers();
@@ -3210,18 +3249,12 @@ void ZEDWrapperNodelet::device_poll_thread_func()
                                 return;
                             }
 
-                            int id = sl_tools::checkCameraReady(mZedSerialNumber);
-
-                            if (id >= 0) {
-                                mZedParams.input.setFromCameraID(id);
-                                mConnStatus = mZed.open(mZedParams); // Try to initialize the ZED
-                                NODELET_INFO_STREAM(toString(mConnStatus));
-                            } else {
-                                NODELET_INFO_STREAM("Waiting for the ZED (S/N " << mZedSerialNumber << ") to be re-connected");
-                            }
+                            mZedParams.input.setFromSerialNumber(mZedSerialNumber);
+                            mConnStatus = mZed.open(mZedParams); // Try to initialize the ZED
+                            NODELET_INFO_STREAM("Connection status: " << toString(mConnStatus));
 
                             mDiagUpdater.force_update();
-                            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+                            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                         }
 
                         mPosTrackingActivated = false;
