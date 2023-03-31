@@ -1,9 +1,6 @@
-﻿#ifndef ZED_WRAPPER_NODELET_H
-#define ZED_WRAPPER_NODELET_H
-
-///////////////////////////////////////////////////////////////////////////
+﻿///////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2020, STEREOLABS.
+// Copyright (c) 2023, STEREOLABS.
 //
 // All rights reserved.
 //
@@ -20,6 +17,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////
+
+#ifndef ZED_WRAPPER_NODELET_H
+#define ZED_WRAPPER_NODELET_H
 
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <dynamic_reconfigure/server.h>

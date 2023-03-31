@@ -21,10 +21,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="stream"               default="" /> <!-- <arg name="stream" default="<ip_address>:<port>"> -->
 
     <arg name="node_name"            default="zed_node" />
-    <arg name="camera_model"         default="zed2" />
+    <arg name="camera_model"         default="zedxm" />
     <arg name="publish_urdf"         default="true" />
 
-    <arg name="camera_name"          default="zed2" />
+    <arg name="camera_name"          default="zedxm" />
 
     <arg name="base_frame"           default="base_link" />
 

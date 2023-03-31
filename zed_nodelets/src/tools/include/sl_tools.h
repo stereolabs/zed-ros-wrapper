@@ -1,9 +1,6 @@
-#ifndef SL_TOOLS_H
-#define SL_TOOLS_H
-
 ///////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2020, STEREOLABS.
+// Copyright (c) 2023, STEREOLABS.
 //
 // All rights reserved.
 //
@@ -20,6 +17,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////
+
+#ifndef SL_TOOLS_H
+#define SL_TOOLS_H
 
 #include <ros/time.h>
 #include <sensor_msgs/Image.h>
