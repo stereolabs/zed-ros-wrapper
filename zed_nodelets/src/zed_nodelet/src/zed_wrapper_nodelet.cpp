@@ -3180,7 +3180,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
                 // the zed have been disconnected) and
                 // re-initialize the ZED
 
-                NODELET_INFO_STREAM_ONCE(toString(mGrabStatus));
+                NODELET_INFO_STREAM_THROTTLE( 1.0, "Camera grab error: " << sl::toString(mGrabStatus).c_str());
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 if(mGrabStatus!=sl::ERROR_CODE::CAMERA_REBOOTING) {

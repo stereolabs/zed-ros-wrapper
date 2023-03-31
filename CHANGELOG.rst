@@ -7,7 +7,8 @@ CHANGELOG
 - Remove parameter `object_detection.body_fitting`
 - Remove parameter `depth.sensing_mode`
 - Remove parameter `video.extrinsic_in_camera_frame`
-- Skeleton Tracking is no more available. Migrate to ROS 2 Wrapper if you need it.
+- Skeleton Tracking is no more available. Migrate to ROS 2 Wrapper if you need it
+- `sensors` and `object_detection` parameters are now in `common.yaml`
 
 v3.8.x
 ------
