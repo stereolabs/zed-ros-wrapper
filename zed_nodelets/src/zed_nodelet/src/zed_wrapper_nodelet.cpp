@@ -233,6 +233,7 @@ void ZEDWrapperNodelet::onInit()
     mZedParams.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
     NODELET_INFO_STREAM(" * Camera coordinate system\t-> " << sl::toString(mZedParams.coordinate_system));
 
+    mZedParams.async_grab_camera_recovery = true;
     mZedParams.coordinate_units = sl::UNIT::METER;
     mZedParams.depth_mode = static_cast<sl::DEPTH_MODE>(mDepthMode);
     mZedParams.sdk_verbose = mVerbose;
@@ -2299,7 +2300,7 @@ void ZEDWrapperNodelet::callback_dynamicReconf(zed_nodelets::ZedConfig& config, 
         break;
 
     case AUTO_WB:
-        if(config.auto_whitebalance!=mCamAutoExposure)
+        if(config.auto_whitebalance!=mCamAutoWB)
         {
             mCamAutoWB = config.auto_whitebalance;
             NODELET_INFO_STREAM("Reconfigure auto white balance: " << mCamAutoWB ? "ENABLED" : "DISABLED");
@@ -3182,50 +3183,54 @@ void ZEDWrapperNodelet::device_poll_thread_func()
                 NODELET_INFO_STREAM_ONCE(toString(mGrabStatus));
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                if(mGrabStatus!=sl::ERROR_CODE::CAMERA_REBOOTING) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                    continue;
+                } else {
+                    if ((ros::Time::now() - mPrevFrameTimestamp).toSec() > 5 && !mSvoMode) {
+                        mCloseZedMutex.lock();
+                        mZed.close();
+                        mCloseZedMutex.unlock();
 
-                if ((ros::Time::now() - mPrevFrameTimestamp).toSec() > 5 && !mSvoMode) {
-                    mCloseZedMutex.lock();
-                    mZed.close();
-                    mCloseZedMutex.unlock();
+                        mConnStatus = sl::ERROR_CODE::CAMERA_NOT_DETECTED;
 
-                    mConnStatus = sl::ERROR_CODE::CAMERA_NOT_DETECTED;
+                        while (mConnStatus != sl::ERROR_CODE::SUCCESS) {
+                            if (!mNhNs.ok()) {
+                                mStopNode = true;
 
-                    while (mConnStatus != sl::ERROR_CODE::SUCCESS) {
-                        if (!mNhNs.ok()) {
-                            mStopNode = true;
+                                std::lock_guard<std::mutex> lock(mCloseZedMutex);
+                                NODELET_DEBUG("Closing ZED");
+                                if (mRecording) {
+                                    mRecording = false;
+                                    mZed.disableRecording();
+                                }
+                                mZed.close();
 
-                            std::lock_guard<std::mutex> lock(mCloseZedMutex);
-                            NODELET_DEBUG("Closing ZED");
-                            if (mRecording) {
-                                mRecording = false;
-                                mZed.disableRecording();
+                                NODELET_DEBUG("ZED pool thread finished");
+                                return;
                             }
-                            mZed.close();
 
-                            NODELET_DEBUG("ZED pool thread finished");
-                            return;
+                            int id = sl_tools::checkCameraReady(mZedSerialNumber);
+
+                            if (id >= 0) {
+                                mZedParams.input.setFromCameraID(id);
+                                mConnStatus = mZed.open(mZedParams); // Try to initialize the ZED
+                                NODELET_INFO_STREAM(toString(mConnStatus));
+                            } else {
+                                NODELET_INFO_STREAM("Waiting for the ZED (S/N " << mZedSerialNumber << ") to be re-connected");
+                            }
+
+                            mDiagUpdater.force_update();
+                            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
                         }
 
-                        int id = sl_tools::checkCameraReady(mZedSerialNumber);
+                        mPosTrackingActivated = false;
 
-                        if (id >= 0) {
-                            mZedParams.input.setFromCameraID(id);
-                            mConnStatus = mZed.open(mZedParams); // Try to initialize the ZED
-                            NODELET_INFO_STREAM(toString(mConnStatus));
-                        } else {
-                            NODELET_INFO_STREAM("Waiting for the ZED (S/N " << mZedSerialNumber << ") to be re-connected");
+                        computeTracking = mPosTrackingEnabled || mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0;
+
+                        if (computeTracking) { // Start the tracking
+                            start_pos_tracking();
                         }
-
-                        mDiagUpdater.force_update();
-                        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-                    }
-
-                    mPosTrackingActivated = false;
-
-                    computeTracking = mPosTrackingEnabled || mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0;
-
-                    if (computeTracking) { // Start the tracking
-                        start_pos_tracking();
                     }
                 }
 
