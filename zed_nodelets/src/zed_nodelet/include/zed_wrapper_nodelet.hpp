@@ -541,7 +541,6 @@ private:
     sl::RESOLUTION mCamResol;
     int mCamFrameRate;
     sl::DEPTH_MODE mDepthMode;
-    sl::SENSING_MODE mCamSensingMode;
     int mGpuId;
     int mZedId;
     int mDepthStabilization;
@@ -645,7 +644,6 @@ private:
     bool mAreaMemory;
     bool mInitOdomWithPose;
     bool mResetOdom = false;
-    bool mUseOldExtrinsic = false;
     bool mUpdateDynParams = false;
     bool mPublishingData = false;
 
@@ -726,7 +724,7 @@ private:
     bool mObjDetFruitsEnable = true;
     bool mObjDetSportsEnable = true;
 
-    sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::MULTI_CLASS_BOX;
+    sl::OBJECT_DETECTION_MODEL mObjDetModel = sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_MEDIUM;
 
     ros::Publisher mPubObjDet;
 }; // class ZEDROSWrapperNodelet

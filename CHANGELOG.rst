@@ -1,6 +1,14 @@
 CHANGELOG
 =========
 
+2023-03-31
+----------
+- Support for ZED SDK v4.0
+- Remove parameter `object_detection.body_fitting`
+- Remove parameter `depth.sensing_mode`
+- Remove parameter `video.extrinsic_in_camera_frame`
+- Skeleton Tracking is no more available. Migrate to ROS 2 Wrapper if you need it.
+
 v3.8.x
 ------
 - Fix the frame links of barometer, magnetometer, and temperature sensors for ZED2i

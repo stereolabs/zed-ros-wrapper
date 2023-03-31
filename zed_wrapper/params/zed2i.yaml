@@ -23,7 +23,6 @@ object_detection:
     confidence_threshold:       50              # Minimum value of the detection confidence of an object [0,100]
     max_range:                  15.             # Maximum detection range
     object_tracking_enabled:    true            # Enable/disable the tracking of the detected objects
-    body_fitting:               false           # Enable/disable body fitting for 'HUMAN_BODY_X' models
     mc_people:                  true            # Enable/disable the detection of persons for 'MULTI_CLASS_BOX_X' models
     mc_vehicle:                 true            # Enable/disable the detection of vehicles for 'MULTI_CLASS_BOX_X' models
     mc_bag:                     true            # Enable/disable the detection of bags for 'MULTI_CLASS_BOX_X' models
