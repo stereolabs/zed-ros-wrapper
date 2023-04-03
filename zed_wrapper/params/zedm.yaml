@@ -1,33 +1,12 @@
-# params/zedm_yaml
+# params/zedm.yaml
 # Parameters for Stereolabs ZED mini camera
 ---
 
 general:
     camera_model:               'zedm'
+    resolution:                 3           # '0': HD2K, '1': HD1080, '3': HD720, '5': VGA, '6': AUTO
+    grab_frame_rate:            15          # Frequency of frame grabbing for internal SDK operations
 
 depth:
-    min_depth:                  0.35            # Min: 0.1, Max: 3.0 - Default 0.3 - Note: reducing this value wil require more computational power and GPU memory
-    max_depth:                  10.0            # Max: 20.0
-
-pos_tracking:
-    imu_fusion:                 true            # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
-
-sensors:
-    sensors_timestamp_sync:     false           # Synchronize Sensors messages timestamp with latest received frame
-    max_pub_rate:               200.            # max frequency of publishing of sensors data. MAX: 800. - MIN: grab rate
-    publish_imu_tf:             true            # publish `IMU -> <cam_name>_left_camera_frame` TF
-
-object_detection:
-    od_enabled:                 false           # True to enable Object Detection [not available for ZED]
-    model:                      0               # '0': MULTI_CLASS_BOX - '1': MULTI_CLASS_BOX_ACCURATE - '2': HUMAN_BODY_FAST - '3': HUMAN_BODY_ACCURATE - '4': MULTI_CLASS_BOX_MEDIUM - '5': HUMAN_BODY_MEDIUM - '6': PERSON_HEAD_BOX
-    confidence_threshold:       50              # Minimum value of the detection confidence of an object [0,100]
-    max_range:                  15.             # Maximum detection range
-    object_tracking_enabled:    true            # Enable/disable the tracking of the detected objects
-    body_fitting:               false           # Enable/disable body fitting for 'HUMAN_BODY_X' models
-    mc_people:                  true            # Enable/disable the detection of persons for 'MULTI_CLASS_BOX_X' models
-    mc_vehicle:                 true            # Enable/disable the detection of vehicles for 'MULTI_CLASS_BOX_X' models
-    mc_bag:                     true            # Enable/disable the detection of bags for 'MULTI_CLASS_BOX_X' models
-    mc_animal:                  true            # Enable/disable the detection of animals for 'MULTI_CLASS_BOX_X' models
-    mc_electronics:             true            # Enable/disable the detection of electronic devices for 'MULTI_CLASS_BOX_X' models
-    mc_fruit_vegetable:         true            # Enable/disable the detection of fruits and vegetables for 'MULTI_CLASS_BOX_X' models
-    mc_sport:                   true            # Enable/disable the detection of sport-related objects for 'MULTI_CLASS_BOX_X' models    
+    min_depth:                  0.1             # Min: 0.1, Max: 3.0 - Default 0.3 - Note: reducing this value wil require more computational power and GPU memory
+    max_depth:                  10.0            # Max: 20.0  

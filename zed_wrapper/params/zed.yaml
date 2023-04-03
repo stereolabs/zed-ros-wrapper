@@ -4,7 +4,9 @@
 
 general:
     camera_model:               'zed'
+    resolution:                 3           # '0': HD2K, '1': HD1080, '3': HD720, '5': VGA, '6': AUTO
+    grab_frame_rate:            15          # Frequency of frame grabbing for internal SDK operations
 
 depth:
-    min_depth:                  0.7             # Min: 0.3, Max: 3.0 - Default 0.7 - Note: reducing this value wil require more computational power and GPU memory
-    max_depth:                  10.0            # Max: 40.0
+    min_depth:                  0.3         # Min: 0.3, Max: 3.0 - Default 0.7 - Note: reducing this value wil require more computational power and GPU memory
+    max_depth:                  10.0        # Max: 40.0

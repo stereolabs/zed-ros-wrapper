@@ -1,21 +1,19 @@
 <?xml version="1.0"?>
 
 <!--
-Copyright (c) 2020, STEREOLABS.
-
-All rights reserved.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Copyright 2022 Stereolabs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 -->
 
 <robot name="stereolabs_camera" xmlns:xacro="http://ros.org/wiki/xacro">
@@ -28,11 +26,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <xacro:arg name="cam_roll"      default="0.0" />
   <xacro:arg name="cam_pitch"     default="0.0" />
   <xacro:arg name="cam_yaw"       default="0.0" />
+  <xacro:arg name="gnss_frame"    default="" />
 
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
   <xacro:zed_camera name="$(arg camera_name)" model="$(arg camera_model)" parent="$(arg base_frame)">
-    <origin xyz="$(arg cam_pos_x) $(arg cam_pos_y) $(arg cam_pos_z)" rpy="$(arg cam_roll) $(arg cam_pitch) $(arg cam_yaw)" />
+    <origin 
+      xyz="$(arg cam_pos_x) $(arg cam_pos_y) $(arg cam_pos_z)" 
+      rpy="$(arg cam_roll) $(arg cam_pitch) $(arg cam_yaw)"
+    />
   </xacro:zed_camera>
 
   <link name="$(arg base_frame)" />
+
+  <xacro:property name="gnss_frame" value="$(arg gnss_frame)"/>
+
+  <!-- Set the position of the GNSS sensor relative to base_link if used -->
+  <xacro:if value="${gnss_frame != ''}">
+    <link name="$(arg gnss_frame)" />
+    <joint name="$(arg gnss_frame)_joint" type="fixed">
+      <parent link="$(arg base_frame)"/>
+      <child link="$(arg gnss_frame)"/>
+      <origin xyz="0 0 0.5" rpy="0 0 0" />
+    </joint>
+  </xacro:if>
 </robot>

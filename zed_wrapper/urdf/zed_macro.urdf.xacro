@@ -1,21 +1,19 @@
 <?xml version="1.0"?>
 
 <!--
-Copyright (c) 2020, STEREOLABS.
-
-All rights reserved.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Copyright 2022 Stereolabs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 -->
 
 <robot xmlns:xacro="http://wiki.ros.org/xacro">
@@ -35,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <xacro:property name="height" value="0.03" />
       <xacro:property name="bottom_slope" value="0.05" />
       <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="-0.01" />
     </xacro:if>
     <xacro:if value="${model == 'zedm'}">
@@ -42,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <xacro:property name="height" value="0.0265" />
       <xacro:property name="bottom_slope" value="0.0" /> 
       <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="0.0" />
     </xacro:if>
     <xacro:if value="${model == 'zed2'}">
@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <xacro:property name="height" value="0.03" />
       <xacro:property name="bottom_slope" value="0.05" />
       <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="-0.01" />
     </xacro:if>
     <xacro:if value="${model == 'zed2i'}">
@@ -56,10 +57,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <xacro:property name="height" value="0.03" />
       <xacro:property name="bottom_slope" value="0.0" />
       <xacro:property name="screw_offset_x" value="-0.01" />
+      <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="-0.01" />
     </xacro:if>
-
-
+    <xacro:if value="${model == 'zedx'}">
+      <xacro:property name="baseline" value="0.12" />
+      <xacro:property name="height" value="0.032" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="-0.016" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+    </xacro:if>
+    <xacro:if value="${model == 'zedxm'}">
+      <xacro:property name="baseline" value="0.05" />
+      <xacro:property name="height" value="0.032" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="-0.016" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+    </xacro:if>
 
     <!-- Camera mounting point (the threaded screw hole in the bottom) -->
     <link name="${name}_base_link" />
@@ -69,11 +85,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <xacro:insert_block name="origin" />
     </joint>
 
-
     <!-- Camera Center -->
     <link name="${name}_camera_center">
       <visual>
-        <origin xyz="${screw_offset_x} 0 0" rpy="0 0 0"/>
+        <origin xyz="${screw_offset_x} 0 ${screw_offset_z}" rpy="0 0 0"/>
         <geometry>
           <mesh filename="package://zed_interfaces/meshes/${model}.stl" />
         </geometry>
@@ -91,41 +106,39 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <origin xyz="0 0 ${height/2}" rpy="0 ${bottom_slope} 0" />
     </joint>
 
-
     <!-- Left Camera -->
     <link name="${name}_left_camera_frame" />
     <joint name="${name}_left_camera_joint" type="fixed">
       <parent link="${name}_camera_center"/>
       <child link="${name}_left_camera_frame"/>
-      <origin xyz="0 ${baseline/2} 0" rpy="0 0 0" />
+      <origin xyz="${optical_offset_x} ${baseline/2} 0" rpy="0 0 0" />
     </joint>
 
     <link name="${name}_left_camera_optical_frame"/>
     <joint name="${name}_left_camera_optical_joint" type="fixed">
-      <origin xyz="${optical_offset_x} 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+      <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
       <parent link="${name}_left_camera_frame"/>
       <child link="${name}_left_camera_optical_frame"/>
     </joint>
-
 
     <!-- Right Camera -->
     <link name="${name}_right_camera_frame" />
     <joint name="${name}_right_camera_joint" type="fixed">
       <parent link="${name}_camera_center"/>
       <child link="${name}_right_camera_frame"/>
-      <origin xyz="0 -${baseline/2} 0" rpy="0 0 0" />
+      <origin xyz="${optical_offset_x} -${baseline/2} 0" rpy="0 0 0" />
     </joint>
 
     <link name="${name}_right_camera_optical_frame"/>
     <joint name="${name}_right_camera_optical_joint" type="fixed">
-      <origin xyz="${optical_offset_x} 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+      <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
       <parent link="${name}_right_camera_frame"/>
       <child link="${name}_right_camera_optical_frame"/>
     </joint>
 
 
     <!-- ZED2 Sensors -->
-    <xacro:if value="${model == 'zed2' or model == 'zed2i'}">
+    <xacro:if value="${model == 'zed2'}">
       <link name="${name}_mag_link" />
       <joint name="${name}_mag_joint" type="fixed">
         <parent link="${name}_camera_center"/>
@@ -154,5 +167,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <origin xyz="0 0 0" rpy="0 0 0" />
       </joint>
     </xacro:if>
+
   </xacro:macro>
 </robot>

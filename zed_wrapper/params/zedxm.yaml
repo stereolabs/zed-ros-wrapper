@@ -1,0 +1,12 @@
+# params/zedxm.yaml
+# Parameters for Stereolabs ZED X Mini camera
+---
+
+general:
+    camera_model:               'zedxm'
+    resolution:                 2                               # '2': HD1200 - '4': SVGA - '6': AUTO
+    grab_frame_rate:            60                              # 120, 60, 30
+
+depth:
+    min_depth:                  0.1              # Min: 0.1, Max: 3.0 - Default 0.7 - Note: reducing this value wil require more computational power and GPU memory
+    max_depth:                  10.0             # Max: 40.0
