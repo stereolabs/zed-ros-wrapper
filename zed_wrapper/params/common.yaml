@@ -23,8 +23,6 @@ general:
     camera_name:                zed                             # A name for the camera (can be different from camera model and node name and can be overwritten by the launch file)
     zed_id:                     0
     serial_number:              0
-    resolution:                 2                               # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
-    grab_frame_rate:            15                              # Frequency of frame grabbing for internal SDK operations
     gpu_id:                     -1
     base_frame:                 'base_link'                     # must be equal to the frame_id used in the URDF file
     verbose:                    false                           # Enable info message by the ZED SDK
@@ -68,7 +66,7 @@ mapping:
 
 sensors:
     sensors_timestamp_sync:     false                           # Synchronize Sensors messages timestamp with latest received frame
-    max_pub_rate:               200.                            # max frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
+    max_pub_rate:               400.                            # max frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
     publish_imu_tf:             true                            # publish `IMU -> <cam_name>_left_camera_frame` TF
 
 object_detection:

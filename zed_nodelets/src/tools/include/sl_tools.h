@@ -29,18 +29,6 @@
 
 namespace sl_tools
 {
-/*! \brief Check if a ZED camera is ready
- * \param serial_number : the serial number of the camera to be checked
- */
-int checkCameraReady(unsigned int serial_number);
-
-/*! \brief Get ZED camera properties
- * \param serial_number : the serial number of the camera
- */
-sl::DeviceProperties getZEDFromSN(unsigned int serial_number);
-
-std::vector<float> convertRodrigues(sl::float3 r);
-
 /*! \brief Test if a file exist
  * \param name : the path to the file
  */
