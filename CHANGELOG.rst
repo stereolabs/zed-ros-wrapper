@@ -10,6 +10,7 @@ CHANGELOG
 - Skeleton Tracking is no more available. Migrate to ROS 2 Wrapper if you need it
 - `sensors` and `object_detection` parameters are now in `common.yaml`
 - Move parameters `general.resolution` and `general.grab_frame_rate` to cameras yaml files to support the different configurations on ZED X and ZED X Mini.
+- Remove support for ROS Melodic that reached EOL
 
 v3.8.x
 ------
