@@ -37,16 +37,4 @@
   </xacro:zed_camera>
 
   <link name="$(arg base_frame)" />
-
-  <xacro:property name="gnss_frame" value="$(arg gnss_frame)"/>
-
-  <!-- Set the position of the GNSS sensor relative to base_link if used -->
-  <xacro:if value="${gnss_frame != ''}">
-    <link name="$(arg gnss_frame)" />
-    <joint name="$(arg gnss_frame)_joint" type="fixed">
-      <parent link="$(arg base_frame)"/>
-      <child link="$(arg gnss_frame)"/>
-      <origin xyz="0 0 0.5" rpy="0 0 0" />
-    </joint>
-  </xacro:if>
 </robot>
