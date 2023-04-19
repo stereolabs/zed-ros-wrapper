@@ -25,6 +25,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="publish_urdf"         default="true" />
 
     <arg name="camera_name"          default="zedx" />
+    <arg name="camera_id"            default="0" />
 
     <arg name="base_frame"           default="base_link" />
 
@@ -43,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <arg name="node_name"           value="$(arg node_name)" />
             <arg name="camera_model"        value="$(arg camera_model)" />
             <arg name="base_frame"          value="$(arg base_frame)" />
+            <arg name="camera_id"           value="$(arg camera_id)" />
             <arg name="publish_urdf"        value="$(arg publish_urdf)" />
             <arg name="cam_pos_x"           value="$(arg cam_pos_x)" />
             <arg name="cam_pos_y"           value="$(arg cam_pos_y)" />
