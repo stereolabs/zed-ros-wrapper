@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+2023-04-27
+----------
+- Add 1080p for ZED X and ZED X Mini
+
 2023-03-31
 ----------
 - Support for ZED SDK v4.0
