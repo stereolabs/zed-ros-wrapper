@@ -1721,7 +1721,7 @@ void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& sl
         if (mTwoDMode) {
             if (i == 14 || i == 21 || i == 28) {
                 odomMsg->pose.covariance[i] = 1e-9; // Very low covariance if 2D mode
-            } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) || (i >= 12 && i <= 13) || (i >= 15 && i <= 16) || (i >= 18 && i <= 20) || (i == 22) || (i >= 24 && i <= 27)) {
+            } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) || (i >= 12 && i <= 13) || (i >= 15 && i <= 20) || (i >= 22 && i <= 27) || (i == 29) || (i >= 32 && i <= 34)) {
                 odomMsg->pose.covariance[i] = 0.0;
             }
         }
