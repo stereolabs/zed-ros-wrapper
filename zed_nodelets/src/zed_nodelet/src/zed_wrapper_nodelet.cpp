@@ -652,7 +652,7 @@ void ZEDWrapperNodelet::readParameters()
     mNhNs.getParam("depth/openni_depth_mode", mOpenniDepthMode);
     NODELET_INFO_STREAM(" * OpenNI mode\t\t\t-> " << (mOpenniDepthMode ? "ENABLED" : "DISABLED"));
     mNhNs.getParam("depth/depth_stabilization", mDepthStabilization);
-    NODELET_INFO_STREAM(" * Depth Stabilization\t\t-> " << (mDepthStabilization ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * Depth Stabilization\t\t-> " << mDepthStabilization );
     mNhNs.getParam("depth/min_depth", mCamMinDepth);
     NODELET_INFO_STREAM(" * Minimum depth\t\t-> " << mCamMinDepth << " m");
     mNhNs.getParam("depth/max_depth", mCamMaxDepth);
