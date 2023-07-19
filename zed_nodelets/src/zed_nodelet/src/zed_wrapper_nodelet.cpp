@@ -4412,7 +4412,8 @@ void ZEDWrapperNodelet::processDetectedObjects(ros::Time t)
     for (auto data : objects.object_list) {
         objMsg->objects[idx].label = sl::toString(data.label).c_str();
         objMsg->objects[idx].sublabel = sl::toString(data.sublabel).c_str();
-        objMsg->objects[idx].label_id = data.id;
+        objMsg->objects[idx].label_id = data.raw_label;
+        objMsg->objects[idx].instance_id = data.id;
         objMsg->objects[idx].confidence = data.confidence;
 
         memcpy(&(objMsg->objects[idx].position[0]), &(data.position[0]), 3 * sizeof(float));
