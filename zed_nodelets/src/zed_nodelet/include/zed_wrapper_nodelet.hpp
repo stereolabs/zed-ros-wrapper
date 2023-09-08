@@ -190,6 +190,11 @@ protected:
    */
     void callback_pubFusedPointCloud(const ros::TimerEvent& e);
 
+    /*!
+     * @brief Publish Color and Depth images
+     */
+    void pubVideoDepth();
+
     /*! \brief Publish the informations of a camera with a ros Publisher
    * \param cam_info_msg : the information message to publish
    * \param pub_cam_info : the publisher object to use
@@ -244,11 +249,6 @@ protected:
     /*! \brief Callback to handle dynamic reconfigure events in ROS
    */
     void callback_dynamicReconf(zed_nodelets::ZedConfig& config, uint32_t level);
-
-    /*! \brief Callback to publish Video and Depth data
-   * \param e : the ros::TimerEvent binded to the callback
-   */
-    void callback_pubVideoDepth(const ros::TimerEvent& e);
 
     /*! \brief Callback to publish Path data with a ROS publisher.
    * \param e : the ros::TimerEvent binded to the callback
@@ -467,7 +467,6 @@ private:
     // Timers
     ros::Timer mPathTimer;
     ros::Timer mFusedPcTimer;
-    ros::Timer mVideoDepthTimer;
 
     // Services
     ros::ServiceServer mSrvSetInitPose;
@@ -538,13 +537,14 @@ private:
     bool mPublishTf;
     bool mPublishMapTf;
     bool mPublishImuTf;
-    bool mCameraFlip;
+    sl::FLIP_MODE mCameraFlip;
     bool mCameraSelfCalib;
 
     // Launch file parameters
     std::string mCameraName;
     sl::RESOLUTION mCamResol;
     int mCamFrameRate;
+    double mVideoDepthFreq = 15.;
     sl::DEPTH_MODE mDepthMode;
     int mGpuId;
     int mZedId;
@@ -557,7 +557,7 @@ private:
     double mSensPubRate = 400.0;
     double mPathPubRate;
     int mPathMaxCount;
-    bool mVerbose;
+    int mVerbose;
     bool mSvoMode = false;
     double mCamMinDepth;
     double mCamMaxDepth;
@@ -634,8 +634,7 @@ private:
 
     int mCamDepthConfidence = 50;
     int mCamDepthTextureConf = 100;
-    double mPointCloudFreq = 15.;
-    double mVideoDepthFreq = 15.;
+    double mPointCloudFreq = 15.;    
 
     double mCamImageResizeFactor = 1.0;
     double mCamDepthResizeFactor = 1.0;
@@ -677,8 +676,6 @@ private:
     std::mutex mObjDetMutex;
     std::condition_variable mPcDataReadyCondVar;
     bool mPcDataReady;
-    std::condition_variable mRgbDepthDataRetrievedCondVar;
-    bool mRgbDepthDataRetrieved;
 
     // Point cloud variables
     sl::Mat mCloud;

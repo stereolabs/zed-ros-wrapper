@@ -71,11 +71,10 @@ void ZEDWrapperNodelet::onInit()
 {
     // Node handlers
     mNh = getMTNodeHandle();
-    mNhNs = getMTPrivateNodeHandle();
 
+    mNhNs = getMTPrivateNodeHandle();
     mStopNode = false;
     mPcDataReady = false;
-    mRgbDepthDataRetrieved = true;
 
 #ifndef NDEBUG
 
@@ -196,6 +195,7 @@ void ZEDWrapperNodelet::onInit()
         mSvoMode = true;
     } else {
         mZedParams.camera_fps = mCamFrameRate;
+        mZedParams.grab_compute_capping_fps = static_cast<float>(mVideoDepthFreq);
         mZedParams.camera_resolution = mCamResol;
 
         if (mZedSerialNumber == 0) {
@@ -415,7 +415,7 @@ void ZEDWrapperNodelet::onInit()
     NODELET_INFO_STREAM("Advertised on topic " << mPubConfMap.getTopic());
 
     // Disparity publisher
-    mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(disparityTopic, static_cast<int>(mVideoDepthFreq));
+    mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(disparityTopic, 1);
     NODELET_INFO_STREAM("Advertised on topic " << mPubDisparity.getTopic());
 
     // PointCloud publishers
@@ -565,9 +565,6 @@ void ZEDWrapperNodelet::onInit()
     // Start pool thread
     mDevicePollThread = std::thread(&ZEDWrapperNodelet::device_poll_thread_func, this);
 
-    // Start data publishing timer
-    mVideoDepthTimer = mNhNs.createTimer(ros::Duration(1.0 / mVideoDepthFreq), &ZEDWrapperNodelet::callback_pubVideoDepth, this);
-
     // Start Sensors thread
     mSensThread = std::thread(&ZEDWrapperNodelet::sensors_thread_func, this);
 }
@@ -614,6 +611,12 @@ void ZEDWrapperNodelet::readParameters()
     mNhNs.getParam("general/grab_frame_rate", mCamFrameRate);
     checkResolFps();
     NODELET_INFO_STREAM(" * Camera Grab Framerate\t-> " << mCamFrameRate);
+    mNhNs.getParam("general/pub_frame_rate", mVideoDepthFreq);
+    if(mVideoDepthFreq>mCamFrameRate) {
+        mVideoDepthFreq = mCamFrameRate;
+        add warning
+    }
+    NODELET_INFO_STREAM(" * Grab compute capping FPS\t-> " << mVideoDepthFreq << " Hz");
 
     mNhNs.getParam("general/gpu_id", mGpuId);
     NODELET_INFO_STREAM(" * Gpu ID\t\t\t-> " << mGpuId);
@@ -621,8 +624,16 @@ void ZEDWrapperNodelet::readParameters()
     NODELET_INFO_STREAM(" * Camera ID\t\t\t-> " << mZedId);
     mNhNs.getParam("general/verbose", mVerbose);
     NODELET_INFO_STREAM(" * Verbose\t\t\t-> " << (mVerbose ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("general/camera_flip", mCameraFlip, false);
-    NODELET_INFO_STREAM(" * Camera Flip\t\t\t-> " << (mCameraFlip ? "ENABLED" : "DISABLED"));
+    std::string flip_str;
+    mNhNs.getParam("general/camera_flip", flip_str);
+    if(flip_str=="ON") {
+        mCameraFlip = sl::FLIP_MODE::ON;
+    } else if(flip_str=="OFF") {
+        mCameraFlip = sl::FLIP_MODE::OFF; 
+    } else {
+        mCameraFlip = sl::FLIP_MODE::AUTO; 
+    }
+    NODELET_INFO_STREAM(" * Camera Flip\t\t\t-> " << sl::toString(mCameraFlip).c_str());
     mNhNs.param<bool>("general/self_calib", mCameraSelfCalib, true);
     NODELET_INFO_STREAM(" * Self calibration\t\t-> " << (mCameraSelfCalib ? "ENABLED" : "DISABLED"));
 
@@ -882,10 +893,7 @@ void ZEDWrapperNodelet::readParameters()
     mNhNs.getParam("depth_confidence", mCamDepthConfidence);
     NODELET_INFO_STREAM(" * [DYN] Depth confidence\t-> " << mCamDepthConfidence);
     mNhNs.getParam("depth_texture_conf", mCamDepthTextureConf);
-    NODELET_INFO_STREAM(" * [DYN] Depth texture conf.\t-> " << mCamDepthTextureConf);
-
-    mNhNs.getParam("pub_frame_rate", mVideoDepthFreq);
-    NODELET_INFO_STREAM(" * [DYN] pub_frame_rate\t\t-> " << mVideoDepthFreq << " Hz");
+    NODELET_INFO_STREAM(" * [DYN] Depth texture conf.\t-> " << mCamDepthTextureConf);    
     mNhNs.getParam("point_cloud_freq", mPointCloudFreq);
     NODELET_INFO_STREAM(" * [DYN] point_cloud_freq\t-> " << mPointCloudFreq << " Hz");
     mNhNs.getParam("brightness", mCamBrightness);
@@ -2264,7 +2272,6 @@ void ZEDWrapperNodelet::updateDynamicReconfigure()
     config.gamma = mCamGamma;
     config.whitebalance_temperature = mCamWB / 100;
     config.point_cloud_freq = mPointCloudFreq;
-    config.pub_frame_rate = mVideoDepthFreq;
     mDynParMutex.unlock();
 
     mDynServerMutex.lock();
@@ -2282,25 +2289,7 @@ void ZEDWrapperNodelet::callback_dynamicReconf(zed_nodelets::ZedConfig& config, 
     mDynParMutex.lock();
     DynParams param = static_cast<DynParams>(level);
 
-    switch (param) {
-    case DATAPUB_FREQ:
-        if (config.pub_frame_rate > mCamFrameRate) {
-            mVideoDepthFreq = mCamFrameRate;
-            NODELET_WARN_STREAM("'pub_frame_rate' cannot be major than camera grabbing framerate. Set to "
-                << mVideoDepthFreq);
-
-            mUpdateDynParams = true;
-        } else {
-            mVideoDepthFreq = config.pub_frame_rate;
-            NODELET_INFO("Reconfigure Video and Depth pub. frequency: %g", mVideoDepthFreq);
-        }
-
-        mVideoDepthTimer.setPeriod(ros::Duration(1.0 / mVideoDepthFreq));
-
-        mDynParMutex.unlock();
-        // NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
-        break;
-
+    switch (param) {  
     case CONFIDENCE:
         mCamDepthConfidence = config.depth_confidence;
         NODELET_INFO("Reconfigure confidence threshold: %d", mCamDepthConfidence);
@@ -2436,7 +2425,7 @@ void ZEDWrapperNodelet::callback_dynamicReconf(zed_nodelets::ZedConfig& config, 
     }
 }
 
-void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e)
+void ZEDWrapperNodelet::pubVideoDepth()
 {
     static sl::Timestamp lastZedTs = 0; // Used to calculate stable publish frequency
 
@@ -2471,8 +2460,6 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e)
     sl::Timestamp ts_rgb = 0; // used to check RGB/Depth sync
     sl::Timestamp ts_depth = 0; // used to check RGB/Depth sync
     sl::Timestamp grab_ts = 0;
-
-    mCamDataMutex.lock();
 
     // ----> Retrieve all required image data
     if (rgbSubnumber + leftSubnumber + stereoSubNumber > 0) {
@@ -2565,8 +2552,6 @@ void ZEDWrapperNodelet::callback_pubVideoDepth(const ros::TimerEvent& e)
         }
     }
     // <---- Publish sensor data if sync is required by user or SVO
-
-    mCamDataMutex.unlock();
 
     // ----> Notify grab thread that all data are synchronized and a new grab can be done
     // mRgbDepthDataRetrievedCondVar.notify_one();
@@ -3278,10 +3263,8 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
             std::chrono::steady_clock::time_point start_elab = std::chrono::steady_clock::now();
 
-            mCamDataMutex.lock();
-            mRgbDepthDataRetrieved = false;
+            // ZED Grab
             mGrabStatus = mZed.grab(runParams);
-            mCamDataMutex.unlock();
 
             // cout << toString(grab_status) << endl;
             if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
@@ -3341,6 +3324,9 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
                 continue;
             }
+
+            // Publish Color and Depth images
+            pubVideoDepth();
 
             mFrameCount++;
 
@@ -3950,7 +3936,7 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
 
                 if (mObjDetRunning) {
                     double freq = 1000. / mObjDetPeriodMean_msec->getMean();
-                    double freq_perc = 100. * freq / mCamFrameRate;
+                    double freq_perc = 100. * freq / mVideoDepthFreq;
                     stat.addf("Object detection", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
                 } else {
                     stat.add("Object Detection", "INACTIVE");

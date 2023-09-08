@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+2023-09-07
+----------
+- `pub_frame_rate` now controls the `InitParameters::grab_compute_capping_fps` parameter of the ZED SDK instead of controlling the frequency of a parallel thread. It's not a Dynamic parameter anymore.
+- Change `general/camera_flip` parameter to string: 'AUTO', 'ON', 'OFF'
+- Change 'general/verbose' from bool to integer
+
+
 2023-04-27
 ----------
 - Add 1080p for ZED X and ZED X Mini
