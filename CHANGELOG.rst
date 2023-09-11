@@ -1,11 +1,18 @@
 CHANGELOG
 =========
 
+2023-09-08
+----------
+- Add `pos_tracking/set_gravity_as_origin` parameter. If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
+- Add `pos_tracking/pos_tracking_mode` parameter. Matches the ZED SDK setting: 'QUALITY', 'STANDARD'
+- Fix the warning `Elaboration takes longer [...]`
+
+
 2023-09-07
 ----------
 - `pub_frame_rate` now controls the `InitParameters::grab_compute_capping_fps` parameter of the ZED SDK instead of controlling the frequency of a parallel thread. It's not a Dynamic parameter anymore.
 - Change `general/camera_flip` parameter to string: 'AUTO', 'ON', 'OFF'
-- Change 'general/verbose' from bool to integer
+- Change `general/verbose` from bool to integer
 
 v4.0.5
 ------

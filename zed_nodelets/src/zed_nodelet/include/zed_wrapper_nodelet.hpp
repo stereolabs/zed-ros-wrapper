@@ -565,12 +565,16 @@ private:
 
     // Positional tracking
     bool mPosTrackingEnabled = false;
+    sl::POSITIONAL_TRACKING_MODE mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
     bool mPosTrackingActivated = false;
     bool mPosTrackingReady = false;
     bool mTwoDMode = false;
     double mFixedZValue = 0.0;
     bool mFloorAlignment = false;
     bool mImuFusion = true;
+    bool mSetGravityAsOrigin = false;
+    
+    // Flags
     bool mGrabActive = false; // Indicate if camera grabbing is active (at least one topic subscribed)
     sl::ERROR_CODE mConnStatus;
     sl::ERROR_CODE mGrabStatus;

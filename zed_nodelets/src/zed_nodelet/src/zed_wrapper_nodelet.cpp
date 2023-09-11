@@ -614,7 +614,7 @@ void ZEDWrapperNodelet::readParameters()
     mNhNs.getParam("general/pub_frame_rate", mVideoDepthFreq);
     if(mVideoDepthFreq>mCamFrameRate) {
         mVideoDepthFreq = mCamFrameRate;
-        add warning
+        NODELET_WARN_STREAM("'general/pub_frame_rate' cannot be bigger than 'general/grab_frame_rate'. Forced to the correct value: " << mVideoDepthFreq);
     }
     NODELET_INFO_STREAM(" * Grab compute capping FPS\t-> " << mVideoDepthFreq << " Hz");
 
@@ -673,10 +673,27 @@ void ZEDWrapperNodelet::readParameters()
     // <----- Depth
 
     NODELET_INFO_STREAM("*** POSITIONAL TRACKING PARAMETERS ***");
-
     // ----> Tracking
     mNhNs.param<bool>("pos_tracking/pos_tracking_enabled", mPosTrackingEnabled, true);
     NODELET_INFO_STREAM(" * Positional tracking\t\t-> " << (mPosTrackingEnabled ? "ENABLED" : "DISABLED"));
+
+    std::string pos_trk_mode;
+    mNhNs.getParam("pos_tracking/pos_tracking_mode", pos_trk_mode);
+    if (pos_trk_mode == "QUALITY") {
+        mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
+    } else if (pos_trk_mode == "STANDARD") {
+        mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::STANDARD;
+    } else {
+        NODELET_WARN_STREAM(
+        "'pos_tracking/pos_tracking_mode' not valid ('" << pos_trk_mode <<
+            "'). Using default value.");
+        mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
+    }
+    NODELET_INFO_STREAM( " * Positional tracking mode: " << sl::toString(mPosTrkMode).c_str());
+
+    mNhNs.getParam("pos_tracking/set_gravity_as_origin", mSetGravityAsOrigin);
+    NODELET_INFO_STREAM(" * Set gravity as origin\t\t-> " << (mSetGravityAsOrigin ? "ENABLED" : "DISABLED"));
+
     mNhNs.getParam("pos_tracking/path_pub_rate", mPathPubRate);
     NODELET_INFO_STREAM(" * Path rate\t\t\t-> " << mPathPubRate << " Hz");
     mNhNs.getParam("pos_tracking/path_max_count", mPathMaxCount);
@@ -893,9 +910,16 @@ void ZEDWrapperNodelet::readParameters()
     mNhNs.getParam("depth_confidence", mCamDepthConfidence);
     NODELET_INFO_STREAM(" * [DYN] Depth confidence\t-> " << mCamDepthConfidence);
     mNhNs.getParam("depth_texture_conf", mCamDepthTextureConf);
-    NODELET_INFO_STREAM(" * [DYN] Depth texture conf.\t-> " << mCamDepthTextureConf);    
+    NODELET_INFO_STREAM(" * [DYN] Depth texture conf.\t-> " << mCamDepthTextureConf);
+
     mNhNs.getParam("point_cloud_freq", mPointCloudFreq);
+    if(mPointCloudFreq>mVideoDepthFreq) {
+        mPointCloudFreq=mVideoDepthFreq;
+        NODELET_WARN_STREAM("'point_cloud_freq' cannot be major than 'general/pub_frame_rate'. Set to "
+                    << mPointCloudFreq);
+    }
     NODELET_INFO_STREAM(" * [DYN] point_cloud_freq\t-> " << mPointCloudFreq << " Hz");
+
     mNhNs.getParam("brightness", mCamBrightness);
     NODELET_INFO_STREAM(" * [DYN] brightness\t\t-> " << mCamBrightness);
     mNhNs.getParam("contrast", mCamContrast);
@@ -1601,6 +1625,8 @@ void ZEDWrapperNodelet::start_pos_tracking()
     posTrackParams.enable_imu_fusion = mImuFusion;
 
     posTrackParams.set_as_static = false;
+    posTrackParams.set_gravity_as_origin = mSetGravityAsOrigin;
+    posTrackParams.mode = mPosTrkMode;
 
     sl::ERROR_CODE err = mZed.enablePositionalTracking(posTrackParams);
 
@@ -2305,9 +2331,9 @@ void ZEDWrapperNodelet::callback_dynamicReconf(zed_nodelets::ZedConfig& config, 
         break;
 
     case POINTCLOUD_FREQ:
-        if (config.point_cloud_freq > mCamFrameRate) {
-            mPointCloudFreq = mCamFrameRate;
-            NODELET_WARN_STREAM("'point_cloud_freq' cannot be major than camera grabbing framerate. Set to "
+        if (config.point_cloud_freq > mVideoDepthFreq) {
+            mPointCloudFreq = mVideoDepthFreq;
+            NODELET_WARN_STREAM("'point_cloud_freq' cannot be major than Video/Depth publishing framerate. Set to "
                 << mPointCloudFreq);
 
             mUpdateDynParams = true;
@@ -3142,7 +3168,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
 void ZEDWrapperNodelet::device_poll_thread_func()
 {
-    ros::Rate loop_rate(mCamFrameRate);
+    ros::Rate loop_rate(mVideoDepthFreq);
 
     mRecording = false;
 
@@ -3158,7 +3184,6 @@ void ZEDWrapperNodelet::device_poll_thread_func()
     } else {
         mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
     }
-
     mPrevFrameTimestamp = mFrameTimestamp;
 
     mPosTrackingActivated = false;
@@ -3325,12 +3350,22 @@ void ZEDWrapperNodelet::device_poll_thread_func()
                 continue;
             }
 
+            mFrameCount++;
+
+            // ----> Timestamp
+            if (mSvoMode) {
+                mFrameTimestamp = ros::Time::now();
+            } else {
+                mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+            }
+            mPrevFrameTimestamp = mFrameTimestamp;
+            ros::Time stamp = mFrameTimestamp; // Fix processing Timestamp
+            // <---- Timestamp
+
             // Publish Color and Depth images
             pubVideoDepth();
 
-            mFrameCount++;
-
-            // SVO recording
+            // ----> SVO recording
             mRecMutex.lock();
 
             if (mRecording) {
@@ -3342,13 +3377,10 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
                 mDiagUpdater.force_update();
             }
-
             mRecMutex.unlock();
+            // <---- SVO recording          
 
-            // Timestamp
-            mPrevFrameTimestamp = mFrameTimestamp;
-
-            // Publish freq calculation
+            // ----> Publish freq calculation
             static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
             std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 
@@ -3356,17 +3388,8 @@ void ZEDWrapperNodelet::device_poll_thread_func()
             last_time = now;
 
             mGrabPeriodMean_usec->addValue(elapsed_usec);
-
             // NODELET_INFO_STREAM("Grab time: " << elapsed_usec / 1000 << " msec");
-
-            // Timestamp
-            if (mSvoMode) {
-                mFrameTimestamp = ros::Time::now();
-            } else {
-                mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
-            }
-
-            ros::Time stamp = mFrameTimestamp; // Timestamp
+            // <---- Publish freq calculation
 
             // ----> Camera Settings
             int value;
@@ -3808,16 +3831,14 @@ void ZEDWrapperNodelet::device_poll_thread_func()
             static int count_warn = 0;
 
             if (!loop_rate.sleep()) {
-                if (mean_elab_sec > (1. / mCamFrameRate)) {
+                if (mean_elab_sec > (1. / mVideoDepthFreq)) {
                     if (++count_warn > 10) {
-                        NODELET_DEBUG_THROTTLE(1.0, "Working thread is not synchronized with the Camera frame rate");
+                        NODELET_DEBUG_THROTTLE(1.0, "Working thread is not synchronized with the Camera grab rate");
                         NODELET_DEBUG_STREAM_THROTTLE(1.0, "Expected cycle time: " << loop_rate.expectedCycleTime() << " - Real cycle time: " << mean_elab_sec);
-                        NODELET_WARN_STREAM_THROTTLE(10.0, "Elaboration takes longer (" << mean_elab_sec << " sec) than requested "
-                                                                                                            "by the FPS rate ("
+                        NODELET_WARN_STREAM_THROTTLE(10.0, "Elaboration takes longer (" << mean_elab_sec << " sec) than requested by the FPS rate ("
                                                                                         << loop_rate.expectedCycleTime() << " sec). Please consider to "
-                                                                                                                            "lower the 'frame_rate' setting or to "
-                                                                                                                            "reduce the power requirements reducing "
-                                                                                                                            "the resolutions.");
+                                                                                                                            "lower the 'general/pub_frame_rate' setting or to "
+                                                                                                                            "reduce the power requirements by reducing the camera resolutions.");
                     }
 
                     loop_rate.reset();
@@ -3871,7 +3892,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
         mRecording = false;
         mZed.disableRecording();
     }
-    mStopNode = true;
+    
     mZed.close();
 
     NODELET_DEBUG("ZED pool thread finished");
@@ -3893,7 +3914,7 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
             stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
 
             stat.addf("General Processing", "Mean Time: %.3f sec (Max. %.3f sec)", mElabPeriodMean_sec->getMean(),
-                1. / mCamFrameRate);
+                1. / mVideoDepthFreq);
 
             if (mPublishingData) {
                 freq = 1. / mVideoDepthPeriodMean_sec->getMean();

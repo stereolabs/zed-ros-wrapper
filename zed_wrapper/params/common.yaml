@@ -41,6 +41,8 @@ depth:
 
 pos_tracking:
     pos_tracking_enabled:       true                            # True to enable positional tracking from start
+    pos_tracking_mode:          'STANDARD'                      # Matches the ZED SDK setting: 'QUALITY', 'STANDARD'
+    set_gravity_as_origin:      true                            # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
     imu_fusion:                 true                            # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
     publish_tf:                 true                            # publish `odom -> base_link` TF
     publish_map_tf:             true                            # publish `map -> odom` TF
