@@ -641,8 +641,7 @@ private:
     int mCamDepthTextureConf = 100;
     double mPointCloudFreq = 15.;    
 
-    double mCamImageResizeFactor = 1.0;
-    double mCamDepthResizeFactor = 1.0;
+    double mCustomDownscaleFactor = 0.5;
 
     // flags
     bool mTriggerAutoExposure = true;

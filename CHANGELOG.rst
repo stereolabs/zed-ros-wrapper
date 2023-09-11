@@ -5,6 +5,8 @@ CHANGELOG
 ----------
 - Change the parameter 'depth/quality' to 'depth/depth_mode' and replace numeric values with strings
 - Improve the behavior of the "NO DEPTH" mode
+- Remove the parameters 'depth_downsample_factor' and 'img_downsample_factor'
+- Add the parameter 'pub_resolution' and 'pub_downscale_factor'
 
 2023-09-08
 ----------
