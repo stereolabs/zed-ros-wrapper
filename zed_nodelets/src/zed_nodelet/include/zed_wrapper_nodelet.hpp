@@ -545,7 +545,7 @@ private:
     sl::RESOLUTION mCamResol;
     int mCamFrameRate;
     double mVideoDepthFreq = 15.;
-    sl::DEPTH_MODE mDepthMode;
+    sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::ULTRA;
     int mGpuId;
     int mZedId;
     int mDepthStabilization;
@@ -573,7 +573,7 @@ private:
     bool mFloorAlignment = false;
     bool mImuFusion = true;
     bool mSetGravityAsOrigin = false;
-    
+
     // Flags
     bool mGrabActive = false; // Indicate if camera grabbing is active (at least one topic subscribed)
     sl::ERROR_CODE mConnStatus;
@@ -581,6 +581,7 @@ private:
     sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
     bool mSensPublishing = false;
     bool mPcPublishing = false;
+    bool mDepthDisabled = false;
 
     // Last frame time
     ros::Time mPrevFrameTimestamp;

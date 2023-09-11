@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+2023-09-10
+----------
+- Change the parameter 'depth/quality' to 'depth/depth_mode' and replace numeric values with strings
+- Improve the behavior of the "NO DEPTH" mode
+
 2023-09-08
 ----------
 - Add `pos_tracking/set_gravity_as_origin` parameter. If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
