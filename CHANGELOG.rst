@@ -7,13 +7,8 @@ CHANGELOG
 - Change `general/camera_flip` parameter to string: 'AUTO', 'ON', 'OFF'
 - Change 'general/verbose' from bool to integer
 
-
-2023-04-27
-----------
-- Add 1080p for ZED X and ZED X Mini
-
-2023-03-31
-----------
+v4.0.5
+------
 - Support for ZED SDK v4.0
 - Remove parameter `object_detection.body_fitting`
 - Remove parameter `depth.sensing_mode`
@@ -22,6 +17,7 @@ CHANGELOG
 - `sensors` and `object_detection` parameters are now in `common.yaml`
 - Move parameters `general.resolution` and `general.grab_frame_rate` to cameras yaml files to support the different configurations on ZED X and ZED X Mini.
 - Remove support for ROS Melodic that reached EOL
+- Add 1080p for ZED X and ZED X Mini
 
 v3.8.x
 ------
