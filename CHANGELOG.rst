@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+2023-09-12
+----------
+- Change the parameter 'general/resolution' to 'general/grab_resolution' and replace numeric values with strings
+
 2023-09-10
 ----------
 - Change the parameter 'depth/quality' to 'depth/depth_mode' and replace numeric values with strings

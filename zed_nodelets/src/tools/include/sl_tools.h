@@ -52,6 +52,26 @@ std::string getSDKVersion(int& major, int& minor, int& sub_minor);
  */
 ros::Time slTime2Ros(sl::Timestamp t);
 
+/*! \brief check if ZED
+ * \param camModel the model to check
+ */
+bool isZED(sl::MODEL camModel);
+
+/*! \brief check if ZED Mini
+ * \param camModel the model to check
+ */
+bool isZEDM(sl::MODEL camModel);
+
+/*! \brief check if ZED2 or ZED2i
+ * \param camModel the model to check
+ */
+bool isZED2OrZED2i(sl::MODEL camModel);
+
+/*! \brief check if ZED-X or ZED-X Mini
+ * \param camModel the model to check
+ */
+bool isZEDX(sl::MODEL camModel);
+
 /*! \brief sl::Mat to ros message conversion
  * \param imgMsgPtr : the image topic message to publish
  * \param img : the image to publish

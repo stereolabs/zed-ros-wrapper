@@ -4,7 +4,7 @@
 
 general:
     camera_model:               'zed2i'
-    resolution:                 3           # '0': HD2K, '1': HD1080, '3': HD720, '5': VGA, '6': AUTO
+    grab_resolution:            'HD720'     # 'HD2K', 'HD1080', 'HD720', 'VGA', 'AUTO'
     grab_frame_rate:            30          # Frequency of frame grabbing for internal SDK operations
 
 depth:

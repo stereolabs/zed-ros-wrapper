@@ -121,6 +121,44 @@ ros::Time slTime2Ros(sl::Timestamp t)
   return ros::Time(sec, nsec);
 }
 
+bool isZED(sl::MODEL camModel)
+{
+  if (camModel == sl::MODEL::ZED) {
+    return true;
+  }
+  return false;
+}
+
+bool isZEDM(sl::MODEL camModel)
+{
+  if (camModel == sl::MODEL::ZED_M) {
+    return true;
+  }
+  return false;
+}
+
+bool isZED2OrZED2i(sl::MODEL camModel)
+{
+  if (camModel == sl::MODEL::ZED2) {
+    return true;
+  }
+  if (camModel == sl::MODEL::ZED2i) {
+    return true;
+  }
+  return false;
+}
+
+bool isZEDX(sl::MODEL camModel)
+{
+  if (camModel == sl::MODEL::ZED_X) {
+    return true;
+  }
+  if (camModel == sl::MODEL::ZED_XM) {
+    return true;
+  }
+  return false;
+}
+
 void imageToROSmsg(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img, std::string frameId, ros::Time t)
 {
   if (!imgMsgPtr)

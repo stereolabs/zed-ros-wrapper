@@ -46,7 +46,7 @@ namespace zed_nodelets {
 #define BARO_FREQ 25.
 
 ZEDWrapperNodelet::ZEDWrapperNodelet()
-    : Nodelet()
+   : Nodelet()
 {
 }
 
@@ -87,7 +87,7 @@ void ZEDWrapperNodelet::onInit()
     NODELET_INFO("********** Starting nodelet '%s' **********", getName().c_str());
 
     std::string ver = sl_tools::getSDKVersion(mVerMajor, mVerMinor, mVerSubMinor);
-    NODELET_INFO_STREAM("SDK version : " << ver);
+    NODELET_INFO_STREAM("SDK version: " << ver);
 
     if (mVerMajor < 3) {
         NODELET_ERROR("This version of the ZED ROS Wrapper is designed to be used with ZED SDK v3.x");
@@ -180,6 +180,8 @@ void ZEDWrapperNodelet::onInit()
             mZedParams.input.setFromSVOFile(mSvoFilepath.c_str());
             mZedParams.svo_real_time_mode = true;
 
+            NODELET_INFO_STREAM( "Node input: SVO - " << mSvoFilepath.c_str());
+
             // TODO ADD PARAMETER FOR SVO REAL TIME
         } else if (!mRemoteStreamAddr.empty()) {
             std::vector<std::string> configStream = sl_tools::split_string(mRemoteStreamAddr, ':');
@@ -190,6 +192,8 @@ void ZEDWrapperNodelet::onInit()
             } else {
                 mZedParams.input.setFromStream(ip);
             }
+
+            NODELET_INFO_STREAM( "Node input: NETWORK STREAM - " << mRemoteStreamAddr.c_str());
         }
 
         mSvoMode = true;
@@ -200,8 +204,10 @@ void ZEDWrapperNodelet::onInit()
 
         if (mZedSerialNumber == 0) {
             mZedParams.input.setFromCameraID(mZedId);
+            NODELET_INFO_STREAM( "Node input: LIVE CAMERA with ID " << mZedId);
         } else {
             mZedParams.input.setFromSerialNumber(mZedSerialNumber);
+            NODELET_INFO_STREAM( "Node input: LIVE CAMERA with SN " << mZedSerialNumber);
         }
     }
 
@@ -229,7 +235,7 @@ void ZEDWrapperNodelet::onInit()
     NODELET_INFO_STREAM(" *** Opening " << sl::toString(mZedUserCamModel) << "...");
     while (mConnStatus != sl::ERROR_CODE::SUCCESS) {
         mConnStatus = mZed.open(mZedParams);
-        NODELET_INFO_STREAM("ZED connection -> " << sl::toString(mConnStatus));
+        NODELET_INFO_STREAM("ZED connection: " << sl::toString(mConnStatus));
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
         if (!mNhNs.ok()) {
@@ -300,19 +306,19 @@ void ZEDWrapperNodelet::onInit()
         NODELET_INFO("Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str());
     }
 
-    NODELET_INFO_STREAM(" * CAMERA MODEL\t -> " << sl::toString(mZedRealCamModel).c_str());
+    NODELET_INFO_STREAM(" * CAMERA MODEL\t-> " << sl::toString(mZedRealCamModel).c_str());
     mZedSerialNumber = mZed.getCameraInformation().serial_number;
-    NODELET_INFO_STREAM(" * Serial Number -> " << mZedSerialNumber);
+    NODELET_INFO_STREAM(" * Serial Number: " << mZedSerialNumber);
 
     if (!mSvoMode) {
         mCamFwVersion = mZed.getCameraInformation().camera_configuration.firmware_version;
-        NODELET_INFO_STREAM(" * Camera FW Version -> " << mCamFwVersion);
+        NODELET_INFO_STREAM(" * Camera FW Version: " << mCamFwVersion);
         if (mZedRealCamModel != sl::MODEL::ZED) {
             mSensFwVersion = mZed.getCameraInformation().sensors_configuration.firmware_version;
-            NODELET_INFO_STREAM(" * Sensors FW Version -> " << mSensFwVersion);
+            NODELET_INFO_STREAM(" * Sensors FW Version: " << mSensFwVersion);
         }
     } else {
-        NODELET_INFO_STREAM(" * Input type\t -> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
+        NODELET_INFO_STREAM(" * Input type\t-> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
     }
 
     // Set the IMU topic names using real camera model
@@ -610,11 +616,38 @@ void ZEDWrapperNodelet::readParameters()
 
     mNhNs.getParam("general/camera_name", mCameraName);
     NODELET_INFO_STREAM(" * Camera Name\t\t\t-> " << mCameraName.c_str());
-    int resol;
-    mNhNs.getParam("general/resolution", resol);
-    mCamResol = static_cast<sl::RESOLUTION>(resol);
-    checkResol();
-    NODELET_INFO_STREAM(" * Camera Resolution\t\t-> " << sl::toString(mCamResol).c_str());    
+
+    std::string resol="AUTO";
+    mNhNs.getParam("general/grab_resolution", resol);
+    if (resol == "AUTO") {
+        mCamResol = sl::RESOLUTION::AUTO;
+    } else if (sl_tools::isZEDX(mZedUserCamModel)) {
+        if (resol == "HD1200") {
+            mCamResol = sl::RESOLUTION::HD1200;
+        } else if (resol == "HD1080") {
+            mCamResol = sl::RESOLUTION::HD1080;
+        } else if (resol == "SVGA") {
+            mCamResol = sl::RESOLUTION::SVGA;
+        } else {
+            NODELET_WARN("Not valid 'general.grab_resolution' value: '%s'. Using 'AUTO' setting.", resol.c_str());
+            mCamResol = sl::RESOLUTION::AUTO;
+        }
+    } else {
+        if (resol == "HD2K") {
+            mCamResol = sl::RESOLUTION::HD2K;
+        } else if (resol == "HD1080") {
+            mCamResol = sl::RESOLUTION::HD1080;
+        } else if (resol == "HD720") {
+            mCamResol = sl::RESOLUTION::HD720;
+        } else if (resol == "VGA") {
+            mCamResol = sl::RESOLUTION::VGA;
+        } else {
+            NODELET_WARN("Not valid 'general.grab_resolution' value: '%s'. Using 'AUTO' setting.", resol.c_str());
+            mCamResol = sl::RESOLUTION::AUTO;
+        }
+    }
+    NODELET_INFO_STREAM(" * Camera resolution\t\t-> " << sl::toString(mCamResol).c_str());
+
     mNhNs.getParam("general/grab_frame_rate", mCamFrameRate);
     checkResolFps();
     NODELET_INFO_STREAM(" * Camera Grab Framerate\t-> " << mCamFrameRate);
@@ -633,15 +666,15 @@ void ZEDWrapperNodelet::readParameters()
     } else if (out_resol == "CUSTOM") {
         mPubResolution = PubRes::CUSTOM;
     } else {
-        ROS_WARN("Not valid 'general/pub_resolution' value: '%s'. Using default setting instead.", out_resol.c_str());
+        NODELET_WARN("Not valid 'general/pub_resolution' value: '%s'. Using default setting instead.", out_resol.c_str());
         out_resol = "CUSTOM";
         mPubResolution = PubRes::CUSTOM;
     }
-    ROS_INFO_STREAM(" * Publishing resolution: " << out_resol.c_str());
+    NODELET_INFO_STREAM(" * Publishing resolution\t-> " << out_resol.c_str());
 
     if (mPubResolution == PubRes::CUSTOM) {
         mNhNs.getParam( "general/pub_downscale_factor", mCustomDownscaleFactor );
-        NODELET_INFO_STREAM(" * Publishing downscale factor: " << mCustomDownscaleFactor );
+        NODELET_INFO_STREAM(" * Publishing downscale factor\t-> " << mCustomDownscaleFactor );
     } else {
         mCustomDownscaleFactor = 1.0;
     }
@@ -651,7 +684,7 @@ void ZEDWrapperNodelet::readParameters()
     mNhNs.getParam("general/zed_id", mZedId);
     NODELET_INFO_STREAM(" * Camera ID\t\t\t-> " << mZedId);
     mNhNs.getParam("general/verbose", mVerbose);
-    NODELET_INFO_STREAM(" * Verbose\t\t\t-> " << (mVerbose ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * Verbose\t\t\t-> " << (mVerbose ? "ENABLED": "DISABLED"));
     std::string flip_str;
     mNhNs.getParam("general/camera_flip", flip_str);
     if(flip_str=="ON") {
@@ -663,7 +696,7 @@ void ZEDWrapperNodelet::readParameters()
     }
     NODELET_INFO_STREAM(" * Camera Flip\t\t\t-> " << sl::toString(mCameraFlip).c_str());
     mNhNs.param<bool>("general/self_calib", mCameraSelfCalib, true);
-    NODELET_INFO_STREAM(" * Self calibration\t\t-> " << (mCameraSelfCalib ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * Self calibration\t\t-> " << (mCameraSelfCalib ? "ENABLED": "DISABLED"));
 
     int tmp_sn = 0;
     mNhNs.getParam("general/serial_number", tmp_sn);
@@ -700,25 +733,25 @@ void ZEDWrapperNodelet::readParameters()
     }
 
     if (!matched) {
-        ROS_WARN_STREAM(
+        NODELET_WARN_STREAM(
             "The parameter 'depth.depth_mode' contains a not valid string. Please check it in 'common.yaml'.");
-        ROS_WARN("Using default DEPTH_MODE.");
+        NODELET_WARN("Using default DEPTH_MODE.");
         mDepthMode = sl::DEPTH_MODE::ULTRA;
     }
 
     if (mDepthMode == sl::DEPTH_MODE::NONE) {
         mDepthDisabled = true;
         mDepthStabilization = 0;
-        ROS_INFO_STREAM(" * Depth mode: " << sl::toString(mDepthMode).c_str() << " - DEPTH DISABLED");
+        NODELET_INFO_STREAM(" * Depth mode\t\t\t> " << sl::toString(mDepthMode).c_str() << " - DEPTH DISABLED");
     } else {
         mDepthDisabled = false;
-        ROS_INFO_STREAM(" * Depth mode: " << sl::toString(
+        NODELET_INFO_STREAM(" * Depth mode\t\t\t--> " << sl::toString(
             mDepthMode).c_str() << " [" << static_cast<int>(mDepthMode) << "]");
     }
 
     if(!mDepthDisabled) {
         mNhNs.getParam("depth/openni_depth_mode", mOpenniDepthMode);
-        NODELET_INFO_STREAM(" * OpenNI mode\t\t\t-> " << (mOpenniDepthMode ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * OpenNI mode\t\t\t-> " << (mOpenniDepthMode ? "ENABLED": "DISABLED"));
         mNhNs.getParam("depth/depth_stabilization", mDepthStabilization);
         NODELET_INFO_STREAM(" * Depth Stabilization\t\t-> " << mDepthStabilization );
         mNhNs.getParam("depth/min_depth", mCamMinDepth);
@@ -733,7 +766,7 @@ void ZEDWrapperNodelet::readParameters()
         NODELET_INFO_STREAM("*** POSITIONAL TRACKING PARAMETERS ***");
         
         mNhNs.param<bool>("pos_tracking/pos_tracking_enabled", mPosTrackingEnabled, true);
-        NODELET_INFO_STREAM(" * Positional tracking\t\t-> " << (mPosTrackingEnabled ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * Positional tracking\t\t-> " << (mPosTrackingEnabled ? "ENABLED": "DISABLED"));
 
         std::string pos_trk_mode;
         mNhNs.getParam("pos_tracking/pos_tracking_mode", pos_trk_mode);
@@ -747,15 +780,15 @@ void ZEDWrapperNodelet::readParameters()
                 "'). Using default value.");
             mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
         }
-        NODELET_INFO_STREAM( " * Positional tracking mode: " << sl::toString(mPosTrkMode).c_str());
+        NODELET_INFO_STREAM( " * Positional tracking mode\t:" << sl::toString(mPosTrkMode).c_str());
 
         mNhNs.getParam("pos_tracking/set_gravity_as_origin", mSetGravityAsOrigin);
-        NODELET_INFO_STREAM(" * Set gravity as origin\t\t-> " << (mSetGravityAsOrigin ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * Set gravity as origin\t-> " << (mSetGravityAsOrigin ? "ENABLED": "DISABLED"));
 
         mNhNs.getParam("pos_tracking/path_pub_rate", mPathPubRate);
         NODELET_INFO_STREAM(" * Path rate\t\t\t-> " << mPathPubRate << " Hz");
         mNhNs.getParam("pos_tracking/path_max_count", mPathMaxCount);
-        NODELET_INFO_STREAM(" * Path history size\t\t-> " << (mPathMaxCount == -1) ? std::string("INFINITE") : std::to_string(mPathMaxCount));
+        NODELET_INFO_STREAM(" * Path history size\t\t-> " << (mPathMaxCount == -1) ? std::string("INFINITE"): std::to_string(mPathMaxCount));
 
         if (mPathMaxCount < 2 && mPathMaxCount != -1) {
             mPathMaxCount = 2;
@@ -768,18 +801,18 @@ void ZEDWrapperNodelet::readParameters()
         NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mAreaMemDbPath.c_str());
 
         mNhNs.param<bool>("pos_tracking/save_area_memory_db_on_exit", mSaveAreaMapOnClosing, false);
-        NODELET_INFO_STREAM(" * Save Area Memory on closing\t-> " << (mSaveAreaMapOnClosing ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * Save Area Memory on closing\t-> " << (mSaveAreaMapOnClosing ? "ENABLED": "DISABLED"));
         mNhNs.param<bool>("pos_tracking/area_memory", mAreaMemory, false);
-        NODELET_INFO_STREAM(" * Area Memory\t\t\t-> " << (mAreaMemory ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * Area Memory\t\t\t-> " << (mAreaMemory ? "ENABLED": "DISABLED"));
         mNhNs.param<bool>("pos_tracking/imu_fusion", mImuFusion, true);
-        NODELET_INFO_STREAM(" * IMU Fusion\t\t\t-> " << (mImuFusion ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * IMU Fusion\t\t\t-> " << (mImuFusion ? "ENABLED": "DISABLED"));
         mNhNs.param<bool>("pos_tracking/floor_alignment", mFloorAlignment, false);
-        NODELET_INFO_STREAM(" * Floor alignment\t\t-> " << (mFloorAlignment ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * Floor alignment\t\t-> " << (mFloorAlignment ? "ENABLED": "DISABLED"));
         mNhNs.param<bool>("pos_tracking/init_odom_with_first_valid_pose", mInitOdomWithPose, true);
-        NODELET_INFO_STREAM(" * Init Odometry with first valid pose data -> "
-            << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * Init Odometry with first valid pose data: "
+            << (mInitOdomWithPose ? "ENABLED": "DISABLED"));
         mNhNs.param<bool>("pos_tracking/two_d_mode", mTwoDMode, false);
-        NODELET_INFO_STREAM(" * Two D mode\t\t\t-> " << (mTwoDMode ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * Two D mode\t\t\t-> " << (mTwoDMode ? "ENABLED": "DISABLED"));
         mNhNs.param<double>("pos_tracking/fixed_z_value", mFixedZValue, 0.0);
 
         if (mTwoDMode) {
@@ -801,7 +834,7 @@ void ZEDWrapperNodelet::readParameters()
 
             mNhNs.getParam("mapping/max_mapping_range", mMaxMappingRange);
             NODELET_INFO_STREAM(" * Mapping max range\t\t-> " << mMaxMappingRange << " m"
-                                                            << ((mMaxMappingRange < 0.0) ? " [AUTO]" : ""));
+                                                            << ((mMaxMappingRange < 0.0) ? " [AUTO]": ""));
 
             mNhNs.getParam("mapping/fused_pointcloud_freq", mFusedPcPubFreq);
             NODELET_INFO_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
@@ -824,7 +857,7 @@ void ZEDWrapperNodelet::readParameters()
             mNhNs.getParam("object_detection/confidence_threshold", mObjDetConfidence);
             NODELET_INFO_STREAM(" * Object confidence\t\t-> " << mObjDetConfidence);
             mNhNs.getParam("object_detection/object_tracking_enabled", mObjDetTracking);
-            NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking ? "ENABLED" : "DISABLED"));
+            NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking ? "ENABLED": "DISABLED"));
             mNhNs.getParam("object_detection/max_range", mObjDetMaxRange);
             if (mObjDetMaxRange > mCamMaxDepth) {
                 NODELET_WARN("Detection max range cannot be major than depth max range. Automatically fixed.");
@@ -843,19 +876,19 @@ void ZEDWrapperNodelet::readParameters()
             NODELET_INFO_STREAM(" * Detection model\t\t-> " << sl::toString(mObjDetModel));
 
             mNhNs.getParam("object_detection/mc_people", mObjDetPeopleEnable);
-            NODELET_INFO_STREAM(" * Detect people\t\t-> " << (mObjDetPeopleEnable ? "ENABLED" : "DISABLED"));
+            NODELET_INFO_STREAM(" * Detect people\t\t-> " << (mObjDetPeopleEnable ? "ENABLED": "DISABLED"));
             mNhNs.getParam("object_detection/mc_vehicle", mObjDetVehiclesEnable);
-            NODELET_INFO_STREAM(" * Detect vehicles\t\t-> " << (mObjDetVehiclesEnable ? "ENABLED" : "DISABLED"));
+            NODELET_INFO_STREAM(" * Detect vehicles\t\t-> " << (mObjDetVehiclesEnable ? "ENABLED": "DISABLED"));
             mNhNs.getParam("object_detection/mc_bag", mObjDetBagsEnable);
-            NODELET_INFO_STREAM(" * Detect bags\t\t\t-> " << (mObjDetBagsEnable ? "ENABLED" : "DISABLED"));
+            NODELET_INFO_STREAM(" * Detect bags\t\t\t-> " << (mObjDetBagsEnable ? "ENABLED": "DISABLED"));
             mNhNs.getParam("object_detection/mc_animal", mObjDetAnimalsEnable);
-            NODELET_INFO_STREAM(" * Detect animals\t\t-> " << (mObjDetAnimalsEnable ? "ENABLED" : "DISABLED"));
+            NODELET_INFO_STREAM(" * Detect animals\t\t-> " << (mObjDetAnimalsEnable ? "ENABLED": "DISABLED"));
             mNhNs.getParam("object_detection/mc_electronics", mObjDetElectronicsEnable);
-            NODELET_INFO_STREAM(" * Detect electronics\t\t-> " << (mObjDetElectronicsEnable ? "ENABLED" : "DISABLED"));
+            NODELET_INFO_STREAM(" * Detect electronics\t\t-> " << (mObjDetElectronicsEnable ? "ENABLED": "DISABLED"));
             mNhNs.getParam("object_detection/mc_fruit_vegetable", mObjDetFruitsEnable);
-            NODELET_INFO_STREAM(" * Detect fruit and vegetables\t-> " << (mObjDetFruitsEnable ? "ENABLED" : "DISABLED"));
+            NODELET_INFO_STREAM(" * Detect fruit and vegetables\t-> " << (mObjDetFruitsEnable ? "ENABLED": "DISABLED"));
             mNhNs.getParam("object_detection/mc_sport", mObjDetSportsEnable);
-            NODELET_INFO_STREAM(" * Detect sport-related objects\t-> " << (mObjDetSportsEnable ? "ENABLED" : "DISABLED"));
+            NODELET_INFO_STREAM(" * Detect sport-related objects\t-> " << (mObjDetSportsEnable ? "ENABLED": "DISABLED"));
         }
     }
     // <---- Object Detection
@@ -865,7 +898,7 @@ void ZEDWrapperNodelet::readParameters()
     // ----> Sensors
     if (camera_model != "zed") {
         mNhNs.getParam("sensors/sensors_timestamp_sync", mSensTimestampSync);
-        NODELET_INFO_STREAM(" * Sensors timestamp sync\t-> " << (mSensTimestampSync ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * Sensors timestamp sync\t-> " << (mSensTimestampSync ? "ENABLED": "DISABLED"));
         mNhNs.getParam("sensors/max_pub_rate", mSensPubRate);
         if (camera_model == "zedm") {
             if (mSensPubRate > 800.)
@@ -961,12 +994,12 @@ void ZEDWrapperNodelet::readParameters()
     // ----> TF broadcasting
     if(!mDepthDisabled) {
         mNhNs.param<bool>("pos_tracking/publish_tf", mPublishTf, true);
-        NODELET_INFO_STREAM(" * Broadcast odometry TF\t-> " << (mPublishTf ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * Broadcast odometry TF\t-> " << (mPublishTf ? "ENABLED": "DISABLED"));
         mNhNs.param<bool>("pos_tracking/publish_map_tf", mPublishMapTf, true);
         NODELET_INFO_STREAM(" * Broadcast map pose TF\t-> "
-            << (mPublishTf ? (mPublishMapTf ? "ENABLED" : "DISABLED") : "DISABLED"));
+            << (mPublishTf ? (mPublishMapTf ? "ENABLED": "DISABLED"): "DISABLED"));
         mNhNs.param<bool>("sensors/publish_imu_tf", mPublishImuTf, true);
-        NODELET_INFO_STREAM(" * Broadcast IMU pose TF\t-> " << (mPublishImuTf ? "ENABLED" : "DISABLED"));
+        NODELET_INFO_STREAM(" * Broadcast IMU pose TF\t-> " << (mPublishImuTf ? "ENABLED": "DISABLED"));
     }
     // <---- TF broadcasting    
 
@@ -985,7 +1018,7 @@ void ZEDWrapperNodelet::readParameters()
     mNhNs.getParam("gamma", mCamGamma);
     NODELET_INFO_STREAM(" * [DYN] gamma\t\t\t-> " << mCamGamma);
     mNhNs.getParam("auto_exposure_gain", mCamAutoExposure);
-    NODELET_INFO_STREAM(" * [DYN] auto_exposure_gain\t-> " << (mCamAutoExposure ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * [DYN] auto_exposure_gain\t-> " << (mCamAutoExposure ? "ENABLED": "DISABLED"));
     mNhNs.getParam("gain", mCamGain);
     mNhNs.getParam("exposure", mCamExposure);
     if (!mCamAutoExposure) {
@@ -993,7 +1026,7 @@ void ZEDWrapperNodelet::readParameters()
         NODELET_INFO_STREAM("  * [DYN] exposure\t\t-> " << mCamExposure);
     }
     mNhNs.getParam("auto_whitebalance", mCamAutoWB);
-    NODELET_INFO_STREAM(" * [DYN] auto_whitebalance\t-> " << (mCamAutoWB ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * [DYN] auto_whitebalance\t-> " << (mCamAutoWB ? "ENABLED": "DISABLED"));
     mNhNs.getParam("whitebalance_temperature", mCamWB);
     if (!mCamAutoWB) {
         NODELET_INFO_STREAM("  * [DYN] whitebalance_temperature\t\t-> " << mCamWB);
@@ -1021,54 +1054,6 @@ void ZEDWrapperNodelet::readParameters()
         NODELET_INFO_STREAM(" * [DYN] point_cloud_freq\t-> " << mPointCloudFreq << " Hz");
     }
     // <---- Dynamic
-}
-
-void ZEDWrapperNodelet::checkResol()
-{
-    switch (mCamResol) {
-        case sl::RESOLUTION::HD2K:
-            if (mZedUserCamModel == sl::MODEL::ZED_X || mZedUserCamModel == sl::MODEL::ZED_XM) {
-                NODELET_WARN("Selected a not valid resolution. Modified to 'AUTO'");
-                mCamResol = sl::RESOLUTION::AUTO;
-            }
-        break;
-
-        case sl::RESOLUTION::HD1200:
-            if (mZedUserCamModel != sl::MODEL::ZED_X && mZedUserCamModel != sl::MODEL::ZED_XM) {
-                NODELET_WARN("Selected a not valid resolution. Modified to 'AUTO'");
-                mCamResol = sl::RESOLUTION::AUTO;
-            }
-        break;
-
-        case sl::RESOLUTION::HD1080:
-        break;
-
-        case sl::RESOLUTION::HD720 :
-            if (mZedUserCamModel == sl::MODEL::ZED_X || mZedUserCamModel == sl::MODEL::ZED_XM) {
-                NODELET_WARN("Selected a not valid resolution. Modified to 'AUTO'");
-                mCamResol = sl::RESOLUTION::AUTO;
-            }
-        break;
-
-        case sl::RESOLUTION::SVGA:
-            if (mZedUserCamModel != sl::MODEL::ZED_X && mZedUserCamModel != sl::MODEL::ZED_XM) {
-                NODELET_WARN("Selected a not valid resolution. Modified to 'AUTO'");
-                mCamResol = sl::RESOLUTION::AUTO;
-            }
-        break;
-
-        case sl::RESOLUTION::VGA:
-            if (mZedUserCamModel == sl::MODEL::ZED_X || mZedUserCamModel == sl::MODEL::ZED_XM) {
-                NODELET_WARN("Selected a not valid resolution. Modified to 'AUTO'");
-                mCamResol = sl::RESOLUTION::AUTO;
-            }
-        break;
-
-        default:
-            NODELET_WARN("Selected a not valid resolution. Modified to 'AUTO'");
-            mCamResol = sl::RESOLUTION::AUTO;
-            break;
-    }
 }
 
 void ZEDWrapperNodelet::checkResolFps()
@@ -2459,7 +2444,7 @@ void ZEDWrapperNodelet::callback_dynamicReconf(zed_nodelets::ZedConfig& config, 
         if(config.auto_exposure_gain!=mCamAutoExposure)
         {
             mCamAutoExposure = config.auto_exposure_gain;
-            NODELET_INFO_STREAM("Reconfigure auto exposure/gain: " << mCamAutoExposure ? "ENABLED" : "DISABLED");
+            NODELET_INFO_STREAM("Reconfigure auto exposure/gain: " << mCamAutoExposure ? "ENABLED": "DISABLED");
         }
         mDynParMutex.unlock();
         // NODELET_DEBUG_STREAM( "dynamicReconfCallback MUTEX UNLOCK");
@@ -2491,7 +2476,7 @@ void ZEDWrapperNodelet::callback_dynamicReconf(zed_nodelets::ZedConfig& config, 
         if(config.auto_whitebalance!=mCamAutoWB)
         {
             mCamAutoWB = config.auto_whitebalance;
-            NODELET_INFO_STREAM("Reconfigure auto white balance: " << mCamAutoWB ? "ENABLED" : "DISABLED");
+            NODELET_INFO_STREAM("Reconfigure auto white balance: " << mCamAutoWB ? "ENABLED": "DISABLED");
             mTriggerAutoWB = true;
         } else {
             mTriggerAutoWB = false;
@@ -2623,7 +2608,7 @@ void ZEDWrapperNodelet::pubVideoDepth()
         grab_ts = mat_conf.timestamp;
     }
     // <---- Retrieve all required image data
-
+mSvoMode
     // ----> Data ROS timestamp
     ros::Time stamp = sl_tools::slTime2Ros(grab_ts);
     if (mSvoMode) {
@@ -3260,7 +3245,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
     // Get the parameters of the ZED images
     mCamWidth = mZed.getCameraInformation().camera_configuration.resolution.width;
     mCamHeight = mZed.getCameraInformation().camera_configuration.resolution.height;
-    NODELET_DEBUG_STREAM("Original Camera grab frame size -> " << mCamWidth << "x" << mCamHeight);
+    NODELET_DEBUG_STREAM("Original Camera grab frame size: " << mCamWidth << "x" << mCamHeight);
     int pub_w, pub_h;
     pub_w = static_cast<int>(std::round(mCamWidth / mCustomDownscaleFactor));
     pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));
@@ -3275,7 +3260,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
         pub_h = mCamHeight;
     }
     mMatResol = sl::Resolution(pub_w, pub_h);
-    NODELET_DEBUG_STREAM("Publishing frame size -> " << mMatResol.width << "x" << mMatResol.height);
+    NODELET_DEBUG_STREAM("Publishing frame size: " << mMatResol.width << "x" << mMatResol.height);
 
     // Create and fill the camera information messages
     fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId, mRightCamOptFrameId);
@@ -3338,7 +3323,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
         if (mGrabActive) {
             std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
-            // Note: ones tracking is started it is never stopped anymore to not lose tracking information
+            // Note: once tracking is started it is never stopped anymore to not lose tracking information
             bool computeTracking = !mDepthDisabled && 
                 (mPosTrackingEnabled || mPosTrackingActivated || mMappingEnabled || mObjDetEnabled || (mComputeDepth & mDepthStabilization) || 
                 poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0 || pathSubNumber > 0);
@@ -3390,6 +3375,14 @@ void ZEDWrapperNodelet::device_poll_thread_func()
                 if(mGrabStatus!=sl::ERROR_CODE::CAMERA_REBOOTING) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(50));
                     continue;
+                } else if (mSvoMode && mGrabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
+                    NODELET_WARN("SVO reached the end. The node will be stopped.");
+                    mZed.close();
+                    exit(EXIT_SUCCESS);
+                } else if (!mRemoteStreamAddr.empty()) {
+                    NODELET_ERROR("Remote stream problem. The node will be stopped.");
+                    mZed.close();
+                    exit(EXIT_FAILURE);
                 } else {
                     if ((ros::Time::now() - mPrevFrameTimestamp).toSec() > 5 && !mSvoMode) {
                         mCloseZedMutex.lock();
@@ -3424,9 +3417,13 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
                         mPosTrackingActivated = false;
 
-                        computeTracking = mPosTrackingEnabled || mDepthStabilization || poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0;
+                        // Note: once tracking is started it is never stopped anymore to not lose tracking information
+                        bool computeTracking = !mDepthDisabled && 
+                            (mPosTrackingEnabled || mPosTrackingActivated || mMappingEnabled || mObjDetEnabled || (mComputeDepth & mDepthStabilization) || 
+                            poseSubnumber > 0 || poseCovSubnumber > 0 || odomSubnumber > 0 || pathSubNumber > 0);
 
-                        if (computeTracking) { // Start the tracking
+                        // Start the tracking?
+                        if ((computeTracking) && !mPosTrackingActivated && !mDepthDisabled) {
                             start_pos_tracking();
                         }
                     }
@@ -4123,7 +4120,7 @@ bool ZEDWrapperNodelet::on_start_svo_recording(zed_interfaces::start_svo_recordi
     err = mZed.enableRecording(recParams);
 
     if (err == sl::ERROR_CODE::SVO_UNSUPPORTED_COMPRESSION) {
-        recParams.compression_mode = mSvoComprMode == sl::SVO_COMPRESSION_MODE::H265 ? sl::SVO_COMPRESSION_MODE::H264 : sl::SVO_COMPRESSION_MODE::H265;
+        recParams.compression_mode = mSvoComprMode == sl::SVO_COMPRESSION_MODE::H265 ? sl::SVO_COMPRESSION_MODE::H264: sl::SVO_COMPRESSION_MODE::H265;
 
         NODELET_WARN_STREAM("The chosen " << sl::toString(mSvoComprMode).c_str() << "mode is not available. Trying "
                                           << sl::toString(recParams.compression_mode).c_str());
@@ -4267,7 +4264,7 @@ bool ZEDWrapperNodelet::on_set_led_status(zed_interfaces::set_led_status::Reques
         return false;
     }
 
-    mZed.setCameraSettings(sl::VIDEO_SETTINGS::LED_STATUS, req.led_enabled ? 1 : 0);
+    mZed.setCameraSettings(sl::VIDEO_SETTINGS::LED_STATUS, req.led_enabled ? 1: 0);
 
     return true;
 }
@@ -4288,7 +4285,7 @@ bool ZEDWrapperNodelet::on_toggle_led(zed_interfaces::toggle_led::Request& req,
         return false;
     }
 
-    int new_status = status == 0 ? 1 : 0;
+    int new_status = status == 0 ? 1: 0;
     err = mZed.setCameraSettings(sl::VIDEO_SETTINGS::LED_STATUS, new_status);
     if(err!=sl::ERROR_CODE::SUCCESS) 
     {
@@ -4421,23 +4418,23 @@ bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_d
     NODELET_INFO_STREAM(" * Detection max range\t\t-> " << mObjDetMaxRange);
 
     NODELET_INFO_STREAM(" * Object min. confidence\t-> " << mObjDetConfidence);
-    NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking ? "ENABLED": "DISABLED"));
     NODELET_INFO_STREAM(" * Detection model\t\t-> " << sl::toString(mObjDetModel));
     
     mNhNs.getParam("object_detection/mc_people", mObjDetPeopleEnable);
-    NODELET_INFO_STREAM(" * Detect people\t\t-> " << (mObjDetPeopleEnable ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * Detect people\t\t-> " << (mObjDetPeopleEnable ? "ENABLED": "DISABLED"));
     mNhNs.getParam("object_detection/mc_vehicle", mObjDetVehiclesEnable);
-    NODELET_INFO_STREAM(" * Detect vehicles\t\t-> " << (mObjDetVehiclesEnable ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * Detect vehicles\t\t-> " << (mObjDetVehiclesEnable ? "ENABLED": "DISABLED"));
     mNhNs.getParam("object_detection/mc_bag", mObjDetBagsEnable);
-    NODELET_INFO_STREAM(" * Detect bags\t\t\t-> " << (mObjDetBagsEnable ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * Detect bags\t\t\t-> " << (mObjDetBagsEnable ? "ENABLED": "DISABLED"));
     mNhNs.getParam("object_detection/mc_animal", mObjDetAnimalsEnable);
-    NODELET_INFO_STREAM(" * Detect animals\t\t-> " << (mObjDetAnimalsEnable ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * Detect animals\t\t-> " << (mObjDetAnimalsEnable ? "ENABLED": "DISABLED"));
     mNhNs.getParam("object_detection/mc_electronics", mObjDetElectronicsEnable);
-    NODELET_INFO_STREAM(" * Detect electronics\t\t-> " << (mObjDetElectronicsEnable ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * Detect electronics\t\t-> " << (mObjDetElectronicsEnable ? "ENABLED": "DISABLED"));
     mNhNs.getParam("object_detection/mc_fruit_vegetable", mObjDetFruitsEnable);
-    NODELET_INFO_STREAM(" * Detect fruit and vegetables\t-> " << (mObjDetFruitsEnable ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * Detect fruit and vegetables\t-> " << (mObjDetFruitsEnable ? "ENABLED": "DISABLED"));
     mNhNs.getParam("object_detection/mc_sport", mObjDetSportsEnable);
-    NODELET_INFO_STREAM(" * Detect sport-related objects\t-> " << (mObjDetSportsEnable ? "ENABLED" : "DISABLED"));
+    NODELET_INFO_STREAM(" * Detect sport-related objects\t-> " << (mObjDetSportsEnable ? "ENABLED": "DISABLED"));
         
     mObjDetRunning = false;
     mObjDetEnabled = true;
@@ -4503,7 +4500,7 @@ void ZEDWrapperNodelet::processDetectedObjects(ros::Time t)
     objMsg->objects.resize(objCount);
 
     size_t idx = 0;
-    for (auto data : objects.object_list) {
+    for (auto data: objects.object_list) {
         objMsg->objects[idx].label = sl::toString(data.label).c_str();
         objMsg->objects[idx].sublabel = sl::toString(data.sublabel).c_str();
         objMsg->objects[idx].label_id = data.raw_label;

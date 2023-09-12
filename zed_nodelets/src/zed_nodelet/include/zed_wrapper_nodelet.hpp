@@ -243,11 +243,7 @@ protected:
    */
     void fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg, std::string frame_id);
 
-    /*! \brief Check if Resolution is valid for the camera model.
-   *        Modifies Resolution to match correct value.
-   */
-    void checkResol();
-    
+ 
     /*! \brief Check if FPS and Resolution chosen by user are correct.
    *        Modifies FPS to match correct value.
    */
