@@ -4,6 +4,8 @@ CHANGELOG
 2023-09-12
 ----------
 - Change the parameter 'general/resolution' to 'general/grab_resolution' and replace numeric values with strings
+- Add 'general.svo_realtime' parameter
+- Change 'general/verbose' to 'general/sdk_verbose'
 
 2023-09-10
 ----------

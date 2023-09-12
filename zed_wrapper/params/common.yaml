@@ -3,20 +3,20 @@
 ---
 
 # Dynamic parameters cannot have a namespace
-brightness:                 4                                   # Dynamic
-contrast:                   4                                   # Dynamic
-hue:                        0                                   # Dynamic
-saturation:                 4                                   # Dynamic
-sharpness:                  4                                   # Dynamic
-gamma:                      8                                   # Dynamic - Requires SDK >=v3.1
-auto_exposure_gain:         true                                # Dynamic
-gain:                       100                                 # Dynamic - works only if `auto_exposure_gain` is false
-exposure:                   100                                 # Dynamic - works only if `auto_exposure_gain` is false
-auto_whitebalance:          true                                # Dynamic
-whitebalance_temperature:   42                                  # Dynamic - works only if `auto_whitebalance` is false
-depth_confidence:           30                                  # Dynamic
-depth_texture_conf:         100                                 # Dynamic
-point_cloud_freq:           10.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
+brightness:                     4                               # Dynamic
+contrast:                       4                               # Dynamic
+hue:                            0                               # Dynamic
+saturation:                     4                               # Dynamic
+sharpness:                      4                               # Dynamic
+gamma:                          8                               # Dynamic - Requires SDK >=v3.1
+auto_exposure_gain:             true                            # Dynamic
+gain:                           100                             # Dynamic - works only if `auto_exposure_gain` is false
+exposure:                       100                             # Dynamic - works only if `auto_exposure_gain` is false
+auto_whitebalance:              true                            # Dynamic
+whitebalance_temperature:       42                              # Dynamic - works only if `auto_whitebalance` is false
+depth_confidence:               30                              # Dynamic
+depth_texture_conf:             100                             # Dynamic
+point_cloud_freq:               10.0                            # Dynamic - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
 
 general:
     camera_name:                zed                             # A name for the camera (can be different from camera model and node name and can be overwritten by the launch file)
@@ -24,13 +24,14 @@ general:
     serial_number:              0
     gpu_id:                     -1
     base_frame:                 'base_link'                     # must be equal to the frame_id used in the URDF file
-    verbose:                    1                               # Set verbose level of the ZED SDK
+    sdk_verbose:                    1                               # Set verbose level of the ZED SDK
     svo_compression:            2                               # `0`: LOSSLESS, `1`: AVCHD, `2`: HEVC
     self_calib:                 true                            # enable/disable self calibration at starting
     camera_flip:                'AUTO'                          # camera flip mode: 'OFF', 'ON', 'AUTO'
     pub_resolution:             'CUSTOM'                        # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
     pub_downscale_factor:       2.0                             # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
     pub_frame_rate:             15.0                            # frequency of publishing of video and depth data (see SDK API "InitParameters::grab_compute_capping_fps")
+    svo_realtime:               true                            # if true the input SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
 
 #video:
 

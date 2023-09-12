@@ -555,12 +555,13 @@ private:
     std::string mAreaMemDbPath;
     bool mSaveAreaMapOnClosing = true;
     std::string mSvoFilepath;
+    bool mSvoRealtime = true;
     std::string mRemoteStreamAddr;
     bool mSensTimestampSync;
     double mSensPubRate = 400.0;
     double mPathPubRate;
     int mPathMaxCount;
-    int mVerbose;
+    int mSdkVerbose=1;
     bool mSvoMode = false;
     double mCamMinDepth;
     double mCamMaxDepth;

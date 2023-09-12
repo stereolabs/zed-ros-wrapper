@@ -174,15 +174,18 @@ void ZEDWrapperNodelet::onInit()
     mTfBuffer.reset(new tf2_ros::Buffer);
     mTfListener.reset(new tf2_ros::TransformListener(*mTfBuffer));
 
+    mZedParams.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
+    NODELET_INFO_STREAM(" * Camera coordinate system\t-> " << sl::toString(mZedParams.coordinate_system));
+
     // Try to initialize the ZED
+    std::stringstream ss; // Input mode info for logging
     if (!mSvoFilepath.empty() || !mRemoteStreamAddr.empty()) {
         if (!mSvoFilepath.empty()) {
             mZedParams.input.setFromSVOFile(mSvoFilepath.c_str());
-            mZedParams.svo_real_time_mode = true;
+            mZedParams.svo_real_time_mode = mSvoRealtime;
 
-            NODELET_INFO_STREAM( "Node input: SVO - " << mSvoFilepath.c_str());
-
-            // TODO ADD PARAMETER FOR SVO REAL TIME
+            // Input mode info for logging
+            ss << "SVO - " << mSvoFilepath.c_str();
         } else if (!mRemoteStreamAddr.empty()) {
             std::vector<std::string> configStream = sl_tools::split_string(mRemoteStreamAddr, ':');
             sl::String ip = sl::String(configStream.at(0).c_str());
@@ -193,7 +196,8 @@ void ZEDWrapperNodelet::onInit()
                 mZedParams.input.setFromStream(ip);
             }
 
-            NODELET_INFO_STREAM( "Node input: NETWORK STREAM - " << mRemoteStreamAddr.c_str());
+            // Input mode info for logging
+            ss << "NETWORK STREAM - " << mRemoteStreamAddr.c_str();
         }
 
         mSvoMode = true;
@@ -204,20 +208,21 @@ void ZEDWrapperNodelet::onInit()
 
         if (mZedSerialNumber == 0) {
             mZedParams.input.setFromCameraID(mZedId);
-            NODELET_INFO_STREAM( "Node input: LIVE CAMERA with ID " << mZedId);
+
+            // Input mode info for logging
+            ss << "LIVE CAMERA with ID " << mZedId;
         } else {
             mZedParams.input.setFromSerialNumber(mZedSerialNumber);
-            NODELET_INFO_STREAM( "Node input: LIVE CAMERA with SN " << mZedSerialNumber);
+            
+            // Input mode info for logging
+            ss << "LIVE CAMERA with SN " << mZedSerialNumber;
         }
     }
-
-    mZedParams.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
-    NODELET_INFO_STREAM(" * Camera coordinate system\t-> " << sl::toString(mZedParams.coordinate_system));
 
     mZedParams.async_grab_camera_recovery = true;
     mZedParams.coordinate_units = sl::UNIT::METER;
     mZedParams.depth_mode = static_cast<sl::DEPTH_MODE>(mDepthMode);
-    mZedParams.sdk_verbose = mVerbose;
+    mZedParams.sdk_verbose = mSdkVerbose;
     mZedParams.sdk_gpu_id = mGpuId;
     mZedParams.depth_stabilization = mDepthStabilization;
     mZedParams.camera_image_flip = mCameraFlip;
@@ -232,7 +237,7 @@ void ZEDWrapperNodelet::onInit()
 
     mConnStatus = sl::ERROR_CODE::CAMERA_NOT_DETECTED;
 
-    NODELET_INFO_STREAM(" *** Opening " << sl::toString(mZedUserCamModel) << "...");
+    NODELET_INFO_STREAM(" *** Opening " << sl::toString(mZedUserCamModel) << " - " << ss.str().c_str() << " ***");
     while (mConnStatus != sl::ERROR_CODE::SUCCESS) {
         mConnStatus = mZed.open(mZedParams);
         NODELET_INFO_STREAM("ZED connection: " << sl::toString(mConnStatus));
@@ -317,8 +322,6 @@ void ZEDWrapperNodelet::onInit()
             mSensFwVersion = mZed.getCameraInformation().sensors_configuration.firmware_version;
             NODELET_INFO_STREAM(" * Sensors FW Version: " << mSensFwVersion);
         }
-    } else {
-        NODELET_INFO_STREAM(" * Input type\t-> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
     }
 
     // Set the IMU topic names using real camera model
@@ -683,8 +686,8 @@ void ZEDWrapperNodelet::readParameters()
     NODELET_INFO_STREAM(" * Gpu ID\t\t\t-> " << mGpuId);
     mNhNs.getParam("general/zed_id", mZedId);
     NODELET_INFO_STREAM(" * Camera ID\t\t\t-> " << mZedId);
-    mNhNs.getParam("general/verbose", mVerbose);
-    NODELET_INFO_STREAM(" * Verbose\t\t\t-> " << (mVerbose ? "ENABLED": "DISABLED"));
+    mNhNs.getParam("general/sdk_verbose", mSdkVerbose);
+    NODELET_INFO_STREAM(" * SDK Verbose level\t\t-> " << mSdkVerbose );
     std::string flip_str;
     mNhNs.getParam("general/camera_flip", flip_str);
     if(flip_str=="ON") {
@@ -742,10 +745,10 @@ void ZEDWrapperNodelet::readParameters()
     if (mDepthMode == sl::DEPTH_MODE::NONE) {
         mDepthDisabled = true;
         mDepthStabilization = 0;
-        NODELET_INFO_STREAM(" * Depth mode\t\t\t> " << sl::toString(mDepthMode).c_str() << " - DEPTH DISABLED");
+        NODELET_INFO_STREAM(" * Depth mode\t\t\t-> " << sl::toString(mDepthMode).c_str() << " - DEPTH DISABLED");
     } else {
         mDepthDisabled = false;
-        NODELET_INFO_STREAM(" * Depth mode\t\t\t--> " << sl::toString(
+        NODELET_INFO_STREAM(" * Depth mode\t\t\t-> " << sl::toString(
             mDepthMode).c_str() << " [" << static_cast<int>(mDepthMode) << "]");
     }
 
@@ -780,7 +783,7 @@ void ZEDWrapperNodelet::readParameters()
                 "'). Using default value.");
             mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
         }
-        NODELET_INFO_STREAM( " * Positional tracking mode\t:" << sl::toString(mPosTrkMode).c_str());
+        NODELET_INFO_STREAM( " * Positional tracking mode\t-> " << sl::toString(mPosTrkMode).c_str());
 
         mNhNs.getParam("pos_tracking/set_gravity_as_origin", mSetGravityAsOrigin);
         NODELET_INFO_STREAM(" * Set gravity as origin\t-> " << (mSetGravityAsOrigin ? "ENABLED": "DISABLED"));
@@ -800,7 +803,7 @@ void ZEDWrapperNodelet::readParameters()
         mAreaMemDbPath = sl_tools::resolveFilePath(mAreaMemDbPath);
         NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mAreaMemDbPath.c_str());
 
-        mNhNs.param<bool>("pos_tracking/save_area_memory_db_on_exit", mSaveAreaMapOnClosing, false);
+        mNhNs.param<bool>("pos_tracking/save_area_memory_db_on_exit", mSaveAreaMapOnClosing,AUTO_WB false);
         NODELET_INFO_STREAM(" * Save Area Memory on closing\t-> " << (mSaveAreaMapOnClosing ? "ENABLED": "DISABLED"));
         mNhNs.param<bool>("pos_tracking/area_memory", mAreaMemory, false);
         NODELET_INFO_STREAM(" * Area Memory\t\t\t-> " << (mAreaMemory ? "ENABLED": "DISABLED"));
@@ -812,10 +815,10 @@ void ZEDWrapperNodelet::readParameters()
         NODELET_INFO_STREAM(" * Init Odometry with first valid pose data: "
             << (mInitOdomWithPose ? "ENABLED": "DISABLED"));
         mNhNs.param<bool>("pos_tracking/two_d_mode", mTwoDMode, false);
-        NODELET_INFO_STREAM(" * Two D mode\t\t\t-> " << (mTwoDMode ? "ENABLED": "DISABLED"));
-        mNhNs.param<double>("pos_tracking/fixed_z_value", mFixedZValue, 0.0);
+        NODELET_INFO_STREAM(" * Force 2D mode\t\t\t-> " << (mTwoDMode ? "ENABLED": "DISABLED"));        
 
         if (mTwoDMode) {
+            mNhNs.param<double>("pos_tracking/fixed_z_value", mFixedZValue, 0.0);
             NODELET_INFO_STREAM(" * Fixed Z value\t\t-> " << mFixedZValue);
         }
     }
@@ -920,6 +923,11 @@ void ZEDWrapperNodelet::readParameters()
     mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
     mSvoFilepath = sl_tools::resolveFilePath(mSvoFilepath);
     NODELET_INFO_STREAM(" * SVO input file: \t\t-> " << mSvoFilepath.c_str());
+
+    if(!mSvoFilepath.empty()) {
+        mNhNs.getParam("general/svo_realtime", mSvoRealtime);
+        NODELET_INFO_STREAM(" * SVO realtime mode\t\t-> " << (mSvoRealtime ? "ENABLED": "DISABLED"));
+    }
 
     int svo_compr = 0;
     mNhNs.getParam("general/svo_compression", svo_compr);
@@ -2608,7 +2616,7 @@ void ZEDWrapperNodelet::pubVideoDepth()
         grab_ts = mat_conf.timestamp;
     }
     // <---- Retrieve all required image data
-mSvoMode
+
     // ----> Data ROS timestamp
     ros::Time stamp = sl_tools::slTime2Ros(grab_ts);
     if (mSvoMode) {

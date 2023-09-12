@@ -4,9 +4,9 @@
 
 general:
     camera_model:               'zedxm'
-    grab_resolution:            'HD1200'         # HD1080, HD1200, SVGA, AUTO
-    grab_frame_rate:            60               # 120, 60, 30, 15
+    grab_resolution:            'HD1200'     # HD1080, HD1200, SVGA, AUTO
+    grab_frame_rate:            60           # 120, 60, 30, 15
 
 depth:
-    min_depth:                  0.1              # Min: 0.1, Max: 3.0 - Default 0.7 - Note: reducing this value wil require more computational power and GPU memory
-    max_depth:                  10.0             # Max: 40.0
+    min_depth:                  0.1          # Min: 0.1, Max: 3.0 - Default 0.7 - Note: reducing this value wil require more computational power and GPU memory
+    max_depth:                  10.0         # Max: 40.0
