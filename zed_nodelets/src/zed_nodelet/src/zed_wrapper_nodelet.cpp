@@ -195,7 +195,7 @@ void ZEDWrapperNodelet::onInit()
         mSvoMode = true;
     } else {
         mZedParams.camera_fps = mCamFrameRate;
-        mZedParams.grab_compute_capping_fps = static_cast<float>(mVideoDepthFreq);
+        mZedParams.grab_compute_capping_fps = static_cast<float>(mPubFrameRate);
         mZedParams.camera_resolution = mCamResol;
 
         if (mZedSerialNumber == 0) {
@@ -618,12 +618,33 @@ void ZEDWrapperNodelet::readParameters()
     mNhNs.getParam("general/grab_frame_rate", mCamFrameRate);
     checkResolFps();
     NODELET_INFO_STREAM(" * Camera Grab Framerate\t-> " << mCamFrameRate);
-    mNhNs.getParam("general/pub_frame_rate", mVideoDepthFreq);
-    if(mVideoDepthFreq>mCamFrameRate) {
-        mVideoDepthFreq = mCamFrameRate;
-        NODELET_WARN_STREAM("'general/pub_frame_rate' cannot be bigger than 'general/grab_frame_rate'. Forced to the correct value: " << mVideoDepthFreq);
+    mNhNs.getParam("general/pub_frame_rate", mPubFrameRate);
+    if(mPubFrameRate>mCamFrameRate) {
+        mPubFrameRate = mCamFrameRate;
+        NODELET_WARN_STREAM("'general/pub_frame_rate' cannot be bigger than 'general/grab_frame_rate'. Forced to the correct value: " << mPubFrameRate);
     }
-    NODELET_INFO_STREAM(" * Grab compute capping FPS\t-> " << mVideoDepthFreq << " Hz");
+    NODELET_INFO_STREAM(" * Grab compute capping FPS\t-> " << mPubFrameRate << " Hz");
+    
+    
+    std::string out_resol = "CUSTOM";
+    mNhNs.getParam("general/pub_resolution", out_resol);
+    if (out_resol == "NATIVE") {
+        mPubResolution = PubRes::NATIVE;
+    } else if (out_resol == "CUSTOM") {
+        mPubResolution = PubRes::CUSTOM;
+    } else {
+        ROS_WARN("Not valid 'general/pub_resolution' value: '%s'. Using default setting instead.", out_resol.c_str());
+        out_resol = "CUSTOM";
+        mPubResolution = PubRes::CUSTOM;
+    }
+    ROS_INFO_STREAM(" * Publishing resolution: " << out_resol.c_str());
+
+    if (mPubResolution == PubRes::CUSTOM) {
+        mNhNs.getParam( "general/pub_downscale_factor", mCustomDownscaleFactor );
+        NODELET_INFO_STREAM(" * Publishing downscale factor: " << mCustomDownscaleFactor );
+    } else {
+        mCustomDownscaleFactor = 1.0;
+    }
 
     mNhNs.getParam("general/gpu_id", mGpuId);
     NODELET_INFO_STREAM(" * Gpu ID\t\t\t-> " << mGpuId);
@@ -653,16 +674,15 @@ void ZEDWrapperNodelet::readParameters()
     }    
     // <---- General
 
-    NODELET_INFO_STREAM("*** VIDEO PARAMETERS ***");
 
-    // ----> Video
-    mNhNs.getParam("video/img_downsample_factor", mCamImageResizeFactor);
-    NODELET_INFO_STREAM(" * Image resample factor\t-> " << mCamImageResizeFactor);
-    // <---- Video
 
-    NODELET_INFO_STREAM("*** DEPTH PARAMETERS ***");
+    // ----> Video    
+    //NODELET_INFO_STREAM("*** VIDEO PARAMETERS ***");
+    // Note: there are no "static" video parameters
+    // <---- Video    
 
     // -----> Depth
+    NODELET_INFO_STREAM("*** DEPTH PARAMETERS ***");
     std::string depth_mode_str = sl::toString(mDepthMode).c_str();
     mNhNs.getParam("depth/depth_mode", depth_mode_str);
 
@@ -705,8 +725,6 @@ void ZEDWrapperNodelet::readParameters()
         NODELET_INFO_STREAM(" * Minimum depth\t\t-> " << mCamMinDepth << " m");
         mNhNs.getParam("depth/max_depth", mCamMaxDepth);
         NODELET_INFO_STREAM(" * Maximum depth\t\t-> " << mCamMaxDepth << " m");
-        mNhNs.getParam("depth/depth_downsample_factor", mCamDepthResizeFactor);
-        NODELET_INFO_STREAM(" * Depth resample factor\t-> " << mCamDepthResizeFactor);
     }
     // <----- Depth
 
@@ -995,8 +1013,8 @@ void ZEDWrapperNodelet::readParameters()
         NODELET_INFO_STREAM(" * [DYN] Depth texture conf.\t-> " << mCamDepthTextureConf);
 
         mNhNs.getParam("point_cloud_freq", mPointCloudFreq);
-        if(mPointCloudFreq>mVideoDepthFreq) {
-            mPointCloudFreq=mVideoDepthFreq;
+        if(mPointCloudFreq>mPubFrameRate) {
+            mPointCloudFreq=mPubFrameRate;
             NODELET_WARN_STREAM("'point_cloud_freq' cannot be major than 'general/pub_frame_rate'. Set to "
                         << mPointCloudFreq);
         }
@@ -2008,7 +2026,7 @@ void ZEDWrapperNodelet::publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat de
 
 void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t)
 {
-    sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResolDepth);
+    sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResol);
 
     sensor_msgs::ImagePtr disparityImgMsg = boost::make_shared<sensor_msgs::Image>();
     stereo_msgs::DisparityImagePtr disparityMsg = boost::make_shared<stereo_msgs::DisparityImage>();
@@ -2085,18 +2103,18 @@ void ZEDWrapperNodelet::publishPointCloud()
     // Initialize Point Cloud message
     // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
-    int ptsCount = mMatResolDepth.width * mMatResolDepth.height;
+    int ptsCount = mMatResol.width * mMatResol.height;
 
     pointcloudMsg->header.stamp = mPointCloudTime;
 
-    if (pointcloudMsg->width != mMatResolDepth.width || pointcloudMsg->height != mMatResolDepth.height) {
+    if (pointcloudMsg->width != mMatResol.width || pointcloudMsg->height != mMatResol.height) {
         pointcloudMsg->header.frame_id = mPointCloudFrameId; // Set the header values of the ROS message
 
         pointcloudMsg->is_bigendian = false;
         pointcloudMsg->is_dense = false;
 
-        pointcloudMsg->width = mMatResolDepth.width;
-        pointcloudMsg->height = mMatResolDepth.height;
+        pointcloudMsg->width = mMatResol.width;
+        pointcloudMsg->height = mMatResol.height;
 
         sensor_msgs::PointCloud2Modifier modifier(*pointcloudMsg);
         modifier.setPointCloud2Fields(4, "x", 1, sensor_msgs::PointField::FLOAT32, "y", 1, sensor_msgs::PointField::FLOAT32,
@@ -2221,9 +2239,9 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
     sl::CalibrationParameters zedParam;
 
     if (rawParam) {
-        zedParam = zed.getCameraInformation(mMatResolVideo).camera_configuration.calibration_parameters_raw;
+        zedParam = zed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters_raw;
     } else {
-        zedParam = zed.getCameraInformation(mMatResolVideo).camera_configuration.calibration_parameters;
+        zedParam = zed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters;
     }
 
     float baseline = zedParam.getCameraBaseline();
@@ -2282,8 +2300,8 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
     rightCamInfoMsg->P[5] = static_cast<double>(zedParam.right_cam.fy);
     rightCamInfoMsg->P[6] = static_cast<double>(zedParam.right_cam.cy);
     rightCamInfoMsg->P[10] = 1.0;
-    leftCamInfoMsg->width = rightCamInfoMsg->width = static_cast<uint32_t>(mMatResolVideo.width);
-    leftCamInfoMsg->height = rightCamInfoMsg->height = static_cast<uint32_t>(mMatResolVideo.height);
+    leftCamInfoMsg->width = rightCamInfoMsg->width = static_cast<uint32_t>(mMatResol.width);
+    leftCamInfoMsg->height = rightCamInfoMsg->height = static_cast<uint32_t>(mMatResol.height);
     leftCamInfoMsg->header.frame_id = leftFrameId;
     rightCamInfoMsg->header.frame_id = rightFrameId;
 }
@@ -2292,7 +2310,7 @@ void ZEDWrapperNodelet::fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInf
 {
     sl::CalibrationParameters zedParam;
 
-    zedParam = zed.getCameraInformation(mMatResolDepth).camera_configuration.calibration_parameters;
+    zedParam = zed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters;
 
     float baseline = zedParam.getCameraBaseline();
     depth_info_msg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
@@ -2322,8 +2340,8 @@ void ZEDWrapperNodelet::fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInf
     depth_info_msg->P[6] = static_cast<double>(zedParam.left_cam.cy);
     depth_info_msg->P[10] = 1.0;
     // http://docs.ros.org/api/sensor_msgs/html/msg/CameraInfo.html
-    depth_info_msg->width = static_cast<uint32_t>(mMatResolDepth.width);
-    depth_info_msg->height = static_cast<uint32_t>(mMatResolDepth.height);
+    depth_info_msg->width = static_cast<uint32_t>(mMatResol.width);
+    depth_info_msg->height = static_cast<uint32_t>(mMatResol.height);
     depth_info_msg->header.frame_id = frame_id;
 }
 
@@ -2380,8 +2398,8 @@ void ZEDWrapperNodelet::callback_dynamicReconf(zed_nodelets::ZedConfig& config, 
         break;
 
     case POINTCLOUD_FREQ:
-        if (config.point_cloud_freq > mVideoDepthFreq) {
-            mPointCloudFreq = mVideoDepthFreq;
+        if (config.point_cloud_freq > mPubFrameRate) {
+            mPointCloudFreq = mPubFrameRate;
             NODELET_WARN_STREAM("'point_cloud_freq' cannot be major than Video/Depth publishing framerate. Set to "
                 << mPointCloudFreq);
 
@@ -2538,51 +2556,51 @@ void ZEDWrapperNodelet::pubVideoDepth()
 
     // ----> Retrieve all required image data
     if (rgbSubnumber + leftSubnumber + stereoSubNumber > 0) {
-        mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
         retrieved = true;
         ts_rgb = mat_left.timestamp;
         grab_ts = mat_left.timestamp;
     }
     if (rgbRawSubnumber + leftRawSubnumber + stereoRawSubNumber > 0) {
-        mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
         retrieved = true;
         grab_ts = mat_left_raw.timestamp;
     }
     if (rightSubnumber + stereoSubNumber > 0) {
-        mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
         retrieved = true;
         grab_ts = mat_right.timestamp;
     }
     if (rightRawSubnumber + stereoRawSubNumber > 0) {
-        mZed.retrieveImage(mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
         retrieved = true;
         grab_ts = mat_right_raw.timestamp;
     }
     if (rgbGraySubnumber + leftGraySubnumber > 0) {
-        mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResol);
         retrieved = true;
         grab_ts = mat_left_gray.timestamp;
     }
     if (rgbGrayRawSubnumber + leftGrayRawSubnumber > 0) {
-        mZed.retrieveImage(mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResol);
         retrieved = true;
         grab_ts = mat_left_raw_gray.timestamp;
     }
     if (rightGraySubnumber > 0) {
-        mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResol);
         retrieved = true;
         grab_ts = mat_right_gray.timestamp;
     }
     if (rightGrayRawSubnumber > 0) {
-        mZed.retrieveImage(mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResol);
         retrieved = true;
         grab_ts = mat_right_raw_gray.timestamp;
     }
     if (depthSubnumber > 0) {
         if (!mOpenniDepthMode) {
-            mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
+            mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResol);
         } else {
-            mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH_U16_MM, sl::MEM::CPU, mMatResolDepth);
+            mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH_U16_MM, sl::MEM::CPU, mMatResol);
         }
         retrieved = true;
         grab_ts = mat_depth.timestamp;
@@ -2595,12 +2613,12 @@ void ZEDWrapperNodelet::pubVideoDepth()
         }
     }
     if (disparitySubnumber > 0) {
-        mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
+        mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResol);
         retrieved = true;
         grab_ts = mat_disp.timestamp;
     }
     if (confMapSubnumber > 0) {
-        mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
+        mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResol);
         retrieved = true;
         grab_ts = mat_conf.timestamp;
     }
@@ -3217,7 +3235,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
 void ZEDWrapperNodelet::device_poll_thread_func()
 {
-    ros::Rate loop_rate(mVideoDepthFreq);
+    ros::Rate loop_rate(mPubFrameRate);
 
     mRecording = false;
 
@@ -3242,15 +3260,22 @@ void ZEDWrapperNodelet::device_poll_thread_func()
     // Get the parameters of the ZED images
     mCamWidth = mZed.getCameraInformation().camera_configuration.resolution.width;
     mCamHeight = mZed.getCameraInformation().camera_configuration.resolution.height;
-    NODELET_DEBUG_STREAM("Camera Frame size : " << mCamWidth << "x" << mCamHeight);
-    int v_w = static_cast<int>(mCamWidth * mCamImageResizeFactor);
-    int v_h = static_cast<int>(mCamHeight * mCamImageResizeFactor);
-    mMatResolVideo = sl::Resolution(v_w, v_h);
-    NODELET_DEBUG_STREAM("Image Mat size : " << mMatResolVideo.width << "x" << mMatResolVideo.height);
-    int d_w = static_cast<int>(mCamWidth * mCamDepthResizeFactor);
-    int d_h = static_cast<int>(mCamHeight * mCamDepthResizeFactor);
-    mMatResolDepth = sl::Resolution(d_w, d_h);
-    NODELET_DEBUG_STREAM("Depth Mat size : " << mMatResolDepth.width << "x" << mMatResolDepth.height);
+    NODELET_DEBUG_STREAM("Original Camera grab frame size -> " << mCamWidth << "x" << mCamHeight);
+    int pub_w, pub_h;
+    pub_w = static_cast<int>(std::round(mCamWidth / mCustomDownscaleFactor));
+    pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));
+
+    if (pub_w > mCamWidth || pub_h > mCamHeight) {
+        NODELET_WARN_STREAM("The publishing resolution (" <<
+            pub_w << "x" << pub_h <<
+            ") cannot be higher than the grabbing resolution (" <<
+            mCamWidth << "x" << mCamHeight <<
+            "). Using grab resolution for output messages.");
+        pub_w = mCamWidth;
+        pub_h = mCamHeight;
+    }
+    mMatResol = sl::Resolution(pub_w, pub_h);
+    NODELET_DEBUG_STREAM("Publishing frame size -> " << mMatResol.width << "x" << mMatResol.height);
 
     // Create and fill the camera information messages
     fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId, mRightCamOptFrameId);
@@ -3619,7 +3644,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
                 std::unique_lock<std::mutex> lock(mPcMutex, std::defer_lock);
 
                 if (lock.try_lock()) {
-                    mZed.retrieveMeasure(mCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatResolDepth);
+                    mZed.retrieveMeasure(mCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatResol);
 
                     mPointCloudFrameId = mDepthFrameId;
                     mPointCloudTime = stamp;
@@ -3893,7 +3918,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
             static int count_warn = 0;
 
             if (!loop_rate.sleep()) {
-                if (mean_elab_sec > (1. / mVideoDepthFreq)) {
+                if (mean_elab_sec > (1. / mPubFrameRate)) {
                     if (++count_warn > 10) {
                         NODELET_DEBUG_THROTTLE(1.0, "Working thread is not synchronized with the Camera grab rate");
                         NODELET_DEBUG_STREAM_THROTTLE(1.0, "Expected cycle time: " << loop_rate.expectedCycleTime() << " - Real cycle time: " << mean_elab_sec);
@@ -3972,15 +3997,15 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
             stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Camera grabbing");
 
             double freq = 1000000. / mGrabPeriodMean_usec->getMean();
-            double freq_perc = 100. * freq / mCamFrameRate;
+            double freq_perc = 100. * freq / mPubFrameRate;
             stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
 
             stat.addf("General Processing", "Mean Time: %.3f sec (Max. %.3f sec)", mElabPeriodMean_sec->getMean(),
-                1. / mVideoDepthFreq);
+                1. / mPubFrameRate);
 
             if (mPublishingData) {
                 freq = 1. / mVideoDepthPeriodMean_sec->getMean();
-                freq_perc = 100. * freq / mVideoDepthFreq;
+                freq_perc = 100. * freq / mPubFrameRate;
                 stat.addf("Video/Depth Publish", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
             }
 
@@ -4019,7 +4044,7 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
 
                 if (mObjDetRunning) {
                     double freq = 1000. / mObjDetPeriodMean_msec->getMean();
-                    double freq_perc = 100. * freq / mVideoDepthFreq;
+                    double freq_perc = 100. * freq / mPubFrameRate;
                     stat.addf("Object detection", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
                 } else {
                     stat.add("Object Detection", "INACTIVE");
@@ -4563,15 +4588,17 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
 
     // ----> Project the point into 2D image coordinates
     sl::CalibrationParameters zedParam;
-    zedParam = mZed.getCameraInformation(mMatResolVideo).camera_configuration.calibration_parameters; // ok
+    zedParam = mZed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters; // ok
 
     float f_x = zedParam.left_cam.fx;
     float f_y = zedParam.left_cam.fy;
     float c_x = zedParam.left_cam.cx;
     float c_y = zedParam.left_cam.cy;
 
-    float u = ((camX / camZ) * f_x + c_x) / mCamImageResizeFactor;
-    float v = ((camY / camZ) * f_y + c_y) / mCamImageResizeFactor;
+    float out_scale_factor = mMatResol.width / mCamWidth;
+
+    float u = ((camX / camZ) * f_x + c_x) / out_scale_factor;
+    float v = ((camY / camZ) * f_y + c_y) / out_scale_factor;
     NODELET_INFO_STREAM("Clicked point image coordinates: [" << u << "," << v << "]");
     // <---- Project the point into 2D image coordinates
 

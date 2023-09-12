@@ -79,6 +79,13 @@
 #include <thread>
 
 namespace zed_nodelets {
+
+typedef enum
+{
+  NATIVE,  //!< Same camera grab resolution
+  CUSTOM   //!< Custom Rescale Factor
+} PubRes;
+
 class ZEDWrapperNodelet : public nodelet::Nodelet {
     typedef enum _dyn_params {
         DATAPUB_FREQ = 0,
@@ -544,7 +551,7 @@ private:
     std::string mCameraName;
     sl::RESOLUTION mCamResol;
     int mCamFrameRate;
-    double mVideoDepthFreq = 15.;
+    double mPubFrameRate = 15.;
     sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::ULTRA;
     int mGpuId;
     int mZedId;
@@ -641,7 +648,8 @@ private:
     int mCamDepthTextureConf = 100;
     double mPointCloudFreq = 15.;    
 
-    double mCustomDownscaleFactor = 0.5;
+    PubRes mPubResolution = PubRes::NATIVE;     // Use native grab resolution by default
+    double mCustomDownscaleFactor = 1.0;        // Used to rescale data with user factor
 
     // flags
     bool mTriggerAutoExposure = true;
@@ -666,8 +674,7 @@ private:
     // Mat
     int mCamWidth;
     int mCamHeight;
-    sl::Resolution mMatResolVideo;
-    sl::Resolution mMatResolDepth;
+    sl::Resolution mMatResol;
 
     // Thread Sync
     std::mutex mCloseZedMutex;

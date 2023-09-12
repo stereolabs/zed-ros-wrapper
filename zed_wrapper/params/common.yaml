@@ -28,14 +28,14 @@ general:
     svo_compression:            2                               # `0`: LOSSLESS, `1`: AVCHD, `2`: HEVC
     self_calib:                 true                            # enable/disable self calibration at starting
     camera_flip:                'AUTO'                          # camera flip mode: 'OFF', 'ON', 'AUTO'
-    pub_resolution:             'CUSTOM' # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
-    pub_downscale_factor:       2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
+    pub_resolution:             'CUSTOM'                        # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
+    pub_downscale_factor:       2.0                             # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
     pub_frame_rate:             15.0                            # frequency of publishing of video and depth data (see SDK API "InitParameters::grab_compute_capping_fps")
 
-video:
+#video:
 
 depth:
-    depth_mode:                 'NONE'                         # 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL'
+    depth_mode:                 'ULTRA'                         # 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL'
     depth_stabilization:        1                               # [0-100] - 0: Disabled
     openni_depth_mode:          false                           # 'false': 32bit float meters, 'true': 16bit uchar millimeters
 
