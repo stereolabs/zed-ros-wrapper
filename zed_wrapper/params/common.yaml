@@ -32,6 +32,11 @@ general:
     pub_downscale_factor:       2.0                             # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
     pub_frame_rate:             15.0                            # frequency of publishing of video and depth data (see SDK API "InitParameters::grab_compute_capping_fps")
     svo_realtime:               true                            # if true the input SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
+    #region_of_interest:         '[]'                            # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+    region_of_interest:        '[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+    #region_of_interest:        '[[0.25,0.25],[0.75,0.25],[0.75,0.75],[0.25,0.75]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+    #region_of_interest:        '[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+            
 
 #video:
 

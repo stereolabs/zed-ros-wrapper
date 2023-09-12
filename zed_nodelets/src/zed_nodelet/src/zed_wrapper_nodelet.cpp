@@ -707,15 +707,16 @@ void ZEDWrapperNodelet::readParameters()
     if (tmp_sn > 0) {
         mZedSerialNumber = static_cast<int>(tmp_sn);
         NODELET_INFO_STREAM(" * Serial number\t\t-> " << mZedSerialNumber);
-    }    
+    }
+
+    std::string parsed_str = getRoiParam("general/region_of_interest", mRoiParam);
+    NODELET_INFO_STREAM(" * Region of interest\t\t-> " << parsed_str.c_str());
     // <---- General
 
-
-
-    // ----> Video    
+    // ----> Video
     //NODELET_INFO_STREAM("*** VIDEO PARAMETERS ***");
     // Note: there are no "static" video parameters
-    // <---- Video    
+    // <---- Video
 
     // -----> Depth
     NODELET_INFO_STREAM("*** DEPTH PARAMETERS ***");
@@ -802,8 +803,8 @@ void ZEDWrapperNodelet::readParameters()
         mNhNs.getParam("pos_tracking/area_memory_db_path", mAreaMemDbPath);
         mAreaMemDbPath = sl_tools::resolveFilePath(mAreaMemDbPath);
         NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mAreaMemDbPath.c_str());
-
-        mNhNs.param<bool>("pos_tracking/save_area_memory_db_on_exit", mSaveAreaMapOnClosing,AUTO_WB false);
+        
+        mNhNs.param<bool>("pos_tracking/save_area_memory_db_on_exit", mSaveAreaMapOnClosing, false);
         NODELET_INFO_STREAM(" * Save Area Memory on closing\t-> " << (mSaveAreaMapOnClosing ? "ENABLED": "DISABLED"));
         mNhNs.param<bool>("pos_tracking/area_memory", mAreaMemory, false);
         NODELET_INFO_STREAM(" * Area Memory\t\t\t-> " << (mAreaMemory ? "ENABLED": "DISABLED"));
@@ -1062,6 +1063,91 @@ void ZEDWrapperNodelet::readParameters()
         NODELET_INFO_STREAM(" * [DYN] point_cloud_freq\t-> " << mPointCloudFreq << " Hz");
     }
     // <---- Dynamic
+}
+
+std::string ZEDWrapperNodelet::getRoiParam(std::string paramName, std::vector<std::vector<float>> & outVal)
+{
+  outVal.clear();
+
+  std::string roi_param_str = "";
+
+  mNhNs.getParam("general/region_of_interest", roi_param_str);
+
+  if (roi_param_str.empty()) {
+    return std::string();
+  }
+
+  std::string error;
+  outVal = sl_tools::parseStringVector(roi_param_str, error);
+
+  if (error != "") {
+    NODELET_WARN_STREAM("Error parsing " << paramName << " parameter: " << error.c_str());
+    NODELET_WARN_STREAM("   " << paramName << " string was " << roi_param_str.c_str());
+
+    outVal.clear();
+  }
+
+  return roi_param_str;
+}
+
+std::string ZEDWrapperNodelet::parseRoiPoly(
+    const std::vector<std::vector<float>> & in_poly, 
+    std::vector<sl::float2> & out_poly)
+{
+  out_poly.clear();
+
+  std::string ss;
+  ss = "[";
+
+  size_t poly_size = in_poly.size();
+
+  if (poly_size < 3) {
+    if (poly_size != 0) {
+      NODELET_WARN_STREAM("A vector with " <<
+          poly_size <<
+          " points is not enough to create a polygon to set a Region "
+          "of Interest.");
+      return std::string();
+    }
+  } else {
+    for (size_t i; i < poly_size; ++i) {
+      if (in_poly[i].size() != 2) {
+        NODELET_WARN_STREAM("The component with index '" << i <<
+            "' of the ROI vector "
+            "has not the correct size.");
+        out_poly.clear();
+        return std::string();
+      } else if (in_poly[i][0] < 0.0 || in_poly[i][1] < 0.0 || in_poly[i][0] > 1.0 ||
+        in_poly[i][1] > 1.0)
+      {
+        NODELET_WARN_STREAM("The component with index '" << i <<
+            "' of the ROI vector "
+            "is not a "
+            "valid normalized point: [" <<
+            in_poly[i][0] << "," << in_poly[i][1] <<
+            "].");
+        out_poly.clear();
+        return std::string();
+      } else {
+        sl::float2 pt;
+        pt.x = in_poly[i][0];
+        pt.y = in_poly[i][1];
+        out_poly.push_back(pt);
+        ss += "[";
+        ss += std::to_string(pt.x);
+        ss += ",";
+        ss += std::to_string(pt.y);
+        ss += "]";
+      }
+
+      if (i != poly_size - 1) {
+        ss += ",";
+      }
+    }
+  }
+  ss += "]";
+
+  return ss;
 }
 
 void ZEDWrapperNodelet::checkResolFps()
@@ -3269,6 +3355,29 @@ void ZEDWrapperNodelet::device_poll_thread_func()
     }
     mMatResol = sl::Resolution(pub_w, pub_h);
     NODELET_DEBUG_STREAM("Publishing frame size: " << mMatResol.width << "x" << mMatResol.height);
+
+    // ----> Set Region of Interest
+    if (!mRoiParam.empty()) {
+        NODELET_INFO("*** Setting ROI ***");
+        sl::Resolution resol(mCamWidth, mCamHeight);
+        std::vector<sl::float2> sl_poly;
+        std::string log_msg = parseRoiPoly(mRoiParam, sl_poly);
+
+        // Create ROI mask
+        sl::Mat roi_mask(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
+
+        if (!sl_tools::generateROI(sl_poly, roi_mask)) {
+        NODELET_WARN(" * Error generating the region of interest image mask.");
+        } else {
+        sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask);
+        if (err != sl::ERROR_CODE::SUCCESS) {
+            NODELET_WARN_STREAM(" * Error while setting ZED SDK region of interest: " << sl::toString(err).c_str());
+        } else {
+            NODELET_INFO(" * Region of Interest correctly set.");
+        }
+        }
+    }
+    // <---- Set Region of Interest
 
     // Create and fill the camera information messages
     fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId, mRightCamOptFrameId);

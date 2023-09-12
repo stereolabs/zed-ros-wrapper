@@ -249,6 +249,13 @@ protected:
    */
     void checkResolFps();
 
+    // ----> Region of Interest
+    std::string getRoiParam(std::string paramName, std::vector<std::vector<float>> & outVal);
+    std::string parseRoiPoly(
+        const std::vector<std::vector<float>> & in_poly, std::vector<sl::float2> & out_poly);
+    void resetRoi();
+    // <---- Region of Interest
+
     /*! \brief Callback to handle dynamic reconfigure events in ROS
    */
     void callback_dynamicReconf(zed_nodelets::ZedConfig& config, uint32_t level);
@@ -562,6 +569,7 @@ private:
     double mPathPubRate;
     int mPathMaxCount;
     int mSdkVerbose=1;
+    std::vector<std::vector<float>> mRoiParam;
     bool mSvoMode = false;
     double mCamMinDepth;
     double mCamMaxDepth;
