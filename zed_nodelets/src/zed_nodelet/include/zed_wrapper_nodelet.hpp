@@ -58,6 +58,8 @@
 #include <zed_interfaces/stop_remote_stream.h>
 #include <zed_interfaces/stop_svo_recording.h>
 #include <zed_interfaces/toggle_led.h>
+#include <zed_interfaces/set_roi.h>
+#include <zed_interfaces/reset_roi.h>
 
 // Topics
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -120,6 +122,10 @@ protected:
   /*! \brief Initialization function called by the Nodelet base class
    */
   virtual void onInit();
+
+  /*! \brief Initialize services
+   */
+  void initServices();
 
   /*! \brief Reads parameters from the param server
    */
@@ -344,6 +350,14 @@ protected:
   bool on_stop_remote_stream(zed_interfaces::stop_remote_stream::Request& req,
                              zed_interfaces::stop_remote_stream::Response& res);
 
+  /*! \brief Service callback to set_roi service
+   */
+  bool on_set_roi(zed_interfaces::set_roi::Request& req, zed_interfaces::set_roi::Response& res);
+
+  /*! \brief Service callback to reset_roi service
+   */
+  bool on_reset_roi(zed_interfaces::reset_roi::Request& req, zed_interfaces::reset_roi::Response& res);
+
   /*! \brief Service callback to set_led_status service
    */
   bool on_set_led_status(zed_interfaces::set_led_status::Request& req, zed_interfaces::set_led_status::Response& res);
@@ -525,6 +539,8 @@ private:
   ros::ServiceServer mSrvStartObjDet;
   ros::ServiceServer mSrvStopObjDet;
   ros::ServiceServer mSrvSaveAreaMemory;
+  ros::ServiceServer mSrvSetRoi;
+  ros::ServiceServer mSrvResetRoi;
 
   // ----> Topics (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
   // Camera info

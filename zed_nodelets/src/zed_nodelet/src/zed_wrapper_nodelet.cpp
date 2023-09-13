@@ -614,6 +614,28 @@ void ZEDWrapperNodelet::onInit()
   // <---- Subscribers
 
   // ----> Services
+  initServices();
+  // <---- Services
+
+  // ----> Threads
+  if (!mDepthDisabled)
+  {
+    // Start Pointcloud thread
+    mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
+  }
+
+  // Start pool thread
+  mDevicePollThread = std::thread(&ZEDWrapperNodelet::device_poll_thread_func, this);
+
+  // Start Sensors thread
+  mSensThread = std::thread(&ZEDWrapperNodelet::sensors_thread_func, this);
+  // <---- Threads
+
+  NODELET_INFO("+++ ZED Node started +++");
+}
+
+void ZEDWrapperNodelet::initServices()
+{
   NODELET_INFO("*** SERVICES ***");
   if (!mDepthDisabled)
   {
@@ -657,23 +679,11 @@ void ZEDWrapperNodelet::onInit()
   NODELET_INFO_STREAM(" * Advertised on service " << mSrvSvoStartStream.getService().c_str());
   mSrvSvoStopStream = mNhNs.advertiseService("stop_remote_stream", &ZEDWrapperNodelet::on_stop_remote_stream, this);
   NODELET_INFO_STREAM(" * Advertised on service " << mSrvSvoStopStream.getService().c_str());
-  // <---- Services
 
-  // ----> Threads
-  if (!mDepthDisabled)
-  {
-    // Start Pointcloud thread
-    mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
-  }
-
-  // Start pool thread
-  mDevicePollThread = std::thread(&ZEDWrapperNodelet::device_poll_thread_func, this);
-
-  // Start Sensors thread
-  mSensThread = std::thread(&ZEDWrapperNodelet::sensors_thread_func, this);
-  // <---- Threads
-
-  NODELET_INFO("+++ ZED Node started +++");
+  mSrvSetRoi = mNhNs.advertiseService("set_roi", &ZEDWrapperNodelet::on_set_roi, this);
+  NODELET_INFO_STREAM(" * Advertised on service " << mSrvSetRoi.getService().c_str());
+  mSrvResetRoi = mNhNs.advertiseService("reset_roi", &ZEDWrapperNodelet::on_reset_roi, this);
+  NODELET_INFO_STREAM(" * Advertised on service " << mSrvSetRoi.getService().c_str());
 }
 
 void ZEDWrapperNodelet::readGeneralParams()
@@ -5146,6 +5156,107 @@ bool ZEDWrapperNodelet::on_toggle_led(zed_interfaces::toggle_led::Request& req,
   res.new_led_status = new_status;
 
   return true;
+}
+
+bool ZEDWrapperNodelet::on_set_roi(zed_interfaces::set_roi::Request& req, zed_interfaces::set_roi::Response& res)
+{
+  NODELET_INFO("** Set ROI service called **");
+  NODELET_INFO_STREAM(" * ROI string: " << req.roi.c_str());
+
+  if (req.roi == "")
+  {
+    std::string err_msg =
+        "Error while setting ZED SDK region of interest: a vector of normalized points describing a "
+        "polygon is required. e.g. '[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]'";
+
+    NODELET_WARN_STREAM(" * " << err_msg);
+
+    res.message = err_msg;
+    res.success = false;
+    return false;
+  }
+
+  std::string error;
+  std::vector<std::vector<float>> parsed_poly = sl_tools::parseStringVector(req.roi, error);
+
+  if (error != "")
+  {
+    std::string err_msg = "Error while setting ZED SDK region of interest: ";
+    err_msg += error;
+
+    NODELET_WARN_STREAM(" * " << err_msg);
+
+    res.message = err_msg;
+    res.success = false;
+    return false;
+  }
+
+  // ----> Set Region of Interest
+  // Create mask
+  NODELET_INFO(" * Setting ROI");
+  std::vector<sl::float2> sl_poly;
+  std::string log_msg = parseRoiPoly(parsed_poly, sl_poly);
+  // NODELET_INFO_STREAM(" * Parsed ROI: " << log_msg.c_str());
+  sl::Resolution resol(mCamWidth, mCamHeight);
+  sl::Mat roi_mask(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
+  if (!sl_tools::generateROI(sl_poly, roi_mask))
+  {
+    std::string err_msg = "Error generating the region of interest image mask. ";
+    err_msg += error;
+
+    NODELET_WARN_STREAM("  * " << err_msg);
+
+    res.message = err_msg;
+    res.success = false;
+    return false;
+  }
+  else
+  {
+    sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask);
+    if (err != sl::ERROR_CODE::SUCCESS)
+    {
+      std::string err_msg = "Error while setting ZED SDK region of interest: ";
+      err_msg += sl::toString(err).c_str();
+
+      NODELET_WARN_STREAM("  * " << err_msg);
+
+      res.message = err_msg;
+      res.success = false;
+      return false;
+    }
+    else
+    {
+      NODELET_INFO("  * Region of Interest correctly set.");
+
+      res.message = "Region of Interest correctly set.";
+      res.success = true;
+      return true;
+    }
+  }
+  // <---- Set Region of Interest
+}
+
+bool ZEDWrapperNodelet::on_reset_roi(zed_interfaces::reset_roi::Request& req, zed_interfaces::reset_roi::Response& res)
+{
+  NODELET_INFO("** Reset ROI service called **");
+
+  sl::Mat empty_roi;
+  sl::ERROR_CODE err = mZed.setRegionOfInterest(empty_roi);
+
+  if (err != sl::ERROR_CODE::SUCCESS)
+  {
+    std::string err_msg = " * Error while resetting ZED SDK region of interest: ";
+    err_msg += sl::toString(err);
+    NODELET_WARN_STREAM(" * Error while resetting ZED SDK region of interest: " << err_msg);
+    res.reset_done = false;
+    return false;
+  }
+  else
+  {
+    NODELET_INFO(" * Region of Interest correctly reset.");
+    res.reset_done = true;
+    return true;
+  }
 }
 
 bool ZEDWrapperNodelet::on_start_3d_mapping(zed_interfaces::start_3d_mapping::Request& req,

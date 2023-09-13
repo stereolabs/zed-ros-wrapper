@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+2023-09-13
+----------
+- Add ROS '.clang-format'
+- Code refactoring
+- Add `set_roi` and `reset_roi` services
+
 2023-09-12
 ----------
 - Change the parameter 'general/resolution' to 'general/grab_resolution' and replace numeric values with strings
