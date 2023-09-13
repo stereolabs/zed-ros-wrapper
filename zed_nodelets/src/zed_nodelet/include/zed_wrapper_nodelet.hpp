@@ -575,9 +575,9 @@ private:
   std::string mCloudFrameId;
   std::string mPointCloudFrameId;
 
-  std::string mMapFrameId;
-  std::string mOdometryFrameId;
-  std::string mBaseFrameId;
+  std::string mMapFrameId = "map";
+  std::string mOdometryFrameId = "odom";
+  std::string mBaseFrameId = "base_link";
   std::string mCameraFrameId;
 
   std::string mRightCamFrameId;
@@ -590,12 +590,6 @@ private:
   std::string mMagFrameId;
   std::string mTempLeftFrameId;
   std::string mTempRightFrameId;
-
-  bool mPublishTf;
-  bool mPublishMapTf;
-  bool mPublishImuTf;
-  sl::FLIP_MODE mCameraFlip;
-  bool mCameraSelfCalib;
 
   // Launch file parameters
   std::string mCameraName;
@@ -620,7 +614,7 @@ private:
   bool mSvoMode = false;
   double mCamMinDepth;
   double mCamMaxDepth;
-  std::string mClickedPtTopic;
+  std::string mClickedPtTopic = "/clicked_point";
 
   // Positional tracking
   bool mPosTrackingEnabled = false;
@@ -632,6 +626,13 @@ private:
   bool mFloorAlignment = false;
   bool mImuFusion = true;
   bool mSetGravityAsOrigin = false;
+  bool mPublishTf;
+  bool mPublishMapTf;
+  bool mPublishImuTf;
+  sl::FLIP_MODE mCameraFlip;
+  bool mCameraSelfCalib;
+  bool mIsStatic = false;
+  double mPosTrkMinDepth = 0.0;
 
   // Flags
   bool mGrabActive = false;  // Indicate if camera grabbing is active (at least one topic subscribed)

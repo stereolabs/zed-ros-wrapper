@@ -846,7 +846,7 @@ void ZEDWrapperNodelet::readGeneralParams()
     mCameraFlip = sl::FLIP_MODE::AUTO;
   }
   NODELET_INFO_STREAM(" * Camera Flip\t\t\t-> " << sl::toString(mCameraFlip).c_str());
-  mNhNs.param<bool>("general/self_calib", mCameraSelfCalib, true);
+  mNhNs.getParam("general/self_calib", mCameraSelfCalib);
   NODELET_INFO_STREAM(" * Self calibration\t\t-> " << (mCameraSelfCalib ? "ENABLED" : "DISABLED"));
 
   int tmp_sn = 0;
@@ -923,7 +923,7 @@ void ZEDWrapperNodelet::readPosTrkParams()
   {
     NODELET_INFO_STREAM("*** POSITIONAL TRACKING PARAMETERS ***");
 
-    mNhNs.param<bool>("pos_tracking/pos_tracking_enabled", mPosTrackingEnabled, true);
+    mNhNs.getParam("pos_tracking/pos_tracking_enabled", mPosTrackingEnabled);
     NODELET_INFO_STREAM(" * Positional tracking\t\t-> " << (mPosTrackingEnabled ? "ENABLED" : "DISABLED"));
 
     std::string pos_trk_mode;
@@ -964,31 +964,39 @@ void ZEDWrapperNodelet::readPosTrkParams()
     mAreaMemDbPath = sl_tools::resolveFilePath(mAreaMemDbPath);
     NODELET_INFO_STREAM(" * Odometry DB path\t\t-> " << mAreaMemDbPath.c_str());
 
-    mNhNs.param<bool>("pos_tracking/save_area_memory_db_on_exit", mSaveAreaMapOnClosing, false);
+    mNhNs.getParam("pos_tracking/save_area_memory_db_on_exit", mSaveAreaMapOnClosing);
     NODELET_INFO_STREAM(" * Save Area Memory on closing\t-> " << (mSaveAreaMapOnClosing ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("pos_tracking/area_memory", mAreaMemory, false);
+    mNhNs.getParam("pos_tracking/area_memory", mAreaMemory);
     NODELET_INFO_STREAM(" * Area Memory\t\t\t-> " << (mAreaMemory ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("pos_tracking/imu_fusion", mImuFusion, true);
+    mNhNs.getParam("pos_tracking/imu_fusion", mImuFusion);
     NODELET_INFO_STREAM(" * IMU Fusion\t\t\t-> " << (mImuFusion ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("pos_tracking/floor_alignment", mFloorAlignment, false);
+    mNhNs.getParam("pos_tracking/floor_alignment", mFloorAlignment);
     NODELET_INFO_STREAM(" * Floor alignment\t\t-> " << (mFloorAlignment ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("pos_tracking/init_odom_with_first_valid_pose", mInitOdomWithPose, true);
+    mNhNs.getParam("pos_tracking/init_odom_with_first_valid_pose", mInitOdomWithPose);
     NODELET_INFO_STREAM(" * Init Odometry with first valid pose data -> "
                         << (mInitOdomWithPose ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("pos_tracking/two_d_mode", mTwoDMode, false);
+    mNhNs.getParam("pos_tracking/two_d_mode", mTwoDMode);
     NODELET_INFO_STREAM(" * Force 2D mode\t\t-> " << (mTwoDMode ? "ENABLED" : "DISABLED"));
 
     if (mTwoDMode)
     {
-      mNhNs.param<double>("pos_tracking/fixed_z_value", mFixedZValue, 0.0);
+      mNhNs.getParam("pos_tracking/fixed_z_value", mFixedZValue);
       NODELET_INFO_STREAM(" * Fixed Z value\t\t-> " << mFixedZValue);
     }
 
-    mNhNs.param<bool>("pos_tracking/publish_tf", mPublishTf, true);
+    mNhNs.getParam("pos_tracking/publish_tf", mPublishTf);
     NODELET_INFO_STREAM(" * Broadcast odometry TF\t-> " << (mPublishTf ? "ENABLED" : "DISABLED"));
-    mNhNs.param<bool>("pos_tracking/publish_map_tf", mPublishMapTf, true);
+    mNhNs.getParam("pos_tracking/publish_map_tf", mPublishMapTf);
     NODELET_INFO_STREAM(" * Broadcast map pose TF\t-> "
                         << (mPublishTf ? (mPublishMapTf ? "ENABLED" : "DISABLED") : "DISABLED"));
+
+    mNhNs.getParam("pos_tracking/set_as_static", mIsStatic);
+    NODELET_INFO_STREAM(" * Camera is static\t\t-> " << (mIsStatic ? "ENABLED" : "DISABLED"));
+    mNhNs.getParam("pos_tracking/depth_min_range", mPosTrkMinDepth);
+    NODELET_INFO_STREAM(" * Depth minimum range\t\t-> " << mPosTrkMinDepth);
+
+    bool mIsStatic = false;
+    double mPosTrkMinDepth = 0.0;
   }
 }
 
@@ -998,7 +1006,7 @@ void ZEDWrapperNodelet::readMappingParams()
 
   if (!mDepthDisabled)
   {
-    mNhNs.param<bool>("mapping/mapping_enabled", mMappingEnabled, false);
+    mNhNs.getParam("mapping/mapping_enabled", mMappingEnabled);
 
     if (mMappingEnabled)
     {
@@ -1019,7 +1027,7 @@ void ZEDWrapperNodelet::readMappingParams()
       NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
     }
   }
-  mNhNs.param<std::string>("mapping/clicked_point_topic", mClickedPtTopic, std::string("/clicked_point"));
+  mNhNs.getParam("mapping/clicked_point_topic",mClickedPtTopic);
   NODELET_INFO_STREAM(" * Clicked point topic\t\t-> " << mClickedPtTopic.c_str());
 }
 
@@ -1029,7 +1037,7 @@ void ZEDWrapperNodelet::readObjDetParams()
   {
     NODELET_INFO_STREAM("*** OBJECT DETECTION PARAMETERS ***");
 
-    mNhNs.param<bool>("object_detection/od_enabled", mObjDetEnabled, false);
+    mNhNs.getParam("object_detection/od_enabled", mObjDetEnabled);
 
     if (mObjDetEnabled)
     {
@@ -1097,7 +1105,7 @@ void ZEDWrapperNodelet::readSensParams()
 
     NODELET_INFO_STREAM(" * Max sensors rate\t\t-> " << mSensPubRate);
 
-    mNhNs.param<bool>("sensors/publish_imu_tf", mPublishImuTf, true);
+    mNhNs.getParam("sensors/publish_imu_tf", mPublishImuTf);
     NODELET_INFO_STREAM(" * Broadcast IMU pose TF\t-> " << (mPublishImuTf ? "ENABLED" : "DISABLED"));
   }
   else
@@ -1110,7 +1118,7 @@ void ZEDWrapperNodelet::readSvoParams()
 {
   NODELET_INFO_STREAM("*** SVO PARAMETERS ***");
 
-  mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
+  mNhNs.getParam("svo_file", mSvoFilepath);
   mSvoFilepath = sl_tools::resolveFilePath(mSvoFilepath);
   NODELET_INFO_STREAM(" * SVO input file: \t\t-> " << mSvoFilepath.c_str());
 
@@ -1237,14 +1245,14 @@ void ZEDWrapperNodelet::readParameters()
   // <---- SVO
 
   // Remote Stream
-  mNhNs.param<std::string>("stream", mRemoteStreamAddr, std::string());
+  mNhNs.getParam("stream", mRemoteStreamAddr);
 
   // ----> Coordinate frames
   NODELET_INFO_STREAM("*** COORDINATE FRAMES ***");
 
-  mNhNs.param<std::string>("pos_tracking/map_frame", mMapFrameId, "map");
-  mNhNs.param<std::string>("pos_tracking/odometry_frame", mOdometryFrameId, "odom");
-  mNhNs.param<std::string>("general/base_frame", mBaseFrameId, "base_link");
+  mNhNs.getParam("pos_tracking/map_frame", mMapFrameId);
+  mNhNs.getParam("pos_tracking/odometry_frame", mOdometryFrameId);
+  mNhNs.getParam("general/base_frame", mBaseFrameId);
 
   mCameraFrameId = mCameraName + "_camera_center";
   mImuFrameId = mCameraName + "_imu_link";
@@ -2083,10 +2091,11 @@ void ZEDWrapperNodelet::start_pos_tracking()
 
   mPoseSmoothing = false;  // Always false. Pose Smoothing is to be enabled only for VR/AR applications
   posTrackParams.enable_pose_smoothing = mPoseSmoothing;
-
   posTrackParams.set_floor_as_origin = mFloorAlignment;
+  posTrackParams.set_as_static = mIsStatic;
+  posTrackParams.depth_min_range = static_cast<float>(mPosTrkMinDepth);
 
-  if (mAreaMemDbPath != "" && !sl_tools::file_exist(mAreaMemDbPath))
+      if (mAreaMemDbPath != "" && !sl_tools::file_exist(mAreaMemDbPath))
   {
     posTrackParams.area_file_path = "";
     NODELET_WARN_STREAM("area_memory_db_path [" << mAreaMemDbPath << "] doesn't exist or is unreachable. ");
