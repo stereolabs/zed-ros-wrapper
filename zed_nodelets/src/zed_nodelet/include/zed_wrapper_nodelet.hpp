@@ -78,130 +78,131 @@
 #include <mutex>
 #include <thread>
 
-namespace zed_nodelets {
-
+namespace zed_nodelets
+{
 typedef enum
 {
   NATIVE,  //!< Same camera grab resolution
   CUSTOM   //!< Custom Rescale Factor
 } PubRes;
 
-class ZEDWrapperNodelet : public nodelet::Nodelet {
-    typedef enum _dyn_params {
-        DATAPUB_FREQ = 0,
-        CONFIDENCE = 1,
-        TEXTURE_CONF = 2,
-        POINTCLOUD_FREQ = 3,
-        BRIGHTNESS = 4,
-        CONTRAST = 5,
-        HUE = 6,
-        SATURATION = 7,
-        SHARPNESS = 8,
-        GAMMA = 9,
-        AUTO_EXP_GAIN = 10,
-        GAIN = 11,
-        EXPOSURE = 12,
-        AUTO_WB = 13,
-        WB_TEMP = 14
-    } DynParams;
+class ZEDWrapperNodelet : public nodelet::Nodelet
+{
+  typedef enum _dyn_params
+  {
+    DATAPUB_FREQ = 0,
+    CONFIDENCE = 1,
+    TEXTURE_CONF = 2,
+    POINTCLOUD_FREQ = 3,
+    BRIGHTNESS = 4,
+    CONTRAST = 5,
+    HUE = 6,
+    SATURATION = 7,
+    SHARPNESS = 8,
+    GAMMA = 9,
+    AUTO_EXP_GAIN = 10,
+    GAIN = 11,
+    EXPOSURE = 12,
+    AUTO_WB = 13,
+    WB_TEMP = 14
+  } DynParams;
 
 public:
-    /*! \brief Default constructor
+  /*! \brief Default constructor
    */
-    ZEDWrapperNodelet();
+  ZEDWrapperNodelet();
 
-    /*! \brief \ref ZEDWrapperNodelet destructor
+  /*! \brief \ref ZEDWrapperNodelet destructor
    */
-    virtual ~ZEDWrapperNodelet();
+  virtual ~ZEDWrapperNodelet();
 
 protected:
-    /*! \brief Initialization function called by the Nodelet base class
+  /*! \brief Initialization function called by the Nodelet base class
    */
-    virtual void onInit();
+  virtual void onInit();
 
-    /*! \brief Reads parameters from the param server
+  /*! \brief Reads parameters from the param server
    */
-    void readParameters();
+  void readParameters();
 
-    /*! \brief Reads general parameters from the param server
+  /*! \brief Reads general parameters from the param server
    */
-    void readGeneralParams();
+  void readGeneralParams();
 
-    /*! \brief Reads depth parameters from the param server
+  /*! \brief Reads depth parameters from the param server
    */
-    void readDepthParams();
+  void readDepthParams();
 
-    /*! \brief Reads positional tracking parameters from the param server
+  /*! \brief Reads positional tracking parameters from the param server
    */
-    void readPosTrkParams();
+  void readPosTrkParams();
 
-    /*! \brief Reads spatial mapping parameters from the param server
+  /*! \brief Reads spatial mapping parameters from the param server
    */
-    void readMappingParams();
+  void readMappingParams();
 
-    /*! \brief Reads object detection parameters from the param server
+  /*! \brief Reads object detection parameters from the param server
    */
-    void readObjDetParams();
+  void readObjDetParams();
 
-    /*! \brief Reads sensors parameters from the param server
+  /*! \brief Reads sensors parameters from the param server
    */
-    void readSensParams();
+  void readSensParams();
 
-    /*! \brief Reads SVO parameters from the param server
+  /*! \brief Reads SVO parameters from the param server
    */
-    void readSvoParams();
+  void readSvoParams();
 
-    /*! \brief Reads dynamic parameters from the param server
+  /*! \brief Reads dynamic parameters from the param server
    */
-    void readDynParams();
+  void readDynParams();
 
-    /*! \brief ZED camera polling thread function
+  /*! \brief ZED camera polling thread function
    */
-    void device_poll_thread_func();
+  void device_poll_thread_func();
 
-    /*! \brief Pointcloud publishing function
+  /*! \brief Pointcloud publishing function
    */
-    void pointcloud_thread_func();
+  void pointcloud_thread_func();
 
-    /*! \brief Sensors data publishing function
+  /*! \brief Sensors data publishing function
    */
-    void sensors_thread_func();
+  void sensors_thread_func();
 
-    /*! \brief Publish the pose of the camera in "Map" frame with a ros Publisher
+  /*! \brief Publish the pose of the camera in "Map" frame with a ros Publisher
    * \param t : the ros::Time to stamp the image
    */
-    void
-    publishPose(ros::Time t);
+  void publishPose(ros::Time t);
 
-    /*! \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
+  /*! \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
    * \param base2odomTransf : Transformation representing the camera pose
    * from base frame to odom frame
    * \param slPose : latest odom pose from ZED SDK
    * \param t : the ros::Time to stamp the image
    */
-    void publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t);
+  void publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t);
 
-    /*! \brief Publish the pose of the camera in "Map" frame as a transformation
+  /*! \brief Publish the pose of the camera in "Map" frame as a transformation
    * \param baseTransform : Transformation representing the camera pose from
    * odom frame to map frame
    * \param t : the ros::Time to stamp the image
    */
-    void publishPoseFrame(tf2::Transform baseTransform, ros::Time t);
+  void publishPoseFrame(tf2::Transform baseTransform, ros::Time t);
 
-    /*! \brief Publish the odometry of the camera in "Odom" frame as a
+  /*! \brief Publish the odometry of the camera in "Odom" frame as a
    * transformation
    * \param odomTransf : Transformation representing the camera pose from
    * base frame to odom frame
    * \param t : the ros::Time to stamp the image
    */
-    void publishOdomFrame(tf2::Transform odomTransf, ros::Time t);
+  void publishOdomFrame(tf2::Transform odomTransf, ros::Time t);
 
-    /*!
+  /*!
    * \brief Publish IMU frame once as static TF
    */
-    void publishStaticImuFrame();
+  void publishStaticImuFrame();
 
-    /*! \brief Publish a sl::Mat image with a ros Publisher
+  /*! \brief Publish a sl::Mat image with a ros Publisher
    * \param imgMsgPtr : the image message to publish
    * \param img : the image to publish
    * \param pubImg : the publisher object to use (different image publishers
@@ -211,48 +212,48 @@ protected:
    * image frames exist)
    * \param t : the ros::Time to stamp the image
    */
-    void publishImage(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img, image_transport::CameraPublisher& pubImg,
-        sensor_msgs::CameraInfoPtr camInfoMsg, std::string imgFrameId, ros::Time t);
+  void publishImage(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img, image_transport::CameraPublisher& pubImg,
+                    sensor_msgs::CameraInfoPtr camInfoMsg, std::string imgFrameId, ros::Time t);
 
-    /*! \brief Publish a sl::Mat depth image with a ros Publisher
+  /*! \brief Publish a sl::Mat depth image with a ros Publisher
    * \param imgMsgPtr : the depth image topic message to publish
    * \param depth : the depth image to publish
    * \param t : the ros::Time to stamp the depth image
    */
-    void publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat depth, ros::Time t);
+  void publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat depth, ros::Time t);
 
-    /*! \brief Publish a single pointCloud with a ros Publisher
+  /*! \brief Publish a single pointCloud with a ros Publisher
    */
-    void publishPointCloud();
+  void publishPointCloud();
 
-    /*! \brief Publish a fused pointCloud with a ros Publisher
+  /*! \brief Publish a fused pointCloud with a ros Publisher
    */
-    void callback_pubFusedPointCloud(const ros::TimerEvent& e);
+  void callback_pubFusedPointCloud(const ros::TimerEvent& e);
 
-    /*!
-     * @brief Publish Color and Depth images
-     */
-    void pubVideoDepth();
+  /*!
+   * @brief Publish Color and Depth images
+   */
+  void pubVideoDepth();
 
-    /*! \brief Publish the informations of a camera with a ros Publisher
+  /*! \brief Publish the informations of a camera with a ros Publisher
    * \param cam_info_msg : the information message to publish
    * \param pub_cam_info : the publisher object to use
    * \param t : the ros::Time to stamp the message
    */
-    void publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg, ros::Publisher pubCamInfo, ros::Time t);
+  void publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg, ros::Publisher pubCamInfo, ros::Time t);
 
-    /*! \brief Publish a sl::Mat disparity image with a ros Publisher
+  /*! \brief Publish a sl::Mat disparity image with a ros Publisher
    * \param disparity : the disparity image to publish
    * \param t : the ros::Time to stamp the depth image
    */
-    void publishDisparity(sl::Mat disparity, ros::Time t);
+  void publishDisparity(sl::Mat disparity, ros::Time t);
 
-    /*! \brief Publish sensors data and TF
+  /*! \brief Publish sensors data and TF
    * \param t : the ros::Time to stamp the depth image
    */
-    void publishSensData(ros::Time t = ros::Time(0));
+  void publishSensData(ros::Time t = ros::Time(0));
 
-    /*! \brief Get the information of the ZED cameras and store them in an
+  /*! \brief Get the information of the ZED cameras and store them in an
    * information message
    * \param zed : the sl::zed::Camera* pointer to an instance
    * \param left_cam_info_msg : the information message to fill with the left
@@ -262,525 +263,523 @@ protected:
    * \param left_frame_id : the id of the reference frame of the left camera
    * \param right_frame_id : the id of the reference frame of the right camera
    */
-    void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg,
-        sensor_msgs::CameraInfoPtr rightCamInfoMsg, std::string leftFrameId, std::string rightFrameId,
-        bool rawParam = false);
+  void fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg,
+                   sensor_msgs::CameraInfoPtr rightCamInfoMsg, std::string leftFrameId, std::string rightFrameId,
+                   bool rawParam = false);
 
-    /*! \brief Get the information of the ZED cameras and store them in an
+  /*! \brief Get the information of the ZED cameras and store them in an
    * information message for depth topics
    * \param zed : the sl::zed::Camera* pointer to an instance
    * \param depth_info_msg : the information message to fill with the left
    * camera informations
    * \param frame_id : the id of the reference frame of the left camera
    */
-    void fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg, std::string frame_id);
+  void fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg, std::string frame_id);
 
- 
-    /*! \brief Check if FPS and Resolution chosen by user are correct.
+  /*! \brief Check if FPS and Resolution chosen by user are correct.
    *        Modifies FPS to match correct value.
    */
-    void checkResolFps();
+  void checkResolFps();
 
-    // ----> Region of Interest
-    std::string getRoiParam(std::string paramName, std::vector<std::vector<float>> & outVal);
-    std::string parseRoiPoly(
-        const std::vector<std::vector<float>> & in_poly, std::vector<sl::float2> & out_poly);
-    void resetRoi();
-    // <---- Region of Interest
+  // ----> Region of Interest
+  std::string getRoiParam(std::string paramName, std::vector<std::vector<float>>& outVal);
+  std::string parseRoiPoly(const std::vector<std::vector<float>>& in_poly, std::vector<sl::float2>& out_poly);
+  void resetRoi();
+  // <---- Region of Interest
 
-    /*! \brief Callback to handle dynamic reconfigure events in ROS
+  /*! \brief Callback to handle dynamic reconfigure events in ROS
    */
-    void callback_dynamicReconf(zed_nodelets::ZedConfig& config, uint32_t level);
+  void callback_dynamicReconf(zed_nodelets::ZedConfig& config, uint32_t level);
 
-    /*! \brief Callback to publish Path data with a ROS publisher.
+  /*! \brief Callback to publish Path data with a ROS publisher.
    * \param e : the ros::TimerEvent binded to the callback
    */
-    void callback_pubPath(const ros::TimerEvent& e);
+  void callback_pubPath(const ros::TimerEvent& e);
 
-    /*! \brief Callback to update node diagnostic status
+  /*! \brief Callback to update node diagnostic status
    * \param stat : node status
    */
-    void callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat);
+  void callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat);
 
-    /*! \brief Callback to receive geometry_msgs::PointStamped topics
+  /*! \brief Callback to receive geometry_msgs::PointStamped topics
    * \param msg : pointer to the received message
    */
-    void clickedPtCallback(geometry_msgs::PointStampedConstPtr msg);
+  void clickedPtCallback(geometry_msgs::PointStampedConstPtr msg);
 
-    /*! \brief Service callback to reset_tracking service
+  /*! \brief Service callback to reset_tracking service
    * Tracking pose is reinitialized to the value available in the ROS Param
    * server
    */
-    bool on_reset_tracking(zed_interfaces::reset_tracking::Request& req, zed_interfaces::reset_tracking::Response& res);
+  bool on_reset_tracking(zed_interfaces::reset_tracking::Request& req, zed_interfaces::reset_tracking::Response& res);
 
-    /*! \brief Service callback to reset_odometry service
+  /*! \brief Service callback to reset_odometry service
    *        Odometry is reset to clear drift and odometry frame gets the latest
    * pose
    *        from ZED tracking.
    */
-    bool on_reset_odometry(zed_interfaces::reset_odometry::Request& req, zed_interfaces::reset_odometry::Response& res);
+  bool on_reset_odometry(zed_interfaces::reset_odometry::Request& req, zed_interfaces::reset_odometry::Response& res);
 
-    /*! \brief Service callback to set_pose service
+  /*! \brief Service callback to set_pose service
    *        Tracking pose is set to the new values
    */
-    bool on_set_pose(zed_interfaces::set_pose::Request& req, zed_interfaces::set_pose::Response& res);
+  bool on_set_pose(zed_interfaces::set_pose::Request& req, zed_interfaces::set_pose::Response& res);
 
-    /*! \brief Service callback to start_svo_recording service
+  /*! \brief Service callback to start_svo_recording service
    */
-    bool on_start_svo_recording(zed_interfaces::start_svo_recording::Request& req,
-        zed_interfaces::start_svo_recording::Response& res);
+  bool on_start_svo_recording(zed_interfaces::start_svo_recording::Request& req,
+                              zed_interfaces::start_svo_recording::Response& res);
 
-    /*! \brief Service callback to stop_svo_recording service
+  /*! \brief Service callback to stop_svo_recording service
    */
-    bool on_stop_svo_recording(zed_interfaces::stop_svo_recording::Request& req,
-        zed_interfaces::stop_svo_recording::Response& res);
+  bool on_stop_svo_recording(zed_interfaces::stop_svo_recording::Request& req,
+                             zed_interfaces::stop_svo_recording::Response& res);
 
-    /*! \brief Service callback to start_remote_stream service
+  /*! \brief Service callback to start_remote_stream service
    */
-    bool on_start_remote_stream(zed_interfaces::start_remote_stream::Request& req,
-        zed_interfaces::start_remote_stream::Response& res);
+  bool on_start_remote_stream(zed_interfaces::start_remote_stream::Request& req,
+                              zed_interfaces::start_remote_stream::Response& res);
 
-    /*! \brief Service callback to stop_remote_stream service
+  /*! \brief Service callback to stop_remote_stream service
    */
-    bool on_stop_remote_stream(zed_interfaces::stop_remote_stream::Request& req,
-        zed_interfaces::stop_remote_stream::Response& res);
+  bool on_stop_remote_stream(zed_interfaces::stop_remote_stream::Request& req,
+                             zed_interfaces::stop_remote_stream::Response& res);
 
-    /*! \brief Service callback to set_led_status service
+  /*! \brief Service callback to set_led_status service
    */
-    bool on_set_led_status(zed_interfaces::set_led_status::Request& req, zed_interfaces::set_led_status::Response& res);
+  bool on_set_led_status(zed_interfaces::set_led_status::Request& req, zed_interfaces::set_led_status::Response& res);
 
-    /*! \brief Service callback to toggle_led service
+  /*! \brief Service callback to toggle_led service
    */
-    bool on_toggle_led(zed_interfaces::toggle_led::Request& req, zed_interfaces::toggle_led::Response& res);
+  bool on_toggle_led(zed_interfaces::toggle_led::Request& req, zed_interfaces::toggle_led::Response& res);
 
-    /*! \brief Service callback to start_3d_mapping service
+  /*! \brief Service callback to start_3d_mapping service
    */
-    bool on_start_3d_mapping(zed_interfaces::start_3d_mapping::Request& req,
-        zed_interfaces::start_3d_mapping::Response& res);
+  bool on_start_3d_mapping(zed_interfaces::start_3d_mapping::Request& req,
+                           zed_interfaces::start_3d_mapping::Response& res);
 
-    /*! \brief Service callback to stop_3d_mapping service
+  /*! \brief Service callback to stop_3d_mapping service
    */
-    bool on_stop_3d_mapping(zed_interfaces::stop_3d_mapping::Request& req,
-        zed_interfaces::stop_3d_mapping::Response& res);
+  bool on_stop_3d_mapping(zed_interfaces::stop_3d_mapping::Request& req,
+                          zed_interfaces::stop_3d_mapping::Response& res);
 
-    /*! \brief Service callback to save_3d_map service
+  /*! \brief Service callback to save_3d_map service
    */
-    bool on_save_3d_map(zed_interfaces::save_3d_map::Request& req, zed_interfaces::save_3d_map::Response& res);
+  bool on_save_3d_map(zed_interfaces::save_3d_map::Request& req, zed_interfaces::save_3d_map::Response& res);
 
-    /*! \brief Service callback to start_object_detection service
+  /*! \brief Service callback to start_object_detection service
    */
-    bool on_start_object_detection(zed_interfaces::start_object_detection::Request& req,
-        zed_interfaces::start_object_detection::Response& res);
+  bool on_start_object_detection(zed_interfaces::start_object_detection::Request& req,
+                                 zed_interfaces::start_object_detection::Response& res);
 
-    /*! \brief Service callback to stop_object_detection service
+  /*! \brief Service callback to stop_object_detection service
    */
-    bool on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
-        zed_interfaces::stop_object_detection::Response& res);
+  bool on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
+                                zed_interfaces::stop_object_detection::Response& res);
 
-    /*! \brief Service callback to save_area_memory service
+  /*! \brief Service callback to save_area_memory service
    */
-    bool on_save_area_memory(zed_interfaces::save_area_memory::Request& req,
-        zed_interfaces::save_area_memory::Response& res);
+  bool on_save_area_memory(zed_interfaces::save_area_memory::Request& req,
+                           zed_interfaces::save_area_memory::Response& res);
 
-    /*! \brief Utility to initialize the pose variables
+  /*! \brief Utility to initialize the pose variables
    */
-    bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
+  bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
 
-    /*! \brief Utility to initialize the most used transforms
+  /*! \brief Utility to initialize the most used transforms
    */
-    void initTransforms();
+  void initTransforms();
 
-    /*! \brief Utility to initialize the static transform from Sensor to Base
+  /*! \brief Utility to initialize the static transform from Sensor to Base
    */
-    bool getSens2BaseTransform();
+  bool getSens2BaseTransform();
 
-    /*! \brief Utility to initialize the static transform from Sensor to Camera
+  /*! \brief Utility to initialize the static transform from Sensor to Camera
    */
-    bool getSens2CameraTransform();
+  bool getSens2CameraTransform();
 
-    /*! \brief Utility to initialize the static transform from Camera to Base
+  /*! \brief Utility to initialize the static transform from Camera to Base
    */
-    bool getCamera2BaseTransform();
+  bool getCamera2BaseTransform();
 
-    /*! \brief Start tracking
+  /*! \brief Start tracking
    */
-    void start_pos_tracking();
+  void start_pos_tracking();
 
-    /*! \brief Start spatial mapping
+  /*! \brief Start spatial mapping
    */
-    bool start_3d_mapping();
+  bool start_3d_mapping();
 
-    /*! \brief Stop spatial mapping
+  /*! \brief Stop spatial mapping
    */
-    void stop_3d_mapping();
+  void stop_3d_mapping();
 
-    /*! \brief Start object detection
+  /*! \brief Start object detection
    */
-    bool start_obj_detect();
+  bool start_obj_detect();
 
-    /*! \brief Stop object detection
+  /*! \brief Stop object detection
    */
-    void stop_obj_detect();
+  void stop_obj_detect();
 
-    /*! \brief Publish object detection results
+  /*! \brief Publish object detection results
    */
-    void processDetectedObjects(ros::Time t);
+  void processDetectedObjects(ros::Time t);
 
-    /*! \brief Generates an univoque color for each object class ID
+  /*! \brief Generates an univoque color for each object class ID
    */
-    inline sl::float3 generateColorClass(int idx)
-    {
-        sl::float3 clr;
-        clr.r = static_cast<uint8_t>(33 + (idx * 456262));
-        clr.g = static_cast<uint8_t>(233 + (idx * 1564684));
-        clr.b = static_cast<uint8_t>(133 + (idx * 76873242));
-        return clr / 255.f;
-    }
+  inline sl::float3 generateColorClass(int idx)
+  {
+    sl::float3 clr;
+    clr.r = static_cast<uint8_t>(33 + (idx * 456262));
+    clr.g = static_cast<uint8_t>(233 + (idx * 1564684));
+    clr.b = static_cast<uint8_t>(133 + (idx * 76873242));
+    return clr / 255.f;
+  }
 
-    /*! \brief Update Dynamic reconfigure parameters
+  /*! \brief Update Dynamic reconfigure parameters
    */
-    void updateDynamicReconfigure();
+  void updateDynamicReconfigure();
 
-    /*! \brief Save the current area map if positional tracking
+  /*! \brief Save the current area map if positional tracking
    * and area memory are active
    */
-    bool saveAreaMap(std::string file_path, std::string* out_msg = nullptr);
+  bool saveAreaMap(std::string file_path, std::string* out_msg = nullptr);
 
 private:
-    uint64_t mFrameCount = 0;
+  uint64_t mFrameCount = 0;
 
-    // SDK version
-    int mVerMajor;
-    int mVerMinor;
-    int mVerSubMinor;
+  // SDK version
+  int mVerMajor;
+  int mVerMinor;
+  int mVerSubMinor;
 
-    // ROS
-    ros::NodeHandle mNh;
-    ros::NodeHandle mNhNs;
-    std::thread mDevicePollThread;
-    std::thread mPcThread; // Point Cloud thread
-    std::thread mSensThread; // Sensors data thread
+  // ROS
+  ros::NodeHandle mNh;
+  ros::NodeHandle mNhNs;
+  std::thread mDevicePollThread;
+  std::thread mPcThread;    // Point Cloud thread
+  std::thread mSensThread;  // Sensors data thread
 
-    bool mStopNode = false;
+  bool mStopNode = false;
 
-    // Publishers
-    image_transport::CameraPublisher mPubRgb; //
-    image_transport::CameraPublisher mPubRawRgb; //
-    image_transport::CameraPublisher mPubLeft; //
-    image_transport::CameraPublisher mPubRawLeft; //
-    image_transport::CameraPublisher mPubRight; //
-    image_transport::CameraPublisher mPubRawRight; //
-    image_transport::CameraPublisher mPubDepth; //
-    image_transport::Publisher mPubStereo;
-    image_transport::Publisher mPubRawStereo;
+  // Publishers
+  image_transport::CameraPublisher mPubRgb;       //
+  image_transport::CameraPublisher mPubRawRgb;    //
+  image_transport::CameraPublisher mPubLeft;      //
+  image_transport::CameraPublisher mPubRawLeft;   //
+  image_transport::CameraPublisher mPubRight;     //
+  image_transport::CameraPublisher mPubRawRight;  //
+  image_transport::CameraPublisher mPubDepth;     //
+  image_transport::Publisher mPubStereo;
+  image_transport::Publisher mPubRawStereo;
 
-    image_transport::CameraPublisher mPubRgbGray;
-    image_transport::CameraPublisher mPubRawRgbGray;
-    image_transport::CameraPublisher mPubLeftGray;
-    image_transport::CameraPublisher mPubRawLeftGray;
-    image_transport::CameraPublisher mPubRightGray;
-    image_transport::CameraPublisher mPubRawRightGray;
+  image_transport::CameraPublisher mPubRgbGray;
+  image_transport::CameraPublisher mPubRawRgbGray;
+  image_transport::CameraPublisher mPubLeftGray;
+  image_transport::CameraPublisher mPubRawLeftGray;
+  image_transport::CameraPublisher mPubRightGray;
+  image_transport::CameraPublisher mPubRawRightGray;
 
-    ros::Publisher mPubConfMap; //
-    ros::Publisher mPubDisparity; //
-    ros::Publisher mPubCloud;
-    ros::Publisher mPubFusedCloud;
-    ros::Publisher mPubPose;
-    ros::Publisher mPubPoseCov;
-    ros::Publisher mPubOdom;
-    ros::Publisher mPubOdomPath;
-    ros::Publisher mPubMapPath;
-    ros::Publisher mPubImu;
-    ros::Publisher mPubImuRaw;
-    ros::Publisher mPubImuTemp;
-    ros::Publisher mPubImuMag;
-    // ros::Publisher mPubImuMagRaw;
-    ros::Publisher mPubPressure;
-    ros::Publisher mPubTempL;
-    ros::Publisher mPubTempR;
-    ros::Publisher mPubCamImuTransf;
+  ros::Publisher mPubConfMap;    //
+  ros::Publisher mPubDisparity;  //
+  ros::Publisher mPubCloud;
+  ros::Publisher mPubFusedCloud;
+  ros::Publisher mPubPose;
+  ros::Publisher mPubPoseCov;
+  ros::Publisher mPubOdom;
+  ros::Publisher mPubOdomPath;
+  ros::Publisher mPubMapPath;
+  ros::Publisher mPubImu;
+  ros::Publisher mPubImuRaw;
+  ros::Publisher mPubImuTemp;
+  ros::Publisher mPubImuMag;
+  // ros::Publisher mPubImuMagRaw;
+  ros::Publisher mPubPressure;
+  ros::Publisher mPubTempL;
+  ros::Publisher mPubTempR;
+  ros::Publisher mPubCamImuTransf;
 
-    ros::Publisher mPubMarker; // Publisher for Rviz markers
-    ros::Publisher mPubPlane; // Publisher for detected planes
+  ros::Publisher mPubMarker;  // Publisher for Rviz markers
+  ros::Publisher mPubPlane;   // Publisher for detected planes
 
-    // Subscribers
-    ros::Subscriber mClickedPtSub;
+  // Subscribers
+  ros::Subscriber mClickedPtSub;
 
-    // Timers
-    ros::Timer mPathTimer;
-    ros::Timer mFusedPcTimer;
+  // Timers
+  ros::Timer mPathTimer;
+  ros::Timer mFusedPcTimer;
 
-    // Services
-    ros::ServiceServer mSrvSetInitPose;
-    ros::ServiceServer mSrvResetOdometry;
-    ros::ServiceServer mSrvResetTracking;
-    ros::ServiceServer mSrvSvoStartRecording;
-    ros::ServiceServer mSrvSvoStopRecording;
-    ros::ServiceServer mSrvSvoStartStream;
-    ros::ServiceServer mSrvSvoStopStream;
-    ros::ServiceServer mSrvSetLedStatus;
-    ros::ServiceServer mSrvToggleLed;
-    ros::ServiceServer mSrvStartMapping;
-    ros::ServiceServer mSrvStopMapping;
-    ros::ServiceServer mSrvSave3dMap;
-    ros::ServiceServer mSrvStartObjDet;
-    ros::ServiceServer mSrvStopObjDet;
-    ros::ServiceServer mSrvSaveAreaMemory;
+  // Services
+  ros::ServiceServer mSrvSetInitPose;
+  ros::ServiceServer mSrvResetOdometry;
+  ros::ServiceServer mSrvResetTracking;
+  ros::ServiceServer mSrvSvoStartRecording;
+  ros::ServiceServer mSrvSvoStopRecording;
+  ros::ServiceServer mSrvSvoStartStream;
+  ros::ServiceServer mSrvSvoStopStream;
+  ros::ServiceServer mSrvSetLedStatus;
+  ros::ServiceServer mSrvToggleLed;
+  ros::ServiceServer mSrvStartMapping;
+  ros::ServiceServer mSrvStopMapping;
+  ros::ServiceServer mSrvSave3dMap;
+  ros::ServiceServer mSrvStartObjDet;
+  ros::ServiceServer mSrvStopObjDet;
+  ros::ServiceServer mSrvSaveAreaMemory;
 
-    // ----> Topics (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
-    // Camera info
-    sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
-    sensor_msgs::CameraInfoPtr mLeftCamInfoMsg;
-    sensor_msgs::CameraInfoPtr mRightCamInfoMsg;
-    sensor_msgs::CameraInfoPtr mRgbCamInfoRawMsg;
-    sensor_msgs::CameraInfoPtr mLeftCamInfoRawMsg;
-    sensor_msgs::CameraInfoPtr mRightCamInfoRawMsg;
-    sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;
+  // ----> Topics (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
+  // Camera info
+  sensor_msgs::CameraInfoPtr mRgbCamInfoMsg;
+  sensor_msgs::CameraInfoPtr mLeftCamInfoMsg;
+  sensor_msgs::CameraInfoPtr mRightCamInfoMsg;
+  sensor_msgs::CameraInfoPtr mRgbCamInfoRawMsg;
+  sensor_msgs::CameraInfoPtr mLeftCamInfoRawMsg;
+  sensor_msgs::CameraInfoPtr mRightCamInfoRawMsg;
+  sensor_msgs::CameraInfoPtr mDepthCamInfoMsg;
 
-    geometry_msgs::TransformPtr mCameraImuTransfMgs;
-    // <---- Topics
+  geometry_msgs::TransformPtr mCameraImuTransfMgs;
+  // <---- Topics
 
-    // ROS TF
-    tf2_ros::TransformBroadcaster mTransformPoseBroadcaster;
-    tf2_ros::TransformBroadcaster mTransformOdomBroadcaster;
-    tf2_ros::StaticTransformBroadcaster mStaticTransformImuBroadcaster;
+  // ROS TF
+  tf2_ros::TransformBroadcaster mTransformPoseBroadcaster;
+  tf2_ros::TransformBroadcaster mTransformOdomBroadcaster;
+  tf2_ros::StaticTransformBroadcaster mStaticTransformImuBroadcaster;
 
-    std::string mRgbFrameId;
-    std::string mRgbOptFrameId;
+  std::string mRgbFrameId;
+  std::string mRgbOptFrameId;
 
-    std::string mDepthFrameId;
-    std::string mDepthOptFrameId;
+  std::string mDepthFrameId;
+  std::string mDepthOptFrameId;
 
-    std::string mDisparityFrameId;
-    std::string mDisparityOptFrameId;
+  std::string mDisparityFrameId;
+  std::string mDisparityOptFrameId;
 
-    std::string mConfidenceFrameId;
-    std::string mConfidenceOptFrameId;
+  std::string mConfidenceFrameId;
+  std::string mConfidenceOptFrameId;
 
-    std::string mCloudFrameId;
-    std::string mPointCloudFrameId;
+  std::string mCloudFrameId;
+  std::string mPointCloudFrameId;
 
-    std::string mMapFrameId;
-    std::string mOdometryFrameId;
-    std::string mBaseFrameId;
-    std::string mCameraFrameId;
+  std::string mMapFrameId;
+  std::string mOdometryFrameId;
+  std::string mBaseFrameId;
+  std::string mCameraFrameId;
 
-    std::string mRightCamFrameId;
-    std::string mRightCamOptFrameId;
-    std::string mLeftCamFrameId;
-    std::string mLeftCamOptFrameId;
-    std::string mImuFrameId;
+  std::string mRightCamFrameId;
+  std::string mRightCamOptFrameId;
+  std::string mLeftCamFrameId;
+  std::string mLeftCamOptFrameId;
+  std::string mImuFrameId;
 
-    std::string mBaroFrameId;
-    std::string mMagFrameId;
-    std::string mTempLeftFrameId;
-    std::string mTempRightFrameId;
+  std::string mBaroFrameId;
+  std::string mMagFrameId;
+  std::string mTempLeftFrameId;
+  std::string mTempRightFrameId;
 
-    bool mPublishTf;
-    bool mPublishMapTf;
-    bool mPublishImuTf;
-    sl::FLIP_MODE mCameraFlip;
-    bool mCameraSelfCalib;
+  bool mPublishTf;
+  bool mPublishMapTf;
+  bool mPublishImuTf;
+  sl::FLIP_MODE mCameraFlip;
+  bool mCameraSelfCalib;
 
-    // Launch file parameters
-    std::string mCameraName;
-    sl::RESOLUTION mCamResol;
-    int mCamFrameRate;
-    double mPubFrameRate = 15.;
-    sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::ULTRA;
-    int mGpuId;
-    int mZedId;
-    int mDepthStabilization;
-    std::string mAreaMemDbPath;
-    bool mSaveAreaMapOnClosing = true;
-    std::string mSvoFilepath;
-    bool mSvoRealtime = true;
-    std::string mRemoteStreamAddr;
-    bool mSensTimestampSync;
-    double mSensPubRate = 400.0;
-    double mPathPubRate;
-    int mPathMaxCount;
-    int mSdkVerbose=1;
-    std::vector<std::vector<float>> mRoiParam;
-    bool mSvoMode = false;
-    double mCamMinDepth;
-    double mCamMaxDepth;
-    std::string mClickedPtTopic;
+  // Launch file parameters
+  std::string mCameraName;
+  sl::RESOLUTION mCamResol;
+  int mCamFrameRate;
+  double mPubFrameRate = 15.;
+  sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::ULTRA;
+  int mGpuId;
+  int mZedId;
+  int mDepthStabilization;
+  std::string mAreaMemDbPath;
+  bool mSaveAreaMapOnClosing = true;
+  std::string mSvoFilepath;
+  bool mSvoRealtime = true;
+  std::string mRemoteStreamAddr;
+  bool mSensTimestampSync;
+  double mSensPubRate = 400.0;
+  double mPathPubRate;
+  int mPathMaxCount;
+  int mSdkVerbose = 1;
+  std::vector<std::vector<float>> mRoiParam;
+  bool mSvoMode = false;
+  double mCamMinDepth;
+  double mCamMaxDepth;
+  std::string mClickedPtTopic;
 
-    // Positional tracking
-    bool mPosTrackingEnabled = false;
-    sl::POSITIONAL_TRACKING_MODE mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
-    bool mPosTrackingActivated = false;
-    bool mPosTrackingReady = false;
-    bool mTwoDMode = false;
-    double mFixedZValue = 0.0;
-    bool mFloorAlignment = false;
-    bool mImuFusion = true;
-    bool mSetGravityAsOrigin = false;
+  // Positional tracking
+  bool mPosTrackingEnabled = false;
+  sl::POSITIONAL_TRACKING_MODE mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
+  bool mPosTrackingActivated = false;
+  bool mPosTrackingReady = false;
+  bool mTwoDMode = false;
+  double mFixedZValue = 0.0;
+  bool mFloorAlignment = false;
+  bool mImuFusion = true;
+  bool mSetGravityAsOrigin = false;
 
-    // Flags
-    bool mGrabActive = false; // Indicate if camera grabbing is active (at least one topic subscribed)
-    sl::ERROR_CODE mConnStatus;
-    sl::ERROR_CODE mGrabStatus;
-    sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
-    bool mSensPublishing = false;
-    bool mPcPublishing = false;
-    bool mDepthDisabled = false;
+  // Flags
+  bool mGrabActive = false;  // Indicate if camera grabbing is active (at least one topic subscribed)
+  sl::ERROR_CODE mConnStatus;
+  sl::ERROR_CODE mGrabStatus;
+  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
+  bool mSensPublishing = false;
+  bool mPcPublishing = false;
+  bool mDepthDisabled = false;
 
-    // Last frame time
-    ros::Time mPrevFrameTimestamp;
-    ros::Time mFrameTimestamp;
+  // Last frame time
+  ros::Time mPrevFrameTimestamp;
+  ros::Time mFrameTimestamp;
 
-    // Positional Tracking variables
-    sl::Pose mLastZedPose; // Sensor to Map transform
-    sl::Transform mInitialPoseSl;
-    std::vector<float> mInitialBasePose;
-    std::vector<geometry_msgs::PoseStamped> mOdomPath;
-    std::vector<geometry_msgs::PoseStamped> mMapPath;
+  // Positional Tracking variables
+  sl::Pose mLastZedPose;  // Sensor to Map transform
+  sl::Transform mInitialPoseSl;
+  std::vector<float> mInitialBasePose;
+  std::vector<geometry_msgs::PoseStamped> mOdomPath;
+  std::vector<geometry_msgs::PoseStamped> mMapPath;
 
-    // IMU TF
-    tf2::Transform mLastImuPose;
+  // IMU TF
+  tf2::Transform mLastImuPose;
 
-    // TF Transforms
-    tf2::Transform mMap2OdomTransf; // Coordinates of the odometry frame in map frame
-    tf2::Transform mOdom2BaseTransf; // Coordinates of the base in odometry frame
-    tf2::Transform mMap2BaseTransf; // Coordinates of the base in map frame
-    tf2::Transform mMap2CameraTransf; // Coordinates of the camera in base frame
-    tf2::Transform mSensor2BaseTransf; // Coordinates of the base frame in sensor frame
-    tf2::Transform mSensor2CameraTransf; // Coordinates of the camera frame in sensor frame
-    tf2::Transform mCamera2BaseTransf; // Coordinates of the base frame in camera frame
+  // TF Transforms
+  tf2::Transform mMap2OdomTransf;       // Coordinates of the odometry frame in map frame
+  tf2::Transform mOdom2BaseTransf;      // Coordinates of the base in odometry frame
+  tf2::Transform mMap2BaseTransf;       // Coordinates of the base in map frame
+  tf2::Transform mMap2CameraTransf;     // Coordinates of the camera in base frame
+  tf2::Transform mSensor2BaseTransf;    // Coordinates of the base frame in sensor frame
+  tf2::Transform mSensor2CameraTransf;  // Coordinates of the camera frame in sensor frame
+  tf2::Transform mCamera2BaseTransf;    // Coordinates of the base frame in camera frame
 
-    bool mSensor2BaseTransfValid = false;
-    bool mSensor2CameraTransfValid = false;
-    bool mCamera2BaseTransfValid = false;
-    bool mStaticImuFramePublished = false;
+  bool mSensor2BaseTransfValid = false;
+  bool mSensor2CameraTransfValid = false;
+  bool mCamera2BaseTransfValid = false;
+  bool mStaticImuFramePublished = false;
 
-    // initialization Transform listener
-    boost::shared_ptr<tf2_ros::Buffer> mTfBuffer;
-    boost::shared_ptr<tf2_ros::TransformListener> mTfListener;
+  // initialization Transform listener
+  boost::shared_ptr<tf2_ros::Buffer> mTfBuffer;
+  boost::shared_ptr<tf2_ros::TransformListener> mTfListener;
 
-    // Zed object
-    sl::InitParameters mZedParams;
-    sl::Camera mZed;
-    unsigned int mZedSerialNumber;
-    sl::MODEL mZedUserCamModel; // Camera model set by ROS Param
-    sl::MODEL mZedRealCamModel; // Real camera model by SDK API
-    unsigned int mCamFwVersion; // Camera FW version
-    unsigned int mSensFwVersion; // Sensors FW version
+  // Zed object
+  sl::InitParameters mZedParams;
+  sl::Camera mZed;
+  unsigned int mZedSerialNumber;
+  sl::MODEL mZedUserCamModel;   // Camera model set by ROS Param
+  sl::MODEL mZedRealCamModel;   // Real camera model by SDK API
+  unsigned int mCamFwVersion;   // Camera FW version
+  unsigned int mSensFwVersion;  // Sensors FW version
 
-    // Dynamic Parameters
-    int mCamBrightness = 4;
-    int mCamContrast = 4;
-    int mCamHue = 0;
-    int mCamSaturation = 4;
-    int mCamSharpness = 3;
-    int mCamGamma = 1;
-    bool mCamAutoExposure = true;
-    int mCamGain = 100;
-    int mCamExposure = 100;
-    bool mCamAutoWB = true;
-    int mCamWB = 4200;
+  // Dynamic Parameters
+  int mCamBrightness = 4;
+  int mCamContrast = 4;
+  int mCamHue = 0;
+  int mCamSaturation = 4;
+  int mCamSharpness = 3;
+  int mCamGamma = 1;
+  bool mCamAutoExposure = true;
+  int mCamGain = 100;
+  int mCamExposure = 100;
+  bool mCamAutoWB = true;
+  int mCamWB = 4200;
 
-    int mCamDepthConfidence = 50;
-    int mCamDepthTextureConf = 100;
-    double mPointCloudFreq = 15.;    
+  int mCamDepthConfidence = 50;
+  int mCamDepthTextureConf = 100;
+  double mPointCloudFreq = 15.;
 
-    PubRes mPubResolution = PubRes::NATIVE;     // Use native grab resolution by default
-    double mCustomDownscaleFactor = 1.0;        // Used to rescale data with user factor
+  PubRes mPubResolution = PubRes::NATIVE;  // Use native grab resolution by default
+  double mCustomDownscaleFactor = 1.0;     // Used to rescale data with user factor
 
-    // flags
-    bool mTriggerAutoExposure = true;
-    bool mTriggerAutoWB = true;
-    bool mComputeDepth;
-    bool mOpenniDepthMode; // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
-    bool mPoseSmoothing = false; // Always disabled. Enable only for AR/VR applications
-    bool mAreaMemory;
-    bool mInitOdomWithPose;
-    bool mResetOdom = false;
-    bool mUpdateDynParams = false;
-    bool mPublishingData = false;
+  // flags
+  bool mTriggerAutoExposure = true;
+  bool mTriggerAutoWB = true;
+  bool mComputeDepth;
+  bool mOpenniDepthMode;  // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
+  bool mPoseSmoothing = false;  // Always disabled. Enable only for AR/VR applications
+  bool mAreaMemory;
+  bool mInitOdomWithPose;
+  bool mResetOdom = false;
+  bool mUpdateDynParams = false;
+  bool mPublishingData = false;
 
-    // SVO recording
-    bool mRecording = false;
-    sl::RecordingStatus mRecStatus;
-    sl::SVO_COMPRESSION_MODE mSvoComprMode;
+  // SVO recording
+  bool mRecording = false;
+  sl::RecordingStatus mRecStatus;
+  sl::SVO_COMPRESSION_MODE mSvoComprMode;
 
-    // Streaming
-    bool mStreaming = false;
+  // Streaming
+  bool mStreaming = false;
 
-    // Mat
-    int mCamWidth;
-    int mCamHeight;
-    sl::Resolution mMatResol;
+  // Mat
+  int mCamWidth;
+  int mCamHeight;
+  sl::Resolution mMatResol;
 
-    // Thread Sync
-    std::mutex mCloseZedMutex;
-    std::mutex mCamDataMutex;
-    std::mutex mPcMutex;
-    std::mutex mRecMutex;
-    std::mutex mPosTrkMutex;
-    std::mutex mDynParMutex;
-    std::mutex mMappingMutex;
-    std::mutex mObjDetMutex;
-    std::condition_variable mPcDataReadyCondVar;
-    bool mPcDataReady;
+  // Thread Sync
+  std::mutex mCloseZedMutex;
+  std::mutex mCamDataMutex;
+  std::mutex mPcMutex;
+  std::mutex mRecMutex;
+  std::mutex mPosTrkMutex;
+  std::mutex mDynParMutex;
+  std::mutex mMappingMutex;
+  std::mutex mObjDetMutex;
+  std::condition_variable mPcDataReadyCondVar;
+  bool mPcDataReady;
 
-    // Point cloud variables
-    sl::Mat mCloud;
-    sl::FusedPointCloud mFusedPC;
-    ros::Time mPointCloudTime;
+  // Point cloud variables
+  sl::Mat mCloud;
+  sl::FusedPointCloud mFusedPC;
+  ros::Time mPointCloudTime;
 
-    // Dynamic reconfigure
-    boost::recursive_mutex mDynServerMutex; // To avoid Dynamic Reconfigure Server warning
-    boost::shared_ptr<dynamic_reconfigure::Server<zed_nodelets::ZedConfig>> mDynRecServer;
+  // Dynamic reconfigure
+  boost::recursive_mutex mDynServerMutex;  // To avoid Dynamic Reconfigure Server warning
+  boost::shared_ptr<dynamic_reconfigure::Server<zed_nodelets::ZedConfig>> mDynRecServer;
 
-    // Diagnostic
-    float mTempLeft = -273.15f;
-    float mTempRight = -273.15f;
-    std::unique_ptr<sl_tools::CSmartMean> mElabPeriodMean_sec;
-    std::unique_ptr<sl_tools::CSmartMean> mGrabPeriodMean_usec;
-    std::unique_ptr<sl_tools::CSmartMean> mVideoDepthPeriodMean_sec;
-    std::unique_ptr<sl_tools::CSmartMean> mPcPeriodMean_usec;
-    std::unique_ptr<sl_tools::CSmartMean> mSensPeriodMean_usec;
-    std::unique_ptr<sl_tools::CSmartMean> mObjDetPeriodMean_msec;
+  // Diagnostic
+  float mTempLeft = -273.15f;
+  float mTempRight = -273.15f;
+  std::unique_ptr<sl_tools::CSmartMean> mElabPeriodMean_sec;
+  std::unique_ptr<sl_tools::CSmartMean> mGrabPeriodMean_usec;
+  std::unique_ptr<sl_tools::CSmartMean> mVideoDepthPeriodMean_sec;
+  std::unique_ptr<sl_tools::CSmartMean> mPcPeriodMean_usec;
+  std::unique_ptr<sl_tools::CSmartMean> mSensPeriodMean_usec;
+  std::unique_ptr<sl_tools::CSmartMean> mObjDetPeriodMean_msec;
 
-    diagnostic_updater::Updater mDiagUpdater; // Diagnostic Updater
+  diagnostic_updater::Updater mDiagUpdater;  // Diagnostic Updater
 
-    // Camera IMU transform
-    sl::Transform mSlCamImuTransf;
-    geometry_msgs::TransformStamped mStaticImuTransformStamped;
+  // Camera IMU transform
+  sl::Transform mSlCamImuTransf;
+  geometry_msgs::TransformStamped mStaticImuTransformStamped;
 
-    // Spatial mapping
-    bool mMappingEnabled;
-    bool mMappingRunning;
-    bool mMapSave = false;
-    float mMappingRes = 0.1;
-    float mMaxMappingRange = -1;
-    double mFusedPcPubFreq = 2.0;
+  // Spatial mapping
+  bool mMappingEnabled;
+  bool mMappingRunning;
+  bool mMapSave = false;
+  float mMappingRes = 0.1;
+  float mMaxMappingRange = -1;
+  double mFusedPcPubFreq = 2.0;
 
-    // Object Detection
-    bool mObjDetEnabled = false;
-    bool mObjDetRunning = false;
-    bool mObjDetTracking = true;
-    bool mObjDetBodyFitting = true;
-    float mObjDetConfidence = 50.f;
-    float mObjDetMaxRange = 10.f;
-    std::vector<sl::OBJECT_CLASS> mObjDetFilter;
-    bool mObjDetPeopleEnable = true;
-    bool mObjDetVehiclesEnable = true;
-    bool mObjDetBagsEnable = true;
-    bool mObjDetAnimalsEnable = true;
-    bool mObjDetElectronicsEnable = true;
-    bool mObjDetFruitsEnable = true;
-    bool mObjDetSportsEnable = true;
+  // Object Detection
+  bool mObjDetEnabled = false;
+  bool mObjDetRunning = false;
+  bool mObjDetTracking = true;
+  bool mObjDetBodyFitting = true;
+  float mObjDetConfidence = 50.f;
+  float mObjDetMaxRange = 10.f;
+  std::vector<sl::OBJECT_CLASS> mObjDetFilter;
+  bool mObjDetPeopleEnable = true;
+  bool mObjDetVehiclesEnable = true;
+  bool mObjDetBagsEnable = true;
+  bool mObjDetAnimalsEnable = true;
+  bool mObjDetElectronicsEnable = true;
+  bool mObjDetFruitsEnable = true;
+  bool mObjDetSportsEnable = true;
 
-    sl::OBJECT_DETECTION_MODEL mObjDetModel = sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_MEDIUM;
+  sl::OBJECT_DETECTION_MODEL mObjDetModel = sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_MEDIUM;
 
-    ros::Publisher mPubObjDet;
-}; // class ZEDROSWrapperNodelet
-} // namespace zed_nodelets
+  ros::Publisher mPubObjDet;
+};  // class ZEDROSWrapperNodelet
+}  // namespace zed_nodelets
 
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(zed_nodelets::ZEDWrapperNodelet, nodelet::Nodelet);
 
-#endif // ZED_WRAPPER_NODELET_H
+#endif  // ZED_WRAPPER_NODELET_H

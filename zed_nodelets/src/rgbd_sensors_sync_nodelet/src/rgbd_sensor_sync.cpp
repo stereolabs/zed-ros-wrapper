@@ -209,10 +209,10 @@ void RgbdSensorsSyncNodelet::readParameters()
   NODELET_INFO(" * sub_mag -> %s", mUseMag ? "true" : "false");
 }
 
-void RgbdSensorsSyncNodelet::callbackRGBD(const sensor_msgs::ImageConstPtr &rgb,
-                                          const sensor_msgs::ImageConstPtr &depth,
-                                          const sensor_msgs::CameraInfoConstPtr &rgbCameraInfo,
-                                          const sensor_msgs::CameraInfoConstPtr &depthCameraInfo)
+void RgbdSensorsSyncNodelet::callbackRGBD(const sensor_msgs::ImageConstPtr& rgb,
+                                          const sensor_msgs::ImageConstPtr& depth,
+                                          const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
+                                          const sensor_msgs::CameraInfoConstPtr& depthCameraInfo)
 {
   // ----> Frequency calculation
   static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
@@ -251,20 +251,22 @@ void RgbdSensorsSyncNodelet::callbackRGBD(const sensor_msgs::ImageConstPtr &rgb,
 
   if (rgbStamp != rgb->header.stamp.toSec())
   {
-    NODELET_ERROR("Input stamps changed between the beginning and the end of the callback! Make "
-                  "sure the node publishing the topics doesn't override the same data after publishing them. A "
-                  "solution is to use this node within another nodelet manager. ");
-    NODELET_ERROR("Stamps: "
-                  "rgb=%f->%f",
-                  rgbStamp, rgb->header.stamp.toSec());
+    NODELET_ERROR(
+        "Input stamps changed between the beginning and the end of the callback! Make "
+        "sure the node publishing the topics doesn't override the same data after publishing them. A "
+        "solution is to use this node within another nodelet manager. ");
+    NODELET_ERROR(
+        "Stamps: "
+        "rgb=%f->%f",
+        rgbStamp, rgb->header.stamp.toSec());
   }
 }
 
-void RgbdSensorsSyncNodelet::callbackRGBDIMU(const sensor_msgs::ImageConstPtr &rgb,
-                                             const sensor_msgs::ImageConstPtr &depth,
-                                             const sensor_msgs::CameraInfoConstPtr &rgbCameraInfo,
-                                             const sensor_msgs::CameraInfoConstPtr &depthCameraInfo,
-                                             const sensor_msgs::ImuConstPtr &imu)
+void RgbdSensorsSyncNodelet::callbackRGBDIMU(const sensor_msgs::ImageConstPtr& rgb,
+                                             const sensor_msgs::ImageConstPtr& depth,
+                                             const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
+                                             const sensor_msgs::CameraInfoConstPtr& depthCameraInfo,
+                                             const sensor_msgs::ImuConstPtr& imu)
 {
   // ----> Frequency calculation
   static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
@@ -309,20 +311,22 @@ void RgbdSensorsSyncNodelet::callbackRGBDIMU(const sensor_msgs::ImageConstPtr &r
 
   if (rgbStamp != rgb->header.stamp.toSec() || imuStamp != imu->header.stamp.toSec())
   {
-    NODELET_ERROR("Input stamps changed between the beginning and the end of the callback! Make "
-                  "sure the node publishing the topics doesn't override the same data after publishing them. A "
-                  "solution is to use this node within another nodelet manager. ");
-    NODELET_ERROR("Stamps: "
-                  "rgb=%f->%f IMU=%f->%f",
-                  rgbStamp, rgb->header.stamp.toSec(), imuStamp, imu->header.stamp.toSec());
+    NODELET_ERROR(
+        "Input stamps changed between the beginning and the end of the callback! Make "
+        "sure the node publishing the topics doesn't override the same data after publishing them. A "
+        "solution is to use this node within another nodelet manager. ");
+    NODELET_ERROR(
+        "Stamps: "
+        "rgb=%f->%f IMU=%f->%f",
+        rgbStamp, rgb->header.stamp.toSec(), imuStamp, imu->header.stamp.toSec());
   }
 }
 
-void RgbdSensorsSyncNodelet::callbackRGBDMag(const sensor_msgs::ImageConstPtr &rgb,
-                                             const sensor_msgs::ImageConstPtr &depth,
-                                             const sensor_msgs::CameraInfoConstPtr &rgbCameraInfo,
-                                             const sensor_msgs::CameraInfoConstPtr &depthCameraInfo,
-                                             const sensor_msgs::MagneticFieldConstPtr &mag)
+void RgbdSensorsSyncNodelet::callbackRGBDMag(const sensor_msgs::ImageConstPtr& rgb,
+                                             const sensor_msgs::ImageConstPtr& depth,
+                                             const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
+                                             const sensor_msgs::CameraInfoConstPtr& depthCameraInfo,
+                                             const sensor_msgs::MagneticFieldConstPtr& mag)
 {
   // ----> Frequency calculation
   static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
@@ -367,21 +371,23 @@ void RgbdSensorsSyncNodelet::callbackRGBDMag(const sensor_msgs::ImageConstPtr &r
 
   if (rgbStamp != rgb->header.stamp.toSec() || magStamp != mag->header.stamp.toSec())
   {
-    NODELET_ERROR("Input stamps changed between the beginning and the end of the callback! Make "
-                  "sure the node publishing the topics doesn't override the same data after publishing them. A "
-                  "solution is to use this node within another nodelet manager. ");
-    NODELET_ERROR("Stamps: "
-                  "rgb=%f->%f MAG=%f->%f",
-                  rgbStamp, rgb->header.stamp.toSec(), magStamp, mag->header.stamp.toSec());
+    NODELET_ERROR(
+        "Input stamps changed between the beginning and the end of the callback! Make "
+        "sure the node publishing the topics doesn't override the same data after publishing them. A "
+        "solution is to use this node within another nodelet manager. ");
+    NODELET_ERROR(
+        "Stamps: "
+        "rgb=%f->%f MAG=%f->%f",
+        rgbStamp, rgb->header.stamp.toSec(), magStamp, mag->header.stamp.toSec());
   }
 }
 
-void RgbdSensorsSyncNodelet::callbackFull(const sensor_msgs::ImageConstPtr &rgb,
-                                          const sensor_msgs::ImageConstPtr &depth,
-                                          const sensor_msgs::CameraInfoConstPtr &rgbCameraInfo,
-                                          const sensor_msgs::CameraInfoConstPtr &depthCameraInfo,
-                                          const sensor_msgs::ImuConstPtr &imu,
-                                          const sensor_msgs::MagneticFieldConstPtr &mag)
+void RgbdSensorsSyncNodelet::callbackFull(const sensor_msgs::ImageConstPtr& rgb,
+                                          const sensor_msgs::ImageConstPtr& depth,
+                                          const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
+                                          const sensor_msgs::CameraInfoConstPtr& depthCameraInfo,
+                                          const sensor_msgs::ImuConstPtr& imu,
+                                          const sensor_msgs::MagneticFieldConstPtr& mag)
 {
   // ----> Frequency calculation
   static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
@@ -431,13 +437,14 @@ void RgbdSensorsSyncNodelet::callbackFull(const sensor_msgs::ImageConstPtr &rgb,
   if (rgbStamp != rgb->header.stamp.toSec() || imuStamp != imu->header.stamp.toSec() ||
       magStamp != mag->header.stamp.toSec())
   {
-    NODELET_ERROR("Input stamps changed between the beginning and the end of the callback! Make "
-                  "sure the node publishing the topics doesn't override the same data after publishing them. A "
-                  "solution is to use this node within another nodelet manager. ");
-    NODELET_ERROR("Stamps: "
-                  "rgb=%f->%f IMU=%f->%f MAG=%f->%f",
-                  rgbStamp, rgb->header.stamp.toSec(), imuStamp, imu->header.stamp.toSec(), magStamp,
-                  mag->header.stamp.toSec());
+    NODELET_ERROR(
+        "Input stamps changed between the beginning and the end of the callback! Make "
+        "sure the node publishing the topics doesn't override the same data after publishing them. A "
+        "solution is to use this node within another nodelet manager. ");
+    NODELET_ERROR(
+        "Stamps: "
+        "rgb=%f->%f IMU=%f->%f MAG=%f->%f",
+        rgbStamp, rgb->header.stamp.toSec(), imuStamp, imu->header.stamp.toSec(), magStamp, mag->header.stamp.toSec());
   }
 }
 

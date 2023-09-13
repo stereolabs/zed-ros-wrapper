@@ -39,11 +39,10 @@ bool file_exist(const std::string& name)
 namespace fs = std::experimental::filesystem;
 std::string resolveFilePath(std::string file_path)
 {
-  if(file_path.empty())
+  if (file_path.empty())
   {
     return file_path;
   }
-
 
   std::string abs_path = file_path;
   if (file_path[0] == '~')
@@ -74,7 +73,7 @@ std::string resolveFilePath(std::string file_path)
       return std::string();
     }
   }
-  else if(file_path[0] != '/')
+  else if (file_path[0] != '/')
   {
     fs::path current_path = fs::current_path();
     abs_path = current_path.string() + "/" + file_path;
@@ -123,7 +122,8 @@ ros::Time slTime2Ros(sl::Timestamp t)
 
 bool isZED(sl::MODEL camModel)
 {
-  if (camModel == sl::MODEL::ZED) {
+  if (camModel == sl::MODEL::ZED)
+  {
     return true;
   }
   return false;
@@ -131,7 +131,8 @@ bool isZED(sl::MODEL camModel)
 
 bool isZEDM(sl::MODEL camModel)
 {
-  if (camModel == sl::MODEL::ZED_M) {
+  if (camModel == sl::MODEL::ZED_M)
+  {
     return true;
   }
   return false;
@@ -139,10 +140,12 @@ bool isZEDM(sl::MODEL camModel)
 
 bool isZED2OrZED2i(sl::MODEL camModel)
 {
-  if (camModel == sl::MODEL::ZED2) {
+  if (camModel == sl::MODEL::ZED2)
+  {
     return true;
   }
-  if (camModel == sl::MODEL::ZED2i) {
+  if (camModel == sl::MODEL::ZED2i)
+  {
     return true;
   }
   return false;
@@ -150,10 +153,12 @@ bool isZED2OrZED2i(sl::MODEL camModel)
 
 bool isZEDX(sl::MODEL camModel)
 {
-  if (camModel == sl::MODEL::ZED_X) {
+  if (camModel == sl::MODEL::ZED_X)
+  {
     return true;
   }
-  if (camModel == sl::MODEL::ZED_XM) {
+  if (camModel == sl::MODEL::ZED_XM)
+  {
     return true;
   }
   return false;
@@ -351,16 +356,15 @@ std::vector<std::string> split_string(const std::string& s, char seperator)
   return output;
 }
 
-inline bool contains(std::vector<sl::float2> & poly, sl::float2 test)
+inline bool contains(std::vector<sl::float2>& poly, sl::float2 test)
 {
   int i, j;
   bool c = false;
   const int nvert = poly.size();
-  for (i = 0, j = nvert - 1; i < nvert; j = i++) {
-    if (
-      ((poly[i].y > test.y) != (poly[j].y > test.y)) &&
-      (test.x <
-      (poly[j].x - poly[i].x) * (test.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x))
+  for (i = 0, j = nvert - 1; i < nvert; j = i++)
+  {
+    if (((poly[i].y > test.y) != (poly[j].y > test.y)) &&
+        (test.x < (poly[j].x - poly[i].x) * (test.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x))
     {
       c = !c;
     }
@@ -368,9 +372,10 @@ inline bool contains(std::vector<sl::float2> & poly, sl::float2 test)
   return c;
 }
 
-bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
+bool generateROI(const std::vector<sl::float2>& poly, sl::Mat& out_roi)
 {
-  if (poly.size() < 3) {
+  if (poly.size() < 3)
+  {
     out_roi = sl::Mat();
     return false;
   }
@@ -387,15 +392,18 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
   // std::cerr << "Image resolution: " << w << "x" << h << std::endl;
   std::vector<sl::float2> poly_img;
   size_t idx = 0;
-  for (auto & it : poly) {
+  for (auto& it : poly)
+  {
     sl::float2 pt;
     pt.x = it.x * w;
     pt.y = it.y * h;
 
-    if (pt.x >= w) {
+    if (pt.x >= w)
+    {
       pt.x = (w - 1);
     }
-    if (pt.y >= h) {
+    if (pt.y >= h)
+    {
       pt.y = (h - 1);
     }
 
@@ -406,11 +414,14 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
   // <---- De-normalize coordinates
 
   // ----> Unset ROI pixels outside the polygon
-  //std::cerr << "Unset ROI pixels outside the polygon" << std::endl;
-  //std::cerr << "Set mask" << std::endl;
-  for (int v = 0; v < h; v++) {
-    for (int u = 0; u < w; u++) {
-      if (!contains(poly_img, sl::float2(u, v))) {
+  // std::cerr << "Unset ROI pixels outside the polygon" << std::endl;
+  // std::cerr << "Set mask" << std::endl;
+  for (int v = 0; v < h; v++)
+  {
+    for (int u = 0; u < w; u++)
+    {
+      if (!contains(poly_img, sl::float2(u, v)))
+      {
         out_roi.setValue<sl::uchar1>(u, v, 0, sl::MEM::CPU);
       }
     }
@@ -422,21 +433,23 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
   return true;
 }
 
-std::vector<std::vector<float>> parseStringVector(
-  const std::string & input, std::string & error_return)
+std::vector<std::vector<float>> parseStringVector(const std::string& input, std::string& error_return)
 {
   std::vector<std::vector<float>> result;
 
   std::stringstream input_ss(input);
   int depth = 0;
   std::vector<float> current_vector;
-  while (!!input_ss && !input_ss.eof()) {
-    switch (input_ss.peek()) {
+  while (!!input_ss && !input_ss.eof())
+  {
+    switch (input_ss.peek())
+    {
       case EOF:
         break;
       case '[':
         depth++;
-        if (depth > 2) {
+        if (depth > 2)
+        {
           error_return = "Array depth greater than 2";
           return result;
         }
@@ -445,12 +458,14 @@ std::vector<std::vector<float>> parseStringVector(
         break;
       case ']':
         depth--;
-        if (depth < 0) {
+        if (depth < 0)
+        {
           error_return = "More close ] than open [";
           return result;
         }
         input_ss.get();
-        if (depth == 1) {
+        if (depth == 1)
+        {
           result.push_back(current_vector);
         }
         break;
@@ -460,7 +475,8 @@ std::vector<std::vector<float>> parseStringVector(
         input_ss.get();
         break;
       default:  // All other characters should be part of the numbers.
-        if (depth != 2) {
+        if (depth != 2)
+        {
           std::stringstream err_ss;
           err_ss << "Numbers at depth other than 2. Char was '" << char(input_ss.peek()) << "'.";
           error_return = err_ss.str();
@@ -468,16 +484,20 @@ std::vector<std::vector<float>> parseStringVector(
         }
         float value;
         input_ss >> value;
-        if (!!input_ss) {
+        if (!!input_ss)
+        {
           current_vector.push_back(value);
         }
         break;
     }
   }
 
-  if (depth != 0) {
+  if (depth != 0)
+  {
     error_return = "Unterminated vector string.";
-  } else {
+  }
+  else
+  {
     error_return = "";
   }
 
