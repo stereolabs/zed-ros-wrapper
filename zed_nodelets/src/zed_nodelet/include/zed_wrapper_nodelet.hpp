@@ -439,6 +439,10 @@ protected:
    */
   void processDetectedObjects(ros::Time t);
 
+  /*! \brief Process camera settings
+   */
+  void processCameraSettings();
+
   /*! \brief Generates an univoque color for each object class ID
    */
   inline sl::float3 generateColorClass(int idx)

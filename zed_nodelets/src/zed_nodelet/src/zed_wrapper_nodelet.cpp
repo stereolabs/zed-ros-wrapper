@@ -1027,7 +1027,7 @@ void ZEDWrapperNodelet::readMappingParams()
       NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
     }
   }
-  mNhNs.getParam("mapping/clicked_point_topic",mClickedPtTopic);
+  mNhNs.getParam("mapping/clicked_point_topic", mClickedPtTopic);
   NODELET_INFO_STREAM(" * Clicked point topic\t\t-> " << mClickedPtTopic.c_str());
 }
 
@@ -2046,9 +2046,16 @@ void ZEDWrapperNodelet::start_pos_tracking()
 {
   NODELET_INFO_STREAM("*** Starting Positional Tracking ***");
 
+  mPosTrackingReady = false;  // Useful to not publish wrong TF with IMU frame broadcasting
+
+  if (mDepthDisabled)
+  {
+    NODELET_WARN("Cannot start Positional Tracking if `depth.depth_mode` is set to 'NONE'");
+    return;
+  }
+
   NODELET_INFO(" * Waiting for valid static transformations...");
 
-  mPosTrackingReady = false;  // Useful to not publish wrong TF with IMU frame broadcasting
   bool transformOk = false;
   double elapsed = 0.0;
 
@@ -2062,7 +2069,7 @@ void ZEDWrapperNodelet::start_pos_tracking()
     elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start)
                   .count();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     if (elapsed > 10000)
     {
@@ -2095,7 +2102,7 @@ void ZEDWrapperNodelet::start_pos_tracking()
   posTrackParams.set_as_static = mIsStatic;
   posTrackParams.depth_min_range = static_cast<float>(mPosTrkMinDepth);
 
-      if (mAreaMemDbPath != "" && !sl_tools::file_exist(mAreaMemDbPath))
+  if (mAreaMemDbPath != "" && !sl_tools::file_exist(mAreaMemDbPath))
   {
     posTrackParams.area_file_path = "";
     NODELET_WARN_STREAM("area_memory_db_path [" << mAreaMemDbPath << "] doesn't exist or is unreachable. ");
@@ -2127,7 +2134,7 @@ void ZEDWrapperNodelet::start_pos_tracking()
   {
     mPosTrackingActivated = false;
 
-    NODELET_WARN("Tracking not activated: %s", sl::toString(err).c_str());
+    NODELET_WARN("Pos. Tracking not started: %s", sl::toString(err).c_str());
   }
 }
 
@@ -4181,211 +4188,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
       // <---- Publish freq calculation
 
       // ----> Camera Settings
-      int value;
-      sl::VIDEO_SETTINGS setting;
-      sl::ERROR_CODE err;
-
-      if (!mSvoMode && mFrameCount % 5 == 0)
-      {
-        // NODELET_DEBUG_STREAM( "[" << mFrameCount << "] device_poll_thread_func MUTEX LOCK");
-        mDynParMutex.lock();
-
-        setting = sl::VIDEO_SETTINGS::BRIGHTNESS;
-        err = mZed.getCameraSettings(setting, value);
-        if (err == sl::ERROR_CODE::SUCCESS && value != mCamBrightness)
-        {
-          err = mZed.setCameraSettings(setting, mCamBrightness);
-        }
-        if (err != sl::ERROR_CODE::SUCCESS)
-        {
-          NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
-        }
-        else
-        {
-          NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamBrightness << " <- " << value);
-          mUpdateDynParams = true;
-        }
-
-        setting = sl::VIDEO_SETTINGS::CONTRAST;
-        err = mZed.getCameraSettings(setting, value);
-        if (err == sl::ERROR_CODE::SUCCESS && value != mCamContrast)
-        {
-          err = mZed.setCameraSettings(setting, mCamContrast);
-        }
-        if (err != sl::ERROR_CODE::SUCCESS)
-        {
-          NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
-        }
-        else
-        {
-          NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamContrast << " <- " << value);
-          mUpdateDynParams = true;
-        }
-
-        setting = sl::VIDEO_SETTINGS::HUE;
-        err = mZed.getCameraSettings(setting, value);
-        if (err == sl::ERROR_CODE::SUCCESS && value != mCamHue)
-        {
-          err = mZed.setCameraSettings(setting, mCamHue);
-        }
-        if (err != sl::ERROR_CODE::SUCCESS)
-        {
-          NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
-        }
-        else
-        {
-          NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamHue << " <- " << value);
-          mUpdateDynParams = true;
-        }
-
-        setting = sl::VIDEO_SETTINGS::SATURATION;
-        err = mZed.getCameraSettings(setting, value);
-        if (err == sl::ERROR_CODE::SUCCESS && value != mCamSaturation)
-        {
-          err = mZed.setCameraSettings(setting, mCamSaturation);
-        }
-        if (err != sl::ERROR_CODE::SUCCESS)
-        {
-          NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
-        }
-        else
-        {
-          NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamSaturation << " <- " << value);
-          mUpdateDynParams = true;
-        }
-
-        setting = sl::VIDEO_SETTINGS::SHARPNESS;
-        err = mZed.getCameraSettings(setting, value);
-        if (err == sl::ERROR_CODE::SUCCESS && value != mCamSharpness)
-        {
-          err = mZed.setCameraSettings(setting, mCamSharpness);
-        }
-        if (err != sl::ERROR_CODE::SUCCESS)
-        {
-          NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
-        }
-        else
-        {
-          NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamSharpness << " <- " << value);
-          mUpdateDynParams = true;
-        }
-
-        setting = sl::VIDEO_SETTINGS::GAMMA;
-        err = mZed.getCameraSettings(setting, value);
-        if (err == sl::ERROR_CODE::SUCCESS && value != mCamGamma)
-        {
-          err = mZed.setCameraSettings(setting, mCamGamma);
-        }
-        if (err != sl::ERROR_CODE::SUCCESS)
-        {
-          NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
-        }
-        else
-        {
-          NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamGamma << " <- " << value);
-          mUpdateDynParams = true;
-        }
-
-        if (mTriggerAutoExposure)
-        {
-          setting = sl::VIDEO_SETTINGS::AEC_AGC;
-          err = mZed.getCameraSettings(setting, value);
-          int aec_agc = (mCamAutoExposure ? 1 : 0);
-          if (err == sl::ERROR_CODE::SUCCESS && value != aec_agc)
-          {
-            err = mZed.setCameraSettings(setting, aec_agc);
-          }
-          if (err != sl::ERROR_CODE::SUCCESS)
-          {
-            NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
-          }
-          else
-          {
-            NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << aec_agc << " <- " << value);
-            mUpdateDynParams = true;
-          }
-        }
-        if (!mCamAutoExposure)
-        {
-          setting = sl::VIDEO_SETTINGS::EXPOSURE;
-          err = mZed.getCameraSettings(setting, value);
-          if (err == sl::ERROR_CODE::SUCCESS && value != mCamExposure)
-          {
-            err = mZed.setCameraSettings(setting, mCamExposure);
-          }
-          if (err != sl::ERROR_CODE::SUCCESS)
-          {
-            NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
-          }
-          else
-          {
-            NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamExposure << " <- " << value);
-            mUpdateDynParams = true;
-          }
-
-          setting = sl::VIDEO_SETTINGS::GAIN;
-          err = mZed.getCameraSettings(setting, value);
-          if (err == sl::ERROR_CODE::SUCCESS && value != mCamGain)
-          {
-            err = mZed.setCameraSettings(setting, mCamGain);
-          }
-          if (err != sl::ERROR_CODE::SUCCESS)
-          {
-            NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
-          }
-          else
-          {
-            NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamGain << " <- " << value);
-            mUpdateDynParams = true;
-          }
-        }
-
-        if (mTriggerAutoWB)
-        {
-          setting = sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO;
-          err = mZed.getCameraSettings(setting, value);
-          int wb_auto = (mCamAutoWB ? 1 : 0);
-          if (err == sl::ERROR_CODE::SUCCESS && value != wb_auto)
-          {
-            err = mZed.setCameraSettings(setting, wb_auto);
-          }
-          if (err != sl::ERROR_CODE::SUCCESS)
-          {
-            NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
-          }
-          else
-          {
-            NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << wb_auto << " <- " << value);
-            mUpdateDynParams = true;
-          }
-        }
-        if (!mCamAutoWB)
-        {
-          setting = sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE;
-          err = mZed.getCameraSettings(setting, value);
-          if (err == sl::ERROR_CODE::SUCCESS && value != mCamWB)
-          {
-            err = mZed.setCameraSettings(setting, mCamWB);
-          }
-          if (err != sl::ERROR_CODE::SUCCESS)
-          {
-            NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
-          }
-          else
-          {
-            NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamWB << " <- " << value);
-            mUpdateDynParams = true;
-          }
-        }
-        mDynParMutex.unlock();
-        // NODELET_DEBUG_STREAM( "device_poll_thread_func MUTEX UNLOCK");
-      }
-
-      if (mUpdateDynParams)
-      {
-        NODELET_DEBUG("Update Dynamic Parameters");
-        updateDynamicReconfigure();
-      }
+      processCameraSettings();
       // <---- Camera Settings
 
       // Publish the point cloud if someone has subscribed to
@@ -4792,6 +4595,215 @@ void ZEDWrapperNodelet::device_poll_thread_func()
   mZed.close();
 
   NODELET_DEBUG("ZED pool thread finished");
+}
+
+void ZEDWrapperNodelet::processCameraSettings()
+{
+  int value;
+  sl::VIDEO_SETTINGS setting;
+  sl::ERROR_CODE err;
+
+  if (!mSvoMode && mFrameCount % 5 == 0)
+  {
+    // NODELET_DEBUG_STREAM( "[" << mFrameCount << "] device_poll_thread_func MUTEX LOCK");
+    mDynParMutex.lock();
+
+    setting = sl::VIDEO_SETTINGS::BRIGHTNESS;
+    err = mZed.getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamBrightness)
+    {
+      err = mZed.setCameraSettings(setting, mCamBrightness);
+    }
+    if (err != sl::ERROR_CODE::SUCCESS)
+    {
+      NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
+    }
+    else
+    {
+      NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamBrightness << " <- " << value);
+      mUpdateDynParams = true;
+    }
+
+    setting = sl::VIDEO_SETTINGS::CONTRAST;
+    err = mZed.getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamContrast)
+    {
+      err = mZed.setCameraSettings(setting, mCamContrast);
+    }
+    if (err != sl::ERROR_CODE::SUCCESS)
+    {
+      NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
+    }
+    else
+    {
+      NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamContrast << " <- " << value);
+      mUpdateDynParams = true;
+    }
+
+    setting = sl::VIDEO_SETTINGS::HUE;
+    err = mZed.getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamHue)
+    {
+      err = mZed.setCameraSettings(setting, mCamHue);
+    }
+    if (err != sl::ERROR_CODE::SUCCESS)
+    {
+      NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
+    }
+    else
+    {
+      NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamHue << " <- " << value);
+      mUpdateDynParams = true;
+    }
+
+    setting = sl::VIDEO_SETTINGS::SATURATION;
+    err = mZed.getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamSaturation)
+    {
+      err = mZed.setCameraSettings(setting, mCamSaturation);
+    }
+    if (err != sl::ERROR_CODE::SUCCESS)
+    {
+      NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
+    }
+    else
+    {
+      NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamSaturation << " <- " << value);
+      mUpdateDynParams = true;
+    }
+
+    setting = sl::VIDEO_SETTINGS::SHARPNESS;
+    err = mZed.getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamSharpness)
+    {
+      err = mZed.setCameraSettings(setting, mCamSharpness);
+    }
+    if (err != sl::ERROR_CODE::SUCCESS)
+    {
+      NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
+    }
+    else
+    {
+      NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamSharpness << " <- " << value);
+      mUpdateDynParams = true;
+    }
+
+    setting = sl::VIDEO_SETTINGS::GAMMA;
+    err = mZed.getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamGamma)
+    {
+      err = mZed.setCameraSettings(setting, mCamGamma);
+    }
+    if (err != sl::ERROR_CODE::SUCCESS)
+    {
+      NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
+    }
+    else
+    {
+      NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamGamma << " <- " << value);
+      mUpdateDynParams = true;
+    }
+
+    if (mTriggerAutoExposure)
+    {
+      setting = sl::VIDEO_SETTINGS::AEC_AGC;
+      err = mZed.getCameraSettings(setting, value);
+      int aec_agc = (mCamAutoExposure ? 1 : 0);
+      if (err == sl::ERROR_CODE::SUCCESS && value != aec_agc)
+      {
+        err = mZed.setCameraSettings(setting, aec_agc);
+      }
+      if (err != sl::ERROR_CODE::SUCCESS)
+      {
+        NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
+      }
+      else
+      {
+        NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << aec_agc << " <- " << value);
+        mUpdateDynParams = true;
+      }
+    }
+    if (!mCamAutoExposure)
+    {
+      setting = sl::VIDEO_SETTINGS::EXPOSURE;
+      err = mZed.getCameraSettings(setting, value);
+      if (err == sl::ERROR_CODE::SUCCESS && value != mCamExposure)
+      {
+        err = mZed.setCameraSettings(setting, mCamExposure);
+      }
+      if (err != sl::ERROR_CODE::SUCCESS)
+      {
+        NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
+      }
+      else
+      {
+        NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamExposure << " <- " << value);
+        mUpdateDynParams = true;
+      }
+
+      setting = sl::VIDEO_SETTINGS::GAIN;
+      err = mZed.getCameraSettings(setting, value);
+      if (err == sl::ERROR_CODE::SUCCESS && value != mCamGain)
+      {
+        err = mZed.setCameraSettings(setting, mCamGain);
+      }
+      if (err != sl::ERROR_CODE::SUCCESS)
+      {
+        NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
+      }
+      else
+      {
+        NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamGain << " <- " << value);
+        mUpdateDynParams = true;
+      }
+    }
+
+    if (mTriggerAutoWB)
+    {
+      setting = sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO;
+      err = mZed.getCameraSettings(setting, value);
+      int wb_auto = (mCamAutoWB ? 1 : 0);
+      if (err == sl::ERROR_CODE::SUCCESS && value != wb_auto)
+      {
+        err = mZed.setCameraSettings(setting, wb_auto);
+      }
+      if (err != sl::ERROR_CODE::SUCCESS)
+      {
+        NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
+      }
+      else
+      {
+        NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << wb_auto << " <- " << value);
+        mUpdateDynParams = true;
+      }
+    }
+    if (!mCamAutoWB)
+    {
+      setting = sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE;
+      err = mZed.getCameraSettings(setting, value);
+      if (err == sl::ERROR_CODE::SUCCESS && value != mCamWB)
+      {
+        err = mZed.setCameraSettings(setting, mCamWB);
+      }
+      if (err != sl::ERROR_CODE::SUCCESS)
+      {
+        NODELET_WARN_STREAM("Error setting parameter " << sl::toString(setting) << ": " << sl::toString(err));
+      }
+      else
+      {
+        NODELET_DEBUG_STREAM(sl::toString(setting) << " changed: " << mCamWB << " <- " << value);
+        mUpdateDynParams = true;
+      }
+    }
+    mDynParMutex.unlock();
+    // NODELET_DEBUG_STREAM( "device_poll_thread_func MUTEX UNLOCK");
+  }
+
+  if (mUpdateDynParams)
+  {
+    NODELET_DEBUG("Update Dynamic Parameters");
+    updateDynamicReconfigure();
+  }
 }
 
 void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat)
