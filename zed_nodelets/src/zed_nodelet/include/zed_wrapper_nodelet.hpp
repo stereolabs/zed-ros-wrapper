@@ -123,6 +123,38 @@ protected:
    */
     void readParameters();
 
+    /*! \brief Reads general parameters from the param server
+   */
+    void readGeneralParams();
+
+    /*! \brief Reads depth parameters from the param server
+   */
+    void readDepthParams();
+
+    /*! \brief Reads positional tracking parameters from the param server
+   */
+    void readPosTrkParams();
+
+    /*! \brief Reads spatial mapping parameters from the param server
+   */
+    void readMappingParams();
+
+    /*! \brief Reads object detection parameters from the param server
+   */
+    void readObjDetParams();
+
+    /*! \brief Reads sensors parameters from the param server
+   */
+    void readSensParams();
+
+    /*! \brief Reads SVO parameters from the param server
+   */
+    void readSvoParams();
+
+    /*! \brief Reads dynamic parameters from the param server
+   */
+    void readDynParams();
+
     /*! \brief ZED camera polling thread function
    */
     void device_poll_thread_func();

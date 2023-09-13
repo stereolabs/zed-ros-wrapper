@@ -368,94 +368,96 @@ void ZEDWrapperNodelet::onInit()
     updateDynamicReconfigure();
     // <---- Dynamic Reconfigure parameters
 
-    // Create all the publishers
+    // ----> Publishers
+    NODELET_INFO( "*** PUBLISHERS ***");
+
     // Image publishers
     image_transport::ImageTransport it_zed(mNhNs);
 
     mPubRgb = it_zed.advertiseCamera(rgb_topic, 1); // rgb
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRgb.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRgb.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRgb.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRgb.getInfoTopic());
     mPubRawRgb = it_zed.advertiseCamera(rgb_raw_topic, 1); // rgb raw
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgb.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgb.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawRgb.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawRgb.getInfoTopic());
     mPubLeft = it_zed.advertiseCamera(left_topic, 1); // left
-    NODELET_INFO_STREAM("Advertised on topic " << mPubLeft.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubLeft.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubLeft.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubLeft.getInfoTopic());
     mPubRawLeft = it_zed.advertiseCamera(left_raw_topic, 1); // left raw
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeft.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeft.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawLeft.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawLeft.getInfoTopic());
     mPubRight = it_zed.advertiseCamera(right_topic, 1); // right
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRight.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRight.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRight.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRight.getInfoTopic());
     mPubRawRight = it_zed.advertiseCamera(right_raw_topic, 1); // right raw
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRight.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRight.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawRight.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawRight.getInfoTopic());
 
     mPubRgbGray = it_zed.advertiseCamera(rgb_gray_topic, 1); // rgb
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRgbGray.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRgbGray.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRgbGray.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRgbGray.getInfoTopic());
     mPubRawRgbGray = it_zed.advertiseCamera(rgb_raw_gray_topic, 1); // rgb raw
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgbGray.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRgbGray.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawRgbGray.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawRgbGray.getInfoTopic());
     mPubLeftGray = it_zed.advertiseCamera(left_gray_topic, 1); // left
-    NODELET_INFO_STREAM("Advertised on topic " << mPubLeftGray.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubLeftGray.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubLeftGray.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubLeftGray.getInfoTopic());
     mPubRawLeftGray = it_zed.advertiseCamera(left_raw_gray_topic, 1); // left raw
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeftGray.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawLeftGray.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawLeftGray.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawLeftGray.getInfoTopic());
     mPubRightGray = it_zed.advertiseCamera(right_gray_topic, 1); // right
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRightGray.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRightGray.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRightGray.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRightGray.getInfoTopic());
     mPubRawRightGray = it_zed.advertiseCamera(right_raw_gray_topic, 1); // right raw
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRightGray.getTopic());
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawRightGray.getInfoTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawRightGray.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawRightGray.getInfoTopic());
 
     mPubStereo = it_zed.advertise(stereo_topic, 1);
-    NODELET_INFO_STREAM("Advertised on topic " << mPubStereo.getTopic());
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubStereo.getTopic());
     mPubRawStereo = it_zed.advertise(stereo_raw_topic, 1);
-    NODELET_INFO_STREAM("Advertised on topic " << mPubRawStereo.getTopic());    
+    NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawStereo.getTopic());    
     
     // Detected planes publisher
     mPubPlane = mNhNs.advertise<zed_interfaces::PlaneStamped>(plane_topic, 1);
     
     if (!mDepthDisabled) {
         mPubDepth = it_zed.advertiseCamera(depth_topic_root, 1); // depth
-        NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getTopic());
-        NODELET_INFO_STREAM("Advertised on topic " << mPubDepth.getInfoTopic());    
+        NODELET_INFO_STREAM(" * Advertised on topic " << mPubDepth.getTopic());
+        NODELET_INFO_STREAM(" * Advertised on topic " << mPubDepth.getInfoTopic());    
 
         // Confidence Map publisher
         mPubConfMap = mNhNs.advertise<sensor_msgs::Image>(conf_map_topic, 1); // confidence map
-        NODELET_INFO_STREAM("Advertised on topic " << mPubConfMap.getTopic());
+        NODELET_INFO_STREAM(" * Advertised on topic " << mPubConfMap.getTopic());
 
         // Disparity publisher
         mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(disparityTopic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubDisparity.getTopic());
+        NODELET_INFO_STREAM(" * Advertised on topic " << mPubDisparity.getTopic());
 
         // PointCloud publishers
         mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubCloud.getTopic());
+        NODELET_INFO_STREAM(" * Advertised on topic " << mPubCloud.getTopic());
     
 
         if (mMappingEnabled) {
             mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
+            NODELET_INFO_STREAM(" * Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
         }
 
         // Object detection publishers
         if (mObjDetEnabled) {
             mPubObjDet = mNhNs.advertise<zed_interfaces::ObjectsStamped>(object_det_topic, 1);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
+            NODELET_INFO_STREAM(" * Advertised on topic " << mPubObjDet.getTopic());
         }
 
         // Odometry and Pose publisher
         mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(poseTopic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubPose.getTopic());
+        NODELET_INFO_STREAM(" * Advertised on topic " << mPubPose.getTopic());
 
         mPubPoseCov = mNhNs.advertise<geometry_msgs::PoseWithCovarianceStamped>(pose_cov_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubPoseCov.getTopic());
+        NODELET_INFO_STREAM(" * Advertised on topic " << mPubPoseCov.getTopic());
 
         mPubOdom = mNhNs.advertise<nav_msgs::Odometry>(odometryTopic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubOdom.getTopic());
+        NODELET_INFO_STREAM(" * Advertised on topic " << mPubOdom.getTopic());
 
         // Rviz markers publisher
         mPubMarker = mNhNs.advertise<visualization_msgs::Marker>(marker_topic, 10, true); 
@@ -463,9 +465,9 @@ void ZEDWrapperNodelet::onInit()
         // Camera Path
         if (mPathPubRate > 0) {
             mPubOdomPath = mNhNs.advertise<nav_msgs::Path>(odom_path_topic, 1, true);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubOdomPath.getTopic());
+            NODELET_INFO_STREAM(" * Advertised on topic " << mPubOdomPath.getTopic());
             mPubMapPath = mNhNs.advertise<nav_msgs::Path>(map_path_topic, 1, true);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubMapPath.getTopic());
+            NODELET_INFO_STREAM(" * Advertised on topic " << mPubMapPath.getTopic());
 
             mPathTimer = mNhNs.createTimer(ros::Duration(1.0 / mPathPubRate), &ZEDWrapperNodelet::callback_pubPath, this);
 
@@ -482,32 +484,32 @@ void ZEDWrapperNodelet::onInit()
     }
 
     // Sensor publishers
-    if (mZedRealCamModel != sl::MODEL::ZED) {
+    if (!sl_tools::isZED(mZedRealCamModel)) {
         // IMU Publishers
         mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubImu.getTopic());
+        NODELET_INFO_STREAM(" * Advertised on topic " << mPubImu.getTopic());
         mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubImuRaw.getTopic());
+        NODELET_INFO_STREAM(" * Advertised on topic " << mPubImuRaw.getTopic());
         
         if(mZedRealCamModel != sl::MODEL::ZED_M) {
             // IMU temperature sensor
             mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, 1);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubImuTemp.getTopic());
+            NODELET_INFO_STREAM(" * Advertised on topic " << mPubImuTemp.getTopic());
         }
 
         if (mZedRealCamModel == sl::MODEL::ZED2 || mZedRealCamModel == sl::MODEL::ZED2i) {
             mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, 1);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubImuMag.getTopic());           
+            NODELET_INFO_STREAM(" * Advertised on topic " << mPubImuMag.getTopic());           
 
             // Atmospheric pressure
             mPubPressure = mNhNs.advertise<sensor_msgs::FluidPressure>(pressure_topic, 1);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubPressure.getTopic());
+            NODELET_INFO_STREAM(" * Advertised on topic " << mPubPressure.getTopic());
 
             // CMOS sensor temperatures
             mPubTempL = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_left, 1);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubTempL.getTopic());
+            NODELET_INFO_STREAM(" * Advertised on topic " << mPubTempL.getTopic());
             mPubTempR = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_right, 1);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubTempR.getTopic());
+            NODELET_INFO_STREAM(" * Advertised on topic " << mPubTempR.getTopic());
         }
 
         // Publish camera imu transform in a latched topic
@@ -534,7 +536,7 @@ void ZEDWrapperNodelet::onInit()
 
             mPubCamImuTransf.publish(mCameraImuTransfMgs);
 
-            NODELET_INFO_STREAM("Advertised on topic " << mPubCamImuTransf.getTopic() << " [LATCHED]");
+            NODELET_INFO_STREAM(" * Advertised on topic " << mPubCamImuTransf.getTopic() << " [LATCHED]");
         }
 
         if (!mSvoMode && !mSensTimestampSync) {
@@ -544,35 +546,57 @@ void ZEDWrapperNodelet::onInit()
             mSensPeriodMean_usec.reset(new sl_tools::CSmartMean(mCamFrameRate / 2));
         }
     }
+    // <---- Publishers
 
-    // Subscribers
+    // ----> Subscribers
+    NODELET_INFO( "*** SUBSCRIBERS ***");
     mClickedPtSub = mNhNs.subscribe(mClickedPtTopic, 10, &ZEDWrapperNodelet::clickedPtCallback, this);
-    NODELET_INFO_STREAM("Subscribed to topic " << mClickedPtTopic.c_str());
+    NODELET_INFO_STREAM(" * Subscribed to topic " << mClickedPtTopic.c_str());
+    // <---- Subscribers
 
-    // Services
+    // ----> Services
+    NODELET_INFO( "*** SERVICES ***");
     if (!mDepthDisabled) {
         mSrvSetInitPose = mNhNs.advertiseService("set_pose", &ZEDWrapperNodelet::on_set_pose, this);
+        NODELET_INFO_STREAM(" * Advertised on service " << mSrvSetInitPose.getService().c_str());
         mSrvResetOdometry = mNhNs.advertiseService("reset_odometry", &ZEDWrapperNodelet::on_reset_odometry, this);
+        NODELET_INFO_STREAM(" * Advertised on service " << mSrvResetOdometry.getService().c_str());
         mSrvResetTracking = mNhNs.advertiseService("reset_tracking", &ZEDWrapperNodelet::on_reset_tracking, this);
+        NODELET_INFO_STREAM(" * Advertised on service " << mSrvResetTracking.getService().c_str());
 
         mSrvSaveAreaMemory = mNhNs.advertiseService("save_area_memory", &ZEDWrapperNodelet::on_save_area_memory, this);
+        NODELET_INFO_STREAM(" * Advertised on service " << mSrvSaveAreaMemory.getService().c_str());
 
         mSrvStartMapping = mNhNs.advertiseService("start_3d_mapping", &ZEDWrapperNodelet::on_start_3d_mapping, this);
+        NODELET_INFO_STREAM(" * Advertised on service " << mSrvStartMapping.getService().c_str());
         mSrvStopMapping = mNhNs.advertiseService("stop_3d_mapping", &ZEDWrapperNodelet::on_stop_3d_mapping, this);
+        NODELET_INFO_STREAM(" * Advertised on service " << mSrvStopMapping.getService().c_str());
         mSrvSave3dMap = mNhNs.advertiseService("save_3d_map", &ZEDWrapperNodelet::on_save_3d_map, this);
+        NODELET_INFO_STREAM(" * Advertised on service " << mSrvSave3dMap.getService().c_str());
 
         mSrvStartObjDet = mNhNs.advertiseService("start_object_detection", &ZEDWrapperNodelet::on_start_object_detection, this);
+        NODELET_INFO_STREAM(" * Advertised on service " << mSrvStartObjDet.getService().c_str());
         mSrvStopObjDet = mNhNs.advertiseService("stop_object_detection", &ZEDWrapperNodelet::on_stop_object_detection, this);
+        NODELET_INFO_STREAM(" * Advertised on service " << mSrvStopObjDet.getService().c_str());
     }
     
     mSrvSvoStartRecording = mNhNs.advertiseService("start_svo_recording", &ZEDWrapperNodelet::on_start_svo_recording, this);
+    NODELET_INFO_STREAM(" * Advertised on service " << mSrvSvoStartRecording.getService().c_str());
     mSrvSvoStopRecording = mNhNs.advertiseService("stop_svo_recording", &ZEDWrapperNodelet::on_stop_svo_recording, this);
+    NODELET_INFO_STREAM(" * Advertised on service " << mSrvSvoStopRecording.getService().c_str());
 
     mSrvSetLedStatus = mNhNs.advertiseService("set_led_status", &ZEDWrapperNodelet::on_set_led_status, this);
+    NODELET_INFO_STREAM(" * Advertised on service " << mSrvSetLedStatus.getService().c_str());
     mSrvToggleLed = mNhNs.advertiseService("toggle_led", &ZEDWrapperNodelet::on_toggle_led, this);
-    mSrvSvoStartStream = mNhNs.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
-    mSrvSvoStopStream = mNhNs.advertiseService("stop_remote_stream", &ZEDWrapperNodelet::on_stop_remote_stream, this);
+    NODELET_INFO_STREAM(" * Advertised on service " << mSrvToggleLed.getService().c_str());
     
+    mSrvSvoStartStream = mNhNs.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
+    NODELET_INFO_STREAM(" * Advertised on service " << mSrvSvoStartStream.getService().c_str());
+    mSrvSvoStopStream = mNhNs.advertiseService("stop_remote_stream", &ZEDWrapperNodelet::on_stop_remote_stream, this);
+    NODELET_INFO_STREAM(" * Advertised on service " << mSrvSvoStopStream.getService().c_str());
+    // <---- Services
+    
+    // ----> Threads
     if (!mDepthDisabled) {
         // Start Pointcloud thread
         mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
@@ -583,14 +607,15 @@ void ZEDWrapperNodelet::onInit()
 
     // Start Sensors thread
     mSensThread = std::thread(&ZEDWrapperNodelet::sensors_thread_func, this);
+    // <---- Threads
 
-    NODELET_INFO("ZED Node started");
+    NODELET_INFO("+++ ZED Node started +++");
 }
 
-void ZEDWrapperNodelet::readParameters()
+void ZEDWrapperNodelet::readGeneralParams()
 {
-    // ----> General
     NODELET_INFO_STREAM("*** GENERAL PARAMETERS ***");
+
     std::string camera_model;
     mNhNs.getParam("general/camera_model", camera_model);
 
@@ -711,15 +736,12 @@ void ZEDWrapperNodelet::readParameters()
 
     std::string parsed_str = getRoiParam("general/region_of_interest", mRoiParam);
     NODELET_INFO_STREAM(" * Region of interest\t\t-> " << parsed_str.c_str());
-    // <---- General
+}
 
-    // ----> Video
-    //NODELET_INFO_STREAM("*** VIDEO PARAMETERS ***");
-    // Note: there are no "static" video parameters
-    // <---- Video
-
-    // -----> Depth
+void ZEDWrapperNodelet::readDepthParams()
+{
     NODELET_INFO_STREAM("*** DEPTH PARAMETERS ***");
+    
     std::string depth_mode_str = sl::toString(mDepthMode).c_str();
     mNhNs.getParam("depth/depth_mode", depth_mode_str);
 
@@ -763,12 +785,13 @@ void ZEDWrapperNodelet::readParameters()
         mNhNs.getParam("depth/max_depth", mCamMaxDepth);
         NODELET_INFO_STREAM(" * Maximum depth\t\t-> " << mCamMaxDepth << " m");
     }
-    // <----- Depth
+}
 
-    // ----> Positional Tracking
+void ZEDWrapperNodelet::readPosTrkParams()
+{
     if(!mDepthDisabled) {
         NODELET_INFO_STREAM("*** POSITIONAL TRACKING PARAMETERS ***");
-        
+            
         mNhNs.param<bool>("pos_tracking/pos_tracking_enabled", mPosTrackingEnabled, true);
         NODELET_INFO_STREAM(" * Positional tracking\t\t-> " << (mPosTrackingEnabled ? "ENABLED": "DISABLED"));
 
@@ -813,20 +836,28 @@ void ZEDWrapperNodelet::readParameters()
         mNhNs.param<bool>("pos_tracking/floor_alignment", mFloorAlignment, false);
         NODELET_INFO_STREAM(" * Floor alignment\t\t-> " << (mFloorAlignment ? "ENABLED": "DISABLED"));
         mNhNs.param<bool>("pos_tracking/init_odom_with_first_valid_pose", mInitOdomWithPose, true);
-        NODELET_INFO_STREAM(" * Init Odometry with first valid pose data: "
+        NODELET_INFO_STREAM(" * Init Odometry with first valid pose data -> "
             << (mInitOdomWithPose ? "ENABLED": "DISABLED"));
         mNhNs.param<bool>("pos_tracking/two_d_mode", mTwoDMode, false);
-        NODELET_INFO_STREAM(" * Force 2D mode\t\t\t-> " << (mTwoDMode ? "ENABLED": "DISABLED"));        
+        NODELET_INFO_STREAM(" * Force 2D mode\t\t-> " << (mTwoDMode ? "ENABLED": "DISABLED"));        
 
         if (mTwoDMode) {
             mNhNs.param<double>("pos_tracking/fixed_z_value", mFixedZValue, 0.0);
             NODELET_INFO_STREAM(" * Fixed Z value\t\t-> " << mFixedZValue);
         }
+        
+        mNhNs.param<bool>("pos_tracking/publish_tf", mPublishTf, true);
+        NODELET_INFO_STREAM(" * Broadcast odometry TF\t-> " << (mPublishTf ? "ENABLED": "DISABLED"));
+        mNhNs.param<bool>("pos_tracking/publish_map_tf", mPublishMapTf, true);
+        NODELET_INFO_STREAM(" * Broadcast map pose TF\t-> "
+            << (mPublishTf ? (mPublishMapTf ? "ENABLED": "DISABLED"): "DISABLED"));        
     }
-    // <---- Positional Tracking
+}
 
-    // ----> Mapping
+void ZEDWrapperNodelet::readMappingParams()
+{
     NODELET_INFO_STREAM("*** MAPPING PARAMETERS ***");
+
     if(!mDepthDisabled) {
         mNhNs.param<bool>("mapping/mapping_enabled", mMappingEnabled, false);
 
@@ -848,9 +879,10 @@ void ZEDWrapperNodelet::readParameters()
     }
     mNhNs.param<std::string>("mapping/clicked_point_topic", mClickedPtTopic, std::string("/clicked_point"));
     NODELET_INFO_STREAM(" * Clicked point topic\t\t-> " << mClickedPtTopic.c_str());
-    // <---- Mapping
+}
 
-    // ----> Object Detection
+void ZEDWrapperNodelet::readObjDetParams()
+{
     if(!mDepthDisabled) {
         NODELET_INFO_STREAM("*** OBJECT DETECTION PARAMETERS ***");
         
@@ -895,16 +927,17 @@ void ZEDWrapperNodelet::readParameters()
             NODELET_INFO_STREAM(" * Detect sport-related objects\t-> " << (mObjDetSportsEnable ? "ENABLED": "DISABLED"));
         }
     }
-    // <---- Object Detection
+}
 
+void ZEDWrapperNodelet::readSensParams()
+{
     NODELET_INFO_STREAM("*** SENSORS PARAMETERS ***");
 
-    // ----> Sensors
-    if (camera_model != "zed") {
+    if (!sl_tools::isZED(mZedUserCamModel)) {
         mNhNs.getParam("sensors/sensors_timestamp_sync", mSensTimestampSync);
         NODELET_INFO_STREAM(" * Sensors timestamp sync\t-> " << (mSensTimestampSync ? "ENABLED": "DISABLED"));
         mNhNs.getParam("sensors/max_pub_rate", mSensPubRate);
-        if (camera_model == "zedm") {
+        if (!sl_tools::isZEDM(mZedUserCamModel)) {
             if (mSensPubRate > 800.)
                 mSensPubRate = 800.;
         } else {
@@ -913,14 +946,18 @@ void ZEDWrapperNodelet::readParameters()
         }
 
         NODELET_INFO_STREAM(" * Max sensors rate\t\t-> " << mSensPubRate);
+
+        mNhNs.param<bool>("sensors/publish_imu_tf", mPublishImuTf, true);
+        NODELET_INFO_STREAM(" * Broadcast IMU pose TF\t-> " << (mPublishImuTf ? "ENABLED": "DISABLED"));
     } else {
         NODELET_INFO_STREAM(" * The ZED camera has no available inertial/environmental sensors.");
     }
-    // <---- Sensors
+}
 
+void ZEDWrapperNodelet::readSvoParams()
+{
     NODELET_INFO_STREAM("*** SVO PARAMETERS ***");
 
-    // ----> SVO
     mNhNs.param<std::string>("svo_file", mSvoFilepath, std::string());
     mSvoFilepath = sl_tools::resolveFilePath(mSvoFilepath);
     NODELET_INFO_STREAM(" * SVO input file: \t\t-> " << mSvoFilepath.c_str());
@@ -943,77 +980,12 @@ void ZEDWrapperNodelet::readParameters()
     mSvoComprMode = static_cast<sl::SVO_COMPRESSION_MODE>(svo_compr);
 
     NODELET_INFO_STREAM(" * SVO REC compression\t\t-> " << sl::toString(mSvoComprMode));
-    // <---- SVO
+}
 
-    // Remote Stream
-    mNhNs.param<std::string>("stream", mRemoteStreamAddr, std::string());
-
-    NODELET_INFO_STREAM("*** COORDINATE FRAMES ***");
-
-    // ----> Coordinate frames
-    mNhNs.param<std::string>("pos_tracking/map_frame", mMapFrameId, "map");
-    mNhNs.param<std::string>("pos_tracking/odometry_frame", mOdometryFrameId, "odom");
-    mNhNs.param<std::string>("general/base_frame", mBaseFrameId, "base_link");
-
-    mCameraFrameId = mCameraName + "_camera_center";
-    mImuFrameId = mCameraName + "_imu_link";
-    mLeftCamFrameId = mCameraName + "_left_camera_frame";
-    mLeftCamOptFrameId = mCameraName + "_left_camera_optical_frame";
-    mRightCamFrameId = mCameraName + "_right_camera_frame";
-    mRightCamOptFrameId = mCameraName + "_right_camera_optical_frame";
-
-    mBaroFrameId = mCameraName + "_baro_link";
-    mMagFrameId = mCameraName + "_mag_link";
-    mTempLeftFrameId = mCameraName + "_temp_left_link";
-    mTempRightFrameId = mCameraName + "_temp_right_link";
-
-    mDepthFrameId = mLeftCamFrameId;
-    mDepthOptFrameId = mLeftCamOptFrameId;
-
-    // Note: Depth image frame id must match color image frame id
-    mCloudFrameId = mDepthOptFrameId;
-    mRgbFrameId = mDepthFrameId;
-    mRgbOptFrameId = mCloudFrameId;
-    mDisparityFrameId = mDepthFrameId;
-    mDisparityOptFrameId = mDepthOptFrameId;
-    mConfidenceFrameId = mDepthFrameId;
-    mConfidenceOptFrameId = mDepthOptFrameId;
-
-    // Print TF frames
-    NODELET_INFO_STREAM(" * camera_frame\t\t\t-> " << mCameraFrameId);
-    NODELET_INFO_STREAM(" * imu_link\t\t\t-> " << mImuFrameId);
-    NODELET_INFO_STREAM(" * left_camera_frame\t\t-> " << mLeftCamFrameId);
-    NODELET_INFO_STREAM(" * left_camera_optical_frame\t-> " << mLeftCamOptFrameId);
-    NODELET_INFO_STREAM(" * right_camera_frame\t\t-> " << mRightCamFrameId);
-    NODELET_INFO_STREAM(" * right_camera_optical_frame\t-> " << mRightCamOptFrameId);
-
-    if(!mDepthDisabled) {
-        NODELET_INFO_STREAM(" * map_frame\t\t\t-> " << mMapFrameId);
-        NODELET_INFO_STREAM(" * odometry_frame\t\t-> " << mOdometryFrameId);
-        NODELET_INFO_STREAM(" * base_frame\t\t\t-> " << mBaseFrameId);
-        NODELET_INFO_STREAM(" * depth_frame\t\t\t-> " << mDepthFrameId);
-        NODELET_INFO_STREAM(" * depth_optical_frame\t\t-> " << mDepthOptFrameId);
-        NODELET_INFO_STREAM(" * disparity_frame\t\t-> " << mDisparityFrameId);
-        NODELET_INFO_STREAM(" * disparity_optical_frame\t-> " << mDisparityOptFrameId);
-        NODELET_INFO_STREAM(" * confidence_frame\t\t-> " << mConfidenceFrameId);
-        NODELET_INFO_STREAM(" * confidence_optical_frame\t-> " << mConfidenceOptFrameId);
-    }
-    // <---- Coordinate frames
-
-    // ----> TF broadcasting
-    if(!mDepthDisabled) {
-        mNhNs.param<bool>("pos_tracking/publish_tf", mPublishTf, true);
-        NODELET_INFO_STREAM(" * Broadcast odometry TF\t-> " << (mPublishTf ? "ENABLED": "DISABLED"));
-        mNhNs.param<bool>("pos_tracking/publish_map_tf", mPublishMapTf, true);
-        NODELET_INFO_STREAM(" * Broadcast map pose TF\t-> "
-            << (mPublishTf ? (mPublishMapTf ? "ENABLED": "DISABLED"): "DISABLED"));
-        mNhNs.param<bool>("sensors/publish_imu_tf", mPublishImuTf, true);
-        NODELET_INFO_STREAM(" * Broadcast IMU pose TF\t-> " << (mPublishImuTf ? "ENABLED": "DISABLED"));
-    }
-    // <---- TF broadcasting    
-
-    // ----> Dynamic
+void ZEDWrapperNodelet::readDynParams()
+{
     NODELET_INFO_STREAM("*** DYNAMIC PARAMETERS (Init. values) ***");
+
     mNhNs.getParam("brightness", mCamBrightness);
     NODELET_INFO_STREAM(" * [DYN] brightness\t\t-> " << mCamBrightness);
     mNhNs.getParam("contrast", mCamContrast);
@@ -1062,7 +1034,101 @@ void ZEDWrapperNodelet::readParameters()
         }
         NODELET_INFO_STREAM(" * [DYN] point_cloud_freq\t-> " << mPointCloudFreq << " Hz");
     }
+}
+
+void ZEDWrapperNodelet::readParameters()
+{
+    // ----> General
+    readGeneralParams();
+    // <---- General
+
+    // ----> Video
+    //NODELET_INFO_STREAM("*** VIDEO PARAMETERS ***");
+    // Note: there are no "static" video parameters
+    // <---- Video
+
+    // -----> Depth
+    readDepthParams();
+    // <----- Depth
+    
+    // ----> Dynamic
+    void readDynParams();
     // <---- Dynamic
+
+    // ----> Positional Tracking
+    readPosTrkParams();
+    // <---- Positional Tracking
+
+    // ----> Mapping
+    readMappingParams();
+    // <---- Mapping
+
+    // ----> Object Detection
+    readObjDetParams();
+    // <---- Object Detection
+
+    // ----> Sensors
+    readSensParams();
+    // <---- Sensors
+    
+    // ----> SVO
+    readSvoParams();    
+    // <---- SVO
+
+    // Remote Stream
+    mNhNs.param<std::string>("stream", mRemoteStreamAddr, std::string());    
+
+    // ----> Coordinate frames    
+    NODELET_INFO_STREAM("*** COORDINATE FRAMES ***");
+
+    mNhNs.param<std::string>("pos_tracking/map_frame", mMapFrameId, "map");
+    mNhNs.param<std::string>("pos_tracking/odometry_frame", mOdometryFrameId, "odom");
+    mNhNs.param<std::string>("general/base_frame", mBaseFrameId, "base_link");
+
+    mCameraFrameId = mCameraName + "_camera_center";
+    mImuFrameId = mCameraName + "_imu_link";
+    mLeftCamFrameId = mCameraName + "_left_camera_frame";
+    mLeftCamOptFrameId = mCameraName + "_left_camera_optical_frame";
+    mRightCamFrameId = mCameraName + "_right_camera_frame";
+    mRightCamOptFrameId = mCameraName + "_right_camera_optical_frame";
+
+    mBaroFrameId = mCameraName + "_baro_link";
+    mMagFrameId = mCameraName + "_mag_link";
+    mTempLeftFrameId = mCameraName + "_temp_left_link";
+    mTempRightFrameId = mCameraName + "_temp_right_link";
+
+    mDepthFrameId = mLeftCamFrameId;
+    mDepthOptFrameId = mLeftCamOptFrameId;
+
+    // Note: Depth image frame id must match color image frame id
+    mCloudFrameId = mDepthOptFrameId;
+    mRgbFrameId = mDepthFrameId;
+    mRgbOptFrameId = mCloudFrameId;
+    mDisparityFrameId = mDepthFrameId;
+    mDisparityOptFrameId = mDepthOptFrameId;
+    mConfidenceFrameId = mDepthFrameId;
+    mConfidenceOptFrameId = mDepthOptFrameId;
+
+    // Print TF frames
+    NODELET_INFO_STREAM(" * camera_frame\t\t\t-> " << mCameraFrameId);
+    NODELET_INFO_STREAM(" * imu_link\t\t\t-> " << mImuFrameId);
+    NODELET_INFO_STREAM(" * left_camera_frame\t\t-> " << mLeftCamFrameId);
+    NODELET_INFO_STREAM(" * left_camera_optical_frame\t-> " << mLeftCamOptFrameId);
+    NODELET_INFO_STREAM(" * right_camera_frame\t\t-> " << mRightCamFrameId);
+    NODELET_INFO_STREAM(" * right_camera_optical_frame\t-> " << mRightCamOptFrameId);
+
+    if(!mDepthDisabled) {
+        NODELET_INFO_STREAM(" * map_frame\t\t\t-> " << mMapFrameId);
+        NODELET_INFO_STREAM(" * odometry_frame\t\t-> " << mOdometryFrameId);
+        NODELET_INFO_STREAM(" * base_frame\t\t\t-> " << mBaseFrameId);
+        NODELET_INFO_STREAM(" * depth_frame\t\t\t-> " << mDepthFrameId);
+        NODELET_INFO_STREAM(" * depth_optical_frame\t\t-> " << mDepthOptFrameId);
+        NODELET_INFO_STREAM(" * disparity_frame\t\t-> " << mDisparityFrameId);
+        NODELET_INFO_STREAM(" * disparity_optical_frame\t-> " << mDisparityOptFrameId);
+        NODELET_INFO_STREAM(" * confidence_frame\t\t-> " << mConfidenceFrameId);
+        NODELET_INFO_STREAM(" * confidence_optical_frame\t-> " << mConfidenceOptFrameId);
+    }
+    // <---- Coordinate frames
 }
 
 std::string ZEDWrapperNodelet::getRoiParam(std::string paramName, std::vector<std::vector<float>> & outVal)
@@ -1590,7 +1656,7 @@ bool ZEDWrapperNodelet::start_3d_mapping()
         if (mPubFusedCloud.getTopic().empty()) {
             std::string pointcloud_fused_topic = "mapping/fused_cloud";
             mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
+            NODELET_INFO_STREAM(" * Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
         }
 
         mMappingRunning = true;
@@ -1663,7 +1729,7 @@ bool ZEDWrapperNodelet::start_obj_detect()
         std::string object_det_topic = object_det_topic_root + "/objects";
 
         mPubObjDet = mNhNs.advertise<zed_interfaces::ObjectsStamped>(object_det_topic, 1);
-        NODELET_INFO_STREAM("Advertised on topic " << mPubObjDet.getTopic());
+        NODELET_INFO_STREAM(" * Advertised on topic " << mPubObjDet.getTopic());
     }
 
     mObjDetFilter.clear();
