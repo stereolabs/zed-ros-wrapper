@@ -1598,7 +1598,6 @@ void ZEDWrapperNodelet::initTransforms()
   mOdom2BaseTransf.setIdentity();   // broadcasted if `publish_tf` is true
   mMap2OdomTransf.setIdentity();    // broadcasted if `publish_map_tf` is true
   mMap2BaseTransf.setIdentity();    // used internally, but not broadcasted
-  mMap2CameraTransf.setIdentity();  // used internally, but not broadcasted
                                     // <---- Dynamic transforms
 }
 
@@ -1848,7 +1847,7 @@ bool ZEDWrapperNodelet::on_reset_odometry(zed_interfaces::reset_odometry::Reques
   std::lock_guard<std::mutex> lock(mOdomMutex);
   mOdom2BaseTransf.setIdentity();
   mOdomPath.clear();
-  
+
   res.reset_done = true;
   return true;
 }
@@ -3271,6 +3270,7 @@ void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
   // conversion from Tranform to message
   geometry_msgs::Transform base2odom = tf2::toMsg(mOdom2BaseTransf);
   // Add all value in Pose message
+  mOdomMutex.lock();
   odomPose.pose.position.x = base2odom.translation.x;
   odomPose.pose.position.y = base2odom.translation.y;
   odomPose.pose.position.z = base2odom.translation.z;
@@ -3278,6 +3278,7 @@ void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
   odomPose.pose.orientation.y = base2odom.rotation.y;
   odomPose.pose.orientation.z = base2odom.rotation.z;
   odomPose.pose.orientation.w = base2odom.rotation.w;
+  mOdomMutex.unlock();
 
   mapPose.header.stamp = mFrameTimestamp;
   mapPose.header.frame_id = mMapFrameId;  // frame
@@ -3293,6 +3294,7 @@ void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
   mapPose.pose.orientation.w = base2map.rotation.w;
 
   // Circular vector
+  std::lock_guard<std::mutex> lock(mOdomMutex);
   if (mPathMaxCount != -1)
   {
     if (mOdomPath.size() == mPathMaxCount)
@@ -5540,6 +5542,7 @@ void ZEDWrapperNodelet::processOdometry()
       // TODO(Walter) Use tf2::transform instead?
 
       // Propagate Odom transform in time
+      mOdomMutex.lock();
       mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
 
       if (mTwoDMode)
@@ -5567,6 +5570,8 @@ void ZEDWrapperNodelet::processOdometry()
       // Publish odometry message
       publishOdom(mOdom2BaseTransf, deltaOdom, mFrameTimestamp);
       mPosTrackingReady = true;
+
+      mOdomMutex.unlock();
     }
   }
   else if (mFloorAlignment)
@@ -5646,44 +5651,16 @@ void ZEDWrapperNodelet::processPose()
 
     bool initOdom = false;
 
-    if (!(mFloorAlignment))
-    {
-      initOdom = mInitOdomWithPose;
-    }
-    else
-    {
-      initOdom = mInitOdomWithPose & (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK);
-    }
+    // Transformation from map to odometry frame
+    mOdomMutex.lock();
+    mMap2OdomTransf = mMap2BaseTransf * mOdom2BaseTransf.inverse();
+    mOdomMutex.unlock();
 
-    if (initOdom)
-    {
-      NODELET_INFO("Odometry aligned to last tracking pose");
+    tf2::Matrix3x3(mMap2OdomTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-      // Propagate Odom transform in time
-      mOdom2BaseTransf = mMap2BaseTransf;
-      mMap2BaseTransf.setIdentity();
-
-      double roll, pitch, yaw;
-      tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
-
-      NODELET_INFO(" * Initial odometry [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}", mOdomFrameId.c_str(),
-                   mBaseFrameId.c_str(), mOdom2BaseTransf.getOrigin().x(), mOdom2BaseTransf.getOrigin().y(),
-                   mOdom2BaseTransf.getOrigin().z(), roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-
-      mInitOdomWithPose = false;
-    }
-    else
-    {
-      // Transformation from map to odometry frame
-      mMap2OdomTransf = mMap2BaseTransf * mOdom2BaseTransf.inverse();
-
-      double roll, pitch, yaw;
-      tf2::Matrix3x3(mMap2OdomTransf.getRotation()).getRPY(roll, pitch, yaw);
-
-      NODELET_DEBUG("+++ Diff [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}", mMapFrameId.c_str(),
-                    mOdomFrameId.c_str(), mMap2OdomTransf.getOrigin().x(), mMap2OdomTransf.getOrigin().y(),
-                    mMap2OdomTransf.getOrigin().z(), roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-    }
+    NODELET_DEBUG("+++ Diff [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}", mMapFrameId.c_str(), mOdomFrameId.c_str(),
+                  mMap2OdomTransf.getOrigin().x(), mMap2OdomTransf.getOrigin().y(), mMap2OdomTransf.getOrigin().z(),
+                  roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
     // Publish Pose message
     publishPose(mFrameTimestamp);
@@ -5757,8 +5734,10 @@ void ZEDWrapperNodelet::publishOdomTF(ros::Time t)
   transformStamped.header.frame_id = mOdomFrameId;
   transformStamped.child_frame_id = mBaseFrameId;
   // conversion from Tranform to message
+  mOdomMutex.lock();
   tf2::Vector3 translation = mOdom2BaseTransf.getOrigin();
   tf2::Quaternion quat = mOdom2BaseTransf.getRotation();
+  mOdomMutex.unlock();
   transformStamped.transform.translation.x = translation.x();
   transformStamped.transform.translation.y = translation.y();
   transformStamped.transform.translation.z = translation.z();
