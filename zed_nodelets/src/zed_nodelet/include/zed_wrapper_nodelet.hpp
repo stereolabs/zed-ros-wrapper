@@ -175,6 +175,22 @@ protected:
    */
   void sensors_thread_func();
 
+  /*! \brief Publish odometry status message
+   */
+  void publishPoseStatus();
+
+  /*! \brief Publish odometry status message
+   */
+  void publishOdomStatus();
+
+  /*! \brief Process odometry information
+   */
+  void processOdometry();
+
+  /*! \brief Process pose information
+   */
+  void processPose();
+
   /*! \brief Publish the pose of the camera in "Map" frame with a ros Publisher
    * \param t : the ros::Time to stamp the image
    */
@@ -188,20 +204,20 @@ protected:
    */
   void publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t);
 
-  /*! \brief Publish the pose of the camera in "Map" frame as a transformation
-   * \param baseTransform : Transformation representing the camera pose from
-   * odom frame to map frame
+  /*! \brief Publish the odom -> base_link TF
    * \param t : the ros::Time to stamp the image
    */
-  void publishPoseFrame(tf2::Transform baseTransform, ros::Time t);
+  void publishTFs(ros::Time t);
 
-  /*! \brief Publish the odometry of the camera in "Odom" frame as a
-   * transformation
-   * \param odomTransf : Transformation representing the camera pose from
-   * base frame to odom frame
+  /*! \brief Publish the odom -> base_link TF
    * \param t : the ros::Time to stamp the image
    */
-  void publishOdomFrame(tf2::Transform odomTransf, ros::Time t);
+  void publishOdomTF(ros::Time t);
+
+  /*! \brief Publish the map -> odom TF
+   * \param t : the ros::Time to stamp the image
+   */
+  void publishPoseTF(ros::Time t);
 
   /*!
    * \brief Publish IMU frame once as static TF
@@ -520,6 +536,9 @@ private:
   ros::Publisher mPubMarker;  // Publisher for Rviz markers
   ros::Publisher mPubPlane;   // Publisher for detected planes
 
+  ros::Publisher mPubPoseStatus;
+  ros::Publisher mPubOdomStatus;
+
   // Subscribers
   ros::Subscriber mClickedPtSub;
 
@@ -560,9 +579,8 @@ private:
   // <---- Topics
 
   // ROS TF
-  tf2_ros::TransformBroadcaster mTransformPoseBroadcaster;
-  tf2_ros::TransformBroadcaster mTransformOdomBroadcaster;
-  tf2_ros::StaticTransformBroadcaster mStaticTransformImuBroadcaster;
+  tf2_ros::TransformBroadcaster mTfBroadcaster;
+  tf2_ros::StaticTransformBroadcaster mStaticTfBroadcaster;
 
   std::string mRgbFrameId;
   std::string mRgbOptFrameId;
@@ -580,7 +598,7 @@ private:
   std::string mPointCloudFrameId;
 
   std::string mMapFrameId = "map";
-  std::string mOdometryFrameId = "odom";
+  std::string mOdomFrameId = "odom";
   std::string mBaseFrameId = "base_link";
   std::string mCameraFrameId;
 
@@ -623,15 +641,16 @@ private:
   // Positional tracking
   bool mPosTrackingEnabled = false;
   sl::POSITIONAL_TRACKING_MODE mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
-  bool mPosTrackingActivated = false;
   bool mPosTrackingReady = false;
+  bool mPosTrackingStarted = false;
+  bool mPosTrackingRequired = false;
   bool mTwoDMode = false;
   double mFixedZValue = 0.0;
   bool mFloorAlignment = false;
   bool mImuFusion = true;
   bool mSetGravityAsOrigin = false;
-  bool mPublishTf;
-  bool mPublishMapTf;
+  bool mPublishTF;
+  bool mPublishMapTF;
   bool mPublishImuTf;
   sl::FLIP_MODE mCameraFlip;
   bool mCameraSelfCalib;
@@ -642,7 +661,8 @@ private:
   bool mGrabActive = false;  // Indicate if camera grabbing is active (at least one topic subscribed)
   sl::ERROR_CODE mConnStatus;
   sl::ERROR_CODE mGrabStatus;
-  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
+  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusWorld;
+  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera;
   bool mSensPublishing = false;
   bool mPcPublishing = false;
   bool mDepthDisabled = false;
@@ -657,6 +677,8 @@ private:
   std::vector<float> mInitialBasePose;
   std::vector<geometry_msgs::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::PoseStamped> mMapPath;
+  ros::Time mLastTs_odom;
+  ros::Time mLastTs_pose;
 
   // IMU TF
   tf2::Transform mLastImuPose;
@@ -716,7 +738,6 @@ private:
   bool mPoseSmoothing = false;  // Always disabled. Enable only for AR/VR applications
   bool mAreaMemory;
   bool mInitOdomWithPose;
-  bool mResetOdom = false;
   bool mUpdateDynParams = false;
   bool mPublishingData = false;
 
@@ -739,6 +760,7 @@ private:
   std::mutex mPcMutex;
   std::mutex mRecMutex;
   std::mutex mPosTrkMutex;
+  std::mutex mOdomMutex;
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
   std::mutex mObjDetMutex;

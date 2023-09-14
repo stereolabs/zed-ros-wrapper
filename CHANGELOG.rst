@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+2023-09-14
+----------
+- Add pose and odometry status publishers
+
 2023-09-13
 ----------
 - Add ROS '.clang-format'
