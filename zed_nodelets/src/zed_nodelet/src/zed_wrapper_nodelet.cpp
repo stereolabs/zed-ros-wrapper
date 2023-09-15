@@ -3251,41 +3251,35 @@ void ZEDWrapperNodelet::pubVideoDepth()
 void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
 {
   uint32_t mapPathSub = mPubMapPath.getNumSubscribers();
-  uint32_t odomPathSub = mPubOdomPath.getNumSubscribers();
+  uint32_t odomPathSub = mPubOdomPath.getNumSubscribers();  
 
   geometry_msgs::PoseStamped odomPose;
   geometry_msgs::PoseStamped mapPose;
 
   odomPose.header.stamp = mFrameTimestamp;
-  odomPose.header.frame_id = mMapFrameId;  // frame
-  // conversion from Tranform to message
-  geometry_msgs::Transform base2odom = tf2::toMsg(mOdom2BaseTransf);
-  // Add all value in Pose message
-  mOdomMutex.lock();
-  odomPose.pose.position.x = base2odom.translation.x;
-  odomPose.pose.position.y = base2odom.translation.y;
-  odomPose.pose.position.z = base2odom.translation.z;
-  odomPose.pose.orientation.x = base2odom.rotation.x;
-  odomPose.pose.orientation.y = base2odom.rotation.y;
-  odomPose.pose.orientation.z = base2odom.rotation.z;
-  odomPose.pose.orientation.w = base2odom.rotation.w;
-  mOdomMutex.unlock();
+  odomPose.header.frame_id = mMapFrameId;  // map_frame
+  mOdomMutex.lock();                       //
+  odomPose.pose.position.x = mOdom2BaseTransf.getOrigin().x();
+  odomPose.pose.position.y = mOdom2BaseTransf.getOrigin().y();
+  odomPose.pose.position.z = mOdom2BaseTransf.getOrigin().z();
+  odomPose.pose.orientation.x = mOdom2BaseTransf.getRotation().x();
+  odomPose.pose.orientation.y = mOdom2BaseTransf.getRotation().y();
+  odomPose.pose.orientation.z = mOdom2BaseTransf.getRotation().z();
+  odomPose.pose.orientation.w = mOdom2BaseTransf.getRotation().w();
+  mOdomMutex.unlock();  //
 
   mapPose.header.stamp = mFrameTimestamp;
-  mapPose.header.frame_id = mMapFrameId;  // frame
-  // conversion from Tranform to message
-  geometry_msgs::Transform base2map = tf2::toMsg(mMap2BaseTransf);
-  // Add all value in Pose message
-  mapPose.pose.position.x = base2map.translation.x;
-  mapPose.pose.position.y = base2map.translation.y;
-  mapPose.pose.position.z = base2map.translation.z;
-  mapPose.pose.orientation.x = base2map.rotation.x;
-  mapPose.pose.orientation.y = base2map.rotation.y;
-  mapPose.pose.orientation.z = base2map.rotation.z;
-  mapPose.pose.orientation.w = base2map.rotation.w;
+  mapPose.header.frame_id = mMapFrameId;  // map_frame
+  mapPose.pose.position.x = mMap2BaseTransf.getOrigin().x();
+  mapPose.pose.position.y = mMap2BaseTransf.getOrigin().y();
+  mapPose.pose.position.z = mMap2BaseTransf.getOrigin().z();
+  mapPose.pose.orientation.x = mMap2BaseTransf.getRotation().x();
+  mapPose.pose.orientation.y = mMap2BaseTransf.getRotation().y();
+  mapPose.pose.orientation.z = mMap2BaseTransf.getRotation().z();
+  mapPose.pose.orientation.w = mMap2BaseTransf.getRotation().w();
 
   // Circular vector
-  std::lock_guard<std::mutex> lock(mOdomMutex);
+  std::lock_guard<std::mutex> lock(mOdomMutex);  //
   if (mPathMaxCount != -1)
   {
     if (mOdomPath.size() == mPathMaxCount)
@@ -3299,36 +3293,38 @@ void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
     }
     else
     {
-      // NODELET_DEBUG_STREAM("Path vectors adding last available poses");
+      // NODELET_DEBUG( "Path vectors adding last available poses");
       mMapPath.push_back(mapPose);
       mOdomPath.push_back(odomPose);
     }
   }
   else
   {
-    // NODELET_DEBUG_STREAM("No limit path vectors, adding last available poses");
+    // NODELET_DEBUG( "No limit path vectors, adding last available poses");
     mMapPath.push_back(mapPose);
     mOdomPath.push_back(odomPose);
   }
 
   if (mapPathSub > 0)
   {
-    nav_msgs::PathPtr mapPath = boost::make_shared<nav_msgs::Path>();
-    mapPath->header.frame_id = mMapFrameId;
-    mapPath->header.stamp = mFrameTimestamp;
-    mapPath->poses = mMapPath;
+    nav_msgs::PathPtr mapPathMsg = boost::make_shared<nav_msgs::Path>();
+    mapPathMsg->header.frame_id = mMapFrameId;
+    mapPathMsg->header.stamp = mFrameTimestamp;
+    mapPathMsg->poses = mMapPath;
 
-    mPubMapPath.publish(mapPath);
+    NODELET_DEBUG("Publishing MAP PATH message");
+    mPubMapPath.publish(mapPathMsg);
   }
 
   if (odomPathSub > 0)
   {
-    nav_msgs::PathPtr odomPath = boost::make_shared<nav_msgs::Path>();
-    odomPath->header.frame_id = mMapFrameId;
-    odomPath->header.stamp = mFrameTimestamp;
-    odomPath->poses = mOdomPath;
+    nav_msgs::PathPtr odomPathMsg = boost::make_shared<nav_msgs::Path>();
+    odomPathMsg->header.frame_id = mOdomFrameId;
+    odomPathMsg->header.stamp = mFrameTimestamp;
+    odomPathMsg->poses = mOdomPath;
 
-    mPubOdomPath.publish(odomPath);
+    NODELET_DEBUG("Publishing ODOM PATH message");
+    mPubOdomPath.publish(odomPathMsg);
   }
 }
 
