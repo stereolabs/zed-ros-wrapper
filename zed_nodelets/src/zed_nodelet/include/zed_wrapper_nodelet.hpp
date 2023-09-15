@@ -192,9 +192,8 @@ protected:
   void processPose();
 
   /*! \brief Publish the pose of the camera in "Map" frame with a ros Publisher
-   * \param t : the ros::Time to stamp the image
    */
-  void publishPose(ros::Time t);
+  void publishPose();
 
   /*! \brief Publish the pose of the camera in "Odom" frame with a ros Publisher
    * \param base2odomTransf : Transformation representing the camera pose
