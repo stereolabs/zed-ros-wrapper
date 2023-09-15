@@ -1,9 +1,10 @@
 CHANGELOG
 =========
 
-2023-09-14
+2023-09-15
 ----------
 - Add pose and odometry status publishers
+- Improve odometry and pose publishing and TF broadcasting
 
 2023-09-13
 ----------

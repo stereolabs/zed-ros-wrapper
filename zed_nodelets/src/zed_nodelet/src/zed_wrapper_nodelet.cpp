@@ -2965,11 +2965,17 @@ void ZEDWrapperNodelet::pubVideoDepth()
   uint32_t leftGrayRawSubnumber = mPubRawLeftGray.getNumSubscribers();
   uint32_t rightGraySubnumber = mPubRightGray.getNumSubscribers();
   uint32_t rightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers();
-  uint32_t depthSubnumber = mPubDepth.getNumSubscribers();
-  uint32_t disparitySubnumber = mPubDisparity.getNumSubscribers();
-  uint32_t confMapSubnumber = mPubConfMap.getNumSubscribers();
   uint32_t stereoSubNumber = mPubStereo.getNumSubscribers();
   uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers();
+  uint32_t depthSubnumber = 0;
+  uint32_t disparitySubnumber = 0;
+  uint32_t confMapSubnumber = 0;
+  if (!mDepthDisabled)
+  {
+    depthSubnumber = mPubDepth.getNumSubscribers();
+    disparitySubnumber = mPubDisparity.getNumSubscribers();
+    confMapSubnumber = mPubConfMap.getNumSubscribers();
+  }
 
   uint32_t tot_sub = rgbSubnumber + rgbRawSubnumber + leftSubnumber + leftRawSubnumber + rightSubnumber +
                      rightRawSubnumber + rgbGraySubnumber + rgbGrayRawSubnumber + leftGraySubnumber +
@@ -3100,11 +3106,6 @@ void ZEDWrapperNodelet::pubVideoDepth()
     }
   }
   // <---- Publish sensor data if sync is required by user or SVO
-
-  // ----> Notify grab thread that all data are synchronized and a new grab can be done
-  // mRgbDepthDataRetrievedCondVar.notify_one();
-  // mRgbDepthDataRetrieved = true;
-  // <---- Notify grab thread that all data are synchronized and a new grab can be done
 
   if (!retrieved)
   {
@@ -3251,7 +3252,7 @@ void ZEDWrapperNodelet::pubVideoDepth()
 void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
 {
   uint32_t mapPathSub = mPubMapPath.getNumSubscribers();
-  uint32_t odomPathSub = mPubOdomPath.getNumSubscribers();  
+  uint32_t odomPathSub = mPubOdomPath.getNumSubscribers();
 
   geometry_msgs::PoseStamped odomPose;
   geometry_msgs::PoseStamped mapPose;
@@ -3846,7 +3847,6 @@ void ZEDWrapperNodelet::device_poll_thread_func()
   fillCamDepthInfo(mZed, mDepthCamInfoMsg, mLeftCamOptFrameId);
 
   // the reference camera is the Left one (next to the ZED logo)
-
   mRgbCamInfoMsg = mLeftCamInfoMsg;
   mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
 
@@ -3855,7 +3855,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
   // Main loop
   while (mNhNs.ok())
   {
-    // Check for subscribers
+    // ----> Count subscribers
     uint32_t rgbSubnumber = mPubRgb.getNumSubscribers();
     uint32_t rgbRawSubnumber = mPubRawRgb.getNumSubscribers();
     uint32_t leftSubnumber = mPubLeft.getNumSubscribers();
@@ -3897,14 +3897,15 @@ void ZEDWrapperNodelet::device_poll_thread_func()
     }
     uint32_t stereoSubNumber = mPubStereo.getNumSubscribers();
     uint32_t stereoRawSubNumber = mPubRawStereo.getNumSubscribers();
+    // <---- Count subscribers
 
-    mGrabActive =
-        mRecording || mStreaming || mMappingEnabled || mObjDetEnabled || mPosTrackingEnabled || mPosTrackingStarted ||
-        ((rgbSubnumber + rgbRawSubnumber + leftSubnumber + leftRawSubnumber + rightSubnumber + rightRawSubnumber +
-          rgbGraySubnumber + rgbGrayRawSubnumber + leftGraySubnumber + leftGrayRawSubnumber + rightGraySubnumber +
-          rightGrayRawSubnumber + depthSubnumber + disparitySubnumber + cloudSubnumber + poseSubnumber +
-          poseCovSubnumber + odomSubnumber + confMapSubnumber /*+ imuSubnumber + imuRawsubnumber*/ + pathSubNumber +
-          stereoSubNumber + stereoRawSubNumber + objDetSubnumber) > 0);
+    mGrabActive = mRecording || mStreaming || mMappingEnabled || mObjDetEnabled || mPosTrackingEnabled ||
+                  mPosTrackingStarted ||
+                  ((rgbSubnumber + rgbRawSubnumber + leftSubnumber + leftRawSubnumber + rightSubnumber +
+                    rightRawSubnumber + rgbGraySubnumber + rgbGrayRawSubnumber + leftGraySubnumber +
+                    leftGrayRawSubnumber + rightGraySubnumber + rightGrayRawSubnumber + depthSubnumber +
+                    disparitySubnumber + cloudSubnumber + poseSubnumber + poseCovSubnumber + odomSubnumber +
+                    confMapSubnumber + pathSubNumber + stereoSubNumber + stereoRawSubNumber + objDetSubnumber) > 0);
 
     // Run the loop only if there is some subscribers or SVO is active
     if (mGrabActive)
@@ -3918,7 +3919,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
                               odomSubnumber > 0 || pathSubNumber > 0);
 
       // Start the tracking?
-      if ((mPosTrackingRequired) && !mPosTrackingStarted && !mDepthDisabled)
+      if (mPosTrackingRequired && !mPosTrackingStarted)
       {
         start_pos_tracking();
       }
@@ -3945,6 +3946,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
                        ((depthSubnumber + disparitySubnumber + cloudSubnumber + fusedCloudSubnumber + poseSubnumber +
                          poseCovSubnumber + odomSubnumber + confMapSubnumber + objDetSubnumber) > 0));
 
+      // ----> Depth runtime parameters
       if (mComputeDepth)
       {
         runParams.confidence_threshold = mCamDepthConfidence;
@@ -3955,6 +3957,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
       {
         runParams.enable_depth = false;  // Ask to not compute the depth
       }
+      // <---- Depth runtime parameters
 
       std::chrono::steady_clock::time_point start_elab = std::chrono::steady_clock::now();
 
@@ -3964,9 +3967,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
       // cout << toString(grab_status) << endl;
       if (mGrabStatus != sl::ERROR_CODE::SUCCESS)
       {
-        // Detect if a error occurred (for example:
-        // the zed have been disconnected) and
-        // re-initialize the ZED
+        // Detect if a error occurred (for example: the zed have been disconnected) and re-initialize the ZED
 
         NODELET_INFO_STREAM_THROTTLE(1.0, "Camera grab error: " << sl::toString(mGrabStatus).c_str());
 
@@ -4086,10 +4087,9 @@ void ZEDWrapperNodelet::device_poll_thread_func()
       // <---- Camera Settings
 
       // ----> Point Cloud
-
       if (!mDepthDisabled && cloudSubnumber > 0)
       {
-        processPointcloud();        
+        processPointcloud(mFrameTimestamp);
       }
       else
       {
@@ -4184,7 +4184,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
     }
     else
     {
-      NODELET_DEBUG_THROTTLE(5.0, "No topics subscribed by users");
+      NODELET_DEBUG_THROTTLE(5.0, "No processing required. Waiting for subscribers or modules activation.");
 
       std::this_thread::sleep_for(std::chrono::milliseconds(10));  // No subscribers, we just wait
       loop_rate.reset();
@@ -4214,7 +4214,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
   NODELET_DEBUG("ZED pool thread finished");
 }  // namespace zed_nodelets
 
-void ZEDWrapperNodelet::processPointcloud()
+void ZEDWrapperNodelet::processPointcloud(ros::Time ts)
 {
   // Run the point cloud conversion asynchronously to avoid slowing down
   // all the program
@@ -4226,7 +4226,7 @@ void ZEDWrapperNodelet::processPointcloud()
     mZed.retrieveMeasure(mCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatResol);
 
     mPointCloudFrameId = mDepthFrameId;
-    mPointCloudTime = stamp;
+    mPointCloudTime = ts;
 
     // Signal Pointcloud thread that a new pointcloud is ready
     mPcDataReadyCondVar.notify_one();

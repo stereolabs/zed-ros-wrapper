@@ -459,8 +459,9 @@ protected:
   void processCameraSettings();
 
   /*! \brief Process point cloud
+   * \param ts Frame timestamp
    */
-  void processPointcloud();
+  void processPointcloud(ros::Time ts);
 
   /*! \brief Generates an univoque color for each object class ID
    */
