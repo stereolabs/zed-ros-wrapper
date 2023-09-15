@@ -458,6 +458,10 @@ protected:
    */
   void processCameraSettings();
 
+  /*! \brief Process point cloud
+   */
+  void processPointcloud();
+
   /*! \brief Generates an univoque color for each object class ID
    */
   inline sl::float3 generateColorClass(int idx)

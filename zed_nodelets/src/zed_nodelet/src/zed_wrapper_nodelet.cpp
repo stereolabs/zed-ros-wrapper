@@ -4060,61 +4060,42 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
       // ----> SVO recording
       mRecMutex.lock();
-
       if (mRecording)
       {
         mRecStatus = mZed.getRecordingStatus();
-
         if (!mRecStatus.status)
         {
           NODELET_ERROR_THROTTLE(1.0, "Error saving frame to SVO");
         }
-
         mDiagUpdater.force_update();
       }
       mRecMutex.unlock();
       // <---- SVO recording
 
-      // ----> Publish freq calculation
+      // ----> Grab freq calculation
       static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
       std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-
       double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
       last_time = now;
-
       mGrabPeriodMean_usec->addValue(elapsed_usec);
       // NODELET_INFO_STREAM("Grab time: " << elapsed_usec / 1000 << " msec");
-      // <---- Publish freq calculation
+      // <---- Grab freq calculation
 
       // ----> Camera Settings
       processCameraSettings();
       // <---- Camera Settings
 
-      // Publish the point cloud if someone has subscribed to
-      if (cloudSubnumber > 0)
+      // ----> Point Cloud
+
+      if (!mDepthDisabled && cloudSubnumber > 0)
       {
-        // Run the point cloud conversion asynchronously to avoid slowing down
-        // all the program
-        // Retrieve raw pointCloud data if latest Pointcloud is ready
-        std::unique_lock<std::mutex> lock(mPcMutex, std::defer_lock);
-
-        if (lock.try_lock())
-        {
-          mZed.retrieveMeasure(mCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatResol);
-
-          mPointCloudFrameId = mDepthFrameId;
-          mPointCloudTime = stamp;
-
-          // Signal Pointcloud thread that a new pointcloud is ready
-          mPcDataReadyCondVar.notify_one();
-          mPcDataReady = true;
-          mPcPublishing = true;
-        }
+        processPointcloud();        
       }
       else
       {
         mPcPublishing = false;
       }
+      // <---- Point Cloud
 
       // ----> Object Detection
       mObjDetMutex.lock();
@@ -4232,6 +4213,27 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
   NODELET_DEBUG("ZED pool thread finished");
 }  // namespace zed_nodelets
+
+void ZEDWrapperNodelet::processPointcloud()
+{
+  // Run the point cloud conversion asynchronously to avoid slowing down
+  // all the program
+  // Retrieve raw pointCloud data if latest Pointcloud is ready
+  std::unique_lock<std::mutex> lock(mPcMutex, std::defer_lock);
+
+  if (lock.try_lock())
+  {
+    mZed.retrieveMeasure(mCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatResol);
+
+    mPointCloudFrameId = mDepthFrameId;
+    mPointCloudTime = stamp;
+
+    // Signal Pointcloud thread that a new pointcloud is ready
+    mPcDataReadyCondVar.notify_one();
+    mPcDataReady = true;
+    mPcPublishing = true;
+  }
+}
 
 void ZEDWrapperNodelet::processCameraSettings()
 {
