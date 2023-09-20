@@ -17,30 +17,27 @@ This package lets you use the ZED stereo camera with ROS. It outputs the camera 
 ### Prerequisites
 
 - Ubuntu 20.04
-- [ZED SDK **≥ 4.0**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
+- [ZED SDK **≥ 4.0.6**](https://www.stereolabs.com/developers/) and its dependency [CUDA](https://developer.nvidia.com/cuda-downloads)
 - [ROS Noetic](http://wiki.ros.org/noetic/Installation/Ubuntu)
 
 ### Build the repository
 
 The zed_ros_wrapper is a catkin package. It depends on the following ROS packages:
 
-   - nav_msgs
-   - tf2_geometry_msgs
-   - message_runtime
-   - catkin
-   - roscpp
-   - stereo_msgs
-   - rosconsole
-   - robot_state_publisher
-   - urdf
-   - sensor_msgs
-   - image_transport
-   - roslint
-   - diagnostic_updater
-   - dynamic_reconfigure
-   - tf2_ros
-   - message_generation
-   - nodelet
+ - roscpp
+- image_transport
+- rosconsole
+- sensor_msgs
+- stereo_msgs
+- std_msgs
+- message_filters
+- tf2_ros
+- nodelet
+- tf2_geometry_msgs
+- message_generation
+- diagnostic_updater    
+- dynamic_reconfigure
+- zed_interfaces
 
 Open a terminal, clone the repository, update the dependencies and build the packages:
 
@@ -93,7 +90,7 @@ ZED X Mini camera:
 
     $ roslaunch zed_wrapper zedxm.launch  
 
- To select the ZED from its serial number:
+ To select the camera from its serial number:
  
      $ roslaunch zed_wrapper zed.launch serial_number:=1010 #replace 1010 with the actual SN
 

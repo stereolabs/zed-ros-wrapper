@@ -52,6 +52,38 @@ std::string getSDKVersion(int& major, int& minor, int& sub_minor);
  */
 ros::Time slTime2Ros(sl::Timestamp t);
 
+/*! \brief check if ZED
+ * \param camModel the model to check
+ */
+bool isZED(sl::MODEL camModel);
+
+/*! \brief check if ZED Mini
+ * \param camModel the model to check
+ */
+bool isZEDM(sl::MODEL camModel);
+
+/*! \brief check if ZED2 or ZED2i
+ * \param camModel the model to check
+ */
+bool isZED2OrZED2i(sl::MODEL camModel);
+
+/*! \brief check if ZED-X or ZED-X Mini
+ * \param camModel the model to check
+ */
+bool isZEDX(sl::MODEL camModel);
+
+/*! \brief Creates an sl::Mat containing a ROI from a polygon
+ *  \param poly the ROI polygon. Coordinates must be normalized from 0.0 to 1.0
+ *  \param out_roi the `sl::Mat` containing the ROI
+ */
+bool generateROI(const std::vector<sl::float2>& poly, sl::Mat& out_roi);
+
+/*! \brief Parse a vector of vector of floats from a string.
+ *  \param input
+ *  \param error_return
+ *  Syntax is [[1.0, 2.0], [3.3, 4.4, 5.5], ...] */
+std::vector<std::vector<float>> parseStringVector(const std::string& input, std::string& error_return);
+
 /*! \brief sl::Mat to ros message conversion
  * \param imgMsgPtr : the image topic message to publish
  * \param img : the image to publish
