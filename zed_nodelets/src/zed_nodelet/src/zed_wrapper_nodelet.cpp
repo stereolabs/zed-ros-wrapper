@@ -53,6 +53,8 @@ ZEDWrapperNodelet::ZEDWrapperNodelet() : Nodelet()
 
 ZEDWrapperNodelet::~ZEDWrapperNodelet()
 {
+  //std::cerr << "Destroying " << getName() << std::endl;
+
   if (mDevicePollThread.joinable())
   {
     mDevicePollThread.join();
@@ -68,7 +70,14 @@ ZEDWrapperNodelet::~ZEDWrapperNodelet()
     mSensThread.join();
   }
 
-  std::cerr << "ZED Nodelet destroyed" << std::endl;
+  if (mZed.isOpened())
+  {
+    mZed.close();
+  }
+
+  std::cerr << "ZED " << mZedSerialNumber << " closed." << std::endl;
+
+  //std::cerr << "ZED Nodelet '" << getName().c_str() << "' correctly stopped" << std::endl;
 }
 
 void ZEDWrapperNodelet::onInit()
@@ -189,6 +198,7 @@ void ZEDWrapperNodelet::onInit()
 
   // Try to initialize the ZED
   std::stringstream ss;  // Input mode info for logging
+  std::string cam_id;
   if (!mSvoFilepath.empty() || !mRemoteStreamAddr.empty())
   {
     if (!mSvoFilepath.empty())
@@ -198,6 +208,7 @@ void ZEDWrapperNodelet::onInit()
 
       // Input mode info for logging
       ss << "SVO - " << mSvoFilepath.c_str();
+      cam_id = ss.str();
     }
     else if (!mRemoteStreamAddr.empty())
     {
@@ -215,6 +226,7 @@ void ZEDWrapperNodelet::onInit()
 
       // Input mode info for logging
       ss << "NETWORK STREAM - " << mRemoteStreamAddr.c_str();
+      cam_id = ss.str();
     }
 
     mSvoMode = true;
@@ -231,6 +243,7 @@ void ZEDWrapperNodelet::onInit()
 
       // Input mode info for logging
       ss << "LIVE CAMERA with ID " << mZedId;
+      cam_id = ss.str();
     }
     else
     {
@@ -238,6 +251,7 @@ void ZEDWrapperNodelet::onInit()
 
       // Input mode info for logging
       ss << "LIVE CAMERA with SN " << mZedSerialNumber;
+      cam_id = ss.str();
     }
   }
 
@@ -251,6 +265,7 @@ void ZEDWrapperNodelet::onInit()
   mZedParams.depth_minimum_distance = static_cast<float>(mCamMinDepth);
   mZedParams.depth_maximum_distance = static_cast<float>(mCamMaxDepth);
   mZedParams.camera_disable_self_calib = !mCameraSelfCalib;
+  mZedParams.open_timeout_sec = 10.0f;
 
   mZedParams.enable_image_enhancement = true;  // Always active
 
@@ -263,16 +278,25 @@ void ZEDWrapperNodelet::onInit()
   while (mConnStatus != sl::ERROR_CODE::SUCCESS)
   {
     mConnStatus = mZed.open(mZedParams);
-    NODELET_INFO_STREAM("ZED connection: " << sl::toString(mConnStatus));
+    NODELET_INFO_STREAM("ZED connection [" << cam_id.c_str() << "]: " << sl::toString(mConnStatus));
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     if (!mNhNs.ok())
     {
-      mStopNode = true;  // Stops other threads
+      mStopNode = true;
 
       std::lock_guard<std::mutex> lock(mCloseZedMutex);
-      NODELET_DEBUG("Closing ZED");
-      mZed.close();
+      NODELET_INFO_STREAM("Closing ZED " << mZedSerialNumber << "...");
+      if (mRecording)
+      {
+        mRecording = false;
+        mZed.disableRecording();
+      }
+      if (mZed.isOpened())
+      {
+        mZed.close();
+      }
+      NODELET_INFO_STREAM("... ZED " << mZedSerialNumber << " closed.");
 
       NODELET_DEBUG("ZED pool thread finished");
       return;
@@ -2109,7 +2133,6 @@ void ZEDWrapperNodelet::start_pos_tracking()
   mPoseSmoothing = false;  // Always false. Pose Smoothing is to be enabled only for VR/AR applications
   posTrackParams.enable_pose_smoothing = mPoseSmoothing;
   posTrackParams.set_floor_as_origin = mFloorAlignment;
-  posTrackParams.set_as_static = mIsStatic;
   posTrackParams.depth_min_range = static_cast<float>(mPosTrkMinDepth);
 
   if (mAreaMemDbPath != "" && !sl_tools::file_exist(mAreaMemDbPath))
@@ -2130,7 +2153,7 @@ void ZEDWrapperNodelet::start_pos_tracking()
 
   posTrackParams.enable_imu_fusion = mImuFusion;
 
-  posTrackParams.set_as_static = false;
+  posTrackParams.set_as_static = mIsStatic;
   posTrackParams.set_gravity_as_origin = mSetGravityAsOrigin;
   posTrackParams.mode = mPosTrkMode;
 
@@ -3994,7 +4017,10 @@ void ZEDWrapperNodelet::device_poll_thread_func()
           if ((ros::Time::now() - mPrevFrameTimestamp).toSec() > 5 && !mSvoMode)
           {
             mCloseZedMutex.lock();
-            mZed.close();
+            if (mZed.isOpened())
+            {
+              mZed.close();
+            }
             mCloseZedMutex.unlock();
 
             mConnStatus = sl::ERROR_CODE::CAMERA_NOT_DETECTED;
@@ -4006,13 +4032,17 @@ void ZEDWrapperNodelet::device_poll_thread_func()
                 mStopNode = true;
 
                 std::lock_guard<std::mutex> lock(mCloseZedMutex);
-                NODELET_DEBUG("Closing ZED");
+                NODELET_INFO_STREAM("Closing ZED " << mZedSerialNumber << "...");
                 if (mRecording)
                 {
                   mRecording = false;
                   mZed.disableRecording();
                 }
-                mZed.close();
+                if (mZed.isOpened())
+                {
+                  mZed.close();
+                }
+                NODELET_INFO_STREAM("... ZED " << mZedSerialNumber << " closed.");
 
                 NODELET_DEBUG("ZED pool thread finished");
                 return;
