@@ -2078,7 +2078,7 @@ bool ZEDWrapperNodelet::start_obj_detect()
   }
 
   mObjDetRunning = true;
-  return false;
+  return true;
 }
 
 void ZEDWrapperNodelet::stop_obj_detect()
