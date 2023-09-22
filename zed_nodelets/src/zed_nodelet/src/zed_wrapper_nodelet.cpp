@@ -1086,16 +1086,33 @@ void ZEDWrapperNodelet::readObjDetParams()
       }
       NODELET_INFO_STREAM(" * Detection max range\t\t-> " << mObjDetMaxRange);
 
-      int model;
-      mNhNs.getParam("object_detection/model", model);
-      if (model < 0 || model >= static_cast<int>(sl::OBJECT_DETECTION_MODEL::LAST))
-      {
-        NODELET_WARN("Detection model not valid. Forced to the default value");
-        model = static_cast<int>(mObjDetModel);
-      }
-      mObjDetModel = static_cast<sl::OBJECT_DETECTION_MODEL>(model);
+      std::string model_str;
+      mNhNs.getParam("object_detection/model", model_str);
 
-      NODELET_INFO_STREAM(" * Detection model\t\t-> " << sl::toString(mObjDetModel));
+      NODELET_DEBUG_STREAM(" 'object_detection.model': " << model_str.c_str());
+
+      bool matched = false;
+      for (int idx = static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
+           idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS); idx++)
+      {
+        sl::OBJECT_DETECTION_MODEL test_model = static_cast<sl::OBJECT_DETECTION_MODEL>(idx);
+        std::string test_model_str = sl::toString(test_model).c_str();
+        std::replace(test_model_str.begin(), test_model_str.end(), ' ',
+                     '_');  // Replace spaces with underscores to match the YAML setting
+        // NODELETDEBUG(" Comparing '%s' to '%s'", test_model_str.c_str(), model_str.c_str());
+        if (model_str == test_model_str)
+        {
+          mObjDetModel = test_model;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched)
+      {
+        NODELET_WARN_STREAM( "The value of the parameter 'object_detection.model' is not valid: '"
+                                             << model_str << "'. Using the default value.");
+      }
+      NODELET_INFO_STREAM(" * Object Det. model:\t" << sl::toString(mObjDetModel).c_str());
 
       mNhNs.getParam("object_detection/mc_people", mObjDetPeopleEnable);
       NODELET_INFO_STREAM(" * Detect people\t\t-> " << (mObjDetPeopleEnable ? "ENABLED" : "DISABLED"));
