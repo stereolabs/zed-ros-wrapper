@@ -53,7 +53,7 @@ ZEDWrapperNodelet::ZEDWrapperNodelet() : Nodelet()
 
 ZEDWrapperNodelet::~ZEDWrapperNodelet()
 {
-  //std::cerr << "Destroying " << getName() << std::endl;
+  // std::cerr << "Destroying " << getName() << std::endl;
 
   if (mDevicePollThread.joinable())
   {
@@ -77,7 +77,7 @@ ZEDWrapperNodelet::~ZEDWrapperNodelet()
 
   std::cerr << "ZED " << mZedSerialNumber << " closed." << std::endl;
 
-  //std::cerr << "ZED Nodelet '" << getName().c_str() << "' correctly stopped" << std::endl;
+  // std::cerr << "ZED Nodelet '" << getName().c_str() << "' correctly stopped" << std::endl;
 }
 
 void ZEDWrapperNodelet::onInit()
@@ -688,12 +688,9 @@ void ZEDWrapperNodelet::initServices()
     mSrvSave3dMap = mNhNs.advertiseService("save_3d_map", &ZEDWrapperNodelet::on_save_3d_map, this);
     NODELET_INFO_STREAM(" * Advertised on service " << mSrvSave3dMap.getService().c_str());
 
-    mSrvStartObjDet =
-        mNhNs.advertiseService("start_object_detection", &ZEDWrapperNodelet::on_start_object_detection, this);
-    NODELET_INFO_STREAM(" * Advertised on service " << mSrvStartObjDet.getService().c_str());
-    mSrvStopObjDet =
-        mNhNs.advertiseService("stop_object_detection", &ZEDWrapperNodelet::on_stop_object_detection, this);
-    NODELET_INFO_STREAM(" * Advertised on service " << mSrvStopObjDet.getService().c_str());
+    mSrvEnableObjDet =
+        mNhNs.advertiseService("enable_object_detection", &ZEDWrapperNodelet::on_enable_object_detection, this);
+    NODELET_INFO_STREAM(" * Advertised on service " << mSrvEnableObjDet.getService().c_str());
   }
 
   mSrvSvoStartRecording =
@@ -1070,48 +1067,66 @@ void ZEDWrapperNodelet::readObjDetParams()
     NODELET_INFO_STREAM("*** OBJECT DETECTION PARAMETERS ***");
 
     mNhNs.getParam("object_detection/od_enabled", mObjDetEnabled);
-
-    if (mObjDetEnabled)
+    NODELET_INFO_STREAM(" * Object Detection\t\t-> " << (mObjDetEnabled ? "ENABLED" : "DISABLED"));
+    mNhNs.getParam("object_detection/confidence_threshold", mObjDetConfidence);
+    NODELET_INFO_STREAM(" * Object confidence\t\t-> " << mObjDetConfidence);
+    mNhNs.getParam("object_detection/object_tracking_enabled", mObjDetTracking);
+    NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking ? "ENABLED" : "DISABLED"));
+    mNhNs.getParam("object_detection/max_range", mObjDetMaxRange);
+    if (mObjDetMaxRange > mCamMaxDepth)
     {
-      NODELET_INFO_STREAM(" * Object Detection\t\t-> ENABLED");
-      mNhNs.getParam("object_detection/confidence_threshold", mObjDetConfidence);
-      NODELET_INFO_STREAM(" * Object confidence\t\t-> " << mObjDetConfidence);
-      mNhNs.getParam("object_detection/object_tracking_enabled", mObjDetTracking);
-      NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking ? "ENABLED" : "DISABLED"));
-      mNhNs.getParam("object_detection/max_range", mObjDetMaxRange);
-      if (mObjDetMaxRange > mCamMaxDepth)
-      {
-        NODELET_WARN("Detection max range cannot be major than depth max range. Automatically fixed.");
-        mObjDetMaxRange = mCamMaxDepth;
-      }
-      NODELET_INFO_STREAM(" * Detection max range\t\t-> " << mObjDetMaxRange);
-
-      int model;
-      mNhNs.getParam("object_detection/model", model);
-      if (model < 0 || model >= static_cast<int>(sl::OBJECT_DETECTION_MODEL::LAST))
-      {
-        NODELET_WARN("Detection model not valid. Forced to the default value");
-        model = static_cast<int>(mObjDetModel);
-      }
-      mObjDetModel = static_cast<sl::OBJECT_DETECTION_MODEL>(model);
-
-      NODELET_INFO_STREAM(" * Detection model\t\t-> " << sl::toString(mObjDetModel));
-
-      mNhNs.getParam("object_detection/mc_people", mObjDetPeopleEnable);
-      NODELET_INFO_STREAM(" * Detect people\t\t-> " << (mObjDetPeopleEnable ? "ENABLED" : "DISABLED"));
-      mNhNs.getParam("object_detection/mc_vehicle", mObjDetVehiclesEnable);
-      NODELET_INFO_STREAM(" * Detect vehicles\t\t-> " << (mObjDetVehiclesEnable ? "ENABLED" : "DISABLED"));
-      mNhNs.getParam("object_detection/mc_bag", mObjDetBagsEnable);
-      NODELET_INFO_STREAM(" * Detect bags\t\t\t-> " << (mObjDetBagsEnable ? "ENABLED" : "DISABLED"));
-      mNhNs.getParam("object_detection/mc_animal", mObjDetAnimalsEnable);
-      NODELET_INFO_STREAM(" * Detect animals\t\t-> " << (mObjDetAnimalsEnable ? "ENABLED" : "DISABLED"));
-      mNhNs.getParam("object_detection/mc_electronics", mObjDetElectronicsEnable);
-      NODELET_INFO_STREAM(" * Detect electronics\t\t-> " << (mObjDetElectronicsEnable ? "ENABLED" : "DISABLED"));
-      mNhNs.getParam("object_detection/mc_fruit_vegetable", mObjDetFruitsEnable);
-      NODELET_INFO_STREAM(" * Detect fruit and vegetables\t-> " << (mObjDetFruitsEnable ? "ENABLED" : "DISABLED"));
-      mNhNs.getParam("object_detection/mc_sport", mObjDetSportsEnable);
-      NODELET_INFO_STREAM(" * Detect sport-related objects\t-> " << (mObjDetSportsEnable ? "ENABLED" : "DISABLED"));
+      NODELET_WARN("Detection max range cannot be major than depth max range. Automatically fixed.");
+      mObjDetMaxRange = mCamMaxDepth;
     }
+    NODELET_INFO_STREAM(" * Detection max range\t\t-> " << mObjDetMaxRange);
+
+    mNhNs.getParam("object_detection/allow_reduced_precision_inference", mObjDetReducedPrecision);
+    NODELET_INFO_STREAM(" * Allow reduced precision\t-> " << (mObjDetReducedPrecision ? "ENABLED" : "DISABLED"));
+    mNhNs.getParam("object_detection/prediction_timeout", mObjDetPredTimeout);
+    NODELET_INFO_STREAM(" * Prediction Timeout\t\t-> " << mObjDetPredTimeout);
+
+    std::string model_str;
+    mNhNs.getParam("object_detection/model", model_str);
+
+    NODELET_DEBUG_STREAM(" 'object_detection.model': " << model_str.c_str());
+
+    bool matched = false;
+    for (int idx = static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
+         idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS); idx++)
+    {
+      sl::OBJECT_DETECTION_MODEL test_model = static_cast<sl::OBJECT_DETECTION_MODEL>(idx);
+      std::string test_model_str = sl::toString(test_model).c_str();
+      std::replace(test_model_str.begin(), test_model_str.end(), ' ',
+                   '_');  // Replace spaces with underscores to match the YAML setting
+      // NODELETDEBUG(" Comparing '%s' to '%s'", test_model_str.c_str(), model_str.c_str());
+      if (model_str == test_model_str)
+      {
+        mObjDetModel = test_model;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched)
+    {
+      NODELET_WARN_STREAM("The value of the parameter 'object_detection.model' is not valid: '"
+                          << model_str << "'. Using the default value.");
+    }
+    NODELET_INFO_STREAM(" * Object Det. model\t\t->" << sl::toString(mObjDetModel).c_str());
+
+    mNhNs.getParam("object_detection/mc_people", mObjDetPeopleEnable);
+    NODELET_INFO_STREAM(" * Detect people\t\t-> " << (mObjDetPeopleEnable ? "ENABLED" : "DISABLED"));
+    mNhNs.getParam("object_detection/mc_vehicle", mObjDetVehiclesEnable);
+    NODELET_INFO_STREAM(" * Detect vehicles\t\t-> " << (mObjDetVehiclesEnable ? "ENABLED" : "DISABLED"));
+    mNhNs.getParam("object_detection/mc_bag", mObjDetBagsEnable);
+    NODELET_INFO_STREAM(" * Detect bags\t\t\t-> " << (mObjDetBagsEnable ? "ENABLED" : "DISABLED"));
+    mNhNs.getParam("object_detection/mc_animal", mObjDetAnimalsEnable);
+    NODELET_INFO_STREAM(" * Detect animals\t\t-> " << (mObjDetAnimalsEnable ? "ENABLED" : "DISABLED"));
+    mNhNs.getParam("object_detection/mc_electronics", mObjDetElectronicsEnable);
+    NODELET_INFO_STREAM(" * Detect electronics\t\t-> " << (mObjDetElectronicsEnable ? "ENABLED" : "DISABLED"));
+    mNhNs.getParam("object_detection/mc_fruit_vegetable", mObjDetFruitsEnable);
+    NODELET_INFO_STREAM(" * Detect fruit and vegetables\t-> " << (mObjDetFruitsEnable ? "ENABLED" : "DISABLED"));
+    mNhNs.getParam("object_detection/mc_sport", mObjDetSportEnable);
+    NODELET_INFO_STREAM(" * Detect sport-related objects\t-> " << (mObjDetSportEnable ? "ENABLED" : "DISABLED"));
   }
 }
 
@@ -1984,6 +1999,12 @@ bool ZEDWrapperNodelet::start_obj_detect()
     return false;
   }
 
+  if (mDepthDisabled)
+  {
+    NODELET_WARN("Cannot start Object Detection if `depth/depth_mode` is set to `NONE`");
+    return false;
+  }
+
   if (!mObjDetEnabled)
   {
     return false;
@@ -1998,13 +2019,44 @@ bool ZEDWrapperNodelet::start_obj_detect()
   NODELET_INFO_STREAM("*** Starting Object Detection ***");
 
   sl::ObjectDetectionParameters od_p;
-  od_p.allow_reduced_precision_inference = false;
   od_p.enable_segmentation = false;
   od_p.enable_tracking = mObjDetTracking;
-  od_p.image_sync = false;  // Asynchronous object detection
+  od_p.image_sync = true;
   od_p.detection_model = mObjDetModel;
+  od_p.filtering_mode = mObjFilterMode;
+  od_p.prediction_timeout_s = mObjDetPredTimeout;
+  od_p.allow_reduced_precision_inference = mObjDetReducedPrecision;
   od_p.max_range = mObjDetMaxRange;
-  od_p.instance_module_id = 0;
+
+  mObjDetFilter.clear();
+  if (mObjDetPeopleEnable)
+  {
+    mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+  }
+  if (mObjDetVehiclesEnable)
+  {
+    mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+  }
+  if (mObjDetBagsEnable)
+  {
+    mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
+  }
+  if (mObjDetAnimalsEnable)
+  {
+    mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
+  }
+  if (mObjDetElectronicsEnable)
+  {
+    mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
+  }
+  if (mObjDetFruitsEnable)
+  {
+    mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
+  }
+  if (mObjDetSportEnable)
+  {
+    mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
+  }
 
   sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
 
@@ -2025,54 +2077,32 @@ bool ZEDWrapperNodelet::start_obj_detect()
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubObjDet.getTopic());
   }
 
-  mObjDetFilter.clear();
-
-  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_ACCURATE ||
-      mObjDetModel == sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_MEDIUM ||
-      mObjDetModel == sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST)
-  {
-    if (mObjDetPeopleEnable)
-    {
-      mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
-    }
-    if (mObjDetVehiclesEnable)
-    {
-      mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
-    }
-    if (mObjDetBagsEnable)
-    {
-      mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
-    }
-    if (mObjDetAnimalsEnable)
-    {
-      mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
-    }
-    if (mObjDetElectronicsEnable)
-    {
-      mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
-    }
-    if (mObjDetFruitsEnable)
-    {
-      mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
-    }
-    if (mObjDetSportsEnable)
-    {
-      mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
-    }
-  }
-
   mObjDetRunning = true;
-  return false;
+  return true;
 }
 
 void ZEDWrapperNodelet::stop_obj_detect()
 {
   if (mObjDetRunning)
   {
-    NODELET_INFO_STREAM("*** Stopping Object Detection ***");
+    NODELET_INFO("*** Stopping Object Detection ***");
     mObjDetRunning = false;
     mObjDetEnabled = false;
     mZed.disableObjectDetection();
+
+    // ----> Send an empty message to indicate that no more objects are tracked
+    // (e.g clean Rviz2)
+    zed_interfaces::ObjectsStampedPtr objMsg = boost::make_shared<zed_interfaces::ObjectsStamped>();
+
+    objMsg->header.stamp = mFrameTimestamp;
+    objMsg->header.frame_id = mLeftCamFrameId;
+
+    objMsg->objects.clear();
+
+    NODELET_DEBUG_STREAM("Publishing EMPTY OBJ message " << mPubObjDet.getTopic().c_str());
+    mPubObjDet.publish(objMsg);
+    // <---- Send an empty message to indicate that no more objects are tracked
+    // (e.g clean Rviz2)
   }
 }
 
@@ -3956,12 +3986,15 @@ void ZEDWrapperNodelet::device_poll_thread_func()
       mMappingMutex.unlock();
 
       // Start the object detection?
-      mObjDetMutex.lock();
-      if (mObjDetEnabled && !mObjDetRunning)
+      if (!mDepthDisabled)
       {
-        start_obj_detect();
+        mObjDetMutex.lock();
+        if (mObjDetEnabled && !mObjDetRunning)
+        {
+          start_obj_detect();
+        }
+        mObjDetMutex.unlock();
       }
-      mObjDetMutex.unlock();
 
       // Detect if one of the subscriber need to have the depth information
       mComputeDepth = !mDepthDisabled &&
@@ -4639,7 +4672,7 @@ bool ZEDWrapperNodelet::on_start_svo_recording(zed_interfaces::start_svo_recordi
   if (mRecording)
   {
     res.result = false;
-    res.info = "Recording was just active";
+    res.info = "Recording was already active";
     return false;
   }
 
@@ -4954,7 +4987,7 @@ bool ZEDWrapperNodelet::on_start_3d_mapping(zed_interfaces::start_3d_mapping::Re
 {
   if (mMappingEnabled && mMappingRunning)
   {
-    NODELET_WARN_STREAM("Spatial mapping was just running");
+    NODELET_WARN_STREAM("Spatial mapping was already running");
 
     res.done = false;
     return res.done;
@@ -5036,10 +5069,11 @@ bool ZEDWrapperNodelet::on_save_3d_map(zed_interfaces::save_3d_map::Request& req
   return true;
 }
 
-bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_detection::Request& req,
-                                                  zed_interfaces::start_object_detection::Response& res)
+bool ZEDWrapperNodelet::on_enable_object_detection(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
 {
-  NODELET_INFO("Called 'start_object_detection' service");
+  NODELET_INFO("Called 'enable_object_detection' service");
+
+  std::lock_guard<std::mutex> lock(mObjDetMutex);
 
   if (mZedRealCamModel == sl::MODEL::ZED)
   {
@@ -5047,83 +5081,56 @@ bool ZEDWrapperNodelet::on_start_object_detection(zed_interfaces::start_object_d
     mObjDetRunning = false;
 
     NODELET_ERROR_STREAM("Object detection not started. OD is not available for ZED camera model");
-    res.done = false;
-    return res.done;
+    res.message = "Object detection not started. OD is not available for ZED camera model";
+    res.success = false;
+    return res.success;
   }
 
-  if (mObjDetEnabled && mObjDetRunning)
+  if (req.data)
   {
-    NODELET_WARN_STREAM("Object Detection was just running");
+    NODELET_INFO("Starting Object Detection");
+    // Start
+    if (mObjDetEnabled && mObjDetRunning)
+    {
+      NODELET_WARN("Object Detection is already running");
+      res.message = "Object Detection is already running";
+      res.success = false;
+      return res.success;
+    }
 
-    res.done = false;
-    return res.done;
-  }
+    mObjDetEnabled = true;
 
-  mObjDetRunning = false;
-
-  mObjDetConfidence = req.confidence;
-  mObjDetTracking = req.tracking;
-  if (req.model < 0 || req.model >= static_cast<int>(sl::OBJECT_DETECTION_MODEL::LAST))
-  {
-    NODELET_ERROR_STREAM("Object Detection model not valid.");
-    res.done = false;
-    return res.done;
-  }
-  mObjDetModel = static_cast<sl::OBJECT_DETECTION_MODEL>(req.model);
-
-  mObjDetMaxRange = req.max_range;
-  if (mObjDetMaxRange > mCamMaxDepth)
-  {
-    NODELET_WARN("Detection max range cannot be major than depth max range. Automatically fixed.");
-    mObjDetMaxRange = mCamMaxDepth;
-  }
-  NODELET_INFO_STREAM(" * Detection max range\t\t-> " << mObjDetMaxRange);
-
-  NODELET_INFO_STREAM(" * Object min. confidence\t-> " << mObjDetConfidence);
-  NODELET_INFO_STREAM(" * Object tracking\t\t-> " << (mObjDetTracking ? "ENABLED" : "DISABLED"));
-  NODELET_INFO_STREAM(" * Detection model\t\t-> " << sl::toString(mObjDetModel));
-
-  mNhNs.getParam("object_detection/mc_people", mObjDetPeopleEnable);
-  NODELET_INFO_STREAM(" * Detect people\t\t-> " << (mObjDetPeopleEnable ? "ENABLED" : "DISABLED"));
-  mNhNs.getParam("object_detection/mc_vehicle", mObjDetVehiclesEnable);
-  NODELET_INFO_STREAM(" * Detect vehicles\t\t-> " << (mObjDetVehiclesEnable ? "ENABLED" : "DISABLED"));
-  mNhNs.getParam("object_detection/mc_bag", mObjDetBagsEnable);
-  NODELET_INFO_STREAM(" * Detect bags\t\t\t-> " << (mObjDetBagsEnable ? "ENABLED" : "DISABLED"));
-  mNhNs.getParam("object_detection/mc_animal", mObjDetAnimalsEnable);
-  NODELET_INFO_STREAM(" * Detect animals\t\t-> " << (mObjDetAnimalsEnable ? "ENABLED" : "DISABLED"));
-  mNhNs.getParam("object_detection/mc_electronics", mObjDetElectronicsEnable);
-  NODELET_INFO_STREAM(" * Detect electronics\t\t-> " << (mObjDetElectronicsEnable ? "ENABLED" : "DISABLED"));
-  mNhNs.getParam("object_detection/mc_fruit_vegetable", mObjDetFruitsEnable);
-  NODELET_INFO_STREAM(" * Detect fruit and vegetables\t-> " << (mObjDetFruitsEnable ? "ENABLED" : "DISABLED"));
-  mNhNs.getParam("object_detection/mc_sport", mObjDetSportsEnable);
-  NODELET_INFO_STREAM(" * Detect sport-related objects\t-> " << (mObjDetSportsEnable ? "ENABLED" : "DISABLED"));
-
-  mObjDetRunning = false;
-  mObjDetEnabled = true;
-  res.done = true;
-
-  return res.done;
-}
-
-/*! \brief Service callback to stop_object_detection service
- */
-bool ZEDWrapperNodelet::on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
-                                                 zed_interfaces::stop_object_detection::Response& res)
-{
-  if (mObjDetEnabled)
-  {
-    mObjDetMutex.lock();
-    stop_obj_detect();
-    mObjDetMutex.unlock();
-
-    res.done = true;
+    if (start_obj_detect())
+    {
+      res.message = "Object Detection started";
+      res.success = true;
+      return res.success;
+    }
+    else
+    {
+      res.message = "Error occurred starting Object Detection. See log for more info";
+      res.success = false;
+      return res.success;
+    }
   }
   else
   {
-    res.done = false;
-  }
+    NODELET_INFO("Stopping Object Detection");
+    // Stop
+    if (!mObjDetEnabled || !mObjDetRunning)
+    {
+      NODELET_WARN("Object Detection was not running");
+      res.message = "Object Detection was not running";
+      res.success = false;
+      return res.success;
+    }
 
-  return res.done;
+    stop_obj_detect();
+
+    res.message = "Object Detection stopped";
+    res.success = true;
+    return res.success;
+  }
 }
 
 void ZEDWrapperNodelet::processDetectedObjects(ros::Time t)

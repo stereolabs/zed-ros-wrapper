@@ -30,6 +30,7 @@ The zed_ros_wrapper is a catkin package. It depends on the following ROS package
 - sensor_msgs
 - stereo_msgs
 - std_msgs
+- std_srvs
 - message_filters
 - tf2_ros
 - nodelet
@@ -106,7 +107,7 @@ The SDK v3.0 introduces the Object Detection and Tracking module. **The Object D
 
 The Object Detection can be enabled *automatically* when the node start setting the parameter `object_detection/od_enabled` to `true` in the file `common.yaml`.
 
-The Object Detection can be enabled/disabled *manually* calling the services `start_object_detection` and `stop_object_detection`.
+The Object Detection can be enabled/disabled *manually* calling the service `enable_object_detection`.
 
 ### Body Tracking
 The Body Tracking module is not available for the ZED ROS Wrapper. Please consider migrating to the [ZED ROS2 Wrapper](https://github.com/stereolabs/zed-ros2-wrapper) if you need it.

@@ -3,6 +3,14 @@ CHANGELOG
 
 2023-09-15
 ----------
+- Remove start_object_detection and stop_object_detection services
+- Add enable_object_detection service that takes a bool as parameter to enable/disable the OD module (same behavior as in ROS 2 Wrapper)
+- Add parameter 'object_detection/allow_reduced_precision_inference'
+- Add parameter 'object_detection/prediction_timeout'
+- The parameter 'object_detection/model' is no more an integer, but a string with the full name of the supported OD model
+
+2023-09-15
+----------
 - Add pose and odometry status publishers
 - Improve odometry and pose publishing and TF broadcasting
 
