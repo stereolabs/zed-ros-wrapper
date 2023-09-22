@@ -48,6 +48,7 @@ find_package(catkin REQUIRED COMPONENTS
     sensor_msgs
     stereo_msgs
     std_msgs
+    std_srvs
     message_filters
     tf2_ros
     nodelet

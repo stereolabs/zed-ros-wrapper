@@ -34,6 +34,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 #include <visualization_msgs/Marker.h>
+#include <std_srvs/SetBool.h>
 
 #include <sl/Camera.hpp>
 
@@ -50,11 +51,9 @@
 #include <zed_interfaces/set_led_status.h>
 #include <zed_interfaces/set_pose.h>
 #include <zed_interfaces/start_3d_mapping.h>
-#include <zed_interfaces/start_object_detection.h>
 #include <zed_interfaces/start_remote_stream.h>
 #include <zed_interfaces/start_svo_recording.h>
 #include <zed_interfaces/stop_3d_mapping.h>
-#include <zed_interfaces/stop_object_detection.h>
 #include <zed_interfaces/stop_remote_stream.h>
 #include <zed_interfaces/stop_svo_recording.h>
 #include <zed_interfaces/toggle_led.h>
@@ -395,15 +394,9 @@ protected:
    */
   bool on_save_3d_map(zed_interfaces::save_3d_map::Request& req, zed_interfaces::save_3d_map::Response& res);
 
-  /*! \brief Service callback to start_object_detection service
+  /*! \brief Service callback to enable_object_detection service
    */
-  bool on_start_object_detection(zed_interfaces::start_object_detection::Request& req,
-                                 zed_interfaces::start_object_detection::Response& res);
-
-  /*! \brief Service callback to stop_object_detection service
-   */
-  bool on_stop_object_detection(zed_interfaces::stop_object_detection::Request& req,
-                                zed_interfaces::stop_object_detection::Response& res);
+  bool on_enable_object_detection(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
 
   /*! \brief Service callback to save_area_memory service
    */
@@ -563,8 +556,7 @@ private:
   ros::ServiceServer mSrvStartMapping;
   ros::ServiceServer mSrvStopMapping;
   ros::ServiceServer mSrvSave3dMap;
-  ros::ServiceServer mSrvStartObjDet;
-  ros::ServiceServer mSrvStopObjDet;
+  ros::ServiceServer mSrvEnableObjDet;
   ros::ServiceServer mSrvSaveAreaMemory;
   ros::ServiceServer mSrvSetRoi;
   ros::ServiceServer mSrvResetRoi;
@@ -807,9 +799,11 @@ private:
   bool mObjDetEnabled = false;
   bool mObjDetRunning = false;
   bool mObjDetTracking = true;
+  bool mObjDetReducedPrecision = false;
   bool mObjDetBodyFitting = true;
   float mObjDetConfidence = 50.f;
   float mObjDetMaxRange = 10.f;
+  double mObjDetPredTimeout = 0.5;
   std::vector<sl::OBJECT_CLASS> mObjDetFilter;
   bool mObjDetPeopleEnable = true;
   bool mObjDetVehiclesEnable = true;
@@ -817,9 +811,10 @@ private:
   bool mObjDetAnimalsEnable = true;
   bool mObjDetElectronicsEnable = true;
   bool mObjDetFruitsEnable = true;
-  bool mObjDetSportsEnable = true;
+  bool mObjDetSportEnable = true;
 
   sl::OBJECT_DETECTION_MODEL mObjDetModel = sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_MEDIUM;
+  sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
 
   ros::Publisher mPubObjDet;
 };  // class ZEDROSWrapperNodelet
