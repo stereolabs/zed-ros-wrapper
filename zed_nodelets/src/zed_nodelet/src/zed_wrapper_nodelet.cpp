@@ -5081,7 +5081,7 @@ bool ZEDWrapperNodelet::on_enable_object_detection(std_srvs::SetBool::Request& r
     mObjDetRunning = false;
 
     NODELET_ERROR_STREAM("Object detection not started. OD is not available for ZED camera model");
-    res.message = "OObject detection not started. OD is not available for ZED camera model";
+    res.message = "Object detection not started. OD is not available for ZED camera model";
     res.success = false;
     return res.success;
   }
