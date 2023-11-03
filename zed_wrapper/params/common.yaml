@@ -26,11 +26,11 @@ general:
     base_frame:                 'base_link'                     # must be equal to the frame_id used in the URDF file
     sdk_verbose:                1                               # Set verbose level of the ZED SDK
     svo_compression:            2                               # `0`: LOSSLESS, `1`: AVCHD, `2`: HEVC
-    self_calib:                 true                            # enable/disable self calibration at starting
-    camera_flip:                'AUTO'                          # camera flip mode: 'OFF', 'ON', 'AUTO'
+    self_calib:                 false                            # enable/disable self calibration at starting
+    camera_flip:                'OFF'                          # camera flip mode: 'OFF', 'ON', 'AUTO'
     pub_resolution:             'CUSTOM'                        # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
     pub_downscale_factor:       2.0                             # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
-    pub_frame_rate:             15.0                            # frequency of publishing of video and depth data (see SDK API "InitParameters::grab_compute_capping_fps")
+    pub_frame_rate:             10.0                            # frequency of publishing of video and depth data (see SDK API "InitParameters::grab_compute_capping_fps")
     svo_realtime:               true                            # if true the input SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
     region_of_interest:         '[]'                            # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
     #region_of_interest:        '[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
@@ -40,17 +40,17 @@ general:
 #video:
 
 depth:
-    depth_mode:                 'ULTRA'                         # 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL'
+    depth_mode:                 'NEURAL'                         # 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL'
     depth_stabilization:        1                               # [0-100] - 0: Disabled
     openni_depth_mode:          false                           # 'false': 32bit float meter units, 'true': 16bit uchar millimeter units
 
 pos_tracking:
-    pos_tracking_enabled:       true                            # True to enable positional tracking from start
+    pos_tracking_enabled:       false                            # True to enable positional tracking from start
     pos_tracking_mode:          'STANDARD'                      # Matches the ZED SDK setting: 'QUALITY', 'STANDARD' -> Use 'QUALITY' with 'ULTRA' depth mode for improved outdoors performance
-    set_gravity_as_origin:      true                            # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
-    imu_fusion:                 true                            # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
-    publish_tf:                 true                            # publish `odom -> base_link` TF
-    publish_map_tf:             true                            # publish `map -> odom` TF
+    set_gravity_as_origin:      false                            # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
+    imu_fusion:                 false                            # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
+    publish_tf:                 false                            # publish `odom -> base_link` TF
+    publish_map_tf:             false                            # publish `map -> odom` TF
     map_frame:                  'map'                           # main frame
     odometry_frame:             'odom'                          # odometry frame
     area_memory_db_path:        ''                              # file loaded when the node starts to restore the "known visual features" map. 
@@ -58,7 +58,7 @@ pos_tracking:
     area_memory:                true                            # Enable to detect loop closure
     floor_alignment:            false                           # Enable to automatically calculate camera/floor offset
     initial_base_pose:          [0.0,0.0,0.0, 0.0,0.0,0.0]      # Initial position of the `base_frame` -> [X, Y, Z, R, P, Y]
-    init_odom_with_first_valid_pose: true                       # Enable to initialize the odometry with the first valid pose
+    init_odom_with_first_valid_pose: false                       # Enable to initialize the odometry with the first valid pose
     path_pub_rate:              2.0                             # Camera trajectory publishing frequency
     path_max_count:             -1                              # use '-1' for unlimited path size
     two_d_mode:                 false                           # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
@@ -84,11 +84,11 @@ object_detection:
     max_range:                          15.                             # Maximum detection range
     allow_reduced_precision_inference:  true                            # Allow inference to run at a lower precision to improve runtime and memory usage
     prediction_timeout:                 0.5                             #  During this time [sec], the object will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions            
-    object_tracking_enabled:            true                            # Enable/disable the tracking of the detected objects
-    mc_people:                          true                            # Enable/disable the detection of persons for 'MULTI_CLASS_BOX_X' models
-    mc_vehicle:                         true                            # Enable/disable the detection of vehicles for 'MULTI_CLASS_BOX_X' models
-    mc_bag:                             true                            # Enable/disable the detection of bags for 'MULTI_CLASS_BOX_X' models
-    mc_animal:                          true                            # Enable/disable the detection of animals for 'MULTI_CLASS_BOX_X' models
-    mc_electronics:                     true                            # Enable/disable the detection of electronic devices for 'MULTI_CLASS_BOX_X' models
-    mc_fruit_vegetable:                 true                            # Enable/disable the detection of fruits and vegetables for 'MULTI_CLASS_BOX_X' models
-    mc_sport:                           true                            # Enable/disable the detection of sport-related objects for 'MULTI_CLASS_BOX_X' models
+    object_tracking_enabled:            false                            # Enable/disable the tracking of the detected objects
+    mc_people:                          false                           # Enable/disable the detection of persons for 'MULTI_CLASS_BOX_X' models
+    mc_vehicle:                         false                            # Enable/disable the detection of vehicles for 'MULTI_CLASS_BOX_X' models
+    mc_bag:                             false                            # Enable/disable the detection of bags for 'MULTI_CLASS_BOX_X' models
+    mc_animal:                          false                            # Enable/disable the detection of animals for 'MULTI_CLASS_BOX_X' models
+    mc_electronics:                     false                            # Enable/disable the detection of electronic devices for 'MULTI_CLASS_BOX_X' models
+    mc_fruit_vegetable:                 false                            # Enable/disable the detection of fruits and vegetables for 'MULTI_CLASS_BOX_X' models
+    mc_sport:                           false                            # Enable/disable the detection of sport-related objects for 'MULTI_CLASS_BOX_X' models

@@ -1,0 +1,69 @@
+<!--
+Launches point cloud to laser scan node: http://wiki.ros.org/pointcloud_to_laserscan
+-->
+<launch>
+    <remap from="/scan" to="/pc2ls"/>
+
+    <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="point_cloud_to_laser" output="screen" respawn="true" >
+    <remap from="/cloud_in" to="/zed2/zed_node/point_cloud/ds_cloud_registered"/>
+        <param name="min_height" value="0.0"/>
+        <param name="max_height" value="1.0"/>
+        <param name="angle_min" value="-3.14/2"/>
+        <param name="angle_max" value="3.14/2"/>
+        <param name="angle_increment" value="3.14/360"/>
+        <param name="scan_time" value="1.0/30.0"/>
+        <param name="range_min" value="0.45"/>
+        <param name="range_max" value="4.0"/>
+        <!-- <param name="target_frame" value="none"/> -->
+        <param name="concurrency_level" value="1"/>
+        <param name="use_inf" value="true"/>
+    </node>
+</launch>
+
+<!--
+Params of pointcloud_to_laserscan
+
+~min_height (double, default: 0.0)
+
+    The minimum height to sample in the point cloud in meters. 
+
+~max_height (double, default: 1.0)
+
+    The maximum height to sample in the point cloud in meters. 
+
+~angle_min (double, default: -π/2)
+
+    The minimum scan angle in radians. 
+
+~angle_max (double, default: π/2)
+
+    The maximum scan angle in radians. 
+
+~angle_increment (double, default: π/360)
+
+    Resolution of laser scan in radians per ray. 
+
+~scan_time (double, default: 1.0/30.0)
+
+    The scan rate in seconds. 
+
+~range_min (double, default: 0.45)
+
+    The minimum ranges to return in meters. 
+
+~range_max (double, default: 4.0)
+
+    The maximum ranges to return in meters. 
+
+~target_frame (str, default: none)
+
+    If provided, transform the pointcloud into this frame before converting to a laser scan. Otherwise, laser scan will be generated in the same frame as the input point cloud. 
+
+~concurrency_level (int, default: 1)
+
+    Number of threads to use for processing pointclouds. If 0, automatically detect number of cores and use the equivalent number of threads. Input queue size for pointclouds is tied to this parameter. In nodelet form, number of threads is capped by the nodelet manager configuration. 
+
+~use_inf (boolean, default: true)
+
+    If disabled, report infinite range (no obstacle) as range_max + 1. Otherwise report infinite range as +inf. Associated with the inf_is_valid parameter for costmap_2d obstacle layers. 
+-->
