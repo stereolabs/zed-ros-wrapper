@@ -1448,7 +1448,7 @@ void ZEDWrapperNodelet::checkResolFps()
     case sl::RESOLUTION::HD2K:
       if (mCamFrameRate != 15)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD2K. Set to 15 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD2K. Forced to 15 FPS.");
         mCamFrameRate = 15;
       }
 
@@ -1457,25 +1457,25 @@ void ZEDWrapperNodelet::checkResolFps()
     case sl::RESOLUTION::HD1080:
       if (mZedUserCamModel == sl::MODEL::ZED_X || mZedUserCamModel == sl::MODEL::ZED_XM)
       {
-        if (mCamFrameRate == 60 || mCamFrameRate == 30)
+        if (mCamFrameRate == 60 || mCamFrameRate == 30 || mCamFrameRate == 15)
         {
           break;
         }
 
-        if (mCamFrameRate > 30 && mCamFrameRate < 60)
+        if (mCamFrameRate < 23)
         {
-          NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Set to 30 FPS.");
+          NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 15 FPS.");
+          mCamFrameRate = 15;
+        } 
+        else if (mCamFrameRate >= 23 && mCamFrameRate < 45)
+        {
+          NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 30 FPS.");
           mCamFrameRate = 30;
         }
-        else if (mCamFrameRate > 60)
+        else if (mCamFrameRate >= 45)
         {
-          NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Set to 60 FPS.");
+          NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 60 FPS.");
           mCamFrameRate = 60;
-        }
-        else
-        {
-          NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Set to 30 FPS.");
-          mCamFrameRate = 30;
         }
       }
       else
@@ -1485,20 +1485,15 @@ void ZEDWrapperNodelet::checkResolFps()
           break;
         }
 
-        if (mCamFrameRate > 15 && mCamFrameRate < 30)
+        if (mCamFrameRate < 23)
         {
-          NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Set to 15 FPS.");
+          NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 15 FPS.");
           mCamFrameRate = 15;
         }
-        else if (mCamFrameRate > 30)
+        else if (mCamFrameRate >= 23)
         {
-          NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Set to 30 FPS.");
+          NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 30 FPS.");
           mCamFrameRate = 30;
-        }
-        else
-        {
-          NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Set to 15 FPS.");
-          mCamFrameRate = 15;
         }
       }
 
@@ -1510,25 +1505,25 @@ void ZEDWrapperNodelet::checkResolFps()
         break;
       }
 
-      if (mCamFrameRate > 15 && mCamFrameRate < 30)
+      if (mCamFrameRate < 23)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD720. Set to 15 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 15 FPS.");
         mCamFrameRate = 15;
-      }
-      else if (mCamFrameRate > 30 && mCamFrameRate < 60)
+      } 
+      else if (mCamFrameRate >= 23 && mCamFrameRate < 45)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD720. Set to 30 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 30 FPS.");
         mCamFrameRate = 30;
       }
-      else if (mCamFrameRate > 60)
+      else if (mCamFrameRate >= 45)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD720. Set to 60 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 60 FPS.");
         mCamFrameRate = 60;
       }
       else
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD720. Set to 15 FPS.");
-        mCamFrameRate = 15;
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 30 FPS.");
+        mCamFrameRate = 30;
       }
 
       break;
@@ -1539,30 +1534,25 @@ void ZEDWrapperNodelet::checkResolFps()
         break;
       }
 
-      if (mCamFrameRate > 15 && mCamFrameRate < 30)
+      if (mCamFrameRate < 23)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution VGA. Set to 15 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution VGA. Forced to 15 FPS.");
         mCamFrameRate = 15;
       }
-      else if (mCamFrameRate > 30 && mCamFrameRate < 60)
+      else if (mCamFrameRate >= 23 && mCamFrameRate < 45)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution VGA. Set to 30 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution VGA. Forced to 30 FPS.");
         mCamFrameRate = 30;
       }
-      else if (mCamFrameRate > 60 && mCamFrameRate < 100)
+      else if (mCamFrameRate >= 45 && mCamFrameRate < 80)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution VGA. Set to 60 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution VGA. Forced to 60 FPS.");
         mCamFrameRate = 60;
       }
-      else if (mCamFrameRate > 100)
+      else if (mCamFrameRate >= 80)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution VGA. Set to 100 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution VGA. Forced to 100 FPS.");
         mCamFrameRate = 100;
-      }
-      else
-      {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution VGA. Set to 15 FPS.");
-        mCamFrameRate = 15;
       }
 
       break;
@@ -1573,44 +1563,44 @@ void ZEDWrapperNodelet::checkResolFps()
         break;
       }
 
-      if (mCamFrameRate > 30 && mCamFrameRate < 60)
+      if (mCamFrameRate < 45)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1200. Set to 30 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1200. Forced to 30 FPS.");
         mCamFrameRate = 30;
       }
-      else if (mCamFrameRate > 60)
+      else if (mCamFrameRate >= 45)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1200. Set to 60 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1200. Forced to 60 FPS.");
         mCamFrameRate = 60;
-      }
-      else
-      {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1200. Set to 30 FPS.");
-        mCamFrameRate = 30;
       }
 
       break;
 
     case sl::RESOLUTION::SVGA:
-      if (mCamFrameRate == 120 || mCamFrameRate == 60)
+      if (mCamFrameRate == 120 || mCamFrameRate == 60 || mCamFrameRate == 30 || mCamFrameRate == 15)
       {
         break;
       }
 
-      if (mCamFrameRate > 60 && mCamFrameRate < 120)
+      if (mCamFrameRate < 23)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution SVGA. Set to 60 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 15 FPS.");
+        mCamFrameRate = 15;
+      } 
+      else if (mCamFrameRate >= 23 && mCamFrameRate < 45)
+      {
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 30 FPS.");
+        mCamFrameRate = 30;
+      }
+      else if (mCamFrameRate >= 45 && mCamFrameRate < 90)
+      {
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1080. Forced to 60 FPS.");
         mCamFrameRate = 60;
       }
-      else if (mCamFrameRate > 120)
+      else if (mCamFrameRate >= 90)
       {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution SVGA. Set to 120 FPS.");
+        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution HD1200. Forced to 120 FPS.");
         mCamFrameRate = 120;
-      }
-      else
-      {
-        NODELET_WARN_STREAM("Wrong FrameRate (" << mCamFrameRate << ") for the resolution SVGA. Set to 60 FPS.");
-        mCamFrameRate = 60;
       }
 
       break;
