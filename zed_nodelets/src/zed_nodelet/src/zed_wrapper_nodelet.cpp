@@ -5207,7 +5207,7 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
 {
   // ----> Check for result subscribers
   uint32_t markerSubNumber = mPubMarker.getNumSubscribers();
-  uint32_t planeSubNumber = mPubMarker.getNumSubscribers();
+  uint32_t planeSubNumber = mPubPlane.getNumSubscribers();
 
   if ((markerSubNumber + planeSubNumber) == 0)
   {
