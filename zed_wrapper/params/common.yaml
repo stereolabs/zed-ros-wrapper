@@ -36,7 +36,8 @@ general:
     #region_of_interest:        '[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
     #region_of_interest:        '[[0.25,0.25],[0.75,0.25],[0.75,0.75],[0.25,0.75]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
     #region_of_interest:        '[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
-    optional_opencv_calibration_file: '/home/warp/Downloads/zedxm_warplab_tank_3_28_2024_cams-camchain-opencv.yaml'
+    #optional_opencv_calibration_file: '/home/warp/Downloads/zedxm_warplab_tank_3_28_2024_cams-camchain-opencv.yaml'
+    optional_opencv_calibration_file: '/home/warp/Downloads/zedxm_sample_camchain-opencv.yaml'
 
 #video:
 
