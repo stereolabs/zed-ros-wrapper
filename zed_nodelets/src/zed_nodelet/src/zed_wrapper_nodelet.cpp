@@ -268,6 +268,7 @@ void ZEDWrapperNodelet::onInit()
   mZedParams.open_timeout_sec = 10.0f;
 
   mZedParams.enable_image_enhancement = true;  // Always active
+  mZedParams.optional_opencv_calibration_file = mOptionalOpencvCalibrationFile.c_str();
 
   mDiagUpdater.add("ZED Diagnostic", this, &ZEDWrapperNodelet::callback_updateDiagnostic);
   mDiagUpdater.setHardwareID("ZED camera");
@@ -877,6 +878,9 @@ void ZEDWrapperNodelet::readGeneralParams()
   NODELET_INFO_STREAM(" * Camera Flip\t\t\t-> " << sl::toString(mCameraFlip).c_str());
   mNhNs.getParam("general/self_calib", mCameraSelfCalib);
   NODELET_INFO_STREAM(" * Self calibration\t\t-> " << (mCameraSelfCalib ? "ENABLED" : "DISABLED"));
+  
+  mNhNs.getParam("general/optional_opencv_calibration_file", mOptionalOpencvCalibrationFile);
+  NODELET_INFO_STREAM(" * Calibration File\t\t-> " << mOptionalOpencvCalibrationFile);
 
   int tmp_sn = 0;
   mNhNs.getParam("general/serial_number", tmp_sn);

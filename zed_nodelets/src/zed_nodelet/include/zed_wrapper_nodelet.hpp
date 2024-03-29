@@ -652,6 +652,7 @@ private:
   bool mCameraSelfCalib;
   bool mIsStatic = false;
   double mPosTrkMinDepth = 0.0;
+  std::string mOptionalOpencvCalibrationFile;
 
   // Flags
   bool mGrabActive = false;  // Indicate if camera grabbing is active (at least one topic subscribed)
