@@ -83,7 +83,7 @@ sensors:
 object_detection:
     od_enabled:                         false                           # True to enable Object Detection [not available for ZED]
     model:                              'MULTI_CLASS_BOX_ACCURATE'      # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE'
-    max_range:                          15.                             # Maximum detection range
+    max_range:                          5.                             # Maximum detection range
     allow_reduced_precision_inference:  true                            # Allow inference to run at a lower precision to improve runtime and memory usage
     prediction_timeout:                 0.5                             #  During this time [sec], the object will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions            
     object_tracking_enabled:            true                            # Enable/disable the tracking of the detected objects
