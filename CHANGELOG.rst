@@ -1,6 +1,14 @@
 CHANGELOG
 =========
 
+05-04-2024
+----------
+- Fix compatibility with ZED SDK v4.1
+- Add support to Positional Tracking Gen 2
+- The parameter `pos_tracking_mode` can accept the new values `GEN_1` and `GEN_2`, instead of `STANDARD` and `QUALITY`
+- Add support to `NEURAL+` depth mode. Value `NEURAL_PLUS` for the parameter `depth_mode`
+- The annoying warning `Elaboration takes longer...` is now emitted only in DEBUG mode
+
 v4.0.8
 ------
 

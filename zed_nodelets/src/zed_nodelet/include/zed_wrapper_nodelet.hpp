@@ -636,7 +636,7 @@ private:
 
   // Positional tracking
   bool mPosTrackingEnabled = false;
-  sl::POSITIONAL_TRACKING_MODE mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
+  sl::POSITIONAL_TRACKING_MODE mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::GEN_2;
   bool mPosTrackingReady = false;
   bool mPosTrackingStarted = false;
   bool mPosTrackingRequired = false;
