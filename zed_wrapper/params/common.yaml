@@ -40,7 +40,7 @@ general:
 #video:
 
 depth:
-    depth_mode:                 'NEURAL_PLUS'                   # 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', `NEURAL_PLUS`
+    depth_mode:                 'ULTRA'                         # 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', `NEURAL_PLUS`
     depth_stabilization:        1                               # [0-100] - 0: Disabled
     openni_depth_mode:          false                           # 'false': 32bit float meter units, 'true': 16bit uchar millimeter units
 
@@ -75,7 +75,7 @@ mapping:
 
 sensors:
     sensors_timestamp_sync:     false                           # Synchronize Sensors messages timestamp with latest received frame
-    max_pub_rate:               400.                            # max frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
+    max_pub_rate:               200.                            # max frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
     publish_imu_tf:             true                            # publish `IMU -> <cam_name>_left_camera_frame` TF
 
 object_detection:
