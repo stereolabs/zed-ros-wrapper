@@ -268,7 +268,8 @@ void ZEDWrapperNodelet::onInit()
   mZedParams.open_timeout_sec = 10.0f;
 
   mZedParams.enable_image_enhancement = true;  // Always active
-  mZedParams.optional_opencv_calibration_file = mOptionalOpencvCalibrationFile.c_str();
+  sl::String optional_opencv_calibration_file(mOptionalOpencvCalibrationFile.c_str());
+  mZedParams.optional_opencv_calibration_file = optional_opencv_calibration_file; 
 
   mDiagUpdater.add("ZED Diagnostic", this, &ZEDWrapperNodelet::callback_updateDiagnostic);
   mDiagUpdater.setHardwareID("ZED camera");
