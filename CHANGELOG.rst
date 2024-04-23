@@ -1,54 +1,43 @@
 CHANGELOG
 =========
 
-2023-09-15
+05-04-2024
 ----------
+- Fix compatibility with ZED SDK v4.1
+- Add support to Positional Tracking Gen 2
+- The parameter `pos_tracking_mode` can accept the new values `GEN_1` and `GEN_2`, instead of `STANDARD` and `QUALITY`
+- Add support to `NEURAL+` depth mode. Value `NEURAL_PLUS` for the parameter `depth_mode`
+- The annoying warning `Elaboration takes longer...` is now emitted only in DEBUG mode
+
+v4.0.8
+------
+
 - Remove start_object_detection and stop_object_detection services
 - Add enable_object_detection service that takes a bool as parameter to enable/disable the OD module (same behavior as in ROS 2 Wrapper)
 - Add parameter 'object_detection/allow_reduced_precision_inference'
 - Add parameter 'object_detection/prediction_timeout'
 - The parameter 'object_detection/model' is no more an integer, but a string with the full name of the supported OD model
-
-2023-09-15
-----------
 - Add pose and odometry status publishers
 - Improve odometry and pose publishing and TF broadcasting
-
-2023-09-13
-----------
 - Add ROS '.clang-format'
 - Code refactoring
 - Add 'set_roi' and 'reset_roi' services
 - Add parameter 'pos_tracking/depth_min_range'
 - Add parameter 'pos_tracking/set_as_static'
-
-2023-09-12
-----------
 - Change the parameter 'general/resolution' to 'general/grab_resolution' and replace numeric values with strings
 - Add 'general.svo_realtime' parameter
 - Change 'general/verbose' to 'general/sdk_verbose'
 - Add 'general/region_of_interest' parameter
-
-2023-09-10
-----------
 - Change the parameter 'depth/quality' to 'depth/depth_mode' and replace numeric values with strings
 - Improve the behavior of the "NO DEPTH" mode
 - Remove the parameters 'depth_downsample_factor' and 'img_downsample_factor'
 - Add the parameter 'pub_resolution' and 'pub_downscale_factor'
-
-2023-09-08
-----------
 - Add 'pos_tracking/set_gravity_as_origin' parameter. If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
 - Add 'pos_tracking/pos_tracking_mode' parameter. Matches the ZED SDK setting: 'QUALITY', 'STANDARD'
 - Fix the warning 'Elaboration takes longer [...]'
-
-2023-09-07
-----------
 - 'pub_frame_rate' now controls the 'InitParameters::grab_compute_capping_fps' parameter of the ZED SDK instead of controlling the frequency of a parallel thread. It's not a Dynamic parameter anymore.
 - Change 'general/camera_flip' parameter to string: 'AUTO', 'ON', 'OFF'
 - Change 'general/verbose' from bool to integer
-
-
 
 v4.0.5
 ------
