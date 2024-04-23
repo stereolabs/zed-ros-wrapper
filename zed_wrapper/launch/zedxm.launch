@@ -35,6 +35,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="cam_roll"              default="0.0" /> <!-- Orientation respect to base frame (i.e. "base_link) -->
     <arg name="cam_pitch"             default="0.0" /> <!-- Orientation respect to base frame (i.e. "base_link) -->
     <arg name="cam_yaw"               default="0.0" /> <!-- Orientation respect to base frame (i.e. "base_link) -->
+    
+    <arg name="self_calib"            default="true" />
+    <arg name="optional_opencv_calibration_file"             default="" /> <!-- <arg name="optional_opencv_calibration_file" default="path/to/opencv/file.yaml"> -->
+    <arg name="min_depth"             default="0.1" />
+    <arg name="max_depth"             default="15.0" />
 
     <group ns="$(arg camera_name)">
         <include file="$(find zed_wrapper)/launch/include/zed_camera.launch.xml">
@@ -52,6 +57,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <arg name="cam_roll"            value="$(arg cam_roll)" />
             <arg name="cam_pitch"           value="$(arg cam_pitch)" />
             <arg name="cam_yaw"             value="$(arg cam_yaw)" />
+            <arg name="self_calib"          value="$(arg self_calib)" />
+            <arg name="optional_opencv_calibration_file"             value="$(arg optional_opencv_calibration_file)" />
+            <arg name="min_depth"           value="$(arg min_depth)" />
+            <arg name="max_depth"           value="$(arg max_depth)" />
         </include>
     </group>
 </launch>

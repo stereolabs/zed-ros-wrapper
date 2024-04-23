@@ -46,6 +46,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="cam_pitch"             default="0.0" />
     <arg name="cam_yaw"               default="0.0" />
 
+    <!-- Calibration -->
+    <arg name="self_calib"            default="true" />
+    <arg name="optional_opencv_calibration_file"            default="" /><!-- <arg name="optional_opencv_calibration_file" default="path/to/opencv/file.yaml"> -->
+      
+    <!-- Depth -->
+    <arg name="min_depth"             default="0.3" />
+    <arg name="max_depth"             default="15.0" />
+
     <!-- ROS URDF description of the ZED -->
     <group if="$(arg publish_urdf)">
         <param name="$(arg camera_name)_description"
@@ -87,5 +95,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         <!-- GPU ID -->
         <param name="general/gpu_id"                    value="$(arg gpu_id)" />
+          
+        <!-- Calibration -->
+        <param name="general/self_calib"                value="$(arg self_calib)" />
+        <param name="general/optional_opencv_calibration_file"                value="$(arg optional_opencv_calibration_file)" />
+          
+        <!-- Depth -->
+        <param name="depth/min_depth"                   value="$(arg min_depth)" />
+        <param name="depth/max_depth"                   value="$(arg max_depth)" />
     </node>
 </launch>
