@@ -26,7 +26,7 @@ general:
     base_frame:                 'base_link'                     # must be equal to the frame_id used in the URDF file
     sdk_verbose:                1                               # Set verbose level of the ZED SDK
     svo_compression:            2                               # `0`: LOSSLESS, `1`: AVCHD, `2`: HEVC
-    self_calib:                 false                           # enable/disable self calibration at starting
+    self_calib:                 true                            # enable/disable self calibration at starting
     camera_flip:                'AUTO'                          # camera flip mode: 'OFF', 'ON', 'AUTO'
     pub_resolution:             'CUSTOM'                        # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
     pub_downscale_factor:       2.0                             # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
@@ -36,8 +36,7 @@ general:
     #region_of_interest:        '[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
     #region_of_interest:        '[[0.25,0.25],[0.75,0.25],[0.75,0.75],[0.25,0.75]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
     #region_of_interest:        '[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
-    optional_opencv_calibration_file: '/home/warp/Downloads/zedxm_warplab_tank_3_28_2024_cams-camchain-opencv_mod.yaml'
-    #optional_opencv_calibration_file: '/home/warp/Downloads/zedxm_sample_camchain-opencv.yaml'
+    optional_opencv_calibration_file: ''
 
 #video:
 
