@@ -22,7 +22,7 @@
 #include <sys/stat.h>
 
 #include <boost/make_shared.hpp>
-#include <experimental/filesystem>  // for std::experimental::filesystem::absolute
+#include <boost/filesystem.hpp>  // for std::experimental::filesystem::absolute
 #include <sstream>
 #include <vector>
 
@@ -36,7 +36,7 @@ bool file_exist(const std::string& name)
   return (stat(name.c_str(), &buffer) == 0);
 }
 
-namespace fs = std::experimental::filesystem;
+namespace fs = boost::filesystem;
 std::string resolveFilePath(std::string file_path)
 {
   if (file_path.empty())

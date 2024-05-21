@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.17)
 
 project(zed_nodelets)
 
@@ -30,8 +30,9 @@ if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # Jetson TX
     SET(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 endif()
 
-find_package(CUDA)
-checkPackage("CUDA" "CUDA not found, install it from:\n https://developer.nvidia.com/cuda-downloads")
+find_package(CUDAToolkit)
+set(CUDA_LIBRARIES CUDA::cudart CUDA::cuda_driver)
+checkPackage("CUDAToolkit" "CUDA not found, install it from:\n https://developer.nvidia.com/cuda-downloads")
 
 find_package(OpenMP)
 checkPackage("OpenMP" "OpenMP not found, please install it to improve performances: 'sudo apt install libomp-dev'")
@@ -40,6 +41,8 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
+
+find_package(Boost REQUIRED COMPONENTS filesystem)
 
 find_package(catkin REQUIRED COMPONENTS
     roscpp
@@ -96,7 +99,7 @@ set(RGBD_SENS_DEMUX_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd_sensors_demux_nodel
 # Specify locations of header files.
 set(INCLUDE_DIRS
     ${catkin_INCLUDE_DIRS}
-    ${CUDA_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
     ${ZED_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_nodelet/include
@@ -105,19 +108,19 @@ set(INCLUDE_DIRS
 )
 
 link_directories(${ZED_LIBRARY_DIR})
-link_directories(${CUDA_LIBRARY_DIRS})
+link_directories(${CUDAToolkit_LIBRARY_DIR})
+link_directories(${Boost_LIBRARY_DIR})
 
 ###############################################################################
 
 ###############################################################################
 # ZED WRAPPER NODELET
 
-add_definitions(-std=c++11 -Wno-deprecated-declarations)
 set(LINK_LIBRARIES
   ${catkin_LIBRARIES}
   ${ZED_LIBRARIES}
   ${CUDA_LIBRARIES}
-  stdc++fs
+  ${Booost_LIBRARIES}
 )
 
 add_library(ZEDNodelets
@@ -126,6 +129,12 @@ add_library(ZEDNodelets
     ${RGBD_SENS_SYNC_SRC}
     ${RGBD_SENS_DEMUX_SRC}
 )
+set_target_properties(ZEDNodelets PROPERTIES CXX_STANDARD 11)
+
+if (NOT MSVC)
+    target_compile_options(ZEDNodelets PRIVATE -Wno-deprecated-declarations)
+endif()
+
 target_include_directories(ZEDNodelets PRIVATE ${INCLUDE_DIRS})
 target_link_libraries(ZEDNodelets ${LINK_LIBRARIES})
 add_dependencies(

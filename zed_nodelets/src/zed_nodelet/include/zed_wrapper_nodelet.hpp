@@ -699,7 +699,7 @@ private:
   // Zed object
   sl::InitParameters mZedParams;
   sl::Camera mZed;
-  unsigned int mZedSerialNumber;
+  unsigned int mZedSerialNumber = 0;
   sl::MODEL mZedUserCamModel;   // Camera model set by ROS Param
   sl::MODEL mZedRealCamModel;   // Real camera model by SDK API
   unsigned int mCamFwVersion;   // Camera FW version

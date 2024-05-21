@@ -47,7 +47,6 @@ link_directories(${CUDA_LIBRARY_DIRS})
 ###############################################################################
 # EXECUTABLE
 
-add_definitions(-std=c++11)
 set(LINK_LIBRARIES
   ${catkin_LIBRARIES}
 )
@@ -55,6 +54,7 @@ set(LINK_LIBRARIES
 add_executable(zed_wrapper_node ${NODE_SRC})
 target_link_libraries(zed_wrapper_node ${LINK_LIBRARIES})
 add_dependencies(zed_wrapper_node ${catkin_EXPORTED_TARGETS})
+set_target_properties(zed_wrapper_node PROPERTIES CXX_STANDARD 11)
 
 
 ###############################################################################

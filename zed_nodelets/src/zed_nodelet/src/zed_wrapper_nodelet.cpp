@@ -1394,7 +1394,7 @@ std::string ZEDWrapperNodelet::parseRoiPoly(const std::vector<std::vector<float>
   }
   else
   {
-    for (size_t i; i < poly_size; ++i)
+    for (size_t i = 0; i < poly_size; ++i)
     {
       if (in_poly[i].size() != 2)
       {
@@ -5374,7 +5374,7 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
     {
       for (int p = 0; p < 3; p++)
       {
-        uint vIdx = mesh.triangles[t][p];
+        unsigned int vIdx = mesh.triangles[t][p];
         plane_marker->points[ptIdx].x = mesh.vertices[vIdx][0];
         plane_marker->points[ptIdx].y = mesh.vertices[vIdx][1];
         plane_marker->points[ptIdx].z = mesh.vertices[vIdx][2];
