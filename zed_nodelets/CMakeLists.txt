@@ -120,7 +120,7 @@ set(LINK_LIBRARIES
   ${catkin_LIBRARIES}
   ${ZED_LIBRARIES}
   ${CUDA_LIBRARIES}
-  ${Booost_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 add_library(ZEDNodelets
