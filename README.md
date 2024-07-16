@@ -1,12 +1,13 @@
-![](./images/Picto+STEREOLABS_Black.jpg)
+<h1 align="center">
+   <img src="./images/Picto+STEREOLABS_Black.jpg" alt="Stereolabs" title="Stereolabs" /><br \>
+   ROS Noetic Ninjemis Integration
+</h1>
 
-# Stereolabs ZED Camera - ROS Noetic Ninjemis Integration
-
-This package lets you use the ZED stereo camera with ROS. It outputs the camera left and right images, depth map, point cloud, pose information and supports the use of multiple ZED cameras.
+This package lets you use the ZED stereo camera with ROS. It outputs the camera's left and right images, depth map, point cloud, and pose information and supports the use of multiple ZED cameras.
 
 [More information](https://www.stereolabs.com/documentation/guides/using-zed-with-ros/introduction.html)
 
-**Note:** The `zed_interfaces` package has been removed from this repository and moved to its own [`zed-ros-interfaces` repository](https://github.com/stereolabs/zed-ros-interfaces) for allowing better integration of the ZED Wrapper on remote ground stations that do not require the full package to be installed. To update your repository please follow the [new update instructions](https://github.com/stereolabs/zed-ros-wrapper#update-the-repository). For more information please read issue [#750](https://github.com/stereolabs/zed-ros-wrapper/issues/750).
+**Note:** The `zed_interfaces` package has been removed from this repository and moved to its own [`zed-ros-interfaces` repository](https://github.com/stereolabs/zed-ros-interfaces) to allow better integration of the ZED Wrapper on remote ground stations that do not require the full package to be installed. To update your repository please follow the [new update instructions](https://github.com/stereolabs/zed-ros-wrapper#update-the-repository). For more information please read issue [#750](https://github.com/stereolabs/zed-ros-wrapper/issues/750).
 
 ## Getting started
 
