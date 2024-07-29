@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+07-29-2024
+----------
+- Fix wrong dynamic parameters initialization
+
 05-04-2024
 ----------
 - Fix compatibility with ZED SDK v4.1

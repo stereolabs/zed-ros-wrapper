@@ -1191,6 +1191,8 @@ void ZEDWrapperNodelet::readSvoParams()
 
 void ZEDWrapperNodelet::readDynParams()
 {
+  std::cerr << "Ci sei o no?" << std::endl << std::flush;
+
   NODELET_INFO_STREAM("*** DYNAMIC PARAMETERS (Init. values) ***");
 
   mNhNs.getParam("brightness", mCamBrightness);
@@ -1255,6 +1257,10 @@ void ZEDWrapperNodelet::readParameters()
   readGeneralParams();
   // <---- General
 
+  // ----> Dynamic
+  readDynParams();
+  // <---- Dynamic
+
   // ----> Video
   // NODELET_INFO_STREAM("*** VIDEO PARAMETERS ***");
   // Note: there are no "static" video parameters
@@ -1263,10 +1269,6 @@ void ZEDWrapperNodelet::readParameters()
   // -----> Depth
   readDepthParams();
   // <----- Depth
-
-  // ----> Dynamic
-  void readDynParams();
-  // <---- Dynamic
 
   // ----> Positional Tracking
   readPosTrkParams();
