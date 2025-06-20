@@ -634,6 +634,8 @@ private:
   double mCamMaxDepth;
   std::string mClickedPtTopic = "/clicked_point";
 
+  bool mFillMode = false;
+
   // Positional tracking
   bool mPosTrackingEnabled = false;
   sl::POSITIONAL_TRACKING_MODE mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::GEN_2;
