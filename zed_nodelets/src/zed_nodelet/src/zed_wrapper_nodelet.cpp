@@ -943,6 +943,8 @@ void ZEDWrapperNodelet::readDepthParams()
     NODELET_INFO_STREAM(" * Minimum depth\t\t-> " << mCamMinDepth << " m");
     mNhNs.getParam("depth/max_depth", mCamMaxDepth);
     NODELET_INFO_STREAM(" * Maximum depth\t\t-> " << mCamMaxDepth << " m");
+    mNhNs.getParam("depth/enable_fill_mode", mFillMode);
+    NODELET_INFO_STREAM(" * [DYN] Fill Mode\t-> " << mFillMode);
   }
 }
 
@@ -1238,7 +1240,7 @@ void ZEDWrapperNodelet::readDynParams()
     mNhNs.getParam("depth_confidence", mCamDepthConfidence);
     NODELET_INFO_STREAM(" * [DYN] Depth confidence\t-> " << mCamDepthConfidence);
     mNhNs.getParam("depth_texture_conf", mCamDepthTextureConf);
-    NODELET_INFO_STREAM(" * [DYN] Depth texture conf.\t-> " << mCamDepthTextureConf);
+    NODELET_INFO_STREAM(" * [DYN] Depth texture conf.\t-> " << mCamDepthTextureConf);    
 
     mNhNs.getParam("point_cloud_freq", mPointCloudFreq);
     if (mPointCloudFreq > mPubFrameRate)
@@ -3984,6 +3986,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
         runParams.confidence_threshold = mCamDepthConfidence;
         runParams.texture_confidence_threshold = mCamDepthTextureConf;
         runParams.enable_depth = true;  // Ask to compute the depth
+        runParams.enable_fill_mode = mFillMode;
       }
       else
       {
